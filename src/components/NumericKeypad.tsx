@@ -18,36 +18,36 @@ export default function NumericKeypad({
   ];
 
   return (
-    <div className="bg-gray-100 rounded-xl p-2 space-y-2">
+    <div className="bg-gray-100 rounded-xl p-1.5 space-y-1.5">
       {keys.map((row, i) => (
-        <div key={i} className="grid grid-cols-3 gap-2">
+        <div key={i} className="grid grid-cols-3 gap-1.5">
           {row.map((key) => (
             <button
               key={key}
               onClick={() => onKeyPress(key)}
-              className="bg-white rounded-lg py-4 text-2xl font-bold shadow-sm active:bg-gray-200 transition-colors"
+              className="bg-white rounded-lg py-3 text-xl font-bold shadow-sm active:bg-gray-200 transition-colors"
             >
               {key}
             </button>
           ))}
         </div>
       ))}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5">
         <button
           onClick={onToggleMode}
-          className="bg-gray-300 rounded-lg py-4 text-sm font-bold active:bg-gray-400 transition-colors"
+          className="bg-gray-300 rounded-lg py-3 text-sm font-bold active:bg-gray-400 transition-colors"
         >
           ABC
         </button>
         <button
           onClick={() => onKeyPress("0")}
-          className="bg-white rounded-lg py-4 text-2xl font-bold shadow-sm active:bg-gray-200 transition-colors"
+          className="bg-white rounded-lg py-3 text-xl font-bold shadow-sm active:bg-gray-200 transition-colors"
         >
           0
         </button>
         <button
           onClick={onBackspace}
-          className="bg-gray-300 rounded-lg py-4 text-xl active:bg-gray-400 transition-colors"
+          className="bg-gray-300 rounded-lg py-3 text-xl active:bg-gray-400 transition-colors"
         >
           <svg
             className="w-6 h-6 mx-auto"

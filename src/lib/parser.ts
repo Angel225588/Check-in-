@@ -1,32 +1,54 @@
 import { Client } from "./types";
 
+// Detect the delimiter used in the text (tab, semicolon, or comma — in that priority)
+function detectDelimiter(text: string): string {
+  const firstLine = text.split("\n")[0] || "";
+  // Prefer tab — the hotel report is tab-delimited and names contain commas
+  if (firstLine.includes("\t")) return "\t";
+  if (firstLine.includes(";")) return ";";
+  return ",";
+}
+
 export function parseCSV(text: string): Client[] {
   const lines = text.trim().split("\n");
   const clients: Client[] = [];
+  const delimiter = detectDelimiter(text);
 
   for (const line of lines) {
-    const parts = line.split(/[,\t;]/).map((s) => s.trim());
+    const parts = line.split(delimiter).map((s) => s.trim());
     if (parts.length < 8) continue;
 
     // Skip header rows
-    if (parts[0].toLowerCase() === "room no" || parts[0].toLowerCase() === "room") continue;
+    const first = parts[0].toLowerCase();
+    if (
+      first === "room no" ||
+      first === "room no." ||
+      first === "room" ||
+      first === "filter" ||
+      first.includes("room")
+    ) continue;
 
+    // Fixed column positions matching the R118 Package Forecast report:
+    // 0: Room No. | 1: Room Type | 2: RTC | 3: Conf. No. | 4: Name
+    // 5: Arrival Date | 6: Departure Date | 7: Resv. Status
+    // 8: Adults | 9: Children | 10: Rate Code | 11: Package Codes
     const client: Client = {
       roomNumber: parts[0] || "",
       roomType: parts[1] || "",
       rtc: parts[2] || "",
       confirmationNumber: parts[3] || "",
-      name: parts[4] || "",
+      name: parts[4] || "",                                    // Column 5 (index 4) — ALWAYS the name
       arrivalDate: parts[5] || "",
       departureDate: parts[6] || "",
       reservationStatus: parts[7] || "",
-      adults: parseInt(parts[8] || "0", 10) || 0,
-      children: parseInt(parts[9] || "0", 10) || 0,
+      adults: parseInt(parts[8] || "0", 10) || 0,              // Column 9 (index 8) — ALWAYS adults
+      children: parseInt(parts[9] || "0", 10) || 0,            // Column 10 (index 9) — ALWAYS children
       rateCode: parts[10] || "",
-      packageCode: parts[11] || "",
+      packageCode: parts[11] || "",                             // Column 12 (index 11) — ALWAYS package code
     };
 
-    if (client.roomNumber) {
+    // Only include rows that start with a valid room number (3-4 digits)
+    if (/^\d{3,4}$/.test(client.roomNumber)) {
       clients.push(client);
     }
   }

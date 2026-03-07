@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDailyData } from "@/hooks/useDailyData";
 import { useSearch } from "@/hooks/useSearch";
@@ -17,19 +17,20 @@ export default function SearchPage() {
     useSearch(clients);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Refresh data when returning from check-in
   const handleSelectRoom = (roomNumber: string) => {
     router.push(`/checkin/${roomNumber}`);
   };
 
   // Refresh on focus (when returning from check-in screen)
-  if (typeof window !== "undefined") {
-    window.onfocus = refresh;
-  }
+  useEffect(() => {
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refresh]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-dvh">
         <div className="text-gray-500">Loading...</div>
       </div>
     );
@@ -37,7 +38,7 @@ export default function SearchPage() {
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4 p-4">
+      <div className="flex flex-col items-center justify-center h-dvh gap-4 p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">No Data for Today</h1>
           <p className="text-gray-500">
@@ -55,9 +56,9 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-lg mx-auto">
+    <div className="flex flex-col h-dvh w-full max-w-md mx-auto overflow-hidden">
       {/* Metrics Bar */}
-      <div className="p-3">
+      <div className="shrink-0 p-2 pt-2">
         <MetricsBar
           clients={clients}
           checkIns={checkIns}
@@ -66,12 +67,12 @@ export default function SearchPage() {
       </div>
 
       {/* Search Input */}
-      <div className="px-3">
+      <div className="shrink-0 px-2 pb-1">
         <SearchInput query={query} mode={mode} onClear={clear} />
       </div>
 
-      {/* Suggestions */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+      {/* Suggestions - scrollable middle area */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 py-1 space-y-1.5">
         {results.map((client) => (
           <SuggestionCard
             key={client.roomNumber}
@@ -81,22 +82,20 @@ export default function SearchPage() {
           />
         ))}
         {query && results.length === 0 && (
-          <div className="text-center text-gray-400 py-8">No rooms found</div>
+          <div className="text-center text-gray-400 py-4 text-sm">No rooms found</div>
         )}
       </div>
 
-      {/* Upload link */}
-      <div className="px-3 pb-1">
-        <button
-          onClick={() => router.push("/upload")}
-          className="text-xs text-gray-400 underline"
-        >
-          Re-upload data
-        </button>
-      </div>
-
-      {/* Keypad */}
-      <div className="p-3 pt-0">
+      {/* Keypad - pinned to bottom */}
+      <div className="shrink-0 p-2 pt-0">
+        <div className="flex items-center justify-between mb-1 px-1">
+          <button
+            onClick={() => router.push("/upload")}
+            className="text-xs text-gray-400 underline"
+          >
+            Re-upload data
+          </button>
+        </div>
         {mode === "numeric" ? (
           <NumericKeypad
             onKeyPress={appendKey}
