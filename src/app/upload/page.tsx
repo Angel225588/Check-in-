@@ -10,14 +10,17 @@ import DataTable from "@/components/DataTable";
 export default function UploadPage() {
   const router = useRouter();
   const [parsedClients, setParsedClients] = useState<Client[]>([]);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [ocrRawText, setOcrRawText] = useState<string>("");
+  const [showManual, setShowManual] = useState(false);
 
-  const handleImageCaptured = (file: File) => {
-    const url = URL.createObjectURL(file);
-    setPhotoPreview(url);
+  const handleOCRProcessed = (clients: Client[], rawText: string) => {
+    setOcrRawText(rawText);
+    if (clients.length > 0) {
+      setParsedClients(clients);
+    }
   };
 
-  const handleParsed = (clients: Client[]) => {
+  const handleManualParsed = (clients: Client[]) => {
     setParsedClients(clients);
   };
 
@@ -28,11 +31,11 @@ export default function UploadPage() {
 
   const handleClear = () => {
     setParsedClients([]);
-    setPhotoPreview(null);
+    setOcrRawText("");
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
+    <div className="max-w-2xl mx-auto p-4 space-y-6 pb-20">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Upload Daily Report</h1>
         <button
@@ -43,30 +46,47 @@ export default function UploadPage() {
         </button>
       </div>
 
-      <PhotoCapture onImageCaptured={handleImageCaptured} />
+      {/* Photo / Camera upload with OCR */}
+      <PhotoCapture onProcessed={handleOCRProcessed} />
 
-      {photoPreview && (
-        <div className="border rounded-lg overflow-hidden">
-          <img
-            src={photoPreview}
-            alt="Report preview"
-            className="w-full"
-          />
-          <p className="p-3 text-sm text-amber-700 bg-amber-50">
-            OCR processing coming soon. Please paste the data manually below.
+      {/* Show OCR raw text for debugging if needed */}
+      {ocrRawText && parsedClients.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <p className="text-amber-800 text-sm font-medium mb-2">
+            Could not automatically detect rooms. The raw text extracted is shown
+            below. You can try a clearer photo or paste the data manually.
           </p>
+          <details>
+            <summary className="text-xs text-amber-600 cursor-pointer">
+              Show raw OCR text
+            </summary>
+            <pre className="mt-2 text-xs bg-white p-2 rounded border overflow-x-auto whitespace-pre-wrap">
+              {ocrRawText}
+            </pre>
+          </details>
         </div>
       )}
 
-      <div className="border-t pt-4">
-        <CsvImporter onParsed={handleParsed} />
-      </div>
-
+      {/* Review Table */}
       <DataTable
         clients={parsedClients}
         onConfirm={handleConfirm}
         onClear={handleClear}
       />
+
+      {/* Manual fallback - collapsed by default when OCR works */}
+      <div className="border-t pt-4">
+        {parsedClients.length > 0 && !showManual ? (
+          <button
+            onClick={() => setShowManual(true)}
+            className="text-sm text-gray-500 underline"
+          >
+            Need to paste data manually instead?
+          </button>
+        ) : (
+          <CsvImporter onParsed={handleManualParsed} />
+        )}
+      </div>
     </div>
   );
 }
