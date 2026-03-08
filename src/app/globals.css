@@ -1,1 +1,184 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'MuseoSans', 'Nunito', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  --color-brand: #A66914;
+  --color-brand-light: #DD9C28;
+  --color-brand-50: #FBF5EB;
+  --color-brand-100: #F5E6C8;
+  --color-dark: #1C1C1C;
+  --color-slate: #555759;
+  --color-teal: #425563;
+  --color-forest: #303939;
+  --color-muted: #707070;
+  --color-border: #C4C4C4;
+  --color-error: #D0021B;
+  --color-bg-alt: #F4F4F4;
+  --radius-card: 14px;
+  --radius-pill: 52px;
+}
+
+@layer base {
+  body {
+    font-family: 'MuseoSans', 'Nunito', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    color: var(--color-dark);
+    background: #F2F2F7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .dark body,
+  html.dark body {
+    color: #F0F0F5;
+    background: #0A0A0F;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+  .dark .glass {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  .dark .glass-dark {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .glass-brand {
+    background: rgba(166, 105, 20, 0.12);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(166, 105, 20, 0.2);
+  }
+  .dark .glass-brand {
+    background: rgba(221, 156, 40, 0.12);
+    border: 1px solid rgba(221, 156, 40, 0.2);
+  }
+
+  .glass-key {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .dark .glass-key {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 12px rgba(166, 105, 20, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-surface {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+  .dark .glass-surface {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-liquid {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.25) 50%,
+      rgba(255, 255, 255, 0.4) 100%
+    );
+    backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
+    -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow:
+      0 0 0 0.5px rgba(255, 255, 255, 0.6) inset,
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      0 0 20px rgba(255, 255, 255, 0.15) inset;
+  }
+  .dark .glass-liquid {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
+    -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 0 0 0.5px rgba(255, 255, 255, 0.05) inset,
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(166, 105, 20, 0.03) inset;
+  }
+
+  .glass-liquid-active {
+    background: linear-gradient(
+      135deg,
+      rgba(166, 105, 20, 0.15) 0%,
+      rgba(221, 156, 40, 0.1) 50%,
+      rgba(166, 105, 20, 0.12) 100%
+    );
+    backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
+    -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
+    border: 1px solid rgba(166, 105, 20, 0.3);
+    box-shadow:
+      0 0 0 0.5px rgba(166, 105, 20, 0.2) inset,
+      0 2px 8px rgba(166, 105, 20, 0.1),
+      0 0 20px rgba(221, 156, 40, 0.08) inset;
+  }
+  .dark .glass-liquid-active {
+    background: linear-gradient(
+      135deg,
+      rgba(166, 105, 20, 0.2) 0%,
+      rgba(221, 156, 40, 0.1) 50%,
+      rgba(166, 105, 20, 0.15) 100%
+    );
+    border: 1px solid rgba(221, 156, 40, 0.3);
+    box-shadow:
+      0 0 0 0.5px rgba(221, 156, 40, 0.15) inset,
+      0 2px 12px rgba(166, 105, 20, 0.2),
+      0 0 24px rgba(221, 156, 40, 0.1) inset;
+  }
+
+  /* Dark mode floating settings pill */
+  .glass-dark-float {
+    background: rgba(20, 20, 28, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Dark mode overrides for common Tailwind colors */
+  .dark .bg-\[\#F2F2F7\] { background-color: #0A0A0F !important; }
+  .dark .text-dark { color: #F0F0F5 !important; }
+  .dark .text-muted { color: #8E8E93 !important; }
+  .dark .text-slate { color: #A0A0A8 !important; }
+  .dark .text-brand { color: #DD9C28 !important; }
+  .dark .bg-brand-50 { background-color: rgba(166, 105, 20, 0.1) !important; }
+  .dark .bg-brand\/10 { background-color: rgba(221, 156, 40, 0.15) !important; }
+  .dark .bg-brand-light\/15 { background-color: rgba(221, 156, 40, 0.12) !important; }
+  .dark .bg-black\/5 { background-color: rgba(255, 255, 255, 0.06) !important; }
+  .dark .border-border { border-color: rgba(255, 255, 255, 0.1) !important; }
+  .dark .bg-bg-alt { background-color: rgba(255, 255, 255, 0.04) !important; }
+
+  /* Dark glow buttons */
+  .dark .glow-green {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3), 0 4px 16px rgba(34, 197, 94, 0.2);
+  }
+  .dark .glow-brand {
+    box-shadow: 0 0 20px rgba(221, 156, 40, 0.3), 0 4px 16px rgba(221, 156, 40, 0.2);
+  }
+  .dark .glow-error {
+    box-shadow: 0 0 20px rgba(208, 2, 27, 0.3), 0 4px 16px rgba(208, 2, 27, 0.2);
+  }
+}

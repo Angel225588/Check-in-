@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AppProvider } from "@/contexts/AppContext";
+import SettingsToggle from "@/components/SettingsToggle";
 
 export const metadata: Metadata = {
   title: "Breakfast Check-in",
@@ -12,7 +14,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#1e40af",
+  themeColor: "#A66914",
 };
 
 export default function RootLayout({
@@ -21,12 +23,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="bg-gray-50 text-gray-900 min-h-screen">
-        {children}
+      <body className="bg-bg-alt text-dark min-h-screen">
+        <AppProvider>
+          {children}
+          <SettingsToggle />
+        </AppProvider>
       </body>
     </html>
   );
