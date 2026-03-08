@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import { saveClients, getSessionHistory } from "@/lib/storage";
@@ -194,38 +194,22 @@ export default function UploadPage() {
   const { t } = useApp();
   const clientCaptureRef = useRef<PhotoCaptureHandle>(null);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
-  const [parsedClients, setParsedClients] = useState<Client[]>([]);
-  const parsedClientsRef = useRef<Client[]>([]);
+
+  // Independent state for each upload — order doesn't matter
+  const [baseClients, setBaseClients] = useState<Client[]>([]);
+  const [vipRawClients, setVipRawClients] = useState<Client[]>([]);
   const [ocrRawText, setOcrRawText] = useState<string>("");
   const [showManual, setShowManual] = useState(false);
-  const [vipStatus, setVipStatus] = useState<string>("");
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [viewingSession, setViewingSession] = useState<SessionRecord | null>(null);
 
-  // Keep ref in sync so async callbacks always see latest
-  useEffect(() => {
-    parsedClientsRef.current = parsedClients;
-  }, [parsedClients]);
+  // Merge clients + VIP whenever either changes (race-proof)
+  const parsedClients = useMemo(() => {
+    if (baseClients.length === 0 && vipRawClients.length === 0) return [];
+    if (vipRawClients.length === 0) return baseClients;
 
-  useEffect(() => {
-    setSessions(getSessionHistory());
-  }, []);
-
-  const handleOCRProcessed = (clients: Client[], rawText: string) => {
-    setOcrRawText(rawText);
-    if (clients.length > 0) {
-      setParsedClients(clients);
-    }
-  };
-
-  const handleVipProcessed = (vipClients: Client[]) => {
-    if (vipClients.length === 0) {
-      setVipStatus("No VIP entries detected from the image.");
-      return;
-    }
-
-    const vipEntries: VipEntry[] = vipClients.map((v) => ({
+    const vipEntries: VipEntry[] = vipRawClients.map((v) => ({
       roomNumber: v.roomNumber,
       name: v.name,
       vipLevel: v.vipLevel || "",
@@ -239,20 +223,31 @@ export default function UploadPage() {
       rateCode: v.rateCode,
     }));
 
-    // Use ref to always get latest client list (avoids stale closure from async processing)
-    const currentClients = parsedClientsRef.current;
-    const merged = mergeVipIntoClients(currentClients, vipEntries);
-    setParsedClients(merged);
+    return mergeVipIntoClients(baseClients, vipEntries);
+  }, [baseClients, vipRawClients]);
 
-    const vipCount = merged.filter((c) => c.isVip).length;
-    const newCount = merged.length - currentClients.length;
-    setVipStatus(
-      `${vipCount} VIP(s) tagged${newCount > 0 ? `, ${newCount} new room(s) added` : ""}`
-    );
+  const vipCount = parsedClients.filter((c) => c.isVip).length;
+  const clientsUploaded = parsedClients.length > 0;
+
+  useEffect(() => {
+    setSessions(getSessionHistory());
+  }, []);
+
+  const handleOCRProcessed = (clients: Client[], rawText: string) => {
+    setOcrRawText(rawText);
+    if (clients.length > 0) {
+      setBaseClients(clients);
+    }
+  };
+
+  const handleVipProcessed = (vipClients: Client[]) => {
+    if (vipClients.length > 0) {
+      setVipRawClients(vipClients);
+    }
   };
 
   const handleManualParsed = (clients: Client[]) => {
-    setParsedClients(clients);
+    setBaseClients(clients);
     setShowManual(false);
   };
 
@@ -262,13 +257,10 @@ export default function UploadPage() {
   };
 
   const handleClear = () => {
-    setParsedClients([]);
+    setBaseClients([]);
+    setVipRawClients([]);
     setOcrRawText("");
-    setVipStatus("");
   };
-
-  const clientsUploaded = parsedClients.length > 0;
-  const vipCount = parsedClients.filter((c) => c.isVip).length;
 
   return (
     <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
@@ -378,9 +370,12 @@ export default function UploadPage() {
         )}
 
         {/* VIP status */}
-        {vipStatus && (
+        {vipRawClients.length > 0 && (
           <div className="bg-brand-50 border border-brand-light/30 rounded-[14px] p-3 text-brand text-sm font-medium">
-            {vipStatus}
+            {vipCount} VIP(s) tagged
+            {parsedClients.length > baseClients.length
+              ? `, ${parsedClients.length - baseClients.length} new room(s) added`
+              : ""}
           </div>
         )}
 
