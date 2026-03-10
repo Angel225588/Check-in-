@@ -2,23 +2,27 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Client, VipEntry, SessionRecord } from "@/lib/types";
+import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, getSessionHistory } from "@/lib/storage";
 import { mergeVipIntoClients } from "@/lib/vip";
 import { useApp } from "@/contexts/AppContext";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import CsvImporter from "@/components/CsvImporter";
 import DataTable from "@/components/DataTable";
+import SettingsToggle from "@/components/SettingsToggle";
 
 function HistoryDrawer({
   sessions,
   isOpen,
   onClose,
   onViewSession,
+  t,
 }: {
   sessions: SessionRecord[];
   isOpen: boolean;
   onClose: () => void;
   onViewSession: (session: SessionRecord) => void;
+  t: (key: TranslationKey) => string;
 }) {
   if (!isOpen) return null;
 
@@ -27,7 +31,7 @@ function HistoryDrawer({
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="ml-auto relative w-full max-w-sm bg-[#F2F2F7] dark:bg-[#0A0A0F] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         <div className="shrink-0 p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-dark">Past Sessions</h2>
+          <h2 className="text-xl font-bold text-dark">{t("history.pastSessions")}</h2>
           <button onClick={onClose} className="p-2 glass-liquid rounded-full active:scale-95 transition-transform">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -36,7 +40,7 @@ function HistoryDrawer({
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
           {sessions.length === 0 && (
-            <p className="text-muted text-center py-8">No past sessions</p>
+            <p className="text-muted text-center py-8">{t("history.noSessions")}</p>
           )}
           {sessions.map((s, i) => (
             <button
@@ -45,7 +49,7 @@ function HistoryDrawer({
               className="w-full text-left p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all"
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="font-bold">{s.date}</span>
+                <span className="font-bold text-dark">{s.date}</span>
                 <span className="text-xs text-muted">
                   {new Date(s.closedAt).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -54,9 +58,9 @@ function HistoryDrawer({
                 </span>
               </div>
               <div className="flex gap-4 text-sm text-muted">
-                <span>{s.totalRooms} rooms</span>
-                <span className="text-green-700">{s.totalEntered} in</span>
-                <span className="text-error">{s.totalRemaining} rem</span>
+                <span>{s.totalRooms} {t("upload.rooms")}</span>
+                <span className="text-green-700 dark:text-green-400">{s.totalEntered} {t("metrics.entered").toLowerCase()}</span>
+                <span className="text-error">{s.totalRemaining} {t("metrics.remaining").toLowerCase()}</span>
                 {s.totalVip > 0 && (
                   <span className="text-brand">{s.totalVip} VIP</span>
                 )}
@@ -72,9 +76,11 @@ function HistoryDrawer({
 function SessionDetailDrawer({
   session,
   onClose,
+  t,
 }: {
   session: SessionRecord | null;
   onClose: () => void;
+  t: (key: TranslationKey) => string;
 }) {
   if (!session) return null;
 
@@ -84,9 +90,9 @@ function SessionDetailDrawer({
       <div className="ml-auto relative w-full max-w-lg bg-[#F2F2F7] dark:bg-[#0A0A0F] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         <div className="shrink-0 p-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold">Session: {session.date}</h2>
+            <h2 className="text-xl font-bold text-dark">{t("history.session")}: {session.date}</h2>
             <p className="text-xs text-muted">
-              Closed at{" "}
+              {t("history.closedAt")}{" "}
               {new Date(session.closedAt).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -102,30 +108,30 @@ function SessionDetailDrawer({
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
             <div className="glass-liquid rounded-[14px] p-3">
-              <div className="text-xs text-muted">Rooms</div>
-              <div className="text-xl font-bold">{session.totalRooms}</div>
+              <div className="text-xs text-muted">{t("report.totalRooms")}</div>
+              <div className="text-xl font-bold text-dark">{session.totalRooms}</div>
             </div>
             <div className="glass-liquid rounded-[14px] p-3">
-              <div className="text-xs text-green-700">Entered</div>
-              <div className="text-xl font-bold text-green-700">{session.totalEntered}</div>
+              <div className="text-xs text-green-700 dark:text-green-400">{t("metrics.entered")}</div>
+              <div className="text-xl font-bold text-green-700 dark:text-green-400">{session.totalEntered}</div>
             </div>
             <div className="glass-liquid rounded-[14px] p-3">
-              <div className="text-xs text-error">Remaining</div>
+              <div className="text-xs text-error">{t("metrics.remaining")}</div>
               <div className="text-xl font-bold text-error">{session.totalRemaining}</div>
             </div>
           </div>
 
           <div>
-            <h3 className="font-bold mb-2">Client List ({session.clients.length})</h3>
+            <h3 className="font-bold mb-2 text-dark">{t("history.clientList")} ({session.clients.length})</h3>
             <div className="overflow-x-auto glass-liquid rounded-[14px]">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-black/5">
-                    <th className="px-2 py-1.5 text-left text-muted font-medium">Room</th>
-                    <th className="px-2 py-1.5 text-left text-muted font-medium">Name</th>
-                    <th className="px-2 py-1.5 text-center text-muted font-medium">Adl</th>
-                    <th className="px-2 py-1.5 text-center text-muted font-medium">Chl</th>
-                    <th className="px-2 py-1.5 text-left text-muted font-medium">Pkg</th>
+                    <th className="px-2 py-1.5 text-left text-muted font-medium">{t("table.room")}</th>
+                    <th className="px-2 py-1.5 text-left text-muted font-medium">{t("table.name")}</th>
+                    <th className="px-2 py-1.5 text-center text-muted font-medium">{t("checkin.adults")}</th>
+                    <th className="px-2 py-1.5 text-center text-muted font-medium">{t("checkin.children")}</th>
+                    <th className="px-2 py-1.5 text-left text-muted font-medium">{t("table.pkg")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -153,7 +159,7 @@ function SessionDetailDrawer({
           {session.rawUploadText && (
             <details>
               <summary className="text-sm text-muted cursor-pointer font-medium">
-                Raw Uploaded Data
+                {t("history.rawData")}
               </summary>
               <pre className="mt-2 text-[10px] glass-liquid p-3 rounded-[14px] overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto">
                 {session.rawUploadText}
@@ -163,7 +169,7 @@ function SessionDetailDrawer({
 
           {session.checkIns.length > 0 && (
             <div>
-              <h3 className="font-bold mb-2">Check-in Log</h3>
+              <h3 className="font-bold mb-2 text-dark">{t("history.checkinLog")}</h3>
               <div className="space-y-1">
                 {session.checkIns.map((r) => (
                   <div key={r.id} className="flex items-center gap-2 text-xs p-2 glass-liquid rounded-lg">
@@ -540,11 +546,15 @@ export default function UploadPage() {
           setHistoryOpen(false);
           setViewingSession(s);
         }}
+        t={t}
       />
       <SessionDetailDrawer
         session={viewingSession}
         onClose={() => setViewingSession(null)}
+        t={t}
       />
+
+      <SettingsToggle />
 
       <style jsx>{`
         @keyframes slideIn {

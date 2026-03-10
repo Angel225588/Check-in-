@@ -20,7 +20,11 @@ export function getSettings(): AppSettings {
   }
   const raw = localStorage.getItem(SETTINGS_KEY);
   if (!raw) return { costPerCover: 26 };
-  return JSON.parse(raw) as AppSettings;
+  try {
+    return JSON.parse(raw) as AppSettings;
+  } catch {
+    return { costPerCover: 26 };
+  }
 }
 
 export function saveSettings(settings: AppSettings): void {
@@ -44,7 +48,11 @@ export function getDataForDate(date: string): DailyData | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(getKey(date));
   if (!raw) return null;
-  return JSON.parse(raw) as DailyData;
+  try {
+    return JSON.parse(raw) as DailyData;
+  } catch {
+    return null;
+  }
 }
 
 export function saveTodayData(data: DailyData): void {
@@ -163,9 +171,36 @@ export function closeDay(): SessionRecord | null {
 
 // --- Historical Data (for dashboard) ---
 
+// Build a lookup of closed sessions by date
+function getSessionsByDate(): Map<string, DailyData> {
+  const sessions = getSessionHistory();
+  const map = new Map<string, DailyData>();
+  for (const s of sessions) {
+    // Convert SessionRecord → DailyData so dashboard can use it
+    if (!map.has(s.date)) {
+      map.set(s.date, {
+        date: s.date,
+        clients: s.clients,
+        checkIns: s.checkIns,
+        rawUploadText: s.rawUploadText,
+      });
+    }
+  }
+  return map;
+}
+
+// Get data for a date: active day first, then fall back to closed session
+function getDataForDateOrSession(
+  dateStr: string,
+  sessionMap: Map<string, DailyData>
+): DailyData | null {
+  return getDataForDate(dateStr) || sessionMap.get(dateStr) || null;
+}
+
 // Get data for the last N days (including today)
 export function getHistoricalData(days: number): DailyData[] {
   if (typeof window === "undefined") return [];
+  const sessionMap = getSessionsByDate();
   const result: DailyData[] = [];
   const today = new Date();
 
@@ -173,7 +208,7 @@ export function getHistoricalData(days: number): DailyData[] {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split("T")[0];
-    const data = getDataForDate(dateStr);
+    const data = getDataForDateOrSession(dateStr, sessionMap);
     if (data) {
       result.push(data);
     }
@@ -185,13 +220,14 @@ export function getHistoricalData(days: number): DailyData[] {
 // Get data for a custom date range
 export function getDataForRange(startDate: string, endDate: string): DailyData[] {
   if (typeof window === "undefined") return [];
+  const sessionMap = getSessionsByDate();
   const result: DailyData[] = [];
   const start = new Date(startDate);
   const end = new Date(endDate);
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split("T")[0];
-    const data = getDataForDate(dateStr);
+    const data = getDataForDateOrSession(dateStr, sessionMap);
     if (data) {
       result.push(data);
     }

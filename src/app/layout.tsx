@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
-import SettingsToggle from "@/components/SettingsToggle";
+
 
 export const metadata: Metadata = {
   title: "Breakfast Check-in",
@@ -34,7 +34,6 @@ export default function RootLayout({
       <body className="bg-bg-alt text-dark min-h-screen">
         <AppProvider>
           {children}
-          <SettingsToggle />
         </AppProvider>
       </body>
     </html>

@@ -124,14 +124,17 @@ export default function CheckInPage({
             <div className="flex gap-1.5 flex-wrap justify-end pb-1">
               <button
                 onClick={handleToggleVip}
-                className={`inline-flex items-center text-xs px-3 py-1 rounded-full font-bold active:scale-[0.94] transition-all ${
+                className={`inline-flex items-center rounded-full font-black active:scale-[0.94] transition-all ${
                   client.isVip
-                    ? "glass-brand text-brand"
-                    : "glass-liquid text-muted border border-dashed border-current"
+                    ? "bg-gradient-to-r from-brand to-brand-light text-white px-4 py-1.5 text-sm shadow-lg shadow-brand/30 dark:glow-brand"
+                    : "glass-liquid text-muted border border-dashed border-current text-xs px-3 py-1"
                 }`}
               >
                 {client.isVip ? (
-                  <>VIP{client.vipLevel ? ` ${client.vipLevel}` : ""}</>
+                  <>
+                    <span className="drop-shadow-sm">VIP</span>
+                    {client.vipLevel ? <span className="ml-1 text-white/80 font-semibold text-xs">{client.vipLevel}</span> : ""}
+                  </>
                 ) : (
                   <>+ VIP</>
                 )}

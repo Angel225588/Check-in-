@@ -274,6 +274,7 @@ export default function SearchPage() {
                   value={newAdults}
                   onChange={(e) => setNewAdults(e.target.value)}
                   min="0"
+                  max="20"
                   className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
@@ -285,6 +286,7 @@ export default function SearchPage() {
                   value={newChildren}
                   onChange={(e) => setNewChildren(e.target.value)}
                   min="0"
+                  max="20"
                   className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>

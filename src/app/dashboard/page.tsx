@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DailyData } from "@/lib/types";
+import { useApp } from "@/contexts/AppContext";
 import {
   getHistoricalData,
   getDataForRange,
@@ -20,6 +21,7 @@ type ViewMode = "today" | "7days" | "custom";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useApp();
   const [viewMode, setViewMode] = useState<ViewMode>("today");
   const [costPerCover, setCostPerCover] = useState(26);
   const [editingCost, setEditingCost] = useState(false);
@@ -27,13 +29,24 @@ export default function DashboardPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [historicalData, setHistoricalData] = useState<DailyData[]>([]);
   const [todayData, setTodayData] = useState<DailyData | null>(null);
+  const [refreshed, setRefreshed] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     const settings = getSettings();
     setCostPerCover(settings.costPerCover);
     setTodayData(getTodayData());
-    setHistoricalData(getHistoricalData(7));
+    setHistoricalData(getHistoricalData(30));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
+
+  const handleRefresh = () => {
+    loadData();
+    setRefreshed(true);
+    setTimeout(() => setRefreshed(false), 2000);
+  };
 
   const handleCostSave = () => {
     saveSettings({ costPerCover });
@@ -48,12 +61,8 @@ export default function DashboardPage() {
     }
   };
 
-  // Compute analytics
   const snapshot = useMemo(
-    () =>
-      todayData
-        ? getDailySnapshot(todayData, costPerCover)
-        : null,
+    () => (todayData ? getDailySnapshot(todayData, costPerCover) : null),
     [todayData, costPerCover]
   );
 
@@ -77,236 +86,232 @@ export default function DashboardPage() {
     [rushSlots]
   );
 
-  const maxTrend = useMemo(
-    () => Math.max(...trendData.map((d) => d.totalExpected), 1),
-    [trendData]
-  );
-
   return (
-    <div className="min-h-dvh bg-gray-50">
+    <div className="min-h-dvh bg-[#F2F2F7] dark:bg-[#0A0A0F]">
       <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto p-3 md:p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => router.push("/search")}
-            className="text-blue-600 flex items-center gap-1 text-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
-            Check-in
+            <span className="text-sm font-medium text-brand">{t("checkin.search")}</span>
           </button>
-          <h1 className="text-xl md:text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-xl md:text-2xl font-black text-dark">{t("dash.title")}</h1>
           <button
             onClick={() => setEditingCost(!editingCost)}
-            className="text-xs text-gray-500 underline"
+            className="text-xs text-muted font-medium px-2 py-1 glass-liquid rounded-full active:scale-95 transition-transform"
           >
-            {costPerCover}€/cover
+            {costPerCover}€
           </button>
         </div>
 
         {/* Cost editor */}
         {editingCost && (
-          <div className="bg-white rounded-xl p-3 mb-4 shadow-sm border flex items-center gap-3">
-            <label className="text-sm text-gray-600">Cost per cover:</label>
+          <div className="glass-liquid rounded-[14px] p-3 mb-4 flex items-center gap-3">
+            <label className="text-sm text-muted">{t("dash.costPerCover")}:</label>
             <input
               type="number"
               value={costPerCover}
               onChange={(e) => setCostPerCover(Number(e.target.value))}
-              className="border rounded px-2 py-1 w-20 text-center"
+              min="0"
+              max="500"
+              className="border border-border rounded-xl px-2 py-1 w-20 text-center bg-white/50 dark:bg-white/5 text-dark focus:outline-none focus:ring-2 focus:ring-brand/30"
             />
-            <span className="text-sm">€</span>
+            <span className="text-sm text-muted">€</span>
             <button
               onClick={handleCostSave}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+              className="bg-brand text-white px-4 py-1.5 rounded-full text-sm font-medium active:scale-95 transition-transform"
             >
-              Save
+              {t("dash.save")}
             </button>
           </div>
         )}
 
         {/* View mode tabs */}
         <div className="flex gap-2 mb-4">
+          {(["today", "7days", "custom"] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setViewMode(mode);
+                if (mode === "today") setTodayData(getTodayData());
+                if (mode === "7days") setHistoricalData(getHistoricalData(30));
+              }}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-[0.96] ${
+                viewMode === mode
+                  ? "bg-gradient-to-r from-brand to-brand-light text-white shadow-md shadow-brand/20"
+                  : "glass-liquid text-muted"
+              }`}
+            >
+              {mode === "today" ? t("dash.today") : mode === "7days" ? t("dash.last7") : t("dash.custom")}
+            </button>
+          ))}
           <button
-            onClick={() => {
-              setViewMode("today");
-              setTodayData(getTodayData());
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === "today"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-gray-600 border"
+            onClick={handleRefresh}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-[0.96] ${
+              refreshed
+                ? "bg-green-500 text-white"
+                : "glass-liquid text-muted"
             }`}
           >
-            Today
-          </button>
-          <button
-            onClick={() => {
-              setHistoricalData(getHistoricalData(7));
-              setViewMode("7days");
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === "7days"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-gray-600 border"
-            }`}
-          >
-            Last 7 Days
-          </button>
-          <button
-            onClick={() => setViewMode("custom")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === "custom"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-gray-600 border"
-            }`}
-          >
-            Custom
+            {refreshed ? (
+              <span className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                {t("dash.refreshed")}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {t("dash.refresh")}
+              </span>
+            )}
           </button>
         </div>
 
-        {/* Custom date range picker */}
+        {/* Custom date range */}
         {viewMode === "custom" && (
-          <div className="bg-white rounded-xl p-3 mb-4 shadow-sm border">
+          <div className="glass-liquid rounded-[14px] p-3 mb-4">
             <div className="flex flex-wrap items-end gap-3">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">From</label>
+                <label className="text-xs text-muted block mb-1">{t("dash.from")}</label>
                 <input
                   type="date"
                   value={customStart}
                   onChange={(e) => setCustomStart(e.target.value)}
-                  className="border rounded px-2 py-1.5 text-sm"
+                  className="border border-border rounded-xl px-2 py-1.5 text-sm bg-white/50 dark:bg-white/5 text-dark focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">To</label>
+                <label className="text-xs text-muted block mb-1">{t("dash.to")}</label>
                 <input
                   type="date"
                   value={customEnd}
                   onChange={(e) => setCustomEnd(e.target.value)}
-                  className="border rounded px-2 py-1.5 text-sm"
+                  className="border border-border rounded-xl px-2 py-1.5 text-sm bg-white/50 dark:bg-white/5 text-dark focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
               <button
                 onClick={handleCustomRange}
                 disabled={!customStart || !customEnd}
-                className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
+                className="bg-brand text-white px-4 py-1.5 rounded-full text-sm font-medium disabled:opacity-40 active:scale-95 transition-transform"
               >
-                Apply
+                {t("dash.apply")}
               </button>
             </div>
           </div>
         )}
 
-        {/* === SECTION 1: DAILY SNAPSHOT === */}
+        {/* === TODAY'S SNAPSHOT === */}
         {viewMode === "today" && snapshot && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">
-              Today&apos;s Snapshot
+          <section className="mb-5">
+            <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+              {t("dash.snapshot")}
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">Expected</div>
-                <div className="text-3xl md:text-4xl font-bold">{snapshot.totalExpected}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.expected")}</div>
+                <div className="text-3xl md:text-4xl font-black text-dark">{snapshot.totalExpected}</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">Showed Up</div>
-                <div className="text-3xl md:text-4xl font-bold text-green-600">
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.showedUp")}</div>
+                <div className="text-3xl md:text-4xl font-black text-green-600 dark:text-green-400">
                   {snapshot.totalShowedUp}
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">No-Shows</div>
-                <div className="text-3xl md:text-4xl font-bold text-red-500">
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.noShows")}</div>
+                <div className="text-3xl md:text-4xl font-black text-error">
                   {snapshot.noShows}
                 </div>
-                <div className="text-xs text-red-400">{snapshot.noShowPercent}%</div>
+                <div className="text-xs text-error/70">{snapshot.noShowPercent}%</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">Comp Cost</div>
-                <div className="text-3xl md:text-4xl font-bold text-purple-600">
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.compCost")}</div>
+                <div className="text-3xl md:text-4xl font-black text-purple-600 dark:text-purple-400">
                   {snapshot.compCost}€
                 </div>
-                <div className="text-xs text-purple-400">
-                  {snapshot.compShowedUp}/{snapshot.compCount} guests
+                <div className="text-xs text-purple-500/70">
+                  {snapshot.compShowedUp}/{snapshot.compCount} {t("dash.guests")}
                 </div>
               </div>
             </div>
           </section>
         )}
 
-        {/* Period stats for 7-day or custom view */}
+        {/* === PERIOD STATS === */}
         {viewMode !== "today" && periodStats.totalDays > 0 && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">
-              Period Summary ({periodStats.totalDays} days)
+          <section className="mb-5">
+            <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+              {t("dash.periodSummary")} ({periodStats.totalDays} {t("dash.days")})
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">Avg Daily</div>
-                <div className="text-3xl md:text-4xl font-bold">
-                  {periodStats.avgDailyGuests}
-                </div>
-                <div className="text-xs text-gray-400">guests/day</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.avgDaily")}</div>
+                <div className="text-3xl md:text-4xl font-black text-dark">{periodStats.avgDailyGuests}</div>
+                <div className="text-xs text-muted">{t("dash.guestsDay")}</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">Utilization</div>
-                <div className="text-3xl md:text-4xl font-bold text-green-600">
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.utilization")}</div>
+                <div className="text-3xl md:text-4xl font-black text-green-600 dark:text-green-400">
                   {periodStats.avgUtilization}%
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">No-Shows</div>
-                <div className="text-3xl md:text-4xl font-bold text-red-500">
-                  {periodStats.totalNoShows}
-                </div>
-                <div className="text-xs text-red-400">{periodStats.avgNoShowPercent}% avg</div>
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.noShows")}</div>
+                <div className="text-3xl md:text-4xl font-black text-error">{periodStats.totalNoShows}</div>
+                <div className="text-xs text-error/70">{periodStats.avgNoShowPercent}% avg</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border text-center">
-                <div className="text-xs text-gray-500 uppercase mb-1">Comp Cost</div>
-                <div className="text-3xl md:text-4xl font-bold text-purple-600">
+              <div className="glass-liquid rounded-[14px] p-4 text-center">
+                <div className="text-[10px] text-muted uppercase mb-1">{t("dash.compCost")}</div>
+                <div className="text-3xl md:text-4xl font-black text-purple-600 dark:text-purple-400">
                   {periodStats.totalCompCost}€
                 </div>
-                <div className="text-xs text-purple-400">
-                  {periodStats.totalCompGuests} guests
-                </div>
+                <div className="text-xs text-purple-500/70">{periodStats.totalCompGuests} {t("dash.guests")}</div>
               </div>
             </div>
           </section>
         )}
 
-        {/* No data state */}
+        {/* No data */}
         {viewMode === "today" && !snapshot && (
-          <div className="bg-white rounded-xl p-8 text-center shadow-sm border mb-6">
-            <p className="text-gray-500">No data for today yet.</p>
+          <div className="glass-liquid rounded-[14px] p-8 text-center mb-5">
+            <p className="text-muted">{t("dash.noData")}</p>
             <button
               onClick={() => router.push("/upload")}
-              className="mt-3 text-blue-600 underline text-sm"
+              className="mt-3 text-brand font-medium text-sm active:opacity-70"
             >
-              Upload report
+              {t("search.uploadReport")}
             </button>
           </div>
         )}
 
-        {/* iPad: side by side layout for rush + trend */}
-        <div className="md:grid md:grid-cols-2 md:gap-6">
-          {/* === SECTION 2: RUSH HOURS === */}
-          {(viewMode === "today" && todayData) && (
-            <section className="mb-6">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">
-                Rush Hours
+        {/* iPad: side by side */}
+        <div className="md:grid md:grid-cols-2 md:gap-4">
+          {/* === RUSH HOURS === */}
+          {viewMode === "today" && todayData && (
+            <section className="mb-5">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                {t("dash.rushHours")}
               </h2>
-              <div className="bg-white rounded-xl p-4 shadow-sm border">
+              <div className="glass-liquid rounded-[14px] p-4">
                 <div className="space-y-2">
                   {rushSlots.map((slot) => (
                     <div key={slot.time} className="flex items-center gap-2">
-                      <div className="w-12 text-xs text-gray-500 font-mono text-right shrink-0">
+                      <div className="w-12 text-xs text-muted font-mono text-right shrink-0">
                         {slot.label}
                       </div>
-                      <div className="flex-1 h-7 bg-gray-100 rounded-full overflow-hidden relative">
+                      <div className="flex-1 h-7 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden relative">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            slot.isPeak ? "bg-orange-500" : "bg-blue-400"
+                            slot.isPeak ? "bg-gradient-to-r from-brand to-brand-light" : "bg-brand/40"
                           }`}
                           style={{
                             width: `${maxRush > 0 ? (slot.count / maxRush) * 100 : 0}%`,
@@ -314,7 +319,7 @@ export default function DashboardPage() {
                           }}
                         />
                         {slot.count > 0 && (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-700">
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-dark">
                             {slot.count}
                           </span>
                         )}
@@ -323,73 +328,71 @@ export default function DashboardPage() {
                   ))}
                 </div>
                 {rushSlots.some((s) => s.isPeak && s.count > 0) && (
-                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                    <div className="w-3 h-3 bg-orange-500 rounded-full" />
-                    Peak time
+                  <div className="mt-3 flex items-center gap-2 text-xs text-muted">
+                    <div className="w-3 h-3 bg-gradient-to-r from-brand to-brand-light rounded-full" />
+                    {t("dash.peak")}
                   </div>
                 )}
               </div>
             </section>
           )}
 
-          {/* === SECTION 3: 7-DAY TREND === */}
-          {trendData.length > 0 && (viewMode === "7days" || viewMode === "custom" || viewMode === "today") && (
-            <section className="mb-6">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">
-                {viewMode === "today" ? "Last 7 Days" : "Trend"}
+          {/* === TREND === */}
+          {trendData.length > 0 && (
+            <section className="mb-5">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                {viewMode === "today" ? t("dash.last7") : t("dash.trend")}
               </h2>
-              <div className="bg-white rounded-xl p-4 shadow-sm border">
-                {/* Utilization line (simplified as bars for clarity) */}
+              <div className="glass-liquid rounded-[14px] p-4">
+                {/* Utilization bars */}
                 <div className="mb-4">
-                  <div className="text-xs text-gray-500 mb-2">Utilization %</div>
+                  <div className="text-xs text-muted mb-2">{t("dash.utilization")}</div>
                   <div className="flex items-end gap-1 h-24 md:h-32">
                     {trendData.map((day) => (
                       <div key={day.date} className="flex-1 flex flex-col items-center">
-                        <div className="text-[10px] font-bold text-gray-700 mb-1">
+                        <div className="text-[10px] font-bold text-dark mb-1">
                           {day.utilization > 0 ? `${day.utilization}%` : ""}
                         </div>
-                        <div className="w-full bg-gray-100 rounded-t relative flex-1 flex items-end">
+                        <div className="w-full bg-black/5 dark:bg-white/5 rounded-t relative flex-1 flex items-end">
                           <div
                             className={`w-full rounded-t transition-all duration-500 ${
                               day.utilization >= 80
                                 ? "bg-green-500"
                                 : day.utilization >= 50
-                                  ? "bg-yellow-400"
-                                  : "bg-red-400"
+                                  ? "bg-brand-light"
+                                  : "bg-error"
                             }`}
                             style={{ height: `${day.utilization}%` }}
                           />
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-1">{day.dayLabel}</div>
+                        <div className="text-[10px] text-muted mt-1">{day.dayLabel}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* No-shows bar */}
+                {/* No-shows bars */}
                 <div>
-                  <div className="text-xs text-gray-500 mb-2">No-Shows</div>
+                  <div className="text-xs text-muted mb-2">{t("dash.noShows")}</div>
                   <div className="flex items-end gap-1 h-16 md:h-20">
                     {trendData.map((day) => {
                       const maxNoShows = Math.max(...trendData.map((d) => d.noShows), 1);
                       return (
                         <div key={day.date} className="flex-1 flex flex-col items-center">
                           {day.noShows > 0 && (
-                            <div className="text-[10px] font-bold text-red-500 mb-0.5">
+                            <div className="text-[10px] font-bold text-error mb-0.5">
                               {day.noShows}
                             </div>
                           )}
-                          <div className="w-full bg-gray-100 rounded-t relative flex-1 flex items-end">
+                          <div className="w-full bg-black/5 dark:bg-white/5 rounded-t relative flex-1 flex items-end">
                             <div
-                              className="w-full bg-red-300 rounded-t transition-all duration-500"
+                              className="w-full bg-error/50 rounded-t transition-all duration-500"
                               style={{
                                 height: `${maxNoShows > 0 ? (day.noShows / maxNoShows) * 100 : 0}%`,
                               }}
                             />
                           </div>
-                          <div className="text-[10px] text-gray-400 mt-1">
-                            {day.date.slice(5)}
-                          </div>
+                          <div className="text-[10px] text-muted mt-1">{day.date.slice(5)}</div>
                         </div>
                       );
                     })}
@@ -397,15 +400,15 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Legend */}
-                <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-gray-500">
+                <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-muted">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 bg-green-500 rounded" /> 80%+
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-yellow-400 rounded" /> 50-79%
+                    <div className="w-3 h-3 bg-brand-light rounded" /> 50-79%
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-red-400 rounded" /> &lt;50%
+                    <div className="w-3 h-3 bg-error rounded" /> &lt;50%
                   </div>
                 </div>
               </div>
@@ -414,10 +417,8 @@ export default function DashboardPage() {
         </div>
 
         {viewMode !== "today" && trendData.length === 0 && (
-          <div className="bg-white rounded-xl p-8 text-center shadow-sm border mb-6">
-            <p className="text-gray-500">
-              No historical data yet. Data accumulates automatically each day you use the app.
-            </p>
+          <div className="glass-liquid rounded-[14px] p-8 text-center mb-5">
+            <p className="text-muted">{t("dash.noHistory")}</p>
           </div>
         )}
       </div>
