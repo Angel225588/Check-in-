@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { Client, CheckInRecord } from "@/lib/types";
 import { getTotalGuests, getCheckedInCount, getCompStats } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
@@ -21,6 +22,7 @@ export default function MetricsBar({
   onFilterChange,
 }: MetricsBarProps) {
   const { t } = useApp();
+  const router = useRouter();
   const total = getTotalGuests(clients);
   const entered = getCheckedInCount(checkIns);
   const comp = getCompStats(clients, checkIns);
@@ -81,15 +83,26 @@ export default function MetricsBar({
           {comp.entered}/{comp.total}
         </div>
       </button>
-      <button
-        onClick={onHistoryToggle}
-        className="p-1.5 md:p-2.5 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"
-        aria-label="History"
-      >
-        <svg className="w-6 h-6 md:w-7 md:h-7 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </button>
+      <div className="flex flex-col gap-0.5">
+        <button
+          onClick={onHistoryToggle}
+          className="p-1.5 md:p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"
+          aria-label="History"
+        >
+          <svg className="w-5 h-5 md:w-6 md:h-6 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="p-1.5 md:p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"
+          aria-label="Dashboard"
+        >
+          <svg className="w-5 h-5 md:w-6 md:h-6 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { DailyData, CheckInRecord, Client, SessionRecord } from "./types";
+import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings } from "./types";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -10,6 +10,25 @@ function getKey(date: string): string {
 
 const HISTORY_KEY = "sessionHistory";
 
+// --- Settings ---
+
+const SETTINGS_KEY = "app_settings";
+
+export function getSettings(): AppSettings {
+  if (typeof window === "undefined") {
+    return { costPerCover: 26 };
+  }
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if (!raw) return { costPerCover: 26 };
+  return JSON.parse(raw) as AppSettings;
+}
+
+export function saveSettings(settings: AppSettings): void {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// --- Daily Data ---
+
 export function getTodayData(): DailyData | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(getKey(getTodayString()));
@@ -19,6 +38,13 @@ export function getTodayData(): DailyData | null {
   } catch {
     return null;
   }
+}
+
+export function getDataForDate(date: string): DailyData | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(getKey(date));
+  if (!raw) return null;
+  return JSON.parse(raw) as DailyData;
 }
 
 export function saveTodayData(data: DailyData): void {
@@ -79,7 +105,7 @@ export function clearDayData(date: string): void {
   localStorage.removeItem(getKey(date));
 }
 
-// Session history
+// --- Session history ---
 
 export function getSessionHistory(): SessionRecord[] {
   if (typeof window === "undefined") return [];
@@ -133,4 +159,56 @@ export function closeDay(): SessionRecord | null {
   clearDayData(data.date);
 
   return record;
+}
+
+// --- Historical Data (for dashboard) ---
+
+// Get data for the last N days (including today)
+export function getHistoricalData(days: number): DailyData[] {
+  if (typeof window === "undefined") return [];
+  const result: DailyData[] = [];
+  const today = new Date();
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    const data = getDataForDate(dateStr);
+    if (data) {
+      result.push(data);
+    }
+  }
+
+  return result;
+}
+
+// Get data for a custom date range
+export function getDataForRange(startDate: string, endDate: string): DailyData[] {
+  if (typeof window === "undefined") return [];
+  const result: DailyData[] = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split("T")[0];
+    const data = getDataForDate(dateStr);
+    if (data) {
+      result.push(data);
+    }
+  }
+
+  return result;
+}
+
+// Get all dates that have data stored (for client search)
+export function getAllStoredDates(): string[] {
+  if (typeof window === "undefined") return [];
+  const dates: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("dailyData_")) {
+      dates.push(key.replace("dailyData_", ""));
+    }
+  }
+  return dates.sort().reverse();
 }

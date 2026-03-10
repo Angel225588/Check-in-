@@ -57,3 +57,35 @@ export interface SessionRecord {
   checkIns: CheckInRecord[];
   rawUploadText?: string;
 }
+
+export interface AppSettings {
+  costPerCover: number; // e.g., 26 (euros)
+}
+
+// Dashboard analytics types
+export interface DailySnapshot {
+  date: string;
+  totalExpected: number;
+  totalShowedUp: number;
+  noShows: number;
+  noShowPercent: number;
+  compCount: number;
+  compShowedUp: number;
+  compCost: number;
+}
+
+export interface RushHourSlot {
+  time: string;      // e.g., "06:00"
+  label: string;     // e.g., "6:00"
+  count: number;
+  isPeak: boolean;
+}
+
+export interface TrendDay {
+  date: string;
+  dayLabel: string;  // e.g., "Mon"
+  utilization: number; // percentage 0-100
+  noShows: number;
+  totalExpected: number;
+  totalShowedUp: number;
+}
