@@ -176,6 +176,22 @@ const translations = {
   // Dashboard
   "upload.dashboard": { fr: "Dashboard", en: "Dashboard" },
   "upload.dashboardDesc": { fr: "Statistiques, tendances & coûts", en: "Stats, trends & costs" },
+
+  // Home screen
+  "home.greeting.morning": { fr: "Bonjour", en: "Good Morning" },
+  "home.greeting.afternoon": { fr: "Bon après-midi", en: "Good Afternoon" },
+  "home.greeting.evening": { fr: "Bonsoir", en: "Good Evening" },
+  "home.startDay": { fr: "Démarrer la Journée", en: "Start the Day" },
+  "home.startDayDesc": { fr: "Scanner ou uploader les rapports", en: "Scan or upload daily reports" },
+  "home.dashboardDesc": { fr: "Historique, tendances & coûts", en: "History, trends & costs" },
+  "home.activeSession": { fr: "Session Active", en: "Active Session" },
+  "home.continueSession": { fr: "Continuer la Session", en: "Continue Session" },
+  "home.roomsLoaded": { fr: "chambres chargées", en: "rooms loaded" },
+
+  // Search VIP upload
+  "search.addVip": { fr: "Ajouter VIP", en: "Add VIP" },
+  "search.addVipDesc": { fr: "Scanner la liste VIP", en: "Scan VIP list" },
+  "search.vipMerged": { fr: "VIP fusionnés avec succès", en: "VIPs merged successfully" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

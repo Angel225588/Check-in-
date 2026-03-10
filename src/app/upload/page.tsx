@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
-import { saveClients, getSessionHistory } from "@/lib/storage";
+import { saveClients, getSessionHistory, getTodayData } from "@/lib/storage";
 import { mergeVipIntoClients } from "@/lib/vip";
 import { useApp } from "@/contexts/AppContext";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
@@ -195,13 +195,23 @@ function SessionDetailDrawer({
   );
 }
 
+function getGreeting(t: (key: TranslationKey) => string): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return t("home.greeting.morning");
+  if (hour < 18) return t("home.greeting.afternoon");
+  return t("home.greeting.evening");
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const { t } = useApp();
   const clientCaptureRef = useRef<PhotoCaptureHandle>(null);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
 
-  // Independent state for each upload — order doesn't matter
+  // View state: "home" (two buttons) vs "capture" (upload flow)
+  const [view, setView] = useState<"home" | "capture">("home");
+
+  // Independent state for each upload
   const [baseClients, setBaseClients] = useState<Client[]>([]);
   const [vipRawClients, setVipRawClients] = useState<Client[]>([]);
   const [ocrRawText, setOcrRawText] = useState<string>("");
@@ -209,6 +219,9 @@ export default function UploadPage() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [viewingSession, setViewingSession] = useState<SessionRecord | null>(null);
+
+  // Check for active session
+  const [activeSession, setActiveSession] = useState<{ rooms: number } | null>(null);
 
   // Merge clients + VIP whenever either changes (race-proof)
   const parsedClients = useMemo(() => {
@@ -237,6 +250,10 @@ export default function UploadPage() {
 
   useEffect(() => {
     setSessions(getSessionHistory());
+    const todayData = getTodayData();
+    if (todayData && todayData.clients.length > 0) {
+      setActiveSession({ rooms: todayData.clients.length });
+    }
   }, []);
 
   const handleOCRProcessed = (clients: Client[], rawText: string) => {
@@ -268,14 +285,19 @@ export default function UploadPage() {
     setOcrRawText("");
   };
 
-  return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
-      {/* Header */}
-      <div className="shrink-0 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3" />
-        <div className="relative px-4 pt-4 pb-3">
-          {/* Top row: brand + actions */}
-          <div className="flex items-center justify-between mb-4">
+  // ─── HOME VIEW: Two big buttons ───
+  if (view === "home") {
+    return (
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
+        {/* Background decorative gradient */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-brand/[0.04] blur-3xl" />
+          <div className="absolute -bottom-40 -left-20 w-96 h-96 rounded-full bg-brand-light/[0.03] blur-3xl" />
+        </div>
+
+        <div className="relative flex-1 flex flex-col px-5 pt-6 pb-5">
+          {/* Header: brand + history + settings */}
+          <div className="flex items-center justify-between mb-1">
             <div className="flex items-baseline gap-1">
               <span className="text-lg font-bold tracking-[0.08em] text-brand" style={{ fontFamily: "'Nunito', sans-serif" }}>
                 COURTYARD
@@ -285,15 +307,145 @@ export default function UploadPage() {
                 MARRIOTT
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setHistoryOpen(true)}
-                className="p-2 glass-liquid rounded-full active:scale-95 transition-transform"
-              >
-                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="p-2 glass-liquid rounded-full active:scale-95 transition-transform"
+            >
+              <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Greeting */}
+          <div className="mt-6 mb-auto">
+            <h1 className="text-[32px] font-black text-dark leading-tight tracking-tight">
+              {getGreeting(t)}
+            </h1>
+            <p className="text-base text-muted mt-1">Petit-Déjeuner Check-in</p>
+          </div>
+
+          {/* Active session banner */}
+          {activeSession && (
+            <button
+              onClick={() => router.push("/search")}
+              className="mb-4 w-full glass-liquid-active rounded-[16px] p-4 flex items-center gap-3 active:scale-[0.98] transition-all"
+            >
+              <div className="w-11 h-11 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+              </div>
+              <div className="text-left flex-1">
+                <div className="text-sm font-bold text-dark">{t("home.activeSession")}</div>
+                <div className="text-xs text-muted">{activeSession.rooms} {t("home.roomsLoaded")}</div>
+              </div>
+              <div className="text-xs font-semibold text-brand">{t("home.continueSession")}</div>
+              <svg className="w-4 h-4 text-brand/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Two main action buttons */}
+          <div className="space-y-3">
+            {/* START THE DAY — hero button */}
+            <button
+              onClick={() => setView("capture")}
+              className="w-full group relative overflow-hidden rounded-[20px] active:scale-[0.97] transition-all"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-brand via-brand to-brand-light opacity-90" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
+              <div className="relative flex items-center gap-4 p-5">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 shadow-inner">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <div className="text-left flex-1">
+                  <div className="text-xl font-black text-white tracking-tight">{t("home.startDay")}</div>
+                  <div className="text-sm text-white/70 font-medium mt-0.5">{t("home.startDayDesc")}</div>
+                </div>
+                <svg className="w-6 h-6 text-white/40 group-active:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
+              </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.06] rounded-full -translate-y-1/2 translate-x-1/2" />
+            </button>
+
+            {/* DASHBOARD — secondary */}
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="w-full group glass-liquid rounded-[20px] p-5 flex items-center gap-4 active:scale-[0.97] transition-all"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
+                <svg className="w-7 h-7 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+                </svg>
+              </div>
+              <div className="text-left flex-1">
+                <div className="text-xl font-black text-dark tracking-tight">{t("upload.dashboard")}</div>
+                <div className="text-sm text-muted font-medium mt-0.5">{t("home.dashboardDesc")}</div>
+              </div>
+              <svg className="w-6 h-6 text-muted/40 group-active:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <SettingsToggle />
+
+        {/* History Drawers */}
+        <HistoryDrawer
+          sessions={sessions}
+          isOpen={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          onViewSession={(s) => {
+            setHistoryOpen(false);
+            setViewingSession(s);
+          }}
+          t={t}
+        />
+        <SessionDetailDrawer
+          session={viewingSession}
+          onClose={() => setViewingSession(null)}
+          t={t}
+        />
+
+        <style jsx>{`
+          @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ─── CAPTURE VIEW: Upload flow ───
+  return (
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
+      {/* Header */}
+      <div className="shrink-0 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3" />
+        <div className="relative px-4 pt-4 pb-3">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => {
+                if (clientsUploaded) {
+                  // Don't lose data — warn or just go back
+                  setView("home");
+                } else {
+                  setView("home");
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
+            >
+              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="text-sm font-medium text-brand">{t("upload.close")}</span>
+            </button>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => router.push("/search")}
                 className="px-3 py-1.5 glass-liquid rounded-full active:scale-95 transition-transform"
@@ -303,7 +455,6 @@ export default function UploadPage() {
             </div>
           </div>
 
-          {/* Title */}
           <h1 className="text-[26px] font-black text-dark leading-tight">
             {t("upload.title")}
           </h1>
@@ -356,7 +507,7 @@ export default function UploadPage() {
           </button>
         </div>
 
-        {/* Hidden PhotoCapture instances (just inputs + thumbnails) */}
+        {/* Hidden PhotoCapture instances */}
         <PhotoCapture ref={clientCaptureRef} onProcessed={handleOCRProcessed} />
         <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-vip" />
 
@@ -422,7 +573,6 @@ export default function UploadPage() {
                 </button>
               </div>
 
-              {/* Verification stats */}
               <div className="grid grid-cols-3 gap-1.5 text-center">
                 <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">
                   <div className="text-lg font-bold text-dark">{uniqueRooms.size}</div>
@@ -438,7 +588,6 @@ export default function UploadPage() {
                 </div>
               </div>
 
-              {/* Warnings */}
               {(noName > 0 || zeroGuests > 0 || noPackage > 0) && (
                 <div className="space-y-1 text-xs">
                   {noName > 0 && (
@@ -472,28 +621,7 @@ export default function UploadPage() {
           onClear={handleClear}
         />
 
-        {/* Dashboard — big button for managers */}
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="w-full rounded-[14px] p-4 active:scale-[0.97] transition-all bg-gradient-to-r from-blue-600/10 to-indigo-600/10 dark:from-blue-500/15 dark:to-indigo-500/15 border border-blue-500/20 dark:border-blue-400/20"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500/15 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-bold text-blue-700 dark:text-blue-300">{t("upload.dashboard")}</div>
-              <div className="text-[11px] text-blue-600/70 dark:text-blue-400/70">{t("upload.dashboardDesc")}</div>
-            </div>
-            <svg className="w-5 h-5 text-blue-500/50 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        {/* Manual paste — collapsed as a button */}
+        {/* Manual paste */}
         {!showManual ? (
           <button
             onClick={() => setShowManual(true)}
@@ -525,7 +653,7 @@ export default function UploadPage() {
         )}
       </div>
 
-      {/* Bottom confirm bar — fixed when data is ready */}
+      {/* Bottom confirm bar */}
       {clientsUploaded && (
         <div className="shrink-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#F2F2F7] dark:from-[#0A0A0F] via-[#F2F2F7] dark:via-[#0A0A0F] to-transparent">
           <button
@@ -536,6 +664,8 @@ export default function UploadPage() {
           </button>
         </div>
       )}
+
+      <SettingsToggle />
 
       {/* History Drawers */}
       <HistoryDrawer
@@ -553,8 +683,6 @@ export default function UploadPage() {
         onClose={() => setViewingSession(null)}
         t={t}
       />
-
-      <SettingsToggle />
 
       <style jsx>{`
         @keyframes slideIn {

@@ -9,6 +9,7 @@ import {
   getSettings,
   saveSettings,
   getTodayData,
+  getSessionHistory,
 } from "@/lib/storage";
 import {
   getDailySnapshot,
@@ -22,7 +23,10 @@ type ViewMode = "today" | "7days" | "custom";
 export default function DashboardPage() {
   const router = useRouter();
   const { t } = useApp();
-  const [viewMode, setViewMode] = useState<ViewMode>("today");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") return "today";
+    return getTodayData() ? "today" : "7days";
+  });
   const [costPerCover, setCostPerCover] = useState(26);
   const [editingCost, setEditingCost] = useState(false);
   const [customStart, setCustomStart] = useState("");
@@ -34,7 +38,24 @@ export default function DashboardPage() {
   const loadData = () => {
     const settings = getSettings();
     setCostPerCover(settings.costPerCover);
-    setTodayData(getTodayData());
+
+    let today = getTodayData();
+
+    // If no active today data, check sessionHistory for today's closed session
+    if (!today) {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const closedSession = getSessionHistory().find((s) => s.date === todayStr);
+      if (closedSession) {
+        today = {
+          date: closedSession.date,
+          clients: closedSession.clients,
+          checkIns: closedSession.checkIns,
+          rawUploadText: closedSession.rawUploadText,
+        };
+      }
+    }
+
+    setTodayData(today);
     setHistoricalData(getHistoricalData(30));
   };
 
@@ -139,7 +160,22 @@ export default function DashboardPage() {
                 key={mode}
                 onClick={() => {
                   setViewMode(mode);
-                  if (mode === "today") setTodayData(getTodayData());
+                  if (mode === "today") {
+                    let today = getTodayData();
+                    if (!today) {
+                      const todayStr = new Date().toISOString().split("T")[0];
+                      const closedSession = getSessionHistory().find((s) => s.date === todayStr);
+                      if (closedSession) {
+                        today = {
+                          date: closedSession.date,
+                          clients: closedSession.clients,
+                          checkIns: closedSession.checkIns,
+                          rawUploadText: closedSession.rawUploadText,
+                        };
+                      }
+                    }
+                    setTodayData(today);
+                  }
                   if (mode === "7days") setHistoricalData(getHistoricalData(30));
                 }}
                 className={`px-4 py-1.5 rounded-[9px] text-xs font-semibold transition-all active:scale-[0.97] ${

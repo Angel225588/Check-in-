@@ -1,4 +1,5 @@
-import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings } from "./types";
+import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
+import { mergeVipIntoClients } from "./vip";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -111,6 +112,31 @@ export function getCheckInsForRoom(roomNumber: string): CheckInRecord[] {
 
 export function clearDayData(date: string): void {
   localStorage.removeItem(getKey(date));
+}
+
+// --- Mid-session VIP merge ---
+
+export function mergeVipIntoSession(vipClients: Client[]): Client[] {
+  const data = getTodayData();
+  if (!data) return vipClients;
+
+  const vipEntries: VipEntry[] = vipClients.map((c) => ({
+    roomNumber: c.roomNumber,
+    name: c.name,
+    vipLevel: c.vipLevel || "",
+    vipNotes: c.vipNotes || "",
+    confirmationNumber: c.confirmationNumber,
+    arrivalDate: c.arrivalDate,
+    departureDate: c.departureDate,
+    roomType: c.roomType,
+    adults: c.adults,
+    children: c.children,
+    rateCode: c.rateCode,
+  }));
+
+  const merged = mergeVipIntoClients(data.clients, vipEntries);
+  saveTodayData({ ...data, clients: merged });
+  return merged;
 }
 
 // --- Session history ---
