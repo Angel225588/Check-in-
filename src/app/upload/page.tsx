@@ -208,8 +208,8 @@ export default function UploadPage() {
   const clientCaptureRef = useRef<PhotoCaptureHandle>(null);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
 
-  // View state: "home" (two buttons) vs "capture" (upload flow)
-  const [view, setView] = useState<"home" | "capture">("home");
+  // View state: "home" | "action-sheet" | "review"
+  const [view, setView] = useState<"home" | "action-sheet" | "review">("home");
 
   // Independent state for each upload
   const [baseClients, setBaseClients] = useState<Client[]>([]);
@@ -260,6 +260,7 @@ export default function UploadPage() {
     setOcrRawText(rawText);
     if (clients.length > 0) {
       setBaseClients(clients);
+      setView("review");
     }
   };
 
@@ -285,8 +286,108 @@ export default function UploadPage() {
     setOcrRawText("");
   };
 
-  // ─── HOME VIEW: Two big buttons ───
-  if (view === "home") {
+  // ─── ACTION SHEET: Scanner / Gallery / Paste ───
+  // Rendered as overlay on home view, or standalone when in action-sheet mode
+  const actionSheet = view === "action-sheet" && (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setView("home")}>
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]" />
+      <div
+        className="relative w-full max-w-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-t-[24px] p-5 pb-8 animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-5" />
+        <h2 className="text-xl font-black text-dark mb-1">{t("home.startDay")}</h2>
+        <p className="text-sm text-muted mb-5">{t("home.startDayDesc")}</p>
+
+        <div className="space-y-2.5">
+          {/* Scanner / Camera */}
+          <button
+            onClick={() => {
+              setView("home");
+              clientCaptureRef.current?.openPicker();
+            }}
+            className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[16px] active:scale-[0.98] transition-all"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <circle cx="12" cy="13" r="3" strokeWidth={1.8} />
+              </svg>
+            </div>
+            <div className="text-left flex-1">
+              <div className="text-base font-bold text-dark">{t("scanner.pointAt")}</div>
+              <div className="text-xs text-muted">{t("upload.clientListDesc")}</div>
+            </div>
+            <svg className="w-5 h-5 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          {/* Gallery / File Upload */}
+          <button
+            onClick={() => {
+              setView("home");
+              clientCaptureRef.current?.openFilePicker();
+            }}
+            className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[16px] active:scale-[0.98] transition-all"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="text-left flex-1">
+              <div className="text-base font-bold text-dark">{t("scanner.openGallery")}</div>
+              <div className="text-xs text-muted">{t("upload.clientListDesc")}</div>
+            </div>
+            <svg className="w-5 h-5 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          {/* Manual Paste */}
+          <button
+            onClick={() => {
+              setView("review");
+              setShowManual(true);
+            }}
+            className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[16px] active:scale-[0.98] transition-all"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div className="text-left flex-1">
+              <div className="text-base font-bold text-dark">{t("upload.pasteManually")}</div>
+              <div className="text-xs text-muted">{t("upload.pasteManuallyDesc")}</div>
+            </div>
+            <svg className="w-5 h-5 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        <button
+          onClick={() => setView("home")}
+          className="w-full mt-4 py-3 rounded-[52px] glass-liquid text-muted font-semibold text-base active:scale-[0.97] transition-all"
+        >
+          {t("checkin.cancel")}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ─── Hidden PhotoCapture + file input (always rendered) ───
+  const captureElements = (
+    <>
+      <PhotoCapture ref={clientCaptureRef} onProcessed={handleOCRProcessed} />
+      <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-vip" />
+    </>
+  );
+
+  // ─── HOME VIEW ───
+  if (view === "home" || view === "action-sheet") {
     return (
       <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
         {/* Background decorative gradient */}
@@ -349,7 +450,7 @@ export default function UploadPage() {
           <div className="space-y-3">
             {/* START THE DAY — hero button */}
             <button
-              onClick={() => setView("capture")}
+              onClick={() => setView("action-sheet")}
               className="w-full group relative overflow-hidden rounded-[20px] active:scale-[0.97] transition-all"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-brand via-brand to-brand-light opacity-90" />
@@ -394,6 +495,12 @@ export default function UploadPage() {
 
         <SettingsToggle />
 
+        {/* Hidden capture elements — must be in DOM for refs to work */}
+        <div className="hidden">{captureElements}</div>
+
+        {/* Action sheet overlay */}
+        {actionSheet}
+
         {/* History Drawers */}
         <HistoryDrawer
           sessions={sessions}
@@ -416,12 +523,20 @@ export default function UploadPage() {
             from { transform: translateX(100%); }
             to { transform: translateX(0); }
           }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+          }
         `}</style>
       </div>
     );
   }
 
-  // ─── CAPTURE VIEW: Upload flow ───
+  // ─── REVIEW VIEW: After data is captured ───
   return (
     <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
       {/* Header */}
@@ -430,14 +545,7 @@ export default function UploadPage() {
         <div className="relative px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-3">
             <button
-              onClick={() => {
-                if (clientsUploaded) {
-                  // Don't lose data — warn or just go back
-                  setView("home");
-                } else {
-                  setView("home");
-                }
-              }}
+              onClick={() => setView("home")}
               className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
             >
               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -446,11 +554,19 @@ export default function UploadPage() {
               <span className="text-sm font-medium text-brand">{t("upload.close")}</span>
             </button>
             <div className="flex items-center gap-2">
+              {/* Add more photos */}
               <button
-                onClick={() => router.push("/search")}
+                onClick={() => clientCaptureRef.current?.openPicker()}
                 className="px-3 py-1.5 glass-liquid rounded-full active:scale-95 transition-transform"
               >
-                <span className="text-sm font-medium text-brand">{t("upload.checkin")}</span>
+                <span className="text-sm font-medium text-muted">+ {t("upload.clientList")}</span>
+              </button>
+              {/* Add VIP photos */}
+              <button
+                onClick={() => vipCaptureRef.current?.openPicker()}
+                className="px-3 py-1.5 glass-liquid-active rounded-full active:scale-95 transition-transform"
+              >
+                <span className="text-sm font-medium text-brand">+ VIP</span>
               </button>
             </div>
           </div>
@@ -464,52 +580,8 @@ export default function UploadPage() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6 space-y-3">
-        {/* Upload cards — tap to open native picker */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Client List card */}
-          <button
-            onClick={() => clientCaptureRef.current?.openPicker()}
-            className="relative text-left p-4 rounded-[14px] active:scale-[0.97] transition-all glass-liquid"
-          >
-            <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center mb-3">
-              <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <div className="text-sm font-bold text-dark">{t("upload.clientList")}</div>
-            <div className="text-[11px] text-muted mt-0.5">{t("upload.clientListDesc")}</div>
-            {clientsUploaded && (
-              <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            )}
-          </button>
-
-          {/* VIP List card */}
-          <button
-            onClick={() => vipCaptureRef.current?.openPicker()}
-            className="relative text-left p-4 rounded-[14px] active:scale-[0.97] transition-all glass-liquid"
-          >
-            <div className="w-10 h-10 rounded-full bg-brand-light/15 flex items-center justify-center mb-3">
-              <svg className="w-5 h-5 text-brand-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-            </div>
-            <div className="text-sm font-bold text-dark">{t("upload.vipList")}</div>
-            <div className="text-[11px] text-muted mt-0.5">{t("upload.vipListDesc")}</div>
-            {vipCount > 0 && (
-              <div className="absolute top-3 right-3 min-w-6 h-6 px-1.5 rounded-full bg-brand flex items-center justify-center">
-                <span className="text-[11px] text-white font-bold">{vipCount}</span>
-              </div>
-            )}
-          </button>
-        </div>
-
-        {/* Hidden PhotoCapture instances */}
-        <PhotoCapture ref={clientCaptureRef} onProcessed={handleOCRProcessed} />
-        <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-vip" />
+        {/* PhotoCapture elements */}
+        {captureElements}
 
         {/* OCR error fallback */}
         {ocrRawText && parsedClients.length === 0 && (
@@ -622,22 +694,7 @@ export default function UploadPage() {
         />
 
         {/* Manual paste */}
-        {!showManual ? (
-          <button
-            onClick={() => setShowManual(true)}
-            className="w-full glass-liquid rounded-[14px] p-3 flex items-center gap-3 active:scale-[0.98] transition-all"
-          >
-            <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center">
-              <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-medium text-dark">{t("upload.pasteManually")}</div>
-              <div className="text-[11px] text-muted">{t("upload.pasteManuallyDesc")}</div>
-            </div>
-          </button>
-        ) : (
+        {showManual && (
           <div className="glass-liquid rounded-[14px] p-4 animate-[fadeSlideUp_0.2s_ease-out]">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-bold text-dark">{t("upload.pasteReportData")}</span>
@@ -667,28 +724,7 @@ export default function UploadPage() {
 
       <SettingsToggle />
 
-      {/* History Drawers */}
-      <HistoryDrawer
-        sessions={sessions}
-        isOpen={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        onViewSession={(s) => {
-          setHistoryOpen(false);
-          setViewingSession(s);
-        }}
-        t={t}
-      />
-      <SessionDetailDrawer
-        session={viewingSession}
-        onClose={() => setViewingSession(null)}
-        t={t}
-      />
-
       <style jsx>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }

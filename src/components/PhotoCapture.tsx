@@ -7,6 +7,7 @@ import DocumentScanner from "./DocumentScanner";
 
 export interface PhotoCaptureHandle {
   openPicker: () => void;
+  openFilePicker: () => void;
 }
 
 interface PageStatus {
@@ -42,7 +43,11 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
       setScannerOpen(true);
     }, [maxFiles]);
 
-    useImperativeHandle(ref, () => ({ openPicker }), [openPicker]);
+    const openFilePicker = useCallback(() => {
+      fileInputRef.current?.click();
+    }, []);
+
+    useImperativeHandle(ref, () => ({ openPicker, openFilePicker }), [openPicker, openFilePicker]);
 
     const processWithGemini = async (file: File, retries = 2): Promise<Client[] | null> => {
       for (let attempt = 0; attempt <= retries; attempt++) {
