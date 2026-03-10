@@ -117,6 +117,10 @@ const translations = {
   "verify.noPackage": { fr: "sans forfait", en: "no package" },
   "verify.zeroGuests": { fr: "0 personnes", en: "0 guests" },
   "verify.allGood": { fr: "Tout est bon", en: "All good" },
+
+  // Dashboard
+  "upload.dashboard": { fr: "Dashboard", en: "Dashboard" },
+  "upload.dashboardDesc": { fr: "Statistiques, tendances & coûts", en: "Stats, trends & costs" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
