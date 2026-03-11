@@ -1,5 +1,6 @@
 import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
 import { mergeVipIntoClients } from "./vip";
+import { mergeNewClients, MergeResult } from "./merge";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -74,6 +75,29 @@ export function saveClients(clients: Client[], rawText?: string): void {
     rawUploadText: rawText || existing?.rawUploadText || "",
   };
   saveTodayData(data);
+}
+
+/**
+ * Merge new clients into today's existing data instead of replacing.
+ * Returns merge stats so UI can show a summary.
+ */
+export function saveClientsMerged(newClients: Client[], rawText?: string): MergeResult {
+  const existing = getTodayData();
+  const existingClients = existing?.clients ?? [];
+  const result = mergeNewClients(existingClients, newClients);
+
+  const combinedRaw = [existing?.rawUploadText, rawText]
+    .filter(Boolean)
+    .join("\n---\n");
+
+  const data: DailyData = {
+    date: getTodayString(),
+    clients: result.merged,
+    checkIns: existing?.checkIns ?? [],
+    rawUploadText: combinedRaw,
+  };
+  saveTodayData(data);
+  return result;
 }
 
 export function saveRawUploadText(rawText: string): void {

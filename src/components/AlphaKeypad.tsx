@@ -18,7 +18,7 @@ export default function AlphaKeypad({
   ];
 
   return (
-    <div className="glass-surface rounded-[14px] p-2 md:p-3 space-y-1.5 md:space-y-2">
+    <div className="glass-surface rounded-[14px] p-2 md:p-3 space-y-1.5 md:space-y-2" style={{ touchAction: "manipulation" }}>
       {rows.map((row, i) => (
         <div key={i} className="flex justify-center gap-1 md:gap-1.5">
           {row.map((key) => (

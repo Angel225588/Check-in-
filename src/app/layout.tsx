@@ -30,6 +30,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
           rel="stylesheet"
         />
+        {/* Prevent dark mode flash — apply .dark class before first paint */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var d=localStorage.getItem("app-dark");if(d==="true"||(d===null&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark")}catch(e){}})()` }} />
       </head>
       <body className="bg-bg-alt text-dark min-h-screen">
         <AppProvider>

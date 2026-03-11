@@ -15,20 +15,22 @@ interface PageStatus {
   preview: string;
   status: "processing" | "done" | "error";
   clients: Client[];
+  docType?: "clients" | "vip" | "unknown";
   rawText?: string;
   error?: string;
 }
 
 interface PhotoCaptureProps {
   onProcessed: (clients: Client[], rawText: string) => void;
+  onTypedResult?: (clientPages: Client[], vipPages: Client[], rawText: string) => void;
   apiEndpoint?: string;
   maxFiles?: number;
 }
 
-const MAX_FILES_DEFAULT = 7;
+const MAX_FILES_DEFAULT = 20;
 
 const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
-  function PhotoCapture({ onProcessed, apiEndpoint = "/api/ocr", maxFiles = MAX_FILES_DEFAULT }, ref) {
+  function PhotoCapture({ onProcessed, onTypedResult, apiEndpoint = "/api/ocr", maxFiles = MAX_FILES_DEFAULT }, ref) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [pages, setPages] = useState<PageStatus[]>([]);
     const [error, setError] = useState("");
@@ -49,7 +51,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
 
     useImperativeHandle(ref, () => ({ openPicker, openFilePicker }), [openPicker, openFilePicker]);
 
-    const processWithGemini = async (file: File, retries = 2): Promise<Client[] | null> => {
+    const processWithGemini = async (file: File, retries = 2): Promise<{ clients: Client[]; docType: "clients" | "vip" | "unknown" } | null> => {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
           const formData = new FormData();
@@ -68,7 +70,8 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
 
           const data = await res.json();
           const clients = (data.clients || data.vipEntries) as Client[];
-          return Array.isArray(clients) ? clients : [];
+          const docType = (data.type as "clients" | "vip" | "unknown") || "unknown";
+          return { clients: Array.isArray(clients) ? clients : [], docType };
         } catch (err) {
           if (attempt < retries) {
             await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
@@ -77,7 +80,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
           throw err;
         }
       }
-      return [];
+      return { clients: [], docType: "unknown" };
     };
 
     const processWithTesseract = async (file: File): Promise<{ clients: Client[]; rawText: string }> => {
@@ -91,12 +94,23 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
     const emitResults = (allPages: PageStatus[]) => {
       const donePages = allPages.filter((p) => p.status === "done");
       if (donePages.length > 0) {
-        let allClients = deduplicateClients(donePages.flatMap((p) => p.clients));
         const hasRawText = donePages.some((p) => p.rawText && !p.rawText.startsWith("[Extracted"));
         const allRaw = hasRawText
           ? donePages.map((p) => p.rawText).filter(Boolean).join("\n---\n")
-          : `[Extracted by AI - ${allClients.length} rooms from ${donePages.length} page(s)]`;
-        onProcessed(allClients, allRaw);
+          : `[Extracted by AI - ${donePages.length} page(s)]`;
+
+        if (onTypedResult) {
+          const clientPages = deduplicateClients(
+            donePages.filter((p) => p.docType !== "vip").flatMap((p) => p.clients)
+          );
+          const vipPages = deduplicateClients(
+            donePages.filter((p) => p.docType === "vip").flatMap((p) => p.clients)
+          );
+          onTypedResult(clientPages, vipPages, allRaw);
+        } else {
+          const allClients = deduplicateClients(donePages.flatMap((p) => p.clients));
+          onProcessed(allClients, allRaw);
+        }
       }
     };
 
@@ -105,10 +119,12 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
         const geminiResult = await processWithGemini(file);
         let clients: Client[];
         let rawText: string | undefined;
+        let docType: "clients" | "vip" | "unknown" = "clients";
 
         if (geminiResult !== null) {
-          clients = geminiResult;
-          rawText = `[Extracted by AI - ${clients.length} rooms]`;
+          clients = geminiResult.clients;
+          docType = geminiResult.docType;
+          rawText = `[Extracted by AI - ${clients.length} rooms (${docType})]`;
         } else {
           const result = await processWithTesseract(file);
           clients = result.clients;
@@ -118,12 +134,12 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
         setPages((prev) => {
           const updated = [...prev];
           if (updated[index]) {
-            updated[index] = { ...updated[index], status: "done", clients, rawText };
+            updated[index] = { ...updated[index], status: "done", clients, docType, rawText };
           }
           return updated;
         });
         pagesRef.current = pagesRef.current.map((p, i) =>
-          i === index ? { ...p, status: "done" as const, clients, rawText } : p
+          i === index ? { ...p, status: "done" as const, clients, docType, rawText } : p
         );
 
         emitResults(pagesRef.current);

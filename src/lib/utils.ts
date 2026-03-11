@@ -61,6 +61,21 @@ export function isComp(client: Client): boolean {
   return client.packageCode.toUpperCase().includes("BKF COMP");
 }
 
+export function getRoomStatusCounts(
+  clients: Client[],
+  checkIns: CheckInRecord[]
+): { allIn: number; partial: number; noShow: number; totalRooms: number } {
+  let allIn = 0, partial = 0, noShow = 0;
+  for (const c of clients) {
+    const total = c.adults + c.children;
+    const entered = getEnteredForRoom(c.roomNumber, checkIns);
+    if (entered >= total && total > 0) allIn++;
+    else if (entered > 0) partial++;
+    else noShow++;
+  }
+  return { allIn, partial, noShow, totalRooms: clients.length };
+}
+
 export function formatTime(isoString: string): string {
   const d = new Date(isoString);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

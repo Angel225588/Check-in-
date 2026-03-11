@@ -36,6 +36,7 @@ export interface CheckInRecord {
   clientName: string;
   peopleEntered: number;
   timestamp: string;
+  paymentAction?: string; // 'card' | 'room' | 'points' | 'pass'
 }
 
 export interface DailyData {

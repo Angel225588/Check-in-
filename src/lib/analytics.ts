@@ -38,7 +38,7 @@ export function getRushHourSlots(data: DailyData): RushHourSlot[] {
   const slots: { [key: string]: number } = {};
   const slotLabels: string[] = [];
 
-  for (let h = 6; h <= 10; h++) {
+  for (let h = 6; h <= 11; h++) {
     for (const m of ["00", "30"]) {
       const key = `${String(h).padStart(2, "0")}:${m}`;
       slots[key] = 0;

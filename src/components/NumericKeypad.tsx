@@ -18,7 +18,7 @@ export default function NumericKeypad({
   ];
 
   return (
-    <div className="glass-surface rounded-[14px] p-1.5 md:p-2.5 space-y-1.5 md:space-y-2">
+    <div className="glass-surface rounded-[14px] p-1.5 md:p-2.5 space-y-1.5 md:space-y-2" style={{ touchAction: "manipulation" }}>
       {keys.map((row, i) => (
         <div key={i} className="grid grid-cols-3 gap-1.5 md:gap-2">
           {row.map((key) => (

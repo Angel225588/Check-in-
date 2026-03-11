@@ -47,6 +47,8 @@ export default function SearchPage() {
         return clients.filter((c) => getRemainingForRoom(c, checkIns) > 0);
       case "comp":
         return clients.filter((c) => isComp(c));
+      case "vip":
+        return clients.filter((c) => c.isVip);
       default:
         return [];
     }
@@ -110,7 +112,7 @@ export default function SearchPage() {
   if (!hasData) {
     router.push("/upload");
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#F2F2F7] dark:bg-[#0A0A0F]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
         <div className="text-muted">Loading...</div>
       </div>
     );
@@ -132,10 +134,11 @@ export default function SearchPage() {
     entered: t("search.entered"),
     remaining: t("search.remaining"),
     comp: t("search.comp"),
+    vip: "VIP",
   };
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
       <div className="shrink-0 p-2 md:p-3 pt-2 md:pt-3">
         {/* Header row: back button + logo */}
         <div className="flex items-center justify-between mb-2 md:mb-3">
@@ -199,7 +202,24 @@ export default function SearchPage() {
           );
         })}
         {query && results.length === 0 && (
-          <div className="text-center text-muted py-4 text-sm md:text-base">{t("search.noRooms")}</div>
+          <div className="flex flex-col items-center gap-3 py-6">
+            <div className="text-muted text-sm">{t("search.noRooms")}</div>
+            <button
+              onClick={() => {
+                setNewRoom(query);
+                setNewName("");
+                setNewAdults("1");
+                setNewChildren("0");
+                setAddClientOpen(true);
+              }}
+              className="flex items-center gap-2 px-5 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              {t("search.addRoom")} {mode === "numeric" ? query : ""}
+            </button>
+          </div>
         )}
         {showFiltered && filteredClients.length === 0 && (
           <div className="text-center text-muted py-4 text-sm md:text-base">{t("search.noClients")}</div>
@@ -224,7 +244,7 @@ export default function SearchPage() {
 
       {/* Hidden VIP PhotoCapture */}
       <div className="hidden">
-        <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-vip" />
+        <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-unified" />
       </div>
 
       {/* VIP merged success toast */}
@@ -237,28 +257,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Floating action buttons */}
-      <div className="fixed bottom-20 right-4 flex flex-col gap-2.5 z-30">
-        {/* Add VIP button */}
-        <button
-          onClick={() => vipCaptureRef.current?.openPicker()}
-          className="w-12 h-12 rounded-full glass-liquid-active flex items-center justify-center shadow-lg active:scale-[0.92] transition-all"
-          title={t("search.addVip")}
-        >
-          <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-          </svg>
-        </button>
-        {/* Add client button */}
-        <button
-          onClick={() => setAddClientOpen(true)}
-          className="w-12 h-12 rounded-full bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/30 active:scale-[0.92] transition-all dark:glow-brand"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      </div>
+      {/* Floating buttons removed — VIP filter is in MetricsBar, Add Client appears on no-results */}
 
       {/* Add client modal */}
       {addClientOpen && (

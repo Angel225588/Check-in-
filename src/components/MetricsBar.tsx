@@ -4,7 +4,7 @@ import { Client, CheckInRecord } from "@/lib/types";
 import { getTotalGuests, getCheckedInCount, getCompStats } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 
-export type MetricFilter = "total" | "entered" | "remaining" | "comp" | null;
+export type MetricFilter = "total" | "entered" | "remaining" | "comp" | "vip" | null;
 
 interface MetricsBarProps {
   clients: Client[];
@@ -26,6 +26,7 @@ export default function MetricsBar({
   const total = getTotalGuests(clients);
   const entered = getCheckedInCount(checkIns);
   const comp = getCompStats(clients, checkIns);
+  const vipCount = clients.filter((c) => c.isVip).length;
 
   const handleFilter = (filter: MetricFilter) => {
     if (!onFilterChange) return;
@@ -83,6 +84,19 @@ export default function MetricsBar({
           {comp.entered}/{comp.total}
         </div>
       </button>
+      {vipCount > 0 && (
+        <button
+          onClick={() => handleFilter("vip")}
+          className={`${pillBase} ${
+            activeFilter === "vip"
+              ? "bg-gradient-to-b from-brand/20 to-brand-light/10 ring-1 ring-brand/30"
+              : "hover:bg-white/30 dark:hover:bg-white/5"
+          }`}
+        >
+          <div className="text-[10px] md:text-xs text-brand uppercase tracking-wide font-bold">VIP</div>
+          <div className="text-xl md:text-2xl font-black text-brand">{vipCount}</div>
+        </button>
+      )}
       <div className="flex flex-col gap-0.5">
         <button
           onClick={onHistoryToggle}

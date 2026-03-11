@@ -1,6 +1,7 @@
 "use client";
 import { Client, CheckInRecord } from "@/lib/types";
 import { getRemainingForRoom, isComp } from "@/lib/utils";
+import { findGuest, getGuestBadge, BADGE_CONFIG } from "@/lib/guests";
 import { useApp } from "@/contexts/AppContext";
 
 interface SuggestionCardProps {
@@ -16,11 +17,14 @@ export default function SuggestionCard({
   onSelect,
   clientIndex,
 }: SuggestionCardProps) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const remaining = getRemainingForRoom(client, checkIns);
   const total = client.adults + client.children;
   const allCheckedIn = remaining === 0;
   const comp = isComp(client);
+  const guest = findGuest(client.name);
+  const badge = guest ? getGuestBadge(guest.visitCount) : null;
+  const badgeConf = badge ? BADGE_CONFIG[badge] : null;
 
   return (
     <button
@@ -42,12 +46,12 @@ export default function SuggestionCard({
             {client.roomNumber}
           </span>
           {client.isVip && (
-            <span className="text-xs md:text-sm glass-brand text-brand px-2 py-0.5 rounded-full font-bold">
+            <span className="text-sm md:text-base bg-gradient-to-r from-brand to-brand-light text-white px-3 py-1 rounded-full font-black shadow-sm shadow-brand/20 tracking-wide">
               VIP{client.vipLevel ? ` ${client.vipLevel}` : ""}
             </span>
           )}
           {comp && (
-            <span className="text-xs md:text-sm bg-purple-100/70 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full font-medium backdrop-blur-sm">
+            <span className="text-sm md:text-base bg-purple-600 text-white px-3 py-1 rounded-full font-black shadow-sm shadow-purple-500/20 tracking-wide">
               COMP
             </span>
           )}
@@ -57,7 +61,23 @@ export default function SuggestionCard({
             </span>
           )}
         </div>
-        <div className="text-sm md:text-base text-muted truncate">{client.name}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm md:text-base text-muted truncate">{client.name}</span>
+          {badgeConf && badge !== "new" && (
+            <span className={`text-[9px] md:text-[10px] ${badgeConf.color} ${badgeConf.bg} px-1.5 py-0.5 rounded-full font-bold shrink-0`}>
+              {lang === "fr" ? badgeConf.labelFr : badgeConf.label}
+              {guest && guest.visitCount > 1 ? ` ×${guest.visitCount}` : ""}
+            </span>
+          )}
+          {guest?.birthday && (() => {
+            const today = new Date();
+            const [m, d] = guest.birthday!.split("-").map(Number);
+            if (today.getMonth() + 1 === m && today.getDate() === d) {
+              return <span className="text-sm shrink-0">🎂</span>;
+            }
+            return null;
+          })()}
+        </div>
       </div>
       <div className="text-right shrink-0">
         <div className="text-lg md:text-xl font-bold text-dark">

@@ -21,7 +21,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const storedLang = localStorage.getItem("app-lang") as Lang | null;
     const storedDark = localStorage.getItem("app-dark");
     if (storedLang === "en" || storedLang === "fr") setLang(storedLang);
-    if (storedDark === "true") setDark(true);
+    // Respect stored preference, or fall back to OS preference
+    if (storedDark === "true" || storedDark === "false") {
+      setDark(storedDark === "true");
+    } else {
+      setDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }
     setMounted(true);
   }, []);
 

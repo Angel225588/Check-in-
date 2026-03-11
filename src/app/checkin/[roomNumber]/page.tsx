@@ -22,6 +22,12 @@ export default function CheckInPage({
   const [remaining, setRemaining] = useState(0);
   const [count, setCount] = useState(1);
   const [checkInSuccess, setCheckInSuccess] = useState(false);
+  const [paymentAction, setPaymentAction] = useState<string | null>(null);
+  const [editingRoom, setEditingRoom] = useState(false);
+  const [editRoom, setEditRoom] = useState("");
+  const [editingPeople, setEditingPeople] = useState(false);
+  const [editAdults, setEditAdults] = useState("");
+  const [editChildren, setEditChildren] = useState("");
 
   useEffect(() => {
     const data = getTodayData();
@@ -66,6 +72,34 @@ export default function CheckInPage({
     setClient({ ...client, isVip: newVip, vipLevel: newVip ? "" : undefined });
   };
 
+  const notOnList = !client.packageCode || client.packageCode === "";
+  const showPaymentTabs = notOnList || paymentAction !== null;
+
+  const handleSaveRoom = () => {
+    if (!editRoom.trim() || clientIndex === null) return;
+    updateClient(clientIndex, { roomNumber: editRoom.trim() });
+    setClient({ ...client, roomNumber: editRoom.trim() });
+    setEditingRoom(false);
+    // Navigate to the new room URL
+    router.replace(`/checkin/${editRoom.trim()}?ci=${clientIndex}`);
+  };
+
+  const handleSavePeople = () => {
+    if (clientIndex === null) return;
+    const newAdults = Math.max(0, parseInt(editAdults, 10) || 0);
+    const newChildren = Math.max(0, parseInt(editChildren, 10) || 0);
+    updateClient(clientIndex, { adults: newAdults, children: newChildren });
+    const updated = { ...client, adults: newAdults, children: newChildren };
+    setClient(updated);
+    const data = getTodayData();
+    if (data) {
+      const rem = getRemainingForRoom(updated, data.checkIns);
+      setRemaining(rem);
+      setCount(Math.max(1, rem));
+    }
+    setEditingPeople(false);
+  };
+
   const total = client.adults + client.children;
   const comp = isComp(client);
   const allDone = remaining === 0;
@@ -80,6 +114,7 @@ export default function CheckInPage({
       clientName: client.name,
       peopleEntered: count,
       timestamp: new Date().toISOString(),
+      ...(paymentAction ? { paymentAction } : {}),
     };
     addCheckIn(record);
     setCheckInSuccess(true);
@@ -87,7 +122,7 @@ export default function CheckInPage({
   };
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#F2F2F7]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
       {/* Success overlay */}
       {checkInSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 dark:bg-black/50 animate-[fadeIn_0.1s_ease-out]">
@@ -119,28 +154,49 @@ export default function CheckInPage({
           <div className="flex items-end justify-between mb-2">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted mb-0.5">{t("checkin.room")}</div>
-              <div className="text-5xl font-black font-mono text-dark leading-none tracking-tight">{client.roomNumber}</div>
+              {editingRoom ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={editRoom}
+                    onChange={(e) => setEditRoom(e.target.value)}
+                    className="w-28 text-4xl font-black font-mono text-dark bg-white/50 rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    autoFocus
+                    maxLength={10}
+                  />
+                  <button onClick={handleSaveRoom} className="text-brand font-bold text-sm">{t("checkin.save")}</button>
+                  <button onClick={() => setEditingRoom(false)} className="text-muted text-sm">{t("checkin.cancel")}</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setEditRoom(client.roomNumber); setEditingRoom(true); }}
+                  className="text-5xl font-black font-mono text-dark leading-none tracking-tight active:opacity-70 transition-opacity"
+                >
+                  {client.roomNumber}
+                </button>
+              )}
             </div>
-            <div className="flex gap-1.5 flex-wrap justify-end pb-1">
+            <div className="flex gap-2 flex-wrap justify-end pb-1">
               <button
                 onClick={handleToggleVip}
                 className={`inline-flex items-center rounded-full font-black active:scale-[0.94] transition-all ${
                   client.isVip
-                    ? "bg-gradient-to-r from-brand to-brand-light text-white px-4 py-1.5 text-sm shadow-lg shadow-brand/30 dark:glow-brand"
-                    : "glass-liquid text-muted border border-dashed border-current text-xs px-3 py-1"
+                    ? "bg-gradient-to-r from-brand to-brand-light text-white px-5 py-2 text-base shadow-lg shadow-brand/30 dark:glow-brand"
+                    : "glass-liquid text-muted border border-dashed border-current text-sm px-4 py-1.5"
                 }`}
               >
                 {client.isVip ? (
                   <>
-                    <span className="drop-shadow-sm">VIP</span>
-                    {client.vipLevel ? <span className="ml-1 text-white/80 font-semibold text-xs">{client.vipLevel}</span> : ""}
+                    <span className="drop-shadow-sm tracking-wide">VIP</span>
+                    {client.vipLevel ? <span className="ml-1.5 text-white/80 font-bold text-sm">{client.vipLevel}</span> : ""}
                   </>
                 ) : (
                   <>+ VIP</>
                 )}
               </button>
               {comp && (
-                <span className="inline-flex items-center text-xs bg-purple-100/70 dark:bg-purple-900/30 backdrop-blur-sm text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full font-bold">
+                <span className="inline-flex items-center text-base bg-purple-600 text-white px-5 py-2 rounded-full font-black shadow-sm shadow-purple-500/20 tracking-wide">
                   COMP
                 </span>
               )}
@@ -173,21 +229,73 @@ export default function CheckInPage({
           </div>
         </div>
 
-        {/* Stats grid */}
-        <div className="shrink-0 grid grid-cols-3 gap-2 mb-3">
-          <div className="glass-liquid rounded-[14px] p-3 text-center">
-            <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.adults")}</div>
-            <div className="text-2xl font-bold text-dark mt-0.5">{client.adults}</div>
+        {/* Stats grid — tap to edit */}
+        {editingPeople ? (
+          <div className="shrink-0 glass-liquid rounded-[14px] p-4 mb-3 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium">{t("checkin.adults")}</label>
+                <input type="number" inputMode="numeric" value={editAdults} onChange={(e) => setEditAdults(e.target.value)} min="0" max="20" className="w-full mt-1 px-3 py-2 rounded-xl bg-white/50 text-dark font-mono text-xl text-center focus:outline-none focus:ring-2 focus:ring-brand/30" autoFocus />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted uppercase tracking-wide font-medium">{t("checkin.children")}</label>
+                <input type="number" inputMode="numeric" value={editChildren} onChange={(e) => setEditChildren(e.target.value)} min="0" max="20" className="w-full mt-1 px-3 py-2 rounded-xl bg-white/50 text-dark font-mono text-xl text-center focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setEditingPeople(false)} className="flex-1 py-2 rounded-full glass-liquid text-muted font-semibold text-sm">{t("checkin.cancel")}</button>
+              <button onClick={handleSavePeople} className="flex-1 py-2 rounded-full bg-brand text-white font-bold text-sm">{t("checkin.save")}</button>
+            </div>
           </div>
-          <div className="glass-liquid rounded-[14px] p-3 text-center">
-            <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.children")}</div>
-            <div className="text-2xl font-bold text-dark mt-0.5">{client.children}</div>
+        ) : (
+          <button
+            onClick={() => { setEditAdults(String(client.adults)); setEditChildren(String(client.children)); setEditingPeople(true); }}
+            className="shrink-0 grid grid-cols-3 gap-2 mb-3 w-full active:opacity-70 transition-opacity"
+          >
+            <div className="glass-liquid rounded-[14px] p-3 text-center">
+              <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.adults")}</div>
+              <div className="text-2xl font-bold text-dark mt-0.5">{client.adults}</div>
+            </div>
+            <div className="glass-liquid rounded-[14px] p-3 text-center">
+              <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.children")}</div>
+              <div className="text-2xl font-bold text-dark mt-0.5">{client.children}</div>
+            </div>
+            <div className="glass-liquid rounded-[14px] p-3 text-center">
+              <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.total")}</div>
+              <div className="text-2xl font-bold text-brand mt-0.5">{total}</div>
+            </div>
+          </button>
+        )}
+
+        {/* Payment tabs — for clients not on breakfast list */}
+        {showPaymentTabs && (
+          <div className="shrink-0 mb-3">
+            <div className="text-[10px] text-muted uppercase tracking-wide mb-1.5 font-medium">{t("checkin.paymentMethod")}</div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ touchAction: "pan-x" }}>
+              {[
+                { key: "pdj", label: "PDJ", icon: "🥐" },
+                { key: "card", label: t("checkin.payCard"), icon: "💳" },
+                { key: "room", label: t("checkin.payRoom"), icon: "🏨" },
+                { key: "points", label: t("checkin.payPoints"), icon: "⭐" },
+                { key: "cash", label: "Cash", icon: "💵" },
+                { key: "pass", label: t("checkin.payPass"), icon: "→" },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setPaymentAction(paymentAction === opt.key ? null : opt.key)}
+                  className={`shrink-0 py-2.5 px-4 rounded-xl text-center transition-all active:scale-[0.95] ${
+                    paymentAction === opt.key
+                      ? "bg-brand text-white shadow-md shadow-brand/20 font-bold"
+                      : "glass-liquid text-dark font-medium"
+                  }`}
+                >
+                  <div className="text-lg leading-none mb-0.5">{opt.icon}</div>
+                  <div className="text-[10px] leading-tight whitespace-nowrap">{opt.label}</div>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="glass-liquid rounded-[14px] p-3 text-center">
-            <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.total")}</div>
-            <div className="text-2xl font-bold text-brand mt-0.5">{total}</div>
-          </div>
-        </div>
+        )}
 
         <div className="shrink-0 grid grid-cols-2 gap-2 mb-3">
           <div className="glass-liquid rounded-[14px] p-3">

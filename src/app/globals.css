@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Use .dark class on <html> instead of OS media query */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'MuseoSans', 'Nunito', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   --color-brand: #A66914;
@@ -22,7 +25,7 @@
   body {
     font-family: 'MuseoSans', 'Nunito', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
     color: var(--color-dark);
-    background: #F2F2F7;
+    background: #FBF8F3;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -43,8 +46,8 @@
     border: 1px solid rgba(255, 255, 255, 0.4);
   }
   .dark .glass {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
 
   .glass-dark {
@@ -74,9 +77,9 @@
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .dark .glass-key {
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 12px rgba(166, 105, 20, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.10);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 12px rgba(166, 105, 20, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
   }
 
   .glass-surface {
@@ -85,39 +88,39 @@
     -webkit-backdrop-filter: blur(24px) saturate(180%);
   }
   .dark .glass-surface {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.10);
   }
 
   .glass-liquid {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.5) 0%,
-      rgba(255, 255, 255, 0.25) 50%,
-      rgba(255, 255, 255, 0.4) 100%
+      rgba(255, 253, 248, 0.7) 0%,
+      rgba(255, 252, 245, 0.45) 50%,
+      rgba(255, 253, 248, 0.6) 100%
     );
     backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
     -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
-    border: 1px solid rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(255, 250, 240, 0.6);
     box-shadow:
-      0 0 0 0.5px rgba(255, 255, 255, 0.6) inset,
-      0 2px 8px rgba(0, 0, 0, 0.06),
-      0 0 20px rgba(255, 255, 255, 0.15) inset;
+      0 0 0 0.5px rgba(255, 250, 240, 0.7) inset,
+      0 2px 8px rgba(166, 105, 20, 0.04),
+      0 0 20px rgba(255, 250, 240, 0.2) inset;
   }
   .dark .glass-liquid {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.07) 0%,
-      rgba(255, 255, 255, 0.03) 50%,
-      rgba(255, 255, 255, 0.05) 100%
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.10) 100%
     );
     backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
     -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow:
-      0 0 0 0.5px rgba(255, 255, 255, 0.05) inset,
+      0 0 0 0.5px rgba(255, 255, 255, 0.08) inset,
       0 2px 8px rgba(0, 0, 0, 0.3),
-      0 0 20px rgba(166, 105, 20, 0.03) inset;
+      0 0 20px rgba(166, 105, 20, 0.04) inset;
   }
 
   .glass-liquid-active {
@@ -160,16 +163,21 @@
 
   /* Dark mode overrides for common Tailwind colors */
   .dark .bg-\[\#F2F2F7\] { background-color: #0A0A0F !important; }
+  .dark .bg-\[\#FBF8F3\] { background-color: #0A0A0F !important; }
   .dark .text-dark { color: #F0F0F5 !important; }
-  .dark .text-muted { color: #8E8E93 !important; }
-  .dark .text-slate { color: #A0A0A8 !important; }
+  .dark .text-muted { color: #A0A0A8 !important; }
+  .dark .text-slate { color: #B0B0B8 !important; }
   .dark .text-brand { color: #DD9C28 !important; }
   .dark .bg-brand-50 { background-color: rgba(166, 105, 20, 0.1) !important; }
   .dark .bg-brand\/10 { background-color: rgba(221, 156, 40, 0.15) !important; }
   .dark .bg-brand-light\/15 { background-color: rgba(221, 156, 40, 0.12) !important; }
-  .dark .bg-black\/5 { background-color: rgba(255, 255, 255, 0.06) !important; }
+  .dark .bg-black\/5 { background-color: rgba(255, 255, 255, 0.10) !important; }
   .dark .border-border { border-color: rgba(255, 255, 255, 0.1) !important; }
   .dark .bg-bg-alt { background-color: rgba(255, 255, 255, 0.04) !important; }
+  .dark .bg-white\/50 { background-color: rgba(255, 255, 255, 0.08) !important; }
+  .dark .bg-white\/60 { background-color: rgba(255, 255, 255, 0.10) !important; }
+  .dark .bg-white\/40 { background-color: rgba(255, 255, 255, 0.08) !important; }
+  .dark .divide-black\/5 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255, 255, 255, 0.08) !important; }
 
   /* Dark glow buttons */
   .dark .glow-green {
