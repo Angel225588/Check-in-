@@ -3,7 +3,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { Client, CheckInRecord } from "@/lib/types";
-import { getTodayData, addCheckIn, updateClient } from "@/lib/storage";
+import { getTodayData, addCheckIn, updateClient, getSettings } from "@/lib/storage";
 import { getRemainingForRoom, isComp } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
@@ -28,6 +28,7 @@ export default function CheckInPage({
   const [editingPeople, setEditingPeople] = useState(false);
   const [editAdults, setEditAdults] = useState("");
   const [editChildren, setEditChildren] = useState("");
+  const [costPerCover, setCostPerCover] = useState(26);
 
   useEffect(() => {
     const data = getTodayData();
@@ -55,6 +56,7 @@ export default function CheckInPage({
     const rem = getRemainingForRoom(found, data.checkIns);
     setRemaining(rem);
     setCount(Math.max(1, rem));
+    setCostPerCover(getSettings().costPerCover);
   }, [roomNumber, router, searchParams]);
 
   if (!client) {
@@ -72,8 +74,9 @@ export default function CheckInPage({
     setClient({ ...client, isVip: newVip, vipLevel: newVip ? "" : undefined });
   };
 
+  // Payment carousel only for: walk-ins (no package), VIPs not on client list, extra guests
   const notOnList = !client.packageCode || client.packageCode === "";
-  const showPaymentTabs = notOnList || paymentAction !== null;
+  const showPaymentTabs = notOnList;
 
   const handleSaveRoom = () => {
     if (!editRoom.trim() || clientIndex === null) return;
@@ -205,6 +208,14 @@ export default function CheckInPage({
 
           {/* Guest name */}
           <h2 className="text-[22px] font-bold text-dark leading-tight">{client.name}</h2>
+
+          {/* COMP cost badge */}
+          {comp && (
+            <div className="mt-2 inline-flex items-center gap-2 bg-purple-500/10 dark:bg-purple-500/15 rounded-full px-3 py-1">
+              <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide">COMP</span>
+              <span className="text-sm font-black text-purple-700 dark:text-purple-300 tabular-nums">{total * costPerCover}€</span>
+            </div>
+          )}
         </div>
       </div>
 

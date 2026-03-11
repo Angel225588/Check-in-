@@ -27,7 +27,7 @@ If it's a CLIENT LIST (type A), return this JSON:
       "roomType": "string (e.g. DLXK, PRMK)",
       "rtc": "string",
       "confirmationNumber": "string",
-      "name": "string (guest name exactly as shown)",
+      "name": "string (guest full name EXACTLY as printed — do NOT reformat, reverse, or abbreviate. Copy character by character.)",
       "arrivalDate": "string (e.g. 05/03/26)",
       "departureDate": "string",
       "reservationStatus": "string (e.g. DUOT, CKIN)",
@@ -45,7 +45,7 @@ If it's a VIP LIST (type B), return this JSON:
   "data": [
     {
       "roomNumber": "string",
-      "name": "string",
+      "name": "string (full name EXACTLY as printed — do NOT reformat or reverse)",
       "vipLevel": "string (e.g. X4, P6)",
       "vipNotes": "string (all specials and preferences combined)",
       "confirmationNumber": "string",

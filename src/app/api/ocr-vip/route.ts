@@ -16,7 +16,7 @@ const VIP_EXTRACTION_PROMPT = `You are a data extraction assistant. Extract ALL 
 
 Each row must have these exact fields:
 - roomNumber (string): the room number
-- name (string): guest full name exactly as shown
+- name (string): guest full name EXACTLY as printed in the report. Do NOT reformat, reverse, or abbreviate. If it shows "LASTNAME, Firstname" keep it as "LASTNAME, Firstname". Copy character by character.
 - vipLevel (string): the VIP code (e.g. "X4", "P6")
 - vipNotes (string): all special notes/preferences for this guest (e.g. "Member Rate (M5), High Floor Room (H1), Non Smoking Room (N3)")
 - confirmationNumber (string): the CRS No. / confirmation number

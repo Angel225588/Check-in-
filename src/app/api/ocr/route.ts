@@ -19,7 +19,7 @@ Each row must have these exact fields:
 - roomType (string): room type code (e.g. DLXK, PRMK, STHT, STKD, STKG)
 - rtc (string): RTC code if present, otherwise ""
 - confirmationNumber (string): the confirmation/reservation number
-- name (string): guest name exactly as shown
+- name (string): guest full name EXACTLY as printed in the report. Do NOT reformat, reverse, or abbreviate. If it shows "LASTNAME, Firstname" keep it as "LASTNAME, Firstname". Copy character by character.
 - arrivalDate (string): arrival date exactly as shown (e.g. "05/03/26")
 - departureDate (string): departure date exactly as shown
 - reservationStatus (string): status code (e.g. DUOT, CKIN, COUT, DKIN, NOSH)
