@@ -1,5 +1,6 @@
 # Check-in PWA
 
+
 ## Overview
 Hotel breakfast check-in PWA. Upload daily report photos (Gemini Vision API), search rooms, check in guests.
 
