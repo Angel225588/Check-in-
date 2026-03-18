@@ -253,6 +253,43 @@ const translations = {
   "processing.verificationFailed": { fr: "Vérification échouée", en: "Verification failed" },
   "processing.discrepancies": { fr: "divergences trouvées", en: "discrepancies found" },
   "processing.confidence": { fr: "Confiance", en: "Confidence" },
+
+  // Undo / History (components)
+  "undo.title": { fr: "Annuler le Check-in", en: "Undo Check-in" },
+  "undo.removeFor": { fr: "Annuler le check-in pour", en: "Remove check-in for" },
+  "undo.removeCount": { fr: "Retirer", en: "Remove" },
+  "undo.person": { fr: "personne", en: "person" },
+  "undo.people": { fr: "personnes", en: "people" },
+  "undo.at": { fr: "à", en: "at" },
+  "undo.confirm": { fr: "Annuler", en: "Undo" },
+  "undo.success": { fr: "Check-in annulé", en: "Check-in undone" },
+  "undo.cancel": { fr: "Retour", en: "Cancel" },
+
+  // Upload action sheet (search page mid-session)
+  "action.uploadPdf": { fr: "Upload PDF", en: "Upload PDF" },
+  "action.scanner": { fr: "Scanner", en: "Scanner" },
+  "action.gallery": { fr: "Galerie", en: "Gallery" },
+  "action.manual": { fr: "Manuel", en: "Manual" },
+
+  // Upload home hardcoded
+  "upload.addingToSession": { fr: "Ajout à la session active", en: "Adding to active session" },
+  "upload.back": { fr: "Retour", en: "Back" },
+  "upload.subtitle2": { fr: "Petit-Déjeuner Check-in", en: "Breakfast Check-in" },
+  "upload.uploadDocs": { fr: "Uploader des Documents", en: "Upload Documents" },
+  "upload.uploadDocsDesc": { fr: "PDF, Scanner, Galerie, Manuel", en: "PDF, Scanner, Gallery, Manual" },
+  "upload.clients": { fr: "Clients", en: "Clients" },
+  "upload.reports": { fr: "Rapports", en: "Reports" },
+
+  // Client history
+  "clientHistory.title": { fr: "Historique", en: "History" },
+  "clientHistory.pax": { fr: "pax", en: "pax" },
+
+  // Quick add guest
+  "quickAdd.guestPlaceholder": { fr: "Nom du client", en: "Guest name" },
+  "quickAdd.room": { fr: "Chambre", en: "Room" },
+
+  // Add Guest button
+  "checkin.addGuest": { fr: "Ajouter un Invité", en: "Add Guest" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

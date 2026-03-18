@@ -339,10 +339,21 @@ export default function UploadPage() {
     if (todayData && todayData.clients.length > 0) {
       setActiveSession({ rooms: todayData.clients.length });
     }
-    // Detect add mode from URL
+    // Detect add mode and action from URL
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       setIsAddMode(params.get("mode") === "add");
+      const action = params.get("action");
+      if (action === "pdf") {
+        // Auto-trigger PDF file picker
+        setTimeout(() => pdfInputRef.current?.click(), 300);
+      } else if (action === "scanner") {
+        setView("processing");
+        setPendingAction("scanner");
+      } else if (action === "gallery") {
+        setView("processing");
+        setPendingAction("gallery");
+      }
     }
   }, []);
 
@@ -589,12 +600,12 @@ export default function UploadPage() {
               <svg className="w-5 h-5 text-brand shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="text-sm font-semibold text-brand">Adding to active session</span>
+              <span className="text-sm font-semibold text-brand">{t("upload.addingToSession")}</span>
               <button
                 onClick={() => router.push("/search")}
                 className="ml-auto text-xs text-brand/70 font-medium underline"
               >
-                Back
+                {t("upload.back")}
               </button>
             </div>
           )}
@@ -624,7 +635,7 @@ export default function UploadPage() {
             <h1 className="text-[32px] font-black text-dark leading-tight tracking-tight">
               {getGreeting(t)}
             </h1>
-            <p className="text-base text-muted mt-1">Petit-Déjeuner Check-in</p>
+            <p className="text-base text-muted mt-1">{t("upload.subtitle2")}</p>
           </div>
 
           {/* Main action buttons */}
@@ -688,7 +699,7 @@ export default function UploadPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold text-dark">Clients</span>
+                <span className="text-xs font-bold text-dark">{t("upload.clients")}</span>
               </button>
 
               {/* Reports */}
@@ -701,7 +712,7 @@ export default function UploadPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold text-dark">Reports</span>
+                <span className="text-xs font-bold text-dark">{t("upload.reports")}</span>
               </button>
 
               {/* Dashboard */}
@@ -730,8 +741,8 @@ export default function UploadPage() {
                   </svg>
                 </div>
                 <div className="text-left flex-1">
-                  <div className="text-sm font-bold text-dark">Upload Documents</div>
-                  <div className="text-xs text-muted">PDF, Scanner, Gallery, Manual</div>
+                  <div className="text-sm font-bold text-dark">{t("upload.uploadDocs")}</div>
+                  <div className="text-xs text-muted">{t("upload.uploadDocsDesc")}</div>
                 </div>
                 <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

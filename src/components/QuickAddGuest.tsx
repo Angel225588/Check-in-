@@ -70,7 +70,7 @@ export default function QuickAddGuest({ roomNumber, isOpen, onClose, onAdded }: 
       >
         <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
         <h3 className="text-lg font-bold text-dark mb-1">{t("checkin.addClient")}</h3>
-        <p className="text-sm text-muted mb-4">Room {roomNumber}</p>
+        <p className="text-sm text-muted mb-4">{t("quickAdd.room")} {roomNumber}</p>
 
         {/* Searchable name input */}
         <div className="mb-3 relative">
@@ -80,7 +80,7 @@ export default function QuickAddGuest({ roomNumber, isOpen, onClose, onAdded }: 
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
-            placeholder="Guest name"
+            placeholder={t("quickAdd.guestPlaceholder")}
             maxLength={100}
             autoFocus
           />

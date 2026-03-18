@@ -106,24 +106,24 @@ export default function HistoryPanel({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-dark mb-1">Undo Check-in</h3>
+            <h3 className="text-lg font-bold text-dark mb-1">{t("undo.title")}</h3>
             <p className="text-muted text-sm mb-5">
-              Remove check-in for <strong className="text-dark">{confirmUndo.clientName}</strong>, Room <strong className="text-dark">{confirmUndo.roomNumber}</strong>?
+              {t("undo.removeFor")} <strong className="text-dark">{confirmUndo.clientName}</strong>, {t("checkin.room")} <strong className="text-dark">{confirmUndo.roomNumber}</strong>?
               <br />
-              <span className="text-xs">({confirmUndo.peopleEntered} {confirmUndo.peopleEntered === 1 ? "person" : "people"} at {formatTime(confirmUndo.timestamp)})</span>
+              <span className="text-xs">({confirmUndo.peopleEntered} {confirmUndo.peopleEntered === 1 ? t("undo.person") : t("undo.people")} {t("undo.at")} {formatTime(confirmUndo.timestamp)})</span>
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmUndo(null)}
                 className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
               >
-                Cancel
+                {t("undo.cancel")}
               </button>
               <button
                 onClick={handleUndo}
                 className="flex-1 py-3 rounded-[52px] bg-red-500 text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-red-500/20"
               >
-                Undo
+                {t("undo.confirm")}
               </button>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function HistoryPanel({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
-          <span className="text-sm font-semibold">Check-in undone</span>
+          <span className="text-sm font-semibold">{t("undo.success")}</span>
         </div>
       )}
 

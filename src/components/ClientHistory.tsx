@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { CheckInRecord } from "@/lib/types";
 import { getClientHistory, removeCheckIn } from "@/lib/storage";
 import { formatTime } from "@/lib/utils";
+import { useApp } from "@/contexts/AppContext";
 
 interface ClientHistoryProps {
   roomNumber: string;
@@ -12,6 +13,7 @@ interface ClientHistoryProps {
 }
 
 export default function ClientHistory({ roomNumber, clientName, todayCheckIns, onUndo }: ClientHistoryProps) {
+  const { t } = useApp();
   const [history, setHistory] = useState<{ date: string; checkIns: CheckInRecord[] }[]>([]);
   const [confirmUndo, setConfirmUndo] = useState<CheckInRecord | null>(null);
 
@@ -34,7 +36,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
 
   return (
     <div className="shrink-0 mb-3">
-      <div className="text-[10px] text-muted uppercase tracking-wide mb-1.5 font-medium">History</div>
+      <div className="text-[10px] text-muted uppercase tracking-wide mb-1.5 font-medium">{t("clientHistory.title")}</div>
 
       {/* Past dates as chips */}
       {hasHistory && (
@@ -43,7 +45,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
             <div key={`${h.date}-${i}`} className="shrink-0 glass-liquid rounded-full px-3 py-1.5 flex items-center gap-1.5">
               <span className="text-xs font-semibold text-dark">{h.date}</span>
               <span className="text-[10px] text-muted">
-                {h.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0)} pax
+                {h.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0)} {t("clientHistory.pax")}
               </span>
             </div>
           ))}
@@ -57,7 +59,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
             <div key={ci.id} className="flex items-center gap-2 glass rounded-[10px] px-3 py-2">
               <span className="text-xs text-muted font-mono w-12 shrink-0">{formatTime(ci.timestamp)}</span>
               <span className="text-xs font-semibold text-dark flex-1">
-                {ci.peopleEntered} {ci.peopleEntered === 1 ? "person" : "people"}
+                {ci.peopleEntered} {ci.peopleEntered === 1 ? t("undo.person") : t("undo.people")}
               </span>
               {ci.paymentAction && (
                 <span className="text-[10px] text-muted uppercase">{ci.paymentAction}</span>
@@ -85,22 +87,22 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-dark mb-1">Undo Check-in</h3>
+            <h3 className="text-lg font-bold text-dark mb-1">{t("undo.title")}</h3>
             <p className="text-muted text-sm mb-5">
-              Remove {confirmUndo.peopleEntered} {confirmUndo.peopleEntered === 1 ? "person" : "people"} at {formatTime(confirmUndo.timestamp)}?
+              {t("undo.removeCount")} {confirmUndo.peopleEntered} {confirmUndo.peopleEntered === 1 ? t("undo.person") : t("undo.people")} {t("undo.at")} {formatTime(confirmUndo.timestamp)}?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmUndo(null)}
                 className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
               >
-                Cancel
+                {t("undo.cancel")}
               </button>
               <button
                 onClick={handleUndo}
                 className="flex-1 py-3 rounded-[52px] bg-red-500 text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-red-500/20"
               >
-                Undo
+                {t("undo.confirm")}
               </button>
             </div>
           </div>
