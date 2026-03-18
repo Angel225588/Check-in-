@@ -62,11 +62,9 @@ export default function CheckInPage({
     setCount(Math.max(1, rem));
     setCostPerCover(getSettings().costPerCover);
 
-    // Restore persisted payment or VIP default
+    // Restore persisted payment selection
     if (found.pendingPaymentAction) {
       setPaymentAction(found.pendingPaymentAction);
-    } else if (found.isVip) {
-      setPaymentAction("points");
     }
 
     // Load today's check-ins for this client
@@ -95,9 +93,10 @@ export default function CheckInPage({
     setClient({ ...client, isVip: newVip, vipLevel: newVip ? "" : undefined });
   };
 
-  // Payment carousel: walk-ins (no package), VIPs, extra guests
+  // Payment carousel: walk-ins (no package) and extra guests only
+  // VIPs with a breakfast package are covered — no carousel needed
   const notOnList = !client.packageCode || client.packageCode === "";
-  const showPaymentTabs = notOnList || !!client.isVip;
+  const showPaymentTabs = notOnList;
 
   const handleSaveRoom = () => {
     if (!editRoom.trim() || clientIndex === null) return;
