@@ -237,20 +237,30 @@ export function getClientHistory(
 ): { date: string; checkIns: CheckInRecord[] }[] {
   const sessions = getSessionHistory();
   const normName = clientName.trim().toLowerCase().replace(/\s+/g, " ");
-  const results: { date: string; checkIns: CheckInRecord[] }[] = [];
+  const today = getTodayString();
+
+  // Group check-ins by date to deduplicate sessions on the same day
+  const byDate = new Map<string, CheckInRecord[]>();
 
   for (const s of sessions) {
+    // Skip today — today's check-ins are shown separately via todayCheckIns prop
+    if (s.date === today) continue;
+
     const matching = s.checkIns.filter(
       (ci) =>
         ci.roomNumber === roomNumber &&
         ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
     );
     if (matching.length > 0) {
-      results.push({ date: s.date, checkIns: matching });
+      const existing = byDate.get(s.date) ?? [];
+      byDate.set(s.date, existing.concat(matching));
     }
   }
 
-  return results;
+  // Convert map to sorted array (most recent first)
+  return Array.from(byDate.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([date, checkIns]) => ({ date, checkIns }));
 }
 
 // --- Historical Data (for dashboard) ---

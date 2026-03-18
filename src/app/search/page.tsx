@@ -29,6 +29,7 @@ export default function SearchPage() {
   const [newAdults, setNewAdults] = useState("1");
   const [newChildren, setNewChildren] = useState("0");
   const [vipMergedMsg, setVipMergedMsg] = useState(false);
+  const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
 
   const filteredClients = useMemo(() => {
@@ -257,16 +258,67 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Mid-session upload FAB */}
+      {/* Mid-session upload FAB — subtle, blends in */}
       <button
-        onClick={() => router.push("/upload?mode=add")}
-        className="fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-gradient-to-r from-brand to-brand-light text-white shadow-lg shadow-brand/30 flex items-center justify-center active:scale-90 transition-all"
+        onClick={() => setUploadSheetOpen(true)}
+        className="fixed bottom-20 right-4 z-40 w-11 h-11 rounded-full glass-liquid border border-brand/20 text-brand shadow-sm flex items-center justify-center active:scale-90 transition-all"
         title={t("search.upload")}
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
       </button>
+
+      {/* Upload action sheet */}
+      {uploadSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setUploadSheetOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
+          <div
+            className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-dark mb-4">{t("search.upload")}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add"); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <span className="text-2xl">PDF</span>
+                <span className="text-xs font-semibold text-dark">Upload PDF</span>
+              </button>
+              <button
+                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add"); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <circle cx="12" cy="13" r="3" />
+                </svg>
+                <span className="text-xs font-semibold text-dark">Scanner</span>
+              </button>
+              <button
+                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add"); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-semibold text-dark">Gallery</span>
+              </button>
+              <button
+                onClick={() => { setUploadSheetOpen(false); setAddClientOpen(true); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="text-xs font-semibold text-dark">Manual</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add client modal */}
       {addClientOpen && (

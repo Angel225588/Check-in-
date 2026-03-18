@@ -676,24 +676,68 @@ export default function UploadPage() {
               </button>
             )}
 
-            {/* DASHBOARD — secondary */}
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="w-full group glass-liquid rounded-[20px] p-5 flex items-center gap-4 active:scale-[0.97] transition-all"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
-                <svg className="w-7 h-7 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+            {/* Secondary nav — 3-button row */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Clients */}
+              <button
+                onClick={() => router.push(activeSession ? "/search" : "/dashboard")}
+                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-bold text-dark">Clients</span>
+              </button>
+
+              {/* Reports */}
+              <button
+                onClick={() => router.push(activeSession ? "/report" : "/dashboard")}
+                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-bold text-dark">Reports</span>
+              </button>
+
+              {/* Dashboard */}
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-bold text-dark">{t("upload.dashboard")}</span>
+              </button>
+            </div>
+
+            {/* Docs button — only when no active session */}
+            {!activeSession && (
+              <button
+                onClick={() => setActionSheetOpen(true)}
+                className="w-full glass-liquid rounded-[16px] p-3.5 flex items-center gap-3 active:scale-[0.97] transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <div className="text-left flex-1">
+                  <div className="text-sm font-bold text-dark">Upload Documents</div>
+                  <div className="text-xs text-muted">PDF, Scanner, Gallery, Manual</div>
+                </div>
+                <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </div>
-              <div className="text-left flex-1">
-                <div className="text-xl font-black text-dark tracking-tight">{t("upload.dashboard")}</div>
-                <div className="text-sm text-muted font-medium mt-0.5">{t("home.dashboardDesc")}</div>
-              </div>
-              <svg className="w-6 h-6 text-muted/40 group-active:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+              </button>
+            )}
           </div>
         </div>
 
