@@ -183,6 +183,18 @@
   .dark .bg-white\/40 { background-color: rgba(255, 255, 255, 0.08) !important; }
   .dark .divide-black\/5 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255, 255, 255, 0.08) !important; }
 
+  /* Dark mode input fields */
+  .dark input[type="text"],
+  .dark input[type="number"],
+  .dark input[type="search"],
+  .dark textarea {
+    color: #F0F0F5 !important;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: rgba(160, 160, 168, 0.6) !important;
+  }
+
   /* Dark glow buttons */
   .dark .glow-green {
     box-shadow: 0 0 20px rgba(34, 197, 94, 0.3), 0 4px 16px rgba(34, 197, 94, 0.2);

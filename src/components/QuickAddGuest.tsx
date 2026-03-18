@@ -107,12 +107,12 @@ export default function QuickAddGuest({ roomNumber, isOpen, onClose, onAdded }: 
             <div className="flex items-center gap-2 mt-1">
               <button
                 onClick={() => setAdults(Math.max(0, adults - 1))}
-                className="w-10 h-10 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
+                className="w-11 h-11 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
               >-</button>
               <span className="text-xl font-bold text-dark tabular-nums w-8 text-center">{adults}</span>
               <button
                 onClick={() => setAdults(Math.min(20, adults + 1))}
-                className="w-10 h-10 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
+                className="w-11 h-11 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
               >+</button>
             </div>
           </div>
@@ -121,12 +121,12 @@ export default function QuickAddGuest({ roomNumber, isOpen, onClose, onAdded }: 
             <div className="flex items-center gap-2 mt-1">
               <button
                 onClick={() => setChildren(Math.max(0, children - 1))}
-                className="w-10 h-10 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
+                className="w-11 h-11 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
               >-</button>
               <span className="text-xl font-bold text-dark tabular-nums w-8 text-center">{children}</span>
               <button
                 onClick={() => setChildren(Math.min(20, children + 1))}
-                className="w-10 h-10 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
+                className="w-11 h-11 rounded-xl glass-liquid flex items-center justify-center text-lg font-bold text-dark active:scale-90 transition-all"
               >+</button>
             </div>
           </div>

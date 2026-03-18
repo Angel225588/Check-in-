@@ -71,8 +71,8 @@ export default function HistoryPanel({
                 </span>
                 <button
                   onClick={() => setConfirmUndo(record)}
-                  className="p-1.5 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
-                  title="Undo"
+                  className="p-2.5 -m-1 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
+                  title={t("undo.confirm")}
                 >
                   <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H7" />
