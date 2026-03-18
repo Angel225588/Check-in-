@@ -8,14 +8,29 @@ export function getCheckedInCount(checkIns: CheckInRecord[]): number {
   return checkIns.reduce((sum, c) => sum + c.peopleEntered, 0);
 }
 
+export function normalizeNameForMatch(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function getEnteredForClient(
+  client: Client,
+  checkIns: CheckInRecord[]
+): number {
+  const normName = normalizeNameForMatch(client.name);
+  return checkIns
+    .filter(
+      (c) =>
+        c.roomNumber === client.roomNumber &&
+        normalizeNameForMatch(c.clientName) === normName
+    )
+    .reduce((sum, c) => sum + c.peopleEntered, 0);
+}
+
 export function getRemainingForRoom(
   client: Client,
   checkIns: CheckInRecord[]
 ): number {
-  const roomCheckIns = checkIns.filter(
-    (c) => c.roomNumber === client.roomNumber
-  );
-  const entered = roomCheckIns.reduce((sum, c) => sum + c.peopleEntered, 0);
+  const entered = getEnteredForClient(client, checkIns);
   return Math.max(0, client.adults + client.children - entered);
 }
 
@@ -36,10 +51,10 @@ export function getCompStats(
     c.packageCode.toUpperCase().includes("BKF COMP")
   );
   const total = compClients.reduce((sum, c) => sum + c.adults + c.children, 0);
-  const compRooms = new Set(compClients.map((c) => c.roomNumber));
-  const entered = checkIns
-    .filter((c) => compRooms.has(c.roomNumber))
-    .reduce((sum, c) => sum + c.peopleEntered, 0);
+  const entered = compClients.reduce(
+    (sum, c) => sum + getEnteredForClient(c, checkIns),
+    0
+  );
   return { entered, total };
 }
 
@@ -68,7 +83,7 @@ export function getRoomStatusCounts(
   let allIn = 0, partial = 0, noShow = 0;
   for (const c of clients) {
     const total = c.adults + c.children;
-    const entered = getEnteredForRoom(c.roomNumber, checkIns);
+    const entered = getEnteredForClient(c, checkIns);
     if (entered >= total && total > 0) allIn++;
     else if (entered > 0) partial++;
     else noShow++;

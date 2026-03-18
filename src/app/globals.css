@@ -22,6 +22,10 @@
 }
 
 @layer base {
+  html.dark {
+    background-color: #0A0A0F;
+  }
+
   body {
     font-family: 'MuseoSans', 'Nunito', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
     color: var(--color-dark);
@@ -173,7 +177,7 @@
   .dark .bg-brand-light\/15 { background-color: rgba(221, 156, 40, 0.12) !important; }
   .dark .bg-black\/5 { background-color: rgba(255, 255, 255, 0.10) !important; }
   .dark .border-border { border-color: rgba(255, 255, 255, 0.1) !important; }
-  .dark .bg-bg-alt { background-color: rgba(255, 255, 255, 0.04) !important; }
+  .dark .bg-bg-alt { background-color: #0A0A0F !important; }
   .dark .bg-white\/50 { background-color: rgba(255, 255, 255, 0.08) !important; }
   .dark .bg-white\/60 { background-color: rgba(255, 255, 255, 0.10) !important; }
   .dark .bg-white\/40 { background-color: rgba(255, 255, 255, 0.08) !important; }

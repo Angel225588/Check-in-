@@ -7,6 +7,8 @@ import { getTodayData, addCheckIn, updateClient, getSettings } from "@/lib/stora
 import { getRemainingForRoom, isComp } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
+import QuickAddGuest from "@/components/QuickAddGuest";
+import ClientHistory from "@/components/ClientHistory";
 
 export default function CheckInPage({
   params,
@@ -29,6 +31,8 @@ export default function CheckInPage({
   const [editAdults, setEditAdults] = useState("");
   const [editChildren, setEditChildren] = useState("");
   const [costPerCover, setCostPerCover] = useState(26);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [todayCheckIns, setTodayCheckIns] = useState<CheckInRecord[]>([]);
 
   useEffect(() => {
     const data = getTodayData();
@@ -57,6 +61,23 @@ export default function CheckInPage({
     setRemaining(rem);
     setCount(Math.max(1, rem));
     setCostPerCover(getSettings().costPerCover);
+
+    // Restore persisted payment or VIP default
+    if (found.pendingPaymentAction) {
+      setPaymentAction(found.pendingPaymentAction);
+    } else if (found.isVip) {
+      setPaymentAction("points");
+    }
+
+    // Load today's check-ins for this client
+    const normName = found.name.trim().toLowerCase().replace(/\s+/g, " ");
+    setTodayCheckIns(
+      data.checkIns.filter(
+        (ci) =>
+          ci.roomNumber === found.roomNumber &&
+          ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
+      )
+    );
   }, [roomNumber, router, searchParams]);
 
   if (!client) {
@@ -74,9 +95,9 @@ export default function CheckInPage({
     setClient({ ...client, isVip: newVip, vipLevel: newVip ? "" : undefined });
   };
 
-  // Payment carousel only for: walk-ins (no package), VIPs not on client list, extra guests
+  // Payment carousel: walk-ins (no package), VIPs, extra guests
   const notOnList = !client.packageCode || client.packageCode === "";
-  const showPaymentTabs = notOnList;
+  const showPaymentTabs = notOnList || !!client.isVip;
 
   const handleSaveRoom = () => {
     if (!editRoom.trim() || clientIndex === null) return;
@@ -290,10 +311,18 @@ export default function CheckInPage({
                 { key: "points", label: t("checkin.payPoints"), icon: "⭐" },
                 { key: "cash", label: "Cash", icon: "💵" },
                 { key: "pass", label: t("checkin.payPass"), icon: "→" },
+                { key: "reception", label: "Réception", icon: "🔔" },
+                { key: "supervisor", label: "Supervisor", icon: "👤" },
               ].map((opt) => (
                 <button
                   key={opt.key}
-                  onClick={() => setPaymentAction(paymentAction === opt.key ? null : opt.key)}
+                  onClick={() => {
+                    const newAction = paymentAction === opt.key ? null : opt.key;
+                    setPaymentAction(newAction);
+                    if (clientIndex !== null) {
+                      updateClient(clientIndex, { pendingPaymentAction: newAction || undefined });
+                    }
+                  }}
                   className={`shrink-0 py-2.5 px-4 rounded-xl text-center transition-all active:scale-[0.95] ${
                     paymentAction === opt.key
                       ? "bg-brand text-white shadow-md shadow-brand/20 font-bold"
@@ -322,6 +351,43 @@ export default function CheckInPage({
         <div className="shrink-0 glass-liquid rounded-[14px] p-3 mb-3">
           <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.package")}</div>
           <div className="text-sm font-semibold mt-0.5 text-dark">{client.packageCode || "N/A"}</div>
+        </div>
+
+        {/* Client history + undo timeline */}
+        <ClientHistory
+          roomNumber={client.roomNumber}
+          clientName={client.name}
+          todayCheckIns={todayCheckIns}
+          onUndo={() => {
+            // Refresh data after undo
+            const data = getTodayData();
+            if (data && client) {
+              const rem = getRemainingForRoom(client, data.checkIns);
+              setRemaining(rem);
+              setCount(Math.max(1, rem));
+              const normName = client.name.trim().toLowerCase().replace(/\s+/g, " ");
+              setTodayCheckIns(
+                data.checkIns.filter(
+                  (ci) =>
+                    ci.roomNumber === client.roomNumber &&
+                    ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
+                )
+              );
+            }
+          }}
+        />
+
+        {/* Add Guest button */}
+        <div className="shrink-0 mb-3">
+          <button
+            onClick={() => setQuickAddOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-sm active:scale-[0.97] transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            {t("checkin.addClient")}
+          </button>
         </div>
 
         <div className="flex-1" />
@@ -355,6 +421,19 @@ export default function CheckInPage({
           </div>
         )}
       </div>
+
+      <QuickAddGuest
+        roomNumber={client.roomNumber}
+        isOpen={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        onAdded={(newClient) => {
+          const data = getTodayData();
+          if (data) {
+            const newIndex = data.clients.length - 1;
+            router.push(`/checkin/${newClient.roomNumber}?ci=${newIndex}`);
+          }
+        }}
+      />
 
       <style jsx>{`
         @keyframes fadeIn {

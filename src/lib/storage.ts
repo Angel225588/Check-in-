@@ -128,6 +128,16 @@ export function addCheckIn(record: CheckInRecord): void {
   saveTodayData(data);
 }
 
+export function removeCheckIn(id: string): boolean {
+  const data = getTodayData();
+  if (!data) return false;
+  const idx = data.checkIns.findIndex((c) => c.id === id);
+  if (idx === -1) return false;
+  data.checkIns.splice(idx, 1);
+  saveTodayData(data);
+  return true;
+}
+
 export function getCheckInsForRoom(roomNumber: string): CheckInRecord[] {
   const data = getTodayData();
   if (!data) return [];
@@ -217,6 +227,30 @@ export function closeDay(): SessionRecord | null {
   clearDayData(data.date);
 
   return record;
+}
+
+// --- Client History ---
+
+export function getClientHistory(
+  roomNumber: string,
+  clientName: string
+): { date: string; checkIns: CheckInRecord[] }[] {
+  const sessions = getSessionHistory();
+  const normName = clientName.trim().toLowerCase().replace(/\s+/g, " ");
+  const results: { date: string; checkIns: CheckInRecord[] }[] = [];
+
+  for (const s of sessions) {
+    const matching = s.checkIns.filter(
+      (ci) =>
+        ci.roomNumber === roomNumber &&
+        ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
+    );
+    if (matching.length > 0) {
+      results.push({ date: s.date, checkIns: matching });
+    }
+  }
+
+  return results;
 }
 
 // --- Historical Data (for dashboard) ---

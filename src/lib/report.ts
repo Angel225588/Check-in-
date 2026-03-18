@@ -1,5 +1,5 @@
 import { Client, CheckInRecord } from "./types";
-import { getRemainingForRoom, getEnteredForRoom, isComp } from "./utils";
+import { getRemainingForRoom, getEnteredForClient, isComp } from "./utils";
 
 export interface RoomReport {
   roomNumber: string;
@@ -32,7 +32,7 @@ export function generateDayReport(
 ): DayReport {
   const rooms: RoomReport[] = clients.map((client) => {
     const totalGuests = client.adults + client.children;
-    const entered = getEnteredForRoom(client.roomNumber, checkIns);
+    const entered = getEnteredForClient(client, checkIns);
     const remaining = getRemainingForRoom(client, checkIns);
 
     let status: RoomReport["status"] = "no-show";

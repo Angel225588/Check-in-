@@ -11,6 +11,7 @@ export interface Client {
   children: number;
   rateCode: string;
   packageCode: string;
+  pendingPaymentAction?: string;
   isVip?: boolean;
   vipLevel?: string;
   vipNotes?: string;
