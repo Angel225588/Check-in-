@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
     console.error("OCR PDF route error:", err);
     return NextResponse.json(
       {
-        error: `Processing failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        error: "Processing failed. Please try again.",
       },
       { status: 500 }
     );

@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
     console.error("Verify extraction route error:", err);
     return NextResponse.json(
       {
-        error: `Verification failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        error: "Verification failed. Please try again.",
       },
       { status: 500 }
     );
