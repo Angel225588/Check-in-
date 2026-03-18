@@ -98,7 +98,8 @@ export default function ReportPage() {
   const allIn = report.rooms.filter((r) => r.status === "all-in");
   const partial = report.rooms.filter((r) => r.status === "partial");
   const noShow = report.rooms.filter((r) => r.status === "no-show");
-  const noShowGuests = noShow.reduce((s, r) => s + r.totalGuests, 0);
+  const allInGuests = allIn.reduce((s, r) => s + r.entered, 0);
+  const partialGuests = partial.reduce((s, r) => s + r.entered, 0);
 
   return (
     <>
@@ -137,21 +138,25 @@ export default function ReportPage() {
                 className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "all" ? "glass-liquid-active ring-1 ring-brand/30" : "glass-liquid"}`}>
                 <div className="text-[8px] text-muted uppercase tracking-wide">{t("report.totalRooms")}</div>
                 <div className="text-xl font-black text-dark">{report.totalRooms}</div>
+                <div className="text-[9px] text-muted">{report.totalGuests} pax</div>
               </button>
               <button onClick={() => handleMetricTap("allIn")}
                 className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "allIn" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
                 <div className="text-[8px] text-green-700 dark:text-green-400 uppercase tracking-wide">{t("report.allIn")}</div>
                 <div className="text-xl font-black text-green-700 dark:text-green-400">{allIn.length}</div>
+                <div className="text-[9px] text-green-700/60 dark:text-green-400/60">{allInGuests} pax</div>
               </button>
               <button onClick={() => handleMetricTap("partial")}
                 className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "partial" ? "glass-liquid-active ring-1 ring-brand/30" : "glass-liquid"}`}>
                 <div className="text-[8px] text-brand uppercase tracking-wide">{t("report.partial")}</div>
                 <div className="text-xl font-black text-brand">{partial.length}</div>
+                <div className="text-[9px] text-brand/60">{partialGuests} pax</div>
               </button>
               <button onClick={() => handleMetricTap("noshow")}
                 className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "noshow" ? "glass-liquid-active ring-1 ring-red-500/30" : "glass-liquid"}`}>
                 <div className="text-[8px] text-error uppercase tracking-wide">{t("report.noShows")}</div>
                 <div className="text-xl font-black text-error">{noShow.length}</div>
+                <div className="text-[9px] text-error/60">{report.totalGuests - report.totalEntered} pax</div>
               </button>
               <button onClick={() => handleMetricTap("comp")}
                 className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "comp" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
@@ -164,8 +169,9 @@ export default function ReportPage() {
 
         {/* ═══ SCROLLABLE CONTENT ═══ */}
         <div className="max-w-2xl mx-auto px-4 pb-48 space-y-4 pt-3">
-          {/* Status breakdown bar */}
+          {/* Status breakdown bar — ROOMS */}
           <div className="glass-liquid rounded-[14px] p-4">
+            <div className="text-[9px] text-muted uppercase tracking-wider font-semibold mb-2">{t("report.roomBreakdown")}</div>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-green-500" />
@@ -193,12 +199,24 @@ export default function ReportPage() {
                 )}
               </div>
             )}
-            {/* Guest count summary */}
-            <div className="flex items-center gap-4 mt-3 text-xs text-muted">
-              <span>{report.totalGuests} {t("report.totalGuests").toLowerCase()}</span>
-              <span className="text-green-700 dark:text-green-400">{report.totalEntered} {t("report.entered").toLowerCase()}</span>
-              <span className="text-brand">{report.totalRemaining} {t("report.remaining").toLowerCase()}</span>
-              {noShowGuests > 0 && <span className="text-error">{noShowGuests} no-show guests</span>}
+
+            {/* Guest count summary — separate section, clear GUESTS unit */}
+            <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/8">
+              <div className="text-[9px] text-muted uppercase tracking-wider font-semibold mb-1.5">Guests (pax)</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-lg font-black text-dark tabular-nums">{report.totalGuests}</div>
+                  <div className="text-[9px] text-muted">{t("report.totalGuests")}</div>
+                </div>
+                <div>
+                  <div className="text-lg font-black text-green-600 dark:text-green-400 tabular-nums">{report.totalEntered}</div>
+                  <div className="text-[9px] text-green-700/60 dark:text-green-400/60">{t("report.entered")}</div>
+                </div>
+                <div>
+                  <div className="text-lg font-black text-error tabular-nums">{report.totalRemaining}</div>
+                  <div className="text-[9px] text-error/60">{t("report.remaining")}</div>
+                </div>
+              </div>
             </div>
           </div>
 
