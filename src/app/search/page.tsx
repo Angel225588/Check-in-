@@ -30,6 +30,7 @@ export default function SearchPage() {
   const [newChildren, setNewChildren] = useState("0");
   const [vipMergedMsg, setVipMergedMsg] = useState(false);
   const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
+  const [mergeBanner, setMergeBanner] = useState<{ added: number; skipped: number; total: number } | null>(null);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
 
   const filteredClients = useMemo(() => {
@@ -97,6 +98,19 @@ export default function SearchPage() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
+
+  // Show merge banner from upload redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const merged = params.get("merged");
+    const skipped = params.get("skipped");
+    const total = params.get("total");
+    if (merged !== null) {
+      setMergeBanner({ added: Number(merged), skipped: Number(skipped), total: Number(total) });
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(() => setMergeBanner(null), 4000);
+    }
+  }, []);
 
   useEffect(() => {
     if (query) setActiveFilter(null);
@@ -168,6 +182,19 @@ export default function SearchPage() {
             </span>
           </div>
         </div>
+
+        {mergeBanner && (
+          <div className="mb-2 p-2.5 glass-liquid rounded-[12px] flex items-center gap-2 animate-fadeUp">
+            <div className="w-7 h-7 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
+              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <div className="text-xs text-dark">
+              <span className="font-bold">+{mergeBanner.added}</span> {t("upload.newRoomsAdded")}
+              {mergeBanner.skipped > 0 && <span className="text-muted"> · {mergeBanner.skipped} {t("upload.duplicatesSkipped")}</span>}
+              <span className="text-muted"> · {mergeBanner.total} {t("upload.totalRoomsNow")}</span>
+            </div>
+          </div>
+        )}
 
         <MetricsBar
           clients={clients}

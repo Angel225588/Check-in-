@@ -67,7 +67,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const formData = await request.formData();
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request. Send multipart form data with an image." },
+        { status: 400 }
+      );
+    }
     const file = formData.get("image") as File | null;
 
     if (!file) {

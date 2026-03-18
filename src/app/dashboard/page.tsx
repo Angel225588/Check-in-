@@ -311,16 +311,20 @@ export default function DashboardPage() {
         )}
 
         {/* ═══ 2. ARRIVAL TIME — Vertical bar chart 6:00–11:00 ═══ */}
-        {hasData && activeRushSlots.length === 0 && viewMode === "today" && !metricFilter && !clientSearch && (
-          <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
-            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
-            <div className="glass-liquid rounded-[16px] p-6 text-center">
-              <div className="text-[22px] mb-1">⏳</div>
-              <p className="text-xs text-muted">{t("dash.noRushData")}</p>
-            </div>
-          </section>
-        )}
-        {hasData && activeRushSlots.length > 0 && !metricFilter && !clientSearch && (
+        {hasData && !metricFilter && !clientSearch && (() => {
+          const hasAnyCheckins = activeRushSlots.some((s) => s.count > 0);
+          if (!hasAnyCheckins) return (
+            <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
+              <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
+              <div className="glass-liquid rounded-[16px] p-6 text-center">
+                <div className="text-[22px] mb-1">⏳</div>
+                <p className="text-xs text-muted">{t("dash.noRushData")}</p>
+              </div>
+            </section>
+          );
+          return null;
+        })()}
+        {hasData && activeRushSlots.some((s) => s.count > 0) && !metricFilter && !clientSearch && (
           <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
             <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
             <div className="glass-liquid rounded-[16px] p-4">

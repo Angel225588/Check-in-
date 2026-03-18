@@ -560,8 +560,7 @@ export default function UploadPage() {
     recordSessionGuests(parsedClients);
     if (result.duplicatesSkipped > 0 || result.existing > 0) {
       setMergeBanner(result);
-      // Navigate after brief delay so user sees the merge summary
-      setTimeout(() => router.push("/search"), 1800);
+      router.push(`/search?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`);
     } else {
       router.push("/search");
     }
