@@ -377,13 +377,15 @@ export default function DashboardPage() {
                 <span className="text-[8px] text-muted uppercase font-bold tracking-wider text-right"></span>
               </div>
               {displayedClients.map((client, i) => {
+                const ci = todayData.clients.indexOf(client);
                 const remaining = getRemainingForRoom(client, todayData.checkIns);
                 const total = client.adults + client.children;
                 const checkedIn = remaining === 0 && total > 0;
                 const comp = isComp(client);
                 return (
-                  <div key={`${client.roomNumber}-${i}`}
-                    className={`grid grid-cols-[55px_1fr_44px_44px] px-3 py-2 items-center border-b border-black/[0.03] dark:border-white/[0.04] last:border-0 ${
+                  <button key={`${client.roomNumber}-${i}`}
+                    onClick={() => router.push(`/checkin/${client.roomNumber}${ci >= 0 ? `?ci=${ci}` : ""}`)}
+                    className={`grid grid-cols-[55px_1fr_44px_44px] px-3 py-2 items-center border-b border-black/[0.03] dark:border-white/[0.04] last:border-0 w-full text-left active:bg-black/[0.03] dark:active:bg-white/[0.03] transition-colors ${
                       comp ? "bg-green-500/[0.04]" : ""
                     }`}>
                     <div className="flex items-center gap-1">
@@ -401,7 +403,7 @@ export default function DashboardPage() {
                       {!comp && checkedIn && <span className="text-[7px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">IN</span>}
                       {!comp && !checkedIn && <span className="text-[7px] bg-black/[0.04] dark:bg-white/[0.06] text-muted px-1.5 py-0.5 rounded-full font-bold">—</span>}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>

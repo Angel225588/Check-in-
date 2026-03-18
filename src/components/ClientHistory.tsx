@@ -39,8 +39,8 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
       {/* Past dates as chips */}
       {hasHistory && (
         <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
-          {pastDates.map((h) => (
-            <div key={h.date} className="shrink-0 glass-liquid rounded-full px-3 py-1.5 flex items-center gap-1.5">
+          {pastDates.map((h, i) => (
+            <div key={`${h.date}-${i}`} className="shrink-0 glass-liquid rounded-full px-3 py-1.5 flex items-center gap-1.5">
               <span className="text-xs font-semibold text-dark">{h.date}</span>
               <span className="text-[10px] text-muted">
                 {h.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0)} pax
