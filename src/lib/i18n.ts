@@ -84,6 +84,7 @@ const translations = {
   "checkin.childrenCount": { fr: "Enfants", en: "Children" },
   "checkin.save": { fr: "Sauvegarder", en: "Save" },
   "checkin.cancel": { fr: "Annuler", en: "Cancel" },
+  "checkin.confirmed": { fr: "Enregistré", en: "Checked In" },
 
   // History
   "history.title": { fr: "Historique des Check-ins", en: "Check-in History" },
@@ -300,6 +301,20 @@ const translations = {
   "clients.entered": { fr: "Entrés", en: "Entered" },
   "clients.noShow": { fr: "Absents", en: "No-Show" },
   "clients.guests": { fr: "pers.", en: "pax" },
+  "clients.allTime": { fr: "Tous les Clients", en: "All Clients" },
+  "clients.sessions": { fr: "sessions", en: "sessions" },
+  // Reports list
+  "reports.title": { fr: "Rapports", en: "Reports" },
+  "reports.noReports": { fr: "Aucun rapport disponible", en: "No reports available" },
+  "reports.activeSession": { fr: "Session Active", en: "Active Session" },
+  "reports.closedSession": { fr: "Session Clôturée", en: "Closed Session" },
+  "reports.guests": { fr: "clients", en: "guests" },
+  "reports.rooms": { fr: "chambres", en: "rooms" },
+  "reports.viewReport": { fr: "Voir le Rapport", en: "View Report" },
+  // Dashboard
+  "dash.download": { fr: "Télécharger", en: "Download" },
+  "dash.quickNav": { fr: "Accès Rapide", en: "Quick Access" },
+  "dash.noRushData": { fr: "Les arrivées apparaîtront ici au fil des check-ins", en: "Arrivals will appear here as guests check in" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

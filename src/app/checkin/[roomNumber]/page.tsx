@@ -80,8 +80,13 @@ export default function CheckInPage({
 
   if (!client) {
     return (
-      <div className="flex items-center justify-center h-dvh">
-        <div className="text-muted">Loading...</div>
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4">
+        <div className="skeleton h-8 w-24 mb-4" />
+        <div className="skeleton h-14 w-40 mb-2" />
+        <div className="skeleton h-6 w-56 mb-6" />
+        <div className="skeleton h-3 w-full mb-6" />
+        <div className="skeleton h-24 w-full mb-4" />
+        <div className="skeleton h-16 w-full" />
       </div>
     );
   }
@@ -159,20 +164,23 @@ export default function CheckInPage({
     };
     addCheckIn(record);
     setCheckInSuccess(true);
-    setTimeout(() => router.push("/search"), 450);
+    setTimeout(() => router.push("/search"), 800);
   };
 
   return (
     <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
-      {/* Success overlay */}
+      {/* Success overlay — prominent green flash with checkmark */}
       {checkInSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 dark:bg-black/50 animate-[fadeIn_0.1s_ease-out]">
-          <div className="flex flex-col items-center animate-[popIn_0.2s_cubic-bezier(0.175,0.885,0.32,1.4)]">
-            <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/30 dark:shadow-green-500/50">
-              <svg className="w-8 h-8 text-white animate-[drawCheck_0.25s_ease-out_forwards]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeDasharray="24" strokeDashoffset="24">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
+          <div className="flex flex-col items-center gap-3 animate-[popIn_0.25s_cubic-bezier(0.175,0.885,0.32,1.4)]">
+            <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center shadow-2xl shadow-green-500/40 dark:shadow-green-500/60">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
+            <span className="text-sm font-bold text-green-700 dark:text-green-300 bg-green-500/10 px-4 py-1.5 rounded-full">
+              {t("checkin.confirmed")}
+            </span>
           </div>
         </div>
       )}

@@ -205,4 +205,81 @@
   .dark .glow-error {
     box-shadow: 0 0 20px rgba(208, 2, 27, 0.3), 0 4px 16px rgba(208, 2, 27, 0.2);
   }
+
+  /* ── Premium Micro-animations ── */
+
+  /* Staggered fade-up for list items */
+  .animate-fadeUp {
+    animation: fadeUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  /* Skeleton shimmer for loading states */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.04) 0%,
+      rgba(0, 0, 0, 0.08) 40%,
+      rgba(0, 0, 0, 0.04) 80%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  .dark .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.08) 40%,
+      rgba(255, 255, 255, 0.04) 80%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Bar chart grow animation */
+  .animate-barGrow {
+    animation: barGrow 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  /* Section reveal */
+  .animate-sectionIn {
+    animation: sectionIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes sectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

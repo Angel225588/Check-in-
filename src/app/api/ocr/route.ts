@@ -34,7 +34,22 @@ Rules:
 - Return ONLY a valid JSON array, no markdown, no explanation, no code fences
 - If you cannot read the image or it's not a report, return []`;
 
+function stripHtml(s: unknown): string {
+  if (typeof s !== "string") return "";
+  return s.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim();
+}
+
+function sanitizeClient(obj: Record<string, unknown>): Record<string, unknown> {
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === "string") {
+      obj[key] = stripHtml(obj[key]).slice(0, 200);
+    }
+  }
+  return obj;
+}
+
 function validateClient(obj: Record<string, unknown>): boolean {
+  sanitizeClient(obj);
   return (
     typeof obj.roomNumber === "string" &&
     obj.roomNumber.length > 0 &&
@@ -102,7 +117,7 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return NextResponse.json(
         {
-          error: `Unsupported file type: ${mimeType}. Use JPEG, PNG, or WebP.`,
+          error: "Unsupported file type. Use JPEG, PNG, or WebP.",
         },
         { status: 400 }
       );

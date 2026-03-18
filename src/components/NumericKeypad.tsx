@@ -18,7 +18,7 @@ export default function NumericKeypad({
   ];
 
   return (
-    <div className="glass-surface rounded-[14px] p-1.5 md:p-2.5 space-y-1.5 md:space-y-2" style={{ touchAction: "manipulation" }}>
+    <div className="glass-surface rounded-[14px] p-1.5 md:p-2.5 space-y-1.5 md:space-y-2" role="group" aria-label="Numeric keypad" style={{ touchAction: "manipulation" }}>
       {keys.map((row, i) => (
         <div key={i} className="grid grid-cols-3 gap-1.5 md:gap-2">
           {row.map((key) => (
@@ -47,6 +47,7 @@ export default function NumericKeypad({
         </button>
         <button
           onClick={onBackspace}
+          aria-label="Backspace"
           className="bg-slate/90 backdrop-blur-sm text-white rounded-xl py-3 md:py-5 text-xl active:scale-95 active:opacity-80 transition-all"
         >
           <svg className="w-6 h-6 md:w-8 md:h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">

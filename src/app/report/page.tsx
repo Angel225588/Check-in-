@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { getTodayData, closeDay } from "@/lib/storage";
+import { Suspense, useState, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getTodayData, closeDay, getSessionHistory } from "@/lib/storage";
 import { generateDayReport, exportReportCSV, DayReport, RoomReport } from "@/lib/report";
 import { formatTime } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
@@ -27,25 +27,60 @@ function StatusBadge({ status, t }: { status: RoomReport["status"]; t: (key: Tra
   );
 }
 
-export default function ReportPage() {
+export default function ReportPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4">
+        <div className="skeleton h-8 w-40 mb-4" />
+        <div className="grid grid-cols-5 gap-1.5 mb-4">
+          {[0, 1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-14" />)}
+        </div>
+        <div className="skeleton h-64 w-full" />
+      </div>
+    }>
+      <ReportPage />
+    </Suspense>
+  );
+}
+
+function ReportPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useApp();
   const [report, setReport] = useState<DayReport | null>(null);
   const [rawUploadText, setRawUploadText] = useState<string>("");
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [metricFilter, setMetricFilter] = useState<MetricFilter>(null);
   const [tablePage, setTablePage] = useState(0);
+  const [isHistorical, setIsHistorical] = useState(false);
   const ROWS_PER_PAGE = 15;
 
   useEffect(() => {
-    const data = getTodayData();
-    if (!data || data.clients.length === 0) {
-      router.push("/search");
-      return;
+    const dateParam = searchParams.get("date");
+
+    if (dateParam) {
+      // Historical report — load from session history
+      const sessions = getSessionHistory();
+      const session = sessions.find((s) => s.date === dateParam);
+      if (!session) {
+        router.push("/reports");
+        return;
+      }
+      setReport(generateDayReport(session.clients, session.checkIns));
+      setRawUploadText(session.rawUploadText || "");
+      setIsHistorical(true);
+    } else {
+      // Today's report
+      const data = getTodayData();
+      if (!data || data.clients.length === 0) {
+        router.push("/reports");
+        return;
+      }
+      setReport(generateDayReport(data.clients, data.checkIns));
+      setRawUploadText(data.rawUploadText || "");
+      setIsHistorical(false);
     }
-    setReport(generateDayReport(data.clients, data.checkIns));
-    setRawUploadText(data.rawUploadText || "");
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleExportCSV = () => {
     if (!report) return;
@@ -118,13 +153,13 @@ export default function ReportPage() {
             {/* Header row */}
             <div className="flex items-center justify-between mb-2">
               <button
-                onClick={() => router.push("/search")}
+                onClick={() => router.push(isHistorical ? "/reports" : "/search")}
                 className="no-print flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
               >
                 <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
-                <span className="text-sm font-medium text-brand">{t("report.back")}</span>
+                <span className="text-sm font-medium text-brand">{isHistorical ? t("reports.title") : t("report.back")}</span>
               </button>
               <div className="text-right">
                 <h1 className="text-lg font-black text-dark">{t("report.title")}</h1>
@@ -297,14 +332,16 @@ export default function ReportPage() {
                 <button
                   onClick={() => setTablePage(Math.max(0, tablePage - 1))}
                   disabled={tablePage === 0}
+                  aria-label="Previous page"
                   className="px-4 py-1.5 rounded-full glass-liquid text-sm font-bold text-dark disabled:opacity-30 active:scale-95 transition-all"
                 >
                   ←
                 </button>
-                <span className="text-xs text-muted font-medium">{tablePage + 1} / {totalPages}</span>
+                <span className="text-xs text-muted font-medium" aria-live="polite">{tablePage + 1} / {totalPages}</span>
                 <button
                   onClick={() => setTablePage(Math.min(totalPages - 1, tablePage + 1))}
                   disabled={tablePage >= totalPages - 1}
+                  aria-label="Next page"
                   className="px-4 py-1.5 rounded-full glass-liquid text-sm font-bold text-dark disabled:opacity-30 active:scale-95 transition-all"
                 >
                   →
@@ -361,33 +398,35 @@ export default function ReportPage() {
               </button>
             </div>
 
-            {!showConfirmClose ? (
-              <button
-                onClick={() => setShowConfirmClose(true)}
-                className="w-full bg-error/90 backdrop-blur-sm text-white py-4 rounded-[52px] text-lg font-bold active:scale-[0.97] transition-all shadow-lg shadow-error/20 dark:glow-error"
-              >
-                {t("report.closeDay")}
-              </button>
-            ) : (
-              <div className="bg-error/5 border border-error/20 rounded-[14px] p-4">
-                <p className="text-error text-sm font-medium mb-3">
-                  {t("report.confirmClose")}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCloseDay}
-                    className="flex-1 bg-error text-white py-3 rounded-[52px] font-bold active:scale-[0.97] transition-all"
-                  >
-                    {t("report.confirmYes")}
-                  </button>
-                  <button
-                    onClick={() => setShowConfirmClose(false)}
-                    className="flex-1 glass-liquid text-dark py-3 rounded-[52px] font-bold active:scale-[0.97] transition-all"
-                  >
-                    {t("checkin.cancel")}
-                  </button>
+            {!isHistorical && (
+              !showConfirmClose ? (
+                <button
+                  onClick={() => setShowConfirmClose(true)}
+                  className="w-full bg-error/90 backdrop-blur-sm text-white py-4 rounded-[52px] text-lg font-bold active:scale-[0.97] transition-all shadow-lg shadow-error/20 dark:glow-error"
+                >
+                  {t("report.closeDay")}
+                </button>
+              ) : (
+                <div className="bg-error/5 border border-error/20 rounded-[14px] p-4">
+                  <p className="text-error text-sm font-medium mb-3">
+                    {t("report.confirmClose")}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleCloseDay}
+                      className="flex-1 bg-error text-white py-3 rounded-[52px] font-bold active:scale-[0.97] transition-all"
+                    >
+                      {t("report.confirmYes")}
+                    </button>
+                    <button
+                      onClick={() => setShowConfirmClose(false)}
+                      className="flex-1 glass-liquid text-dark py-3 rounded-[52px] font-bold active:scale-[0.97] transition-all"
+                    >
+                      {t("checkin.cancel")}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )
             )}
           </div>
         </div>

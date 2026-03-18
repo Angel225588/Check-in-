@@ -8,6 +8,7 @@ export default function SettingsToggle() {
     <div className="fixed bottom-4 right-4 z-40 flex items-center gap-1.5 p-1 glass-liquid dark:glass-dark-float rounded-full shadow-lg">
       <button
         onClick={toggleLang}
+        aria-label={lang === "fr" ? "Switch to English" : "Passer en français"}
         className="px-2.5 py-1.5 text-xs font-bold rounded-full transition-all active:scale-90 text-dark dark:text-white/90 hover:bg-white/30 dark:hover:bg-white/10"
       >
         {lang === "fr" ? "FR" : "EN"}
@@ -15,6 +16,7 @@ export default function SettingsToggle() {
       <div className="w-px h-4 bg-border dark:bg-white/20" />
       <button
         onClick={toggleDark}
+        aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
         className="p-1.5 rounded-full transition-all active:scale-90 hover:bg-white/30 dark:hover:bg-white/10"
       >
         {dark ? (

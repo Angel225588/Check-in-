@@ -5,6 +5,7 @@ import { useApp } from "@/contexts/AppContext";
 import { getTodayData, getSessionHistory } from "@/lib/storage";
 import { Client, CheckInRecord, SessionRecord } from "@/lib/types";
 import { isComp, getRemainingForRoom, getEnteredForClient, getTotalGuests, getCheckedInCount } from "@/lib/utils";
+import AnimatedNumber from "@/components/AnimatedNumber";
 
 function VipBadge({ level }: { level?: string }) {
   const tier = (level || "").toLowerCase();
@@ -129,16 +130,24 @@ export default function ClientsPage() {
     setLoading(false);
   }, []);
 
-  // Stats for today
+  // Cumulative stats across all sessions + today
   const stats = useMemo(() => {
-    const total = todayClients.length;
-    const vips = todayClients.filter((c) => c.isVip).length;
-    const comps = todayClients.filter((c) => isComp(c)).length;
-    const totalGuests = getTotalGuests(todayClients);
-    const entered = getCheckedInCount(todayCheckIns);
+    // Collect all unique clients (today + history)
+    let allClients: Client[] = [...todayClients];
+    let allCheckIns: CheckInRecord[] = [...todayCheckIns];
+    for (const session of history) {
+      allClients = allClients.concat(session.clients);
+      allCheckIns = allCheckIns.concat(session.checkIns);
+    }
+    const total = allClients.length;
+    const vips = allClients.filter((c) => c.isVip).length;
+    const comps = allClients.filter((c) => isComp(c)).length;
+    const totalGuests = getTotalGuests(allClients);
+    const entered = getCheckedInCount(allCheckIns);
     const remaining = Math.max(0, totalGuests - entered);
-    return { total, vips, comps, entered, remaining, totalGuests };
-  }, [todayClients, todayCheckIns]);
+    const sessionCount = history.length + (hasActiveSession ? 1 : 0);
+    return { total, vips, comps, entered, remaining, totalGuests, sessionCount };
+  }, [todayClients, todayCheckIns, history, hasActiveSession]);
 
   // Filter today's clients by search
   const filteredToday = useMemo(() => {
@@ -177,8 +186,19 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
-        <div className="text-muted">Loading...</div>
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-3">
+        <div className="skeleton h-8 w-40 mb-3" />
+        <div className="grid grid-cols-5 gap-1.5 mb-3">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton h-14" />
+          ))}
+        </div>
+        <div className="skeleton h-10 w-full mb-3" />
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="skeleton h-16 w-full" style={{ animationDelay: `${i * 80}ms` }} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -214,29 +234,32 @@ export default function ClientsPage() {
         </div>
 
         {/* Title */}
-        <h1 className="text-xl font-bold text-dark mb-3">{t("clients.title")}</h1>
+        <h1 className="text-xl font-bold text-dark mb-0.5">{t("clients.title")}</h1>
+        <p className="text-[11px] text-muted mb-3">
+          {stats.total} {t("clients.guests")} · {stats.sessionCount} {t("clients.sessions")}
+        </p>
 
-        {/* Stats summary */}
-        {hasActiveSession && (
+        {/* Stats summary — cumulative across all sessions */}
+        {stats.total > 0 && (
           <div className="grid grid-cols-5 gap-1.5 mb-3">
             <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
-              <div className="text-lg font-bold text-dark">{stats.total}</div>
+              <AnimatedNumber value={stats.total} className="text-lg font-bold text-dark" />
               <div className="text-[9px] text-muted uppercase tracking-wide font-medium">Total</div>
             </div>
             <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
-              <div className="text-lg font-bold text-brand">{stats.vips}</div>
+              <AnimatedNumber value={stats.vips} className="text-lg font-bold text-brand" />
               <div className="text-[9px] text-muted uppercase tracking-wide font-medium">VIP</div>
             </div>
             <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
-              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.comps}</div>
+              <AnimatedNumber value={stats.comps} className="text-lg font-bold text-emerald-600 dark:text-emerald-400" />
               <div className="text-[9px] text-muted uppercase tracking-wide font-medium">Comp</div>
             </div>
             <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
-              <div className="text-lg font-bold text-green-600 dark:text-green-400">{stats.entered}</div>
+              <AnimatedNumber value={stats.entered} className="text-lg font-bold text-green-600 dark:text-green-400" />
               <div className="text-[9px] text-muted uppercase tracking-wide font-medium">{t("clients.entered")}</div>
             </div>
             <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
-              <div className="text-lg font-bold text-red-400">{stats.remaining}</div>
+              <AnimatedNumber value={stats.remaining} className="text-lg font-bold text-red-400" />
               <div className="text-[9px] text-muted uppercase tracking-wide font-medium">{t("clients.noShow")}</div>
             </div>
           </div>
@@ -257,11 +280,13 @@ export default function ClientsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("clients.searchPlaceholder")}
+            aria-label={t("clients.searchPlaceholder")}
             className="w-full pl-10 pr-10 py-2.5 glass-liquid rounded-[14px] text-sm text-dark placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
+              aria-label="Clear search"
               className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/15 active:scale-90 transition-all"
             >
               <svg className="w-3 h-3 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,12 +353,12 @@ export default function ClientsPage() {
 
             {/* Date chips */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {history.map((session) => {
+              {history.map((session, i) => {
                 const isExpanded = expandedDate === session.date;
                 const matchCount = filterSessionClients(session.clients).length;
                 return (
                   <button
-                    key={session.date}
+                    key={`${session.date}-${i}`}
                     onClick={() => setExpandedDate(isExpanded ? null : session.date)}
                     className={`
                       px-3 py-1.5 rounded-[52px] text-xs font-semibold transition-all active:scale-[0.96]

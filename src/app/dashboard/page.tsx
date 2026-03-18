@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { DailyData } from "@/lib/types";
 import { getRemainingForRoom, isComp, formatTime, getRoomStatusCounts } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import {
   getHistoricalData,
   getDataForRange,
@@ -24,9 +25,11 @@ type MetricFilter = "all" | "show" | "noshow" | "comp" | null;
 
 /* ── Donut Ring ── */
 function DonutRing({ percent, size = 100, stroke = 8 }: { percent: number; size?: number; stroke?: number }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
-  const offset = circ - (Math.min(percent, 100) / 100) * circ;
+  const offset = mounted ? circ - (Math.min(percent, 100) / 100) * circ : circ;
   const color = percent >= 70 ? "stroke-green-500 dark:stroke-green-400" : percent >= 40 ? "stroke-brand" : "stroke-red-500 dark:stroke-red-400";
   return (
     <svg width={size} height={size} className="transform -rotate-90">
@@ -34,7 +37,7 @@ function DonutRing({ percent, size = 100, stroke = 8 }: { percent: number; size?
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
         className={color} strokeLinecap="round"
         strokeDasharray={circ} strokeDashoffset={offset}
-        style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)" }} />
+        style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(.25,.46,.45,.94)" }} />
     </svg>
   );
 }
@@ -116,14 +119,23 @@ export default function DashboardPage() {
     if (!todayData) return [];
     let list = todayData.clients;
     if (metricFilter === "show") {
-      list = list.filter((c) => todayData.checkIns.filter((ci) => ci.roomNumber === c.roomNumber).reduce((s, ci) => s + ci.peopleEntered, 0) > 0);
+      // Filter by client name + room to avoid shared-room false positives
+      list = list.filter((c) => {
+        const normName = c.name.trim().toLowerCase().replace(/\s+/g, " ");
+        return todayData.checkIns.filter((ci) =>
+          ci.roomNumber === c.roomNumber &&
+          ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
+        ).reduce((s, ci) => s + ci.peopleEntered, 0) > 0;
+      });
     } else if (metricFilter === "noshow") {
       list = list.filter((c) => getRemainingForRoom(c, todayData.checkIns) === c.adults + c.children);
     } else if (metricFilter === "comp") {
       list = list.filter((c) => isComp(c));
     } else if (metricFilter === "all") {
       /* all */
-    } else { return []; }
+    } else if (!clientSearch.trim()) {
+      return [];
+    }
     const q = clientSearch.toUpperCase();
     if (q) list = list.filter((c) => c.name.toUpperCase().includes(q) || c.roomNumber.includes(q));
     return list;
@@ -157,6 +169,7 @@ export default function DashboardPage() {
             </button>
             <h1 className="text-[15px] font-black text-dark tracking-tight">{t("dash.title")}</h1>
             <button onClick={handleRefresh}
+              aria-label="Refresh data"
               className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-[0.9] ${refreshed ? "bg-green-500 text-white" : "text-muted"}`}>
               {refreshed ? (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
@@ -232,14 +245,14 @@ export default function DashboardPage() {
 
         {/* ═══ 1. HERO CARD — Ring + Room Status + People ═══ */}
         {hasData && (
-          <div className="glass-liquid rounded-[20px] p-5">
+          <div className="glass-liquid rounded-[20px] p-5 animate-sectionIn">
             <div className="flex items-center gap-5">
               {/* Ring */}
               <div className="relative shrink-0">
                 <DonutRing percent={utilPercent} size={96} stroke={7} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className={`text-[28px] font-black leading-none ${utilPercent >= 70 ? "text-green-600 dark:text-green-400" : utilPercent >= 40 ? "text-brand" : "text-red-500"}`}>
-                    {utilPercent}<span className="text-[14px]">%</span>
+                    <AnimatedNumber value={utilPercent} duration={900} /><span className="text-[14px]">%</span>
                   </span>
                   <span className="text-[8px] text-muted uppercase tracking-widest mt-0.5">service</span>
                 </div>
@@ -249,15 +262,15 @@ export default function DashboardPage() {
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500" /><span className="text-[13px] text-dark">{t("dash.allIn")}</span></div>
-                  <span className="text-[15px] font-black text-green-600 dark:text-green-400 tabular-nums">{rs.allIn}</span>
+                  <AnimatedNumber value={rs.allIn} className="text-[15px] font-black text-green-600 dark:text-green-400 tabular-nums" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-brand" /><span className="text-[13px] text-dark">{t("dash.partial")}</span></div>
-                  <span className="text-[15px] font-black text-brand tabular-nums">{rs.partial}</span>
+                  <AnimatedNumber value={rs.partial} className="text-[15px] font-black text-brand tabular-nums" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500" /><span className="text-[13px] text-dark">{t("dash.absent")}</span></div>
-                  <span className="text-[15px] font-black text-red-500 dark:text-red-400 tabular-nums">{rs.noShow}</span>
+                  <AnimatedNumber value={rs.noShow} className="text-[15px] font-black text-red-500 dark:text-red-400 tabular-nums" />
                 </div>
                 {/* Bar */}
                 {rs.totalRooms > 0 && (
@@ -273,15 +286,15 @@ export default function DashboardPage() {
             {/* People row */}
             <div className="grid grid-cols-3 mt-4 pt-3 border-t border-black/[0.04] dark:border-white/[0.06]">
               <div className="text-center">
-                <div className="text-[22px] font-black text-dark tabular-nums">{totalPeople}</div>
+                <AnimatedNumber value={totalPeople} className="text-[22px] font-black text-dark tabular-nums" duration={700} />
                 <div className="text-[9px] text-muted uppercase tracking-wider">{t("dash.totalPeople")}</div>
               </div>
               <div className="text-center border-x border-black/[0.04] dark:border-white/[0.06]">
-                <div className="text-[22px] font-black text-green-600 dark:text-green-400 tabular-nums">{enteredPeople}</div>
+                <AnimatedNumber value={enteredPeople} className="text-[22px] font-black text-green-600 dark:text-green-400 tabular-nums" duration={700} />
                 <div className="text-[9px] text-green-700/70 dark:text-green-400/70 uppercase tracking-wider">{t("dash.peopleIn")}</div>
               </div>
               <div className="text-center">
-                <div className="text-[22px] font-black text-red-500 dark:text-red-400 tabular-nums">{remainingPeople}</div>
+                <AnimatedNumber value={remainingPeople} className="text-[22px] font-black text-red-500 dark:text-red-400 tabular-nums" duration={700} />
                 <div className="text-[9px] text-red-500/70 dark:text-red-400/70 uppercase tracking-wider">{t("dash.peopleLeft")}</div>
               </div>
             </div>
@@ -298,12 +311,21 @@ export default function DashboardPage() {
         )}
 
         {/* ═══ 2. ARRIVAL TIME — Vertical bar chart 6:00–11:00 ═══ */}
-        {hasData && activeRushSlots.length > 0 && !metricFilter && (
-          <section>
+        {hasData && activeRushSlots.length === 0 && viewMode === "today" && !metricFilter && !clientSearch && (
+          <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
+            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
+            <div className="glass-liquid rounded-[16px] p-6 text-center">
+              <div className="text-[22px] mb-1">⏳</div>
+              <p className="text-xs text-muted">{t("dash.noRushData")}</p>
+            </div>
+          </section>
+        )}
+        {hasData && activeRushSlots.length > 0 && !metricFilter && !clientSearch && (
+          <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
             <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
             <div className="glass-liquid rounded-[16px] p-4">
               <div className="flex items-end gap-[3px] h-28">
-                {activeRushSlots.map((slot) => {
+                {activeRushSlots.map((slot, i) => {
                   const pct = activeMaxRush > 0 ? (slot.count / activeMaxRush) * 100 : 0;
                   return (
                     <div key={slot.label} className="flex-1 flex flex-col items-center h-full justify-end">
@@ -311,10 +333,10 @@ export default function DashboardPage() {
                         <span className="text-[8px] font-bold text-dark tabular-nums mb-0.5">{slot.count}</span>
                       )}
                       <div
-                        className={`w-full rounded-t-[3px] transition-all duration-500 ${
+                        className={`w-full rounded-t-[3px] animate-barGrow ${
                           slot.isPeak && slot.count > 0 ? "bg-brand" : slot.count > 0 ? "bg-brand/40 dark:bg-brand-light/40" : "bg-black/[0.03] dark:bg-white/[0.04]"
                         }`}
-                        style={{ height: `${Math.max(pct, slot.count > 0 ? 8 : 3)}%` }}
+                        style={{ height: `${Math.max(pct, slot.count > 0 ? 8 : 3)}%`, animationDelay: `${200 + i * 40}ms` }}
                       />
                     </div>
                   );
@@ -334,9 +356,9 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* ═══ 3. TAPPABLE FILTER CARDS (today view) ═══ */}
-        {viewMode === "today" && snapshot && !metricFilter && (
-          <div className="grid grid-cols-4 gap-2">
+        {/* ═══ 3. TAPPABLE FILTER CARDS (today view) — always visible ═══ */}
+        {viewMode === "today" && snapshot && (
+          <div className="grid grid-cols-4 gap-2 animate-sectionIn" style={{ animationDelay: "200ms" }}>
             {([
               { key: "all" as MetricFilter, label: t("dash.expected"), value: String(snapshot.totalExpected), sub: `${todayData?.clients.length} ${t("dash.rooms")}`, color: "text-dark" },
               { key: "show" as MetricFilter, label: t("dash.showedUp"), value: String(snapshot.totalShowedUp), sub: `${roomStatus.allIn + roomStatus.partial} ${t("dash.rooms")}`, color: "text-green-600 dark:text-green-400" },
@@ -344,29 +366,37 @@ export default function DashboardPage() {
               { key: "comp" as MetricFilter, label: "COMP", value: String(snapshot.compCount), sub: `${snapshot.compCost}€`, color: "text-green-700 dark:text-green-400" },
             ]).map(({ key, label, value, sub, color }) => (
               <button key={key} onClick={() => handleMetricTap(key)}
-                className="glass-liquid rounded-[14px] p-3 text-center transition-all active:scale-[0.95]">
+                className={`rounded-[14px] p-3 text-center transition-all active:scale-[0.95] ${
+                  metricFilter === key ? "glass-liquid-active ring-1 ring-brand/20" : "glass-liquid"
+                }`}>
                 <div className="text-[8px] text-muted uppercase tracking-wider font-semibold">{label}</div>
-                <div className={`text-[22px] font-black tabular-nums leading-tight ${color}`}>{value}</div>
+                <AnimatedNumber value={parseInt(value) || 0} className={`text-[22px] font-black tabular-nums leading-tight ${color}`} duration={600} />
                 <div className="text-[9px] text-muted mt-0.5">{sub}</div>
               </button>
             ))}
           </div>
         )}
 
-        {/* ═══ 3b. FILTERED TABLE (after metric tap) ═══ */}
-        {viewMode === "today" && metricFilter && todayData && (
+        {/* ═══ 3a. SEARCH BAR (today view) — always below metrics ═══ */}
+        {viewMode === "today" && todayData && (
+          <div>
+            <input type="text" value={clientSearch} onChange={(e) => setClientSearch(e.target.value)}
+              placeholder={t("dash.searchClients")}
+              aria-label={t("dash.searchClients")}
+              className="w-full px-3 py-2 rounded-xl glass-liquid text-sm text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand/20" />
+          </div>
+        )}
+
+        {/* ═══ 3b. FILTERED TABLE (after metric tap or search) ═══ */}
+        {viewMode === "today" && (metricFilter || clientSearch) && todayData && (
           <section>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] px-1">
                 {filteredClients.length} {t("upload.rooms")}
               </h2>
-              <button onClick={() => setMetricFilter(null)} className="text-xs text-brand font-semibold active:opacity-70">{t("upload.clear")}</button>
-            </div>
-
-            <div className="mb-2">
-              <input type="text" value={clientSearch} onChange={(e) => setClientSearch(e.target.value)}
-                placeholder={t("dash.searchClients")}
-                className="w-full px-3 py-2 rounded-xl glass-liquid text-sm text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand/20" />
+              {metricFilter && (
+                <button onClick={() => setMetricFilter(null)} className="text-xs text-brand font-semibold active:opacity-70">{t("upload.clear")}</button>
+              )}
             </div>
 
             <div className="glass-liquid rounded-[14px] overflow-hidden">
@@ -417,7 +447,7 @@ export default function DashboardPage() {
         )}
 
         {/* ═══ 4. RECENT CHECK-INS (today, compact) ═══ */}
-        {viewMode === "today" && todayData && todayData.checkIns.length > 0 && !metricFilter && (
+        {viewMode === "today" && todayData && todayData.checkIns.length > 0 && !metricFilter && !clientSearch && (
           <section>
             <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.recentCheckins")}</h2>
             <div className="glass-liquid rounded-[14px] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
@@ -434,8 +464,8 @@ export default function DashboardPage() {
         )}
 
         {/* ═══ 5. WEEKLY TREND (always visible when data exists) ═══ */}
-        {trendData.length > 0 && !metricFilter && (
-          <section>
+        {trendData.length > 0 && !metricFilter && !clientSearch && (
+          <section className="animate-sectionIn" style={{ animationDelay: "300ms" }}>
             <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">
               {viewMode === "today" ? t("dash.last7") : t("dash.trend")}
             </h2>
@@ -461,7 +491,7 @@ export default function DashboardPage() {
 
         {/* ═══ 6. QUICK NAV ═══ */}
         <section>
-          <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">Navigation</h2>
+          <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.quickNav")}</h2>
           <div className="grid grid-cols-3 gap-2">
             <button onClick={() => router.push("/clients")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
               <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
@@ -471,7 +501,7 @@ export default function DashboardPage() {
               </div>
               <span className="text-xs font-bold text-dark">{t("upload.clients")}</span>
             </button>
-            <button onClick={() => router.push("/report")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
+            <button onClick={() => router.push("/reports")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
               <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
                 <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -479,14 +509,25 @@ export default function DashboardPage() {
               </div>
               <span className="text-xs font-bold text-dark">{t("upload.reports")}</span>
             </button>
-            <button onClick={() => router.push("/upload")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
-              <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              </div>
-              <span className="text-xs font-bold text-dark">{t("search.upload")}</span>
-            </button>
+            {todayData ? (
+              <button onClick={() => router.push("/upload?mode=add")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
+                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <span className="text-xs font-bold text-dark">{t("search.upload")}</span>
+              </button>
+            ) : (
+              <button onClick={() => router.push("/reports")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
+                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-bold text-dark">{t("dash.download")}</span>
+              </button>
+            )}
           </div>
         </section>
       </div>

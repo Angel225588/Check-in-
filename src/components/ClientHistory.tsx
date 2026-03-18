@@ -66,6 +66,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
               )}
               <button
                 onClick={() => setConfirmUndo(ci)}
+                aria-label={`Undo check-in at ${ci.timestamp}`}
                 className="p-2.5 -m-1.5 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
               >
                 <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

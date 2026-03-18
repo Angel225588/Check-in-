@@ -104,8 +104,14 @@ export default function SearchPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-dvh">
-        <div className="text-muted">Loading...</div>
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-3">
+        <div className="skeleton h-14 w-full mb-3" />
+        <div className="skeleton h-10 w-full mb-3" />
+        <div className="space-y-2">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton h-20 w-full" style={{ animationDelay: `${i * 80}ms` }} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -193,13 +199,18 @@ export default function SearchPage() {
         {displayClients.map((client, i) => {
           const ci = clients.indexOf(client);
           return (
-            <SuggestionCard
+            <div
               key={`${client.roomNumber}-${i}`}
-              client={client}
-              checkIns={checkIns}
-              onSelect={handleSelectRoom}
-              clientIndex={ci >= 0 ? ci : undefined}
-            />
+              className="animate-fadeUp"
+              style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
+            >
+              <SuggestionCard
+                client={client}
+                checkIns={checkIns}
+                onSelect={handleSelectRoom}
+                clientIndex={ci >= 0 ? ci : undefined}
+              />
+            </div>
           );
         })}
         {query && results.length === 0 && (
@@ -225,6 +236,18 @@ export default function SearchPage() {
         {showFiltered && filteredClients.length === 0 && (
           <div className="text-center text-muted py-4 text-sm md:text-base">{t("search.noClients")}</div>
         )}
+        {/* Upload button — inside scroll area, not overlaying keypad */}
+        <div className="flex justify-end py-2">
+          <button
+            onClick={() => setUploadSheetOpen(true)}
+            className="w-11 h-11 rounded-full glass-liquid border border-brand/20 text-brand shadow-sm flex items-center justify-center active:scale-90 transition-all"
+            title={t("search.upload")}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="shrink-0 p-2 md:p-3 pt-0">
@@ -258,16 +281,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Mid-session upload FAB — subtle, blends in */}
-      <button
-        onClick={() => setUploadSheetOpen(true)}
-        className="fixed bottom-20 right-4 z-40 w-11 h-11 rounded-full glass-liquid border border-brand/20 text-brand shadow-sm flex items-center justify-center active:scale-90 transition-all"
-        title={t("search.upload")}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-        </svg>
-      </button>
+      {/* Mid-session upload — inline in scrollable area, not overlaying keypad */}
 
       {/* Upload action sheet */}
       {uploadSheetOpen && (

@@ -45,7 +45,20 @@ Rules:
 - Return ONLY valid JSON, no markdown, no explanation, no code fences
 - If you cannot read the PDF or it's not a hotel report, return {"type":"unknown","pages":0,"clients":[]}`;
 
+function stripHtml(s: unknown): string {
+  if (typeof s !== "string") return "";
+  return s.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim();
+}
+
+function sanitizeClient(obj: Record<string, unknown>): Record<string, unknown> {
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === "string") obj[key] = stripHtml(obj[key]).slice(0, 200);
+  }
+  return obj;
+}
+
 function validateClient(obj: Record<string, unknown>): boolean {
+  sanitizeClient(obj);
   return (
     typeof obj.roomNumber === "string" &&
     obj.roomNumber.length > 0 &&
@@ -183,7 +196,7 @@ export async function POST(request: NextRequest) {
     if (mimeType !== "application/pdf") {
       return NextResponse.json(
         {
-          error: `Unsupported file type: ${mimeType || "unknown"}. Only PDF files are accepted.`,
+          error: "Unsupported file type. Only PDF files are accepted.",
         },
         { status: 400 }
       );
@@ -279,7 +292,6 @@ export async function POST(request: NextRequest) {
       type: docType,
       pages,
       clients: validClients,
-      rawText,
     });
   } catch (err) {
     console.error("OCR PDF route error:", err);
