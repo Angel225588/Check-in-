@@ -290,6 +290,16 @@ const translations = {
 
   // Add Guest button
   "checkin.addGuest": { fr: "Ajouter un Invité", en: "Add Guest" },
+
+  // Client directory
+  "clients.title": { fr: "Répertoire Clients", en: "Client Directory" },
+  "clients.todayGuests": { fr: "Clients du Jour", en: "Today's Guests" },
+  "clients.pastGuests": { fr: "Clients Passés", en: "Past Guests" },
+  "clients.searchPlaceholder": { fr: "Rechercher par nom ou chambre...", en: "Search by name or room..." },
+  "clients.noResults": { fr: "Aucun client trouvé", en: "No clients found" },
+  "clients.entered": { fr: "Entrés", en: "Entered" },
+  "clients.noShow": { fr: "Absents", en: "No-Show" },
+  "clients.guests": { fr: "pers.", en: "pax" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

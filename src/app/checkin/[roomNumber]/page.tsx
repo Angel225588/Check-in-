@@ -129,6 +129,24 @@ export default function CheckInPage({
   const entered = total - remaining;
   const progressPercent = total > 0 ? (entered / total) * 100 : 0;
 
+  const getVipBadgeClasses = (level?: string): string => {
+    const normalized = (level || "").toLowerCase();
+    if (normalized.includes("platinum") || normalized.includes("titanium") || normalized.includes("ambassador")) {
+      // Platinum/Titanium/Ambassador — dark premium with subtle shine
+      return "bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900 text-white px-5 py-2 text-base shadow-lg shadow-gray-900/40 ring-1 ring-white/10";
+    }
+    if (normalized.includes("gold")) {
+      // Gold Elite — warm gold gradient
+      return "bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-500 text-white px-5 py-2 text-base shadow-lg shadow-amber-500/30";
+    }
+    if (normalized.includes("silver")) {
+      // Silver Elite — cool metallic
+      return "bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 text-gray-800 px-5 py-2 text-base shadow-lg shadow-slate-400/30";
+    }
+    // Generic VIP — brand gradient
+    return "bg-gradient-to-r from-brand to-brand-light text-white px-5 py-2 text-base shadow-lg shadow-brand/30 dark:glow-brand";
+  };
+
   const handleCheckIn = () => {
     if (count <= 0 || allDone || checkInSuccess) return;
     const record: CheckInRecord = {
@@ -205,14 +223,13 @@ export default function CheckInPage({
                 onClick={handleToggleVip}
                 className={`inline-flex items-center rounded-full font-black active:scale-[0.94] transition-all ${
                   client.isVip
-                    ? "bg-gradient-to-r from-brand to-brand-light text-white px-5 py-2 text-base shadow-lg shadow-brand/30 dark:glow-brand"
+                    ? getVipBadgeClasses(client.vipLevel)
                     : "glass-liquid text-muted border border-dashed border-current text-sm px-4 py-1.5"
                 }`}
               >
                 {client.isVip ? (
                   <>
-                    <span className="drop-shadow-sm tracking-wide">VIP</span>
-                    {client.vipLevel ? <span className="ml-1.5 text-white/80 font-bold text-sm">{client.vipLevel}</span> : ""}
+                    <span className="drop-shadow-sm tracking-wide">{client.vipLevel || "VIP"}</span>
                   </>
                 ) : (
                   <>+ VIP</>
@@ -227,7 +244,7 @@ export default function CheckInPage({
           </div>
 
           {/* Guest name */}
-          <h2 className="text-[22px] font-bold text-dark leading-tight">{client.name}</h2>
+          <h2 className="text-[28px] font-black text-dark leading-tight tracking-tight">{client.name}</h2>
 
           {/* COMP cost badge */}
           {comp && (

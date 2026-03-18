@@ -691,7 +691,7 @@ export default function UploadPage() {
             <div className="grid grid-cols-3 gap-2">
               {/* Clients */}
               <button
-                onClick={() => router.push(activeSession ? "/search" : "/dashboard")}
+                onClick={() => router.push("/clients")}
                 className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
@@ -704,7 +704,7 @@ export default function UploadPage() {
 
               {/* Reports */}
               <button
-                onClick={() => router.push(activeSession ? "/report" : "/dashboard")}
+                onClick={() => router.push("/report")}
                 className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
