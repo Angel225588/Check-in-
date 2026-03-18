@@ -1187,7 +1187,7 @@ export default function UploadPage() {
                 <div className="absolute inset-0 rounded-full border-4 border-brand/15" />
                 <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-lg font-black font-mono text-brand">{pdfElapsed}s</span>
+                  <span className="text-lg font-black font-mono text-brand">{pdfElapsed >= 60 ? `${Math.floor(pdfElapsed / 60)}m ${pdfElapsed % 60}s` : `${pdfElapsed}s`}</span>
                 </div>
               </div>
               <p className="text-muted text-sm font-medium">
