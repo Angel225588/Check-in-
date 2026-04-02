@@ -212,21 +212,177 @@ export function closeDay(): SessionRecord | null {
     rawUploadText: data.rawUploadText,
   };
 
-  // Save to history
+  // Save to history — merge if same date already exists
   const history = getSessionHistory();
-  history.unshift(record);
-  // Keep last 30 sessions
+  const existingIdx = history.findIndex((s) => s.date === record.date);
+  if (existingIdx !== -1) {
+    history[existingIdx] = mergeSessionRecords(history[existingIdx], record);
+  } else {
+    history.unshift(record);
+  }
   if (history.length > 30) history.length = 30;
+
+  // Try saving — if quota exceeded, trim rawUploadText and retry
+  let saved = false;
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    saved = true;
   } catch {
-    // QuotaExceededError
+    // Quota exceeded — strip rawUploadText from older sessions to free space
+    for (let i = history.length - 1; i >= 1; i--) {
+      history[i].rawUploadText = "";
+    }
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      saved = true;
+    } catch {
+      // Still failing — reduce to 15 sessions
+      if (history.length > 15) history.length = 15;
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        saved = true;
+      } catch {
+        // Cannot save — do NOT clear daily data
+      }
+    }
   }
 
-  // Clear today's data
-  clearDayData(data.date);
+  // ONLY clear today's data if history was saved successfully
+  if (saved) {
+    clearDayData(data.date);
+  }
 
   return record;
+}
+
+/**
+ * Auto-close any dailyData_* sessions from previous days.
+ * Called on app load to prevent orphaned sessions.
+ * Returns the number of sessions auto-closed.
+ */
+export function autoCloseStale(): number {
+  if (typeof window === "undefined") return 0;
+  const today = getTodayString();
+  let closed = 0;
+
+  // Find all dailyData keys for dates before today
+  const staleKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("dailyData_")) {
+      const date = key.replace("dailyData_", "");
+      if (date < today) {
+        staleKeys.push(date);
+      }
+    }
+  }
+
+  for (const date of staleKeys) {
+    const raw = localStorage.getItem(getKey(date));
+    if (!raw) continue;
+    let data: DailyData;
+    try {
+      data = JSON.parse(raw) as DailyData;
+    } catch {
+      continue;
+    }
+    if (!data.clients || data.clients.length === 0) {
+      // Empty session — just remove it
+      localStorage.removeItem(getKey(date));
+      continue;
+    }
+
+    const totalGuests = data.clients.reduce((s, c) => s + c.adults + c.children, 0);
+    const totalEntered = data.checkIns.reduce((s, c) => s + c.peopleEntered, 0);
+
+    const record: SessionRecord = {
+      date: data.date || date,
+      closedAt: new Date().toISOString(),
+      totalRooms: data.clients.length,
+      totalGuests,
+      totalEntered,
+      totalRemaining: Math.max(0, totalGuests - totalEntered),
+      totalVip: data.clients.filter((c) => c.isVip).length,
+      clients: data.clients,
+      checkIns: data.checkIns,
+      rawUploadText: data.rawUploadText,
+    };
+
+    const history = getSessionHistory();
+    // Check if this date already has a session — merge if so
+    const existingIdx = history.findIndex((s) => s.date === record.date);
+    if (existingIdx !== -1) {
+      history[existingIdx] = mergeSessionRecords(history[existingIdx], record);
+    } else {
+      history.unshift(record);
+    }
+    // Sort by date descending
+    history.sort((a, b) => b.date.localeCompare(a.date));
+    if (history.length > 30) history.length = 30;
+
+    let saved = false;
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      saved = true;
+    } catch {
+      // Trim rawUploadText from older sessions
+      for (let i = history.length - 1; i >= 1; i--) {
+        history[i].rawUploadText = "";
+      }
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        saved = true;
+      } catch {
+        // Cannot save — leave daily data intact
+      }
+    }
+
+    if (saved) {
+      localStorage.removeItem(getKey(date));
+      closed++;
+    }
+  }
+
+  return closed;
+}
+
+/**
+ * Merge two session records for the same date.
+ * Combines clients (dedup by room+name) and check-ins (dedup by id).
+ */
+function mergeSessionRecords(existing: SessionRecord, incoming: SessionRecord): SessionRecord {
+  // Merge clients: dedup by room + normalized name
+  const clientKey = (c: Client) =>
+    `${c.roomNumber}::${c.name.trim().toLowerCase().replace(/\s+/g, " ")}`;
+  const clientMap = new Map<string, Client>();
+  for (const c of existing.clients) clientMap.set(clientKey(c), c);
+  for (const c of incoming.clients) {
+    const key = clientKey(c);
+    if (!clientMap.has(key)) clientMap.set(key, c);
+  }
+  const mergedClients = Array.from(clientMap.values());
+
+  // Merge check-ins: dedup by id
+  const checkInMap = new Map<string, CheckInRecord>();
+  for (const ci of existing.checkIns) checkInMap.set(ci.id, ci);
+  for (const ci of incoming.checkIns) checkInMap.set(ci.id, ci);
+  const mergedCheckIns = Array.from(checkInMap.values());
+
+  const totalGuests = mergedClients.reduce((s, c) => s + c.adults + c.children, 0);
+  const totalEntered = mergedCheckIns.reduce((s, c) => s + c.peopleEntered, 0);
+
+  return {
+    date: existing.date,
+    closedAt: incoming.closedAt || existing.closedAt,
+    totalRooms: mergedClients.length,
+    totalGuests,
+    totalEntered,
+    totalRemaining: Math.max(0, totalGuests - totalEntered),
+    totalVip: mergedClients.filter((c) => c.isVip).length,
+    clients: mergedClients,
+    checkIns: mergedCheckIns,
+    rawUploadText: [existing.rawUploadText, incoming.rawUploadText].filter(Boolean).join("\n---\n"),
+  };
 }
 
 // --- Client History ---

@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Lang, TranslationKey, t as translate } from "@/lib/i18n";
+import { autoCloseStale } from "@/lib/storage";
 
 interface AppContextValue {
   lang: Lang;
@@ -28,6 +29,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
     }
     setMounted(true);
+
+    // Auto-close any sessions from previous days that were never closed
+    autoCloseStale();
   }, []);
 
   useEffect(() => {
