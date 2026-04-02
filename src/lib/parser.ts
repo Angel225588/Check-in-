@@ -1,4 +1,5 @@
 import { Client } from "./types";
+import { normalizePackageCode, normalizeName } from "./validate";
 
 // Detect the delimiter used in the text (tab, semicolon, or comma — in that priority)
 function detectDelimiter(text: string): string {
@@ -37,14 +38,14 @@ export function parseCSV(text: string): Client[] {
       roomType: parts[1] || "",
       rtc: parts[2] || "",
       confirmationNumber: parts[3] || "",
-      name: parts[4] || "",                                    // Column 5 (index 4) — ALWAYS the name
+      name: normalizeName(parts[4] || ""),                      // Column 5 (index 4) — ALWAYS the name
       arrivalDate: parts[5] || "",
       departureDate: parts[6] || "",
       reservationStatus: parts[7] || "",
       adults: parseInt(parts[8] || "0", 10) || 0,              // Column 9 (index 8) — ALWAYS adults
       children: parseInt(parts[9] || "0", 10) || 0,            // Column 10 (index 9) — ALWAYS children
       rateCode: parts[10] || "",
-      packageCode: parts[11] || "",                             // Column 12 (index 11) — ALWAYS package code
+      packageCode: normalizePackageCode(parts[11] || ""),       // Column 12 (index 11) — ALWAYS package code
     };
 
     // Only include rows that start with a valid room number (3-4 digits)
@@ -142,7 +143,7 @@ export function parseOCRText(text: string): Client[] {
 
       const pkgMatch = part.match(packagePattern);
       if (pkgMatch) {
-        client.packageCode = pkgMatch[1].toUpperCase();
+        client.packageCode = normalizePackageCode(pkgMatch[1]);
         continue;
       }
 
@@ -196,7 +197,7 @@ export function parseOCRText(text: string): Client[] {
     }
 
     // Assign name
-    client.name = nameParts.join(" ") || "Unknown";
+    client.name = normalizeName(nameParts.join(" ")) || "Unknown";
 
     clients.push(client);
   }

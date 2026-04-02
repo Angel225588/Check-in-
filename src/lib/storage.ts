@@ -57,12 +57,14 @@ export function getDataForDate(date: string): DailyData | null {
   }
 }
 
-export function saveTodayData(data: DailyData): void {
+export function saveTodayData(data: DailyData): boolean {
   data.date = getTodayString();
   try {
     localStorage.setItem(getKey(data.date), JSON.stringify(data));
+    return true;
   } catch {
-    // QuotaExceededError — silently fail
+    // QuotaExceededError — return false so UI can warn user
+    return false;
   }
 }
 

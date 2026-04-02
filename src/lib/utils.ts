@@ -48,7 +48,7 @@ export function getCompStats(
   checkIns: CheckInRecord[]
 ): { entered: number; total: number; rooms: number } {
   const compClients = clients.filter((c) =>
-    c.packageCode.toUpperCase().includes("BKF COMP")
+    c.packageCode.toUpperCase().replace(/\s+/g, " ").includes("BKF COMP")
   );
   const total = compClients.reduce((sum, c) => sum + c.adults + c.children, 0);
   const entered = compClients.reduce(
@@ -75,7 +75,8 @@ export function searchClients(
 }
 
 export function isComp(client: Client): boolean {
-  return client.packageCode.toUpperCase().includes("BKF COMP");
+  // Normalize spaces to handle OCR variants like "BKF  COMP"
+  return client.packageCode.toUpperCase().replace(/\s+/g, " ").includes("BKF COMP");
 }
 
 export function getRoomStatusCounts(

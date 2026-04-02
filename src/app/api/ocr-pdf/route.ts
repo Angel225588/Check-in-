@@ -45,25 +45,10 @@ Rules:
 - Return ONLY valid JSON, no markdown, no explanation, no code fences
 - If you cannot read the PDF or it's not a hotel report, return {"type":"unknown","pages":0,"clients":[]}`;
 
-function stripHtml(s: unknown): string {
-  if (typeof s !== "string") return "";
-  return s.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim();
-}
-
-function sanitizeClient(obj: Record<string, unknown>): Record<string, unknown> {
-  for (const key of Object.keys(obj)) {
-    if (typeof obj[key] === "string") obj[key] = stripHtml(obj[key]).slice(0, 200);
-  }
-  return obj;
-}
+import { sanitizeAndValidateClient } from "@/lib/validate";
 
 function validateClient(obj: Record<string, unknown>): boolean {
-  sanitizeClient(obj);
-  return (
-    typeof obj.roomNumber === "string" &&
-    obj.roomNumber.length > 0 &&
-    typeof obj.name === "string"
-  );
+  return sanitizeAndValidateClient(obj);
 }
 
 /**
