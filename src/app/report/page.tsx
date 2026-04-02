@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getTodayData, closeDay, getSessionHistory } from "@/lib/storage";
+import { getTodayData, closeDay, getSessionHistory, getDataForDate } from "@/lib/storage";
 import { generateDayReport, exportReportCSV, DayReport, RoomReport } from "@/lib/report";
 import { formatTime } from "@/lib/utils";
 import { getRushHourSlots } from "@/lib/analytics";
@@ -81,13 +81,23 @@ function ReportPage() {
     const dateParam = searchParams.get("date");
 
     if (dateParam) {
+      // Try session history first, then fall back to unclosed dailyData
       const sessions = getSessionHistory();
       const session = sessions.find((s) => s.date === dateParam);
-      if (!session) { router.push("/reports"); return; }
-      const data: DailyData = { date: session.date, clients: session.clients, checkIns: session.checkIns, rawUploadText: session.rawUploadText };
-      setDailyData(data);
-      setReport(generateDayReport(session.clients, session.checkIns));
-      setRawUploadText(session.rawUploadText || "");
+      const unclosedData = getDataForDate(dateParam);
+
+      if (session) {
+        const data: DailyData = { date: session.date, clients: session.clients, checkIns: session.checkIns, rawUploadText: session.rawUploadText };
+        setDailyData(data);
+        setReport(generateDayReport(session.clients, session.checkIns));
+        setRawUploadText(session.rawUploadText || "");
+      } else if (unclosedData && unclosedData.clients.length > 0) {
+        setDailyData(unclosedData);
+        setReport(generateDayReport(unclosedData.clients, unclosedData.checkIns));
+        setRawUploadText(unclosedData.rawUploadText || "");
+      } else {
+        router.push("/reports"); return;
+      }
       setIsHistorical(true);
     } else {
       const data = getTodayData();

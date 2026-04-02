@@ -2,22 +2,37 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/contexts/AppContext";
-import { getTodayData, getSessionHistory } from "@/lib/storage";
+import { getTodayData, getSessionHistory, getDataForDate, getAllStoredDates } from "@/lib/storage";
 import { SessionRecord } from "@/lib/types";
 import { getTotalGuests, getCheckedInCount } from "@/lib/utils";
+
+const APP_VERSION = "2.1.0";
 import AnimatedNumber from "@/components/AnimatedNumber";
 
 export default function ReportsListPage() {
   const router = useRouter();
   const { t } = useApp();
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [unclosedDates, setUnclosedDates] = useState<string[]>([]);
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
     const today = getTodayData();
     setHasActiveSession(!!today && today.clients.length > 0);
-    setSessions(getSessionHistory());
+
+    const history = getSessionHistory();
+    setSessions(history);
+
+    // Find unclosed dailyData from past days (not in session history)
+    const historyDates = new Set(history.map((s) => s.date));
+    const storedDates = getAllStoredDates();
+    const unclosed = storedDates.filter(
+      (d) => d !== todayStr && !historyDates.has(d)
+    );
+    setUnclosedDates(unclosed);
+
     setLoading(false);
   }, []);
 
@@ -48,7 +63,7 @@ export default function ReportsListPage() {
     }
   };
 
-  const totalReports = sessions.length + (hasActiveSession ? 1 : 0);
+  const totalReports = sessions.length + unclosedDates.length + (hasActiveSession ? 1 : 0);
 
   if (loading) {
     return (
@@ -142,6 +157,51 @@ export default function ReportsListPage() {
           </button>
         )}
 
+        {/* Unclosed sessions from past days (data still in localStorage) */}
+        {unclosedDates.map((date, i) => {
+          const data = getDataForDate(date);
+          if (!data || data.clients.length === 0) return null;
+          const total = getTotalGuests(data.clients);
+          const entered = getCheckedInCount(data.checkIns);
+          const utilPct = total > 0 ? Math.round((entered / total) * 100) : 0;
+
+          return (
+            <button
+              key={`unclosed-${date}`}
+              onClick={() => router.push(`/report?date=${date}`)}
+              className="w-full glass-liquid rounded-[16px] p-4 text-left active:scale-[0.98] transition-all animate-fadeUp ring-1 ring-amber-500/20"
+              style={{ animationDelay: `${(i + 1) * 50}ms` }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                    NON CLÔTURÉE
+                  </span>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  utilPct >= 70 ? "bg-green-500/10 text-green-600 dark:text-green-400" :
+                  utilPct >= 40 ? "bg-brand/10 text-brand" :
+                  "bg-red-500/10 text-red-500"
+                }`}>
+                  {utilPct}%
+                </span>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="text-base font-bold text-dark">{formatDate(date)}</div>
+                  <div className="text-xs text-muted mt-0.5">
+                    {data.clients.length} {t("reports.rooms")} · {entered}/{total} {t("reports.guests")}
+                  </div>
+                </div>
+                <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+          );
+        })}
+
         {/* Past session cards */}
         {sessions.map((session, i) => {
           const totalGuests = getTotalGuests(session.clients);
@@ -181,6 +241,9 @@ export default function ReportsListPage() {
             </button>
           );
         })}
+
+        {/* Version tag */}
+        <p className="text-center text-[9px] text-muted/40 pt-4">v{APP_VERSION}</p>
 
         {/* Empty state */}
         {totalReports === 0 && (
