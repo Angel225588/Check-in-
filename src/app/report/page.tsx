@@ -4,10 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getTodayData, closeDay, getSessionHistory } from "@/lib/storage";
 import { generateDayReport, exportReportCSV, DayReport, RoomReport } from "@/lib/report";
 import { formatTime } from "@/lib/utils";
+import { getRushHourSlots } from "@/lib/analytics";
 import { useApp } from "@/contexts/AppContext";
 import type { TranslationKey } from "@/lib/i18n";
+import type { DailyData } from "@/lib/types";
 
-type MetricFilter = "all" | "allIn" | "partial" | "noshow" | "comp" | null;
+type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp";
 
 function StatusBadge({ status, t }: { status: RoomReport["status"]; t: (key: TranslationKey) => string }) {
   const styles = {
@@ -27,13 +29,33 @@ function StatusBadge({ status, t }: { status: RoomReport["status"]; t: (key: Tra
   );
 }
 
+/* ── Donut Ring ── */
+function DonutRing({ percent, size = 120, stroke = 10 }: { percent: number; size?: number; stroke?: number }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = mounted ? circ - (Math.min(percent, 100) / 100) * circ : circ;
+  const color = percent >= 70 ? "stroke-green-500 dark:stroke-green-400" : percent >= 40 ? "stroke-brand" : "stroke-red-500 dark:stroke-red-400";
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} className="stroke-black/[0.04] dark:stroke-white/[0.06]" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
+        className={color} strokeLinecap="round"
+        strokeDasharray={circ} strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(.25,.46,.45,.94)" }} />
+    </svg>
+  );
+}
+
 export default function ReportPageWrapper() {
   return (
     <Suspense fallback={
       <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4">
         <div className="skeleton h-8 w-40 mb-4" />
-        <div className="grid grid-cols-5 gap-1.5 mb-4">
-          {[0, 1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-14" />)}
+        <div className="skeleton h-32 w-32 rounded-full mx-auto mb-4" />
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {[0, 1, 2].map((i) => <div key={i} className="skeleton h-16" />)}
         </div>
         <div className="skeleton h-64 w-full" />
       </div>
@@ -48,34 +70,29 @@ function ReportPage() {
   const searchParams = useSearchParams();
   const { t } = useApp();
   const [report, setReport] = useState<DayReport | null>(null);
+  const [dailyData, setDailyData] = useState<DailyData | null>(null);
   const [rawUploadText, setRawUploadText] = useState<string>("");
   const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const [metricFilter, setMetricFilter] = useState<MetricFilter>(null);
-  const [tablePage, setTablePage] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isHistorical, setIsHistorical] = useState(false);
-  const ROWS_PER_PAGE = 15;
 
   useEffect(() => {
     const dateParam = searchParams.get("date");
 
     if (dateParam) {
-      // Historical report — load from session history
       const sessions = getSessionHistory();
       const session = sessions.find((s) => s.date === dateParam);
-      if (!session) {
-        router.push("/reports");
-        return;
-      }
+      if (!session) { router.push("/reports"); return; }
+      const data: DailyData = { date: session.date, clients: session.clients, checkIns: session.checkIns, rawUploadText: session.rawUploadText };
+      setDailyData(data);
       setReport(generateDayReport(session.clients, session.checkIns));
       setRawUploadText(session.rawUploadText || "");
       setIsHistorical(true);
     } else {
-      // Today's report
       const data = getTodayData();
-      if (!data || data.clients.length === 0) {
-        router.push("/reports");
-        return;
-      }
+      if (!data || data.clients.length === 0) { router.push("/reports"); return; }
+      setDailyData(data);
       setReport(generateDayReport(data.clients, data.checkIns));
       setRawUploadText(data.rawUploadText || "");
       setIsHistorical(false);
@@ -94,33 +111,61 @@ function ReportPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPDF = () => {
-    window.print();
-  };
-
   const handleCloseDay = () => {
     closeDay();
     router.push("/upload");
   };
 
-  const handleMetricTap = (filter: MetricFilter) => {
-    setMetricFilter(metricFilter === filter ? null : filter);
-    setTablePage(0);
-  };
+  // Rush hour data
+  const rushSlots = useMemo(() => (dailyData ? getRushHourSlots(dailyData) : []), [dailyData]);
+  const maxRush = useMemo(() => Math.max(...rushSlots.map((s) => s.count), 1), [rushSlots]);
+  const peakSlot = useMemo(() => rushSlots.find((s) => s.isPeak && s.count > 0), [rushSlots]);
 
-  // Filtered rooms based on metric tap
+  // Compute check-in time per room for the table
+  const checkInTimeMap = useMemo(() => {
+    if (!report) return new Map<string, string>();
+    const map = new Map<string, string>();
+    for (const ci of report.checkIns) {
+      const key = `${ci.roomNumber}::${ci.clientName.trim().toLowerCase()}`;
+      if (!map.has(key)) map.set(key, formatTime(ci.timestamp));
+    }
+    return map;
+  }, [report]);
+
+  // Average check-in time
+  const avgCheckInTime = useMemo(() => {
+    if (!report || report.checkIns.length === 0) return null;
+    const totalMinutes = report.checkIns.reduce((sum, ci) => {
+      const d = new Date(ci.timestamp);
+      return sum + d.getHours() * 60 + d.getMinutes();
+    }, 0);
+    const avg = totalMinutes / report.checkIns.length;
+    const h = Math.floor(avg / 60);
+    const m = Math.round(avg % 60);
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }, [report]);
+
+  // Filtered + searched rooms
   const filteredRooms = useMemo(() => {
     if (!report) return [];
-    if (metricFilter === "all") return report.rooms;
-    if (metricFilter === "allIn") return report.rooms.filter((r) => r.status === "all-in");
-    if (metricFilter === "partial") return report.rooms.filter((r) => r.status === "partial");
-    if (metricFilter === "noshow") return report.rooms.filter((r) => r.status === "no-show");
-    if (metricFilter === "comp") return report.rooms.filter((r) => r.isComp);
-    return report.rooms;
-  }, [report, metricFilter]);
+    let rooms = report.rooms;
 
-  const totalPages = Math.ceil(filteredRooms.length / ROWS_PER_PAGE);
-  const pageRooms = filteredRooms.slice(tablePage * ROWS_PER_PAGE, (tablePage + 1) * ROWS_PER_PAGE);
+    // Status filter
+    if (statusFilter === "allIn") rooms = rooms.filter((r) => r.status === "all-in");
+    else if (statusFilter === "partial") rooms = rooms.filter((r) => r.status === "partial");
+    else if (statusFilter === "noshow") rooms = rooms.filter((r) => r.status === "no-show");
+    else if (statusFilter === "comp") rooms = rooms.filter((r) => r.isComp);
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      rooms = rooms.filter(
+        (r) => r.roomNumber.includes(q) || r.name.toLowerCase().includes(q)
+      );
+    }
+
+    return rooms;
+  }, [report, statusFilter, searchQuery]);
 
   if (!report) {
     return (
@@ -133,8 +178,14 @@ function ReportPage() {
   const allIn = report.rooms.filter((r) => r.status === "all-in");
   const partial = report.rooms.filter((r) => r.status === "partial");
   const noShow = report.rooms.filter((r) => r.status === "no-show");
-  const allInGuests = allIn.reduce((s, r) => s + r.entered, 0);
-  const partialGuests = partial.reduce((s, r) => s + r.entered, 0);
+  const presencePercent = report.totalGuests > 0 ? Math.round((report.totalEntered / report.totalGuests) * 100) : 0;
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr + "T12:00:00");
+      return d.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    } catch { return dateStr; }
+  };
 
   return (
     <>
@@ -147,11 +198,10 @@ function ReportPage() {
       `}</style>
 
       <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
-        {/* ═══ STICKY HEADER + METRICS ═══ */}
+        {/* ═══ HEADER ═══ */}
         <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#0A0A0F]/90 backdrop-blur-xl">
           <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between">
               <button
                 onClick={() => router.push(isHistorical ? "/reports" : "/search")}
                 className="no-print flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
@@ -161,199 +211,279 @@ function ReportPage() {
                 </svg>
                 <span className="text-sm font-medium text-brand">{isHistorical ? t("reports.title") : t("report.back")}</span>
               </button>
-              <div className="text-right">
-                <h1 className="text-lg font-black text-dark">{t("report.title")}</h1>
-                <p className="text-xs text-muted">{report.date}</p>
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-bold tracking-[0.08em] text-brand leading-tight" style={{ fontFamily: "'Nunito', sans-serif" }}>
+                  COURTYARD
+                </span>
+                <span className="text-[10px] text-muted leading-tight">
+                  by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
+                </span>
               </div>
-            </div>
-
-            {/* ═══ METRIC FILTER CARDS (tappable) ═══ */}
-            <div className="grid grid-cols-5 gap-1.5">
-              <button onClick={() => handleMetricTap("all")}
-                className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "all" ? "glass-liquid-active ring-1 ring-brand/30" : "glass-liquid"}`}>
-                <div className="text-[8px] text-muted uppercase tracking-wide">{t("report.totalRooms")}</div>
-                <div className="text-xl font-black text-dark">{report.totalRooms}</div>
-                <div className="text-[9px] text-muted">{report.totalGuests} pax</div>
-              </button>
-              <button onClick={() => handleMetricTap("allIn")}
-                className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "allIn" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
-                <div className="text-[8px] text-green-700 dark:text-green-400 uppercase tracking-wide">{t("report.allIn")}</div>
-                <div className="text-xl font-black text-green-700 dark:text-green-400">{allIn.length}</div>
-                <div className="text-[9px] text-green-700/60 dark:text-green-400/60">{allInGuests} pax</div>
-              </button>
-              <button onClick={() => handleMetricTap("partial")}
-                className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "partial" ? "glass-liquid-active ring-1 ring-brand/30" : "glass-liquid"}`}>
-                <div className="text-[8px] text-brand uppercase tracking-wide">{t("report.partial")}</div>
-                <div className="text-xl font-black text-brand">{partial.length}</div>
-                <div className="text-[9px] text-brand/60">{partialGuests} pax</div>
-              </button>
-              <button onClick={() => handleMetricTap("noshow")}
-                className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "noshow" ? "glass-liquid-active ring-1 ring-red-500/30" : "glass-liquid"}`}>
-                <div className="text-[8px] text-error uppercase tracking-wide">{t("report.noShows")}</div>
-                <div className="text-xl font-black text-error">{noShow.length}</div>
-                <div className="text-[9px] text-error/60">{report.totalGuests - report.totalEntered} pax</div>
-              </button>
-              <button onClick={() => handleMetricTap("comp")}
-                className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${metricFilter === "comp" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
-                <div className="text-[8px] text-muted uppercase tracking-wide">COMP</div>
-                <div className="text-xl font-black text-green-700 dark:text-green-400">{report.totalComp}</div>
-              </button>
             </div>
           </div>
         </div>
 
         {/* ═══ SCROLLABLE CONTENT ═══ */}
-        <div className="max-w-2xl mx-auto px-4 pb-48 space-y-4 pt-3">
-          {/* Status breakdown bar — ROOMS */}
+        <div className="max-w-2xl mx-auto px-4 pb-52 space-y-4 pt-2">
+
+          {/* Date title */}
+          <div className="text-center">
+            <h1 className="text-lg font-black text-dark capitalize">{formatDate(report.date)}</h1>
+            <p className="text-xs text-muted">{t("report.title")}</p>
+          </div>
+
+          {/* ═══ DONUT + PRESENCE ═══ */}
+          <div className="glass-liquid rounded-[14px] p-5">
+            <div className="flex items-center justify-center gap-6">
+              {/* Donut */}
+              <div className="relative">
+                <DonutRing percent={presencePercent} size={120} stroke={10} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-3xl font-black tabular-nums ${presencePercent >= 70 ? "text-green-600 dark:text-green-400" : presencePercent >= 40 ? "text-brand" : "text-error"}`}>
+                    {presencePercent}%
+                  </span>
+                  <span className="text-[9px] text-muted uppercase tracking-wide">{t("report.presence")}</span>
+                </div>
+              </div>
+
+              {/* Key metrics beside donut */}
+              <div className="space-y-3">
+                <div>
+                  <div className="text-2xl font-black text-dark tabular-nums">{report.totalEntered}<span className="text-sm font-medium text-muted">/{report.totalGuests}</span></div>
+                  <div className="text-[9px] text-muted uppercase tracking-wide">{t("report.persons")}</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-dark tabular-nums">{allIn.length + partial.length}<span className="text-sm font-medium text-muted">/{report.totalRooms}</span></div>
+                  <div className="text-[9px] text-muted uppercase tracking-wide">{t("report.rooms")}</div>
+                </div>
+                {avgCheckInTime && (
+                  <div>
+                    <div className="text-lg font-black text-dark tabular-nums">{avgCheckInTime}</div>
+                    <div className="text-[9px] text-muted uppercase tracking-wide">{t("report.avgTime")}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ STATUS BAR (green/brown/red) ═══ */}
           <div className="glass-liquid rounded-[14px] p-4">
-            <div className="text-[9px] text-muted uppercase tracking-wider font-semibold mb-2">{t("report.roomBreakdown")}</div>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-3 text-sm mb-3">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-dark">{t("report.allIn")}: <b>{allIn.length}</b></span>
+                <span className="text-dark font-medium">{t("report.allIn")}: <b>{allIn.length}</b></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-brand" />
-                <span className="text-dark">{t("report.partial")}: <b>{partial.length}</b></span>
+                <span className="text-dark font-medium">{t("report.partial")}: <b>{partial.length}</b></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-error" />
-                <span className="text-dark">{t("report.noShow")}: <b>{noShow.length}</b></span>
+                <span className="text-dark font-medium">{t("report.noShow")}: <b>{noShow.length}</b></span>
               </div>
             </div>
             {report.totalRooms > 0 && (
-              <div className="flex h-3 rounded-full overflow-hidden mt-3">
-                {allIn.length > 0 && (
-                  <div className="bg-green-500" style={{ width: `${(allIn.length / report.totalRooms) * 100}%` }} />
-                )}
-                {partial.length > 0 && (
-                  <div className="bg-brand" style={{ width: `${(partial.length / report.totalRooms) * 100}%` }} />
-                )}
-                {noShow.length > 0 && (
-                  <div className="bg-error" style={{ width: `${(noShow.length / report.totalRooms) * 100}%` }} />
-                )}
+              <div className="flex h-3 rounded-full overflow-hidden">
+                {allIn.length > 0 && <div className="bg-green-500 transition-all duration-700" style={{ width: `${(allIn.length / report.totalRooms) * 100}%` }} />}
+                {partial.length > 0 && <div className="bg-brand transition-all duration-700" style={{ width: `${(partial.length / report.totalRooms) * 100}%` }} />}
+                {noShow.length > 0 && <div className="bg-error transition-all duration-700" style={{ width: `${(noShow.length / report.totalRooms) * 100}%` }} />}
               </div>
             )}
 
-            {/* Guest count summary — separate section, clear GUESTS unit */}
-            <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/8">
-              <div className="text-[9px] text-muted uppercase tracking-wider font-semibold mb-1.5">Guests (pax)</div>
-              <div className="grid grid-cols-3 gap-2 text-center">
+            {/* Guest pax breakdown */}
+            <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8">
+              <div className="grid grid-cols-4 gap-2 text-center">
                 <div>
-                  <div className="text-lg font-black text-dark tabular-nums">{report.totalGuests}</div>
-                  <div className="text-[9px] text-muted">{t("report.totalGuests")}</div>
+                  <div className="text-base font-black text-dark tabular-nums">{report.totalGuests}</div>
+                  <div className="text-[8px] text-muted uppercase">{t("report.expected")}</div>
                 </div>
                 <div>
-                  <div className="text-lg font-black text-green-600 dark:text-green-400 tabular-nums">{report.totalEntered}</div>
-                  <div className="text-[9px] text-green-700/60 dark:text-green-400/60">{t("report.entered")}</div>
+                  <div className="text-base font-black text-green-600 dark:text-green-400 tabular-nums">{report.totalEntered}</div>
+                  <div className="text-[8px] text-green-700/60 dark:text-green-400/60 uppercase">{t("report.received")}</div>
                 </div>
                 <div>
-                  <div className="text-lg font-black text-error tabular-nums">{report.totalRemaining}</div>
-                  <div className="text-[9px] text-error/60">{t("report.remaining")}</div>
+                  <div className="text-base font-black text-error tabular-nums">{report.totalRemaining}</div>
+                  <div className="text-[8px] text-error/60 uppercase">{t("report.noShows")}</div>
+                </div>
+                <div>
+                  <div className="text-base font-black text-dark tabular-nums">{report.totalVip}</div>
+                  <div className="text-[8px] text-muted uppercase">VIP</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ═══ PAGINATED ROOM TABLE ═══ */}
+          {/* ═══ RUSH HOUR CHART ═══ */}
+          {rushSlots.length > 0 && rushSlots.some(s => s.count > 0) && (
+            <div className="glass-liquid rounded-[14px] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9px] text-muted uppercase tracking-wider font-semibold">{t("report.rushHour")}</span>
+                {peakSlot && (
+                  <span className="text-[9px] font-bold text-brand px-2 py-0.5 glass-brand rounded-full">
+                    {t("report.peakTime")}: {peakSlot.label}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-end gap-[3px] h-20">
+                {rushSlots.map((slot) => (
+                  <div key={slot.time} className="flex-1 flex flex-col items-center gap-1">
+                    <span className={`text-[8px] font-bold tabular-nums ${slot.isPeak ? "text-brand" : "text-muted"}`}>
+                      {slot.count > 0 ? slot.count : ""}
+                    </span>
+                    <div className="w-full relative" style={{ height: "48px" }}>
+                      <div
+                        className={`absolute bottom-0 w-full rounded-t-[3px] transition-all duration-700 ${slot.isPeak ? "bg-brand" : "bg-brand/30 dark:bg-brand/40"}`}
+                        style={{ height: `${maxRush > 0 ? (slot.count / maxRush) * 100 : 0}%`, minHeight: slot.count > 0 ? "3px" : "0" }}
+                      />
+                    </div>
+                    <span className={`text-[7px] tabular-nums ${slot.isPeak ? "text-brand font-bold" : "text-muted"}`}>
+                      {slot.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ═══ CLIENT TABLE ═══ */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">
-                {metricFilter ? `${filteredRooms.length} ${t("upload.rooms")}` : t("report.roomBreakdown")}
-              </h2>
-              {metricFilter && (
-                <button onClick={() => setMetricFilter(null)} className="text-xs text-brand font-medium active:opacity-70">
-                  {t("upload.clear")}
+            {/* Filter tabs */}
+            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto">
+              {([
+                { key: "all", label: t("report.all"), count: report.rooms.length },
+                { key: "allIn", label: t("report.allIn"), count: allIn.length, color: "green" },
+                { key: "partial", label: t("report.partial"), count: partial.length, color: "brand" },
+                { key: "noshow", label: t("report.noShows"), count: noShow.length, color: "red" },
+                { key: "comp", label: "COMP", count: report.totalComp, color: "green" },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => { setStatusFilter(tab.key); setSearchQuery(""); }}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.96] ${
+                    statusFilter === tab.key
+                      ? "bg-dark text-white dark:bg-white dark:text-black"
+                      : "glass-liquid text-muted"
+                  }`}
+                >
+                  {tab.label} <span className="opacity-60">{tab.count}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Search bar */}
+            <div className="relative mb-2">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t("report.searchPlaceholder")}
+                className="w-full pl-9 pr-3 py-2.5 rounded-[12px] glass-liquid text-sm text-dark placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-brand/30"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted active:opacity-70"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               )}
             </div>
 
-            <div className="glass-liquid rounded-[14px] overflow-hidden">
-              {/* Table header */}
-              <div className="grid grid-cols-[60px_1fr_55px_55px] px-4 py-2 border-b border-black/5 dark:border-white/8">
-                <span className="text-[9px] text-muted uppercase font-semibold">{t("report.room")}</span>
-                <span className="text-[9px] text-muted uppercase font-semibold">{t("report.name")}</span>
-                <span className="text-[9px] text-muted uppercase font-semibold text-center">N</span>
-                <span className="text-[9px] text-muted uppercase font-semibold text-right">{t("report.status")}</span>
-              </div>
-
-              {/* Table rows */}
-              {pageRooms.map((room, i) => (
-                <div
-                  key={`${room.roomNumber}-${i}`}
-                  className={`grid grid-cols-[60px_1fr_55px_55px] px-4 py-2.5 items-center border-b border-black/3 dark:border-white/5 last:border-0 ${
-                    room.isComp ? "bg-green-500/5 dark:bg-green-500/8" :
-                    room.isVip ? "bg-brand/5" :
-                    room.status === "no-show" ? "bg-error/5" : ""
-                  }`}
-                >
-                  {/* Room */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-bold font-mono text-dark">{room.roomNumber}</span>
-                    {room.isVip && (
-                      <span className="text-[7px] bg-gradient-to-r from-brand to-brand-light text-white px-1 py-0.5 rounded-full font-black leading-none">V</span>
-                    )}
-                  </div>
-
-                  {/* Name — COMP gets green underline */}
-                  <div className="min-w-0">
-                    <span className={`text-xs text-dark truncate block ${
-                      room.isComp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""
-                    }`}>
-                      {room.name}
-                    </span>
-                  </div>
-
-                  {/* People entered / total */}
-                  <div className="text-center">
-                    <span className={`text-sm font-bold font-mono ${
-                      room.status === "all-in" ? "text-green-600 dark:text-green-400" :
-                      room.status === "no-show" ? "text-error" : "text-dark"
-                    }`}>
-                      {room.entered}/{room.totalGuests}
-                    </span>
-                  </div>
-
-                  {/* Status */}
-                  <div className="text-right">
-                    {room.isComp ? (
-                      <span className="text-[8px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">COMP</span>
-                    ) : (
-                      <StatusBadge status={room.status} t={t} />
-                    )}
-                  </div>
-                </div>
-              ))}
+            {/* Results count */}
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <span className="text-[10px] text-muted">{filteredRooms.length} {t("report.rooms").toLowerCase()}</span>
             </div>
 
-            {/* Pagination arrows */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-2 px-1">
-                <button
-                  onClick={() => setTablePage(Math.max(0, tablePage - 1))}
-                  disabled={tablePage === 0}
-                  aria-label="Previous page"
-                  className="px-4 py-1.5 rounded-full glass-liquid text-sm font-bold text-dark disabled:opacity-30 active:scale-95 transition-all"
-                >
-                  ←
-                </button>
-                <span className="text-xs text-muted font-medium" aria-live="polite">{tablePage + 1} / {totalPages}</span>
-                <button
-                  onClick={() => setTablePage(Math.min(totalPages - 1, tablePage + 1))}
-                  disabled={tablePage >= totalPages - 1}
-                  aria-label="Next page"
-                  className="px-4 py-1.5 rounded-full glass-liquid text-sm font-bold text-dark disabled:opacity-30 active:scale-95 transition-all"
-                >
-                  →
-                </button>
+            {/* Table */}
+            <div className="glass-liquid rounded-[14px] overflow-hidden">
+              {/* Header */}
+              <div className="grid grid-cols-[50px_1fr_45px_50px_55px] px-3 py-2 border-b border-black/5 dark:border-white/8">
+                <span className="text-[8px] text-muted uppercase font-semibold">{t("report.room")}</span>
+                <span className="text-[8px] text-muted uppercase font-semibold">{t("report.name")}</span>
+                <span className="text-[8px] text-muted uppercase font-semibold text-center">Pax</span>
+                <span className="text-[8px] text-muted uppercase font-semibold text-center">{t("report.time")}</span>
+                <span className="text-[8px] text-muted uppercase font-semibold text-right">{t("report.status")}</span>
               </div>
-            )}
+
+              {/* Rows */}
+              {filteredRooms.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-muted">
+                  {searchQuery ? t("clients.noResults") : "—"}
+                </div>
+              ) : (
+                filteredRooms.map((room, i) => {
+                  const timeKey = `${room.roomNumber}::${room.name.trim().toLowerCase()}`;
+                  const checkInTime = checkInTimeMap.get(timeKey);
+
+                  return (
+                    <div
+                      key={`${room.roomNumber}-${i}`}
+                      className={`grid grid-cols-[50px_1fr_45px_50px_55px] px-3 py-2.5 items-center border-b border-black/3 dark:border-white/5 last:border-0 ${
+                        room.isComp ? "bg-green-500/5 dark:bg-green-500/8" :
+                        room.isVip ? "bg-brand/5" :
+                        room.status === "no-show" ? "bg-error/[0.03]" : ""
+                      }`}
+                    >
+                      {/* Room */}
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-xs font-bold font-mono text-dark">{room.roomNumber}</span>
+                        {room.isVip && (
+                          <span className="text-[6px] bg-gradient-to-r from-brand to-brand-light text-white px-1 py-0.5 rounded-full font-black leading-none">V</span>
+                        )}
+                      </div>
+
+                      {/* Name */}
+                      <div className="min-w-0 pr-1">
+                        <span className={`text-[11px] text-dark truncate block ${
+                          room.isComp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""
+                        }`}>
+                          {room.name}
+                        </span>
+                      </div>
+
+                      {/* Pax */}
+                      <div className="text-center">
+                        <span className={`text-xs font-bold font-mono ${
+                          room.status === "all-in" ? "text-green-600 dark:text-green-400" :
+                          room.status === "no-show" ? "text-error" : "text-dark"
+                        }`}>
+                          {room.entered}/{room.totalGuests}
+                        </span>
+                      </div>
+
+                      {/* Time */}
+                      <div className="text-center">
+                        <span className="text-[10px] font-mono text-muted">
+                          {checkInTime || "—"}
+                        </span>
+                      </div>
+
+                      {/* Status */}
+                      <div className="text-right">
+                        {room.isComp ? (
+                          <span className="text-[8px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">COMP</span>
+                        ) : (
+                          <StatusBadge status={room.status} t={t} />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
-          {/* Timeline */}
+          {/* ═══ CHECK-IN TIMELINE ═══ */}
           {report.checkIns.length > 0 && (
-            <div>
-              <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">{t("report.timeline")}</h2>
+            <details>
+              <summary className="text-xs text-muted cursor-pointer font-semibold uppercase tracking-wide mb-2">
+                {t("report.timeline")} ({report.checkIns.length})
+              </summary>
               <div className="glass-liquid rounded-[14px] divide-y divide-black/5 dark:divide-white/8 overflow-hidden">
                 {report.checkIns.map((record) => (
                   <div key={record.id} className="flex items-center gap-3 px-4 py-2.5">
@@ -366,7 +496,7 @@ function ReportPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </details>
           )}
 
           {/* Raw OCR Data */}
@@ -380,12 +510,12 @@ function ReportPage() {
           )}
         </div>
 
-        {/* Floating action bar */}
+        {/* ═══ FLOATING ACTION BAR ═══ */}
         <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FBF8F3] dark:from-[#0A0A0F] via-[#FBF8F3] dark:via-[#0A0A0F] to-transparent pt-6">
           <div className="max-w-2xl mx-auto px-4 pb-4 space-y-3">
             <div className="flex gap-3">
               <button
-                onClick={handleExportPDF}
+                onClick={() => window.print()}
                 className="flex-1 glass-liquid py-3 rounded-[52px] text-base font-bold text-dark dark:border dark:border-white/20 active:scale-[0.97] transition-all"
               >
                 {t("report.exportPdf")}
@@ -408,9 +538,7 @@ function ReportPage() {
                 </button>
               ) : (
                 <div className="bg-error/5 border border-error/20 rounded-[14px] p-4">
-                  <p className="text-error text-sm font-medium mb-3">
-                    {t("report.confirmClose")}
-                  </p>
+                  <p className="text-error text-sm font-medium mb-3">{t("report.confirmClose")}</p>
                   <div className="flex gap-3">
                     <button
                       onClick={handleCloseDay}

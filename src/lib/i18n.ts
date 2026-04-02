@@ -172,6 +172,17 @@ const translations = {
   "report.inTotal": { fr: "Entrés/Total", en: "In/Total" },
   "report.status": { fr: "Statut", en: "Status" },
   "report.rawData": { fr: "Données OCR brutes", en: "Raw OCR Data" },
+  "report.presence": { fr: "Présence", en: "Presence" },
+  "report.rushHour": { fr: "Heure de Pointe", en: "Rush Hour" },
+  "report.peakTime": { fr: "Pic", en: "Peak" },
+  "report.searchPlaceholder": { fr: "Chercher chambre ou nom...", en: "Search room or name..." },
+  "report.expected": { fr: "Attendus", en: "Expected" },
+  "report.received": { fr: "Reçus", en: "Received" },
+  "report.persons": { fr: "Personnes", en: "Persons" },
+  "report.rooms": { fr: "Chambres", en: "Rooms" },
+  "report.time": { fr: "Heure", en: "Time" },
+  "report.all": { fr: "Tous", en: "All" },
+  "report.avgTime": { fr: "Heure moy.", en: "Avg time" },
 
   // Scanner
   "scanner.holdStill": { fr: "Ne bougez pas...", en: "Hold still..." },
