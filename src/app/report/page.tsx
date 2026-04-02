@@ -302,7 +302,7 @@ function ReportPage() {
 
             {/* Guest pax breakdown */}
             <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8">
-              <div className="grid grid-cols-4 gap-2 text-center">
+              <div className="grid grid-cols-5 gap-1.5 text-center">
                 <div>
                   <div className="text-base font-black text-dark tabular-nums">{report.totalGuests}</div>
                   <div className="text-[8px] text-muted uppercase">{t("report.expected")}</div>
@@ -316,9 +316,21 @@ function ReportPage() {
                   <div className="text-[8px] text-error/60 uppercase">{t("report.noShows")}</div>
                 </div>
                 <div>
-                  <div className="text-base font-black text-dark tabular-nums">{report.totalVip}</div>
-                  <div className="text-[8px] text-muted uppercase">VIP</div>
+                  <div className="text-base font-black text-green-700 dark:text-green-400 tabular-nums">{report.totalComp}</div>
+                  <div className="text-[8px] text-green-700/60 dark:text-green-400/60 uppercase">COMP</div>
                 </div>
+                {report.totalExtras > 0 && (
+                  <div>
+                    <div className="text-base font-black text-amber-600 dark:text-amber-400 tabular-nums">+{report.totalExtras}</div>
+                    <div className="text-[8px] text-amber-600/60 uppercase">Extras</div>
+                  </div>
+                )}
+                {report.totalExtras === 0 && (
+                  <div>
+                    <div className="text-base font-black text-dark tabular-nums">{report.totalVip}</div>
+                    <div className="text-[8px] text-muted uppercase">VIP</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -410,14 +422,15 @@ function ReportPage() {
             </div>
 
             {/* Table */}
-            <div className="glass-liquid rounded-[14px] overflow-hidden">
+            <div className="glass-liquid rounded-[14px] overflow-hidden overflow-x-auto">
               {/* Header */}
-              <div className="grid grid-cols-[50px_1fr_45px_50px_55px] px-3 py-2 border-b border-black/5 dark:border-white/8">
-                <span className="text-[8px] text-muted uppercase font-semibold">{t("report.room")}</span>
-                <span className="text-[8px] text-muted uppercase font-semibold">{t("report.name")}</span>
-                <span className="text-[8px] text-muted uppercase font-semibold text-center">Pax</span>
-                <span className="text-[8px] text-muted uppercase font-semibold text-center">{t("report.time")}</span>
-                <span className="text-[8px] text-muted uppercase font-semibold text-right">{t("report.status")}</span>
+              <div className="grid grid-cols-[46px_1fr_40px_42px_52px_48px] min-w-[380px] px-3 py-2 border-b border-black/5 dark:border-white/8">
+                <span className="text-[7px] text-muted uppercase font-semibold">{t("report.room")}</span>
+                <span className="text-[7px] text-muted uppercase font-semibold">{t("report.name")}</span>
+                <span className="text-[7px] text-muted uppercase font-semibold text-center">Pax</span>
+                <span className="text-[7px] text-muted uppercase font-semibold text-center">{t("report.time")}</span>
+                <span className="text-[7px] text-muted uppercase font-semibold text-center">PKG</span>
+                <span className="text-[7px] text-muted uppercase font-semibold text-right">{t("report.status")}</span>
               </div>
 
               {/* Rows */}
@@ -433,7 +446,8 @@ function ReportPage() {
                   return (
                     <div
                       key={`${room.roomNumber}-${i}`}
-                      className={`grid grid-cols-[50px_1fr_45px_50px_55px] px-3 py-2.5 items-center border-b border-black/3 dark:border-white/5 last:border-0 ${
+                      className={`grid grid-cols-[46px_1fr_40px_42px_52px_48px] min-w-[380px] px-3 py-2.5 items-center border-b border-black/3 dark:border-white/5 last:border-0 ${
+                        room.extras > 0 ? "bg-amber-500/8 dark:bg-amber-500/10" :
                         room.isComp ? "bg-green-500/5 dark:bg-green-500/8" :
                         room.isVip ? "bg-brand/5" :
                         room.status === "no-show" ? "bg-error/[0.03]" : ""
@@ -456,30 +470,41 @@ function ReportPage() {
                         </span>
                       </div>
 
-                      {/* Pax */}
+                      {/* Pax + extras indicator */}
                       <div className="text-center">
                         <span className={`text-xs font-bold font-mono ${
+                          room.extras > 0 ? "text-amber-600 dark:text-amber-400" :
                           room.status === "all-in" ? "text-green-600 dark:text-green-400" :
                           room.status === "no-show" ? "text-error" : "text-dark"
                         }`}>
                           {room.entered}/{room.totalGuests}
                         </span>
+                        {room.extras > 0 && (
+                          <div className="text-[7px] font-bold text-amber-600 dark:text-amber-400">+{room.extras}</div>
+                        )}
                       </div>
 
                       {/* Time */}
                       <div className="text-center">
-                        <span className="text-[10px] font-mono text-muted">
+                        <span className="text-[9px] font-mono text-muted">
                           {checkInTime || "—"}
                         </span>
                       </div>
 
+                      {/* Package code */}
+                      <div className="text-center">
+                        {room.isComp ? (
+                          <span className="text-[7px] bg-green-500/15 text-green-700 dark:text-green-400 px-1 py-0.5 rounded font-bold">COMP</span>
+                        ) : room.hasBreakfast ? (
+                          <span className="text-[7px] bg-blue-500/10 text-blue-700 dark:text-blue-400 px-1 py-0.5 rounded font-bold">BKF</span>
+                        ) : (
+                          <span className="text-[7px] text-muted/40">—</span>
+                        )}
+                      </div>
+
                       {/* Status */}
                       <div className="text-right">
-                        {room.isComp ? (
-                          <span className="text-[8px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">COMP</span>
-                        ) : (
-                          <StatusBadge status={room.status} t={t} />
-                        )}
+                        <StatusBadge status={room.status} t={t} />
                       </div>
                     </div>
                   );

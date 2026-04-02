@@ -131,7 +131,7 @@ describe("Report - exportReportCSV", () => {
 
   it("starts with a header row", () => {
     expect(lines[0]).toBe(
-      "Room,Name,Total Guests,Entered,Remaining,Status,VIP,Comp,Package"
+      "Room,Name,Total Guests,Entered,Remaining,Extras,Status,VIP,Breakfast,Package"
     );
   });
 
@@ -156,7 +156,7 @@ describe("Report - exportReportCSV", () => {
 
   it("includes Comp flag in CSV", () => {
     const row505 = lines.find((l) => l.startsWith("505,"));
-    expect(row505).toContain("Yes");
+    expect(row505).toContain("COMP");
   });
 
   it("marks non-VIP rooms correctly", () => {

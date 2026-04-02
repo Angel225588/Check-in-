@@ -46,7 +46,7 @@ export function getEnteredForRoom(
 export function getCompStats(
   clients: Client[],
   checkIns: CheckInRecord[]
-): { entered: number; total: number } {
+): { entered: number; total: number; rooms: number } {
   const compClients = clients.filter((c) =>
     c.packageCode.toUpperCase().includes("BKF COMP")
   );
@@ -55,7 +55,9 @@ export function getCompStats(
     (sum, c) => sum + getEnteredForClient(c, checkIns),
     0
   );
-  return { entered, total };
+  // Count unique rooms (not entries — shared rooms should count once)
+  const uniqueRooms = new Set(compClients.map((c) => c.roomNumber));
+  return { entered, total, rooms: uniqueRooms.size };
 }
 
 export function searchClients(

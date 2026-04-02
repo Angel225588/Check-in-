@@ -7,9 +7,11 @@ export interface RoomReport {
   totalGuests: number;
   entered: number;
   remaining: number;
+  extras: number; // people entered beyond expected (reception discrepancy)
   isVip: boolean;
   vipLevel: string;
   isComp: boolean;
+  hasBreakfast: boolean; // has any breakfast package (BKF INC, BKF COMP, BKF GRP, etc.)
   packageCode: string;
   status: "all-in" | "partial" | "no-show";
 }
@@ -20,10 +22,17 @@ export interface DayReport {
   totalGuests: number;
   totalEntered: number;
   totalRemaining: number;
+  totalExtras: number; // total extra people beyond expected
   totalVip: number;
-  totalComp: number;
+  totalComp: number; // unique COMP rooms (not entries)
+  totalCompPersons: number; // total COMP persons
   rooms: RoomReport[];
   checkIns: CheckInRecord[];
+}
+
+function hasBreakfastPackage(client: Client): boolean {
+  const pkg = client.packageCode.toUpperCase();
+  return /BKF\s*(COMP|INC|GRP|EXCL|GTT)|UPSFPDJ/.test(pkg);
 }
 
 export function generateDayReport(
@@ -34,6 +43,7 @@ export function generateDayReport(
     const totalGuests = client.adults + client.children;
     const entered = getEnteredForClient(client, checkIns);
     const remaining = getRemainingForRoom(client, checkIns);
+    const extras = Math.max(0, entered - totalGuests);
 
     let status: RoomReport["status"] = "no-show";
     if (remaining === 0 && totalGuests > 0) status = "all-in";
@@ -45,9 +55,11 @@ export function generateDayReport(
       totalGuests,
       entered,
       remaining,
+      extras,
       isVip: client.isVip || false,
       vipLevel: client.vipLevel || "",
       isComp: isComp(client),
+      hasBreakfast: hasBreakfastPackage(client),
       packageCode: client.packageCode,
       status,
     };
@@ -55,6 +67,11 @@ export function generateDayReport(
 
   const totalGuests = rooms.reduce((s, r) => s + r.totalGuests, 0);
   const totalEntered = rooms.reduce((s, r) => s + r.entered, 0);
+  const totalExtras = rooms.reduce((s, r) => s + r.extras, 0);
+
+  // Count COMP by unique room numbers (not by client entries)
+  const compRooms = new Set(rooms.filter((r) => r.isComp).map((r) => r.roomNumber));
+  const compPersons = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.totalGuests, 0);
 
   return {
     date: new Date().toISOString().split("T")[0],
@@ -62,8 +79,10 @@ export function generateDayReport(
     totalGuests,
     totalEntered,
     totalRemaining: totalGuests - totalEntered,
+    totalExtras,
     totalVip: rooms.filter((r) => r.isVip).length,
-    totalComp: rooms.filter((r) => r.isComp).length,
+    totalComp: compRooms.size,
+    totalCompPersons: compPersons,
     rooms,
     checkIns: [...checkIns].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -85,7 +104,7 @@ const STATUS_LABELS: Record<RoomReport["status"], string> = {
 };
 
 export function exportReportCSV(report: DayReport): string {
-  const header = "Room,Name,Total Guests,Entered,Remaining,Status,VIP,Comp,Package";
+  const header = "Room,Name,Total Guests,Entered,Remaining,Extras,Status,VIP,Breakfast,Package";
   const rows = report.rooms.map((r) =>
     [
       r.roomNumber,
@@ -93,9 +112,10 @@ export function exportReportCSV(report: DayReport): string {
       r.totalGuests,
       r.entered,
       r.remaining,
+      r.extras,
       STATUS_LABELS[r.status],
       r.isVip ? r.vipLevel || "Yes" : "No",
-      r.isComp ? "Yes" : "No",
+      r.hasBreakfast ? (r.isComp ? "COMP" : "YES") : "NO",
       csvField(r.packageCode),
     ].join(",")
   );
