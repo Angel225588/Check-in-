@@ -50,7 +50,8 @@ export function getCompStats(
   const compClients = clients.filter((c) =>
     c.packageCode.toUpperCase().replace(/\s+/g, " ").includes("BKF COMP")
   );
-  const total = compClients.reduce((sum, c) => sum + c.adults + c.children, 0);
+  // Children don't count for breakfast COMP at this hotel
+  const total = compClients.reduce((sum, c) => sum + c.adults, 0);
   const entered = compClients.reduce(
     (sum, c) => sum + getEnteredForClient(c, checkIns),
     0

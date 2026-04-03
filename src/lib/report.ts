@@ -7,6 +7,7 @@ export interface RoomReport {
   totalGuests: number;
   entered: number;
   remaining: number;
+  adults: number; // adults only (children excluded from COMP)
   extras: number; // people entered beyond expected (reception discrepancy)
   isVip: boolean;
   vipLevel: string;
@@ -53,6 +54,7 @@ export function generateDayReport(
       roomNumber: client.roomNumber,
       name: client.name,
       totalGuests,
+      adults: client.adults,
       entered,
       remaining,
       extras,
@@ -71,7 +73,8 @@ export function generateDayReport(
 
   // Count COMP by unique room numbers (not by client entries)
   const compRooms = new Set(rooms.filter((r) => r.isComp).map((r) => r.roomNumber));
-  const compPersons = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.totalGuests, 0);
+  // Children don't count for breakfast COMP
+  const compPersons = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.adults, 0);
 
   return {
     date: new Date().toISOString().split("T")[0],
