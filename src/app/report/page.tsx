@@ -9,7 +9,7 @@ import { useApp } from "@/contexts/AppContext";
 import type { TranslationKey } from "@/lib/i18n";
 import type { DailyData } from "@/lib/types";
 
-type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp";
+type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp" | "extras";
 
 function StatusBadge({ status, t }: { status: RoomReport["status"]; t: (key: TranslationKey) => string }) {
   const styles = {
@@ -165,6 +165,7 @@ function ReportPage() {
     else if (statusFilter === "partial") rooms = rooms.filter((r) => r.status === "partial");
     else if (statusFilter === "noshow") rooms = rooms.filter((r) => r.status === "no-show");
     else if (statusFilter === "comp") rooms = rooms.filter((r) => r.isComp);
+    else if (statusFilter === "extras") rooms = rooms.filter((r) => r.extras > 0);
 
     // Search
     if (searchQuery.trim()) {
@@ -188,6 +189,7 @@ function ReportPage() {
   const allIn = report.rooms.filter((r) => r.status === "all-in");
   const partial = report.rooms.filter((r) => r.status === "partial");
   const noShow = report.rooms.filter((r) => r.status === "no-show");
+  const extrasRooms = report.rooms.filter((r) => r.extras > 0);
   const presencePercent = report.totalGuests > 0 ? Math.round((report.totalEntered / report.totalGuests) * 100) : 0;
 
   const formatDate = (dateStr: string) => {
@@ -367,16 +369,45 @@ function ReportPage() {
             </div>
           )}
 
+          {/* ═══ EXTRAS — RECEPTION DISCREPANCIES ═══ */}
+          {extrasRooms.length > 0 && (
+            <div className="glass-liquid rounded-[14px] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <span className="text-[9px] text-amber-600 dark:text-amber-400 uppercase tracking-wider font-semibold">{t("report.extras")}</span>
+                  <p className="text-[8px] text-muted mt-0.5">{t("report.extrasDesc")}</p>
+                </div>
+                <span className="text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums">+{report.totalExtras}</span>
+              </div>
+              <div className="space-y-1.5">
+                {extrasRooms.map((room) => (
+                  <div key={`extra-${room.roomNumber}-${room.name}`} className="flex items-center justify-between bg-amber-500/8 dark:bg-amber-500/10 rounded-[10px] px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold font-mono text-dark">{room.roomNumber}</span>
+                      <span className="text-xs text-dark truncate max-w-[160px]">{room.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted tabular-nums">{room.totalGuests} {t("report.expected").toLowerCase()}</span>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 tabular-nums">→ {room.entered}</span>
+                      <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">+{room.extras}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ═══ CLIENT TABLE ═══ */}
           <div>
             {/* Filter tabs */}
             <div className="flex items-center gap-1.5 mb-2 overflow-x-auto">
               {([
                 { key: "all", label: t("report.all"), count: report.rooms.length },
-                { key: "allIn", label: t("report.allIn"), count: allIn.length, color: "green" },
-                { key: "partial", label: t("report.partial"), count: partial.length, color: "brand" },
-                { key: "noshow", label: t("report.noShows"), count: noShow.length, color: "red" },
-                { key: "comp", label: "COMP", count: report.totalComp, color: "green" },
+                { key: "allIn", label: t("report.allIn"), count: allIn.length },
+                { key: "partial", label: t("report.partial"), count: partial.length },
+                { key: "noshow", label: t("report.noShows"), count: noShow.length },
+                { key: "comp", label: "COMP", count: report.totalComp },
+                ...(extrasRooms.length > 0 ? [{ key: "extras" as const, label: "Extras", count: extrasRooms.length }] : []),
               ] as const).map((tab) => (
                 <button
                   key={tab.key}

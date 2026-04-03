@@ -183,6 +183,8 @@ const translations = {
   "report.time": { fr: "Heure", en: "Time" },
   "report.all": { fr: "Tous", en: "All" },
   "report.avgTime": { fr: "Heure moy.", en: "Avg time" },
+  "report.extras": { fr: "Extras (écarts réception)", en: "Extras (reception discrepancies)" },
+  "report.extrasDesc": { fr: "Plus de personnes que prévu", en: "More people than expected" },
 
   // Scanner
   "scanner.holdStill": { fr: "Ne bougez pas...", en: "Hold still..." },

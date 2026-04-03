@@ -31,7 +31,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
 
     // Auto-close any sessions from previous days that were never closed
-    autoCloseStale();
+    try { autoCloseStale(); } catch (e) { console.error("autoCloseStale failed:", e); }
   }, []);
 
   useEffect(() => {
