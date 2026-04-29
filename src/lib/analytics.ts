@@ -33,35 +33,46 @@ export function getDailySnapshot(
 
 // --- Rush Hour Analysis ---
 
-export function getRushHourSlots(data: DailyData): RushHourSlot[] {
-  // Create 30-min slots from 06:00 to 10:30
+export type BucketMinutes = 5 | 10 | 30 | 60;
+const ALLOWED_BUCKETS: BucketMinutes[] = [5, 10, 30, 60];
+
+const SERVICE_START_HOUR = 6;
+const SERVICE_END_HOUR = 11; // exclusive upper bound (last slot starts before 12:00)
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+export function getRushHourSlots(
+  data: DailyData,
+  bucketMinutes: BucketMinutes = 30
+): RushHourSlot[] {
+  const bucket: BucketMinutes = ALLOWED_BUCKETS.includes(bucketMinutes)
+    ? bucketMinutes
+    : 30;
+
   const slots: { [key: string]: number } = {};
   const slotLabels: string[] = [];
 
-  for (let h = 6; h <= 11; h++) {
-    for (const m of ["00", "30"]) {
-      const key = `${String(h).padStart(2, "0")}:${m}`;
+  for (let h = SERVICE_START_HOUR; h <= SERVICE_END_HOUR; h++) {
+    for (let m = 0; m < 60; m += bucket) {
+      const key = `${pad(h)}:${pad(m)}`;
       slots[key] = 0;
       slotLabels.push(key);
     }
   }
 
-  // Count check-ins per slot
   for (const checkIn of data.checkIns) {
     const d = new Date(checkIn.timestamp);
     const hour = d.getHours();
     const min = d.getMinutes();
-
-    // Round down to nearest 30-min slot
-    const slotMin = min < 30 ? "00" : "30";
-    const key = `${String(hour).padStart(2, "0")}:${slotMin}`;
-
+    const bucketStart = Math.floor(min / bucket) * bucket;
+    const key = `${pad(hour)}:${pad(bucketStart)}`;
     if (key in slots) {
       slots[key] += checkIn.peopleEntered;
     }
   }
 
-  // Find peak
   let maxCount = 0;
   for (const key of slotLabels) {
     if (slots[key] > maxCount) maxCount = slots[key];

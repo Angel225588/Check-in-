@@ -4,10 +4,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getTodayData, closeDay, getSessionHistory, getDataForDate } from "@/lib/storage";
 import { generateDayReport, exportReportCSV, DayReport, RoomReport } from "@/lib/report";
 import { formatTime } from "@/lib/utils";
-import { getRushHourSlots } from "@/lib/analytics";
 import { useApp } from "@/contexts/AppContext";
 import type { TranslationKey } from "@/lib/i18n";
 import type { DailyData } from "@/lib/types";
+import RushHourChart from "@/components/RushHourChart";
 
 type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp" | "extras";
 
@@ -126,11 +126,6 @@ function ReportPage() {
     router.push("/upload");
   };
 
-  // Rush hour data
-  const rushSlots = useMemo(() => (dailyData ? getRushHourSlots(dailyData) : []), [dailyData]);
-  const maxRush = useMemo(() => Math.max(...rushSlots.map((s) => s.count), 1), [rushSlots]);
-  const peakSlot = useMemo(() => rushSlots.find((s) => s.isPeak && s.count > 0), [rushSlots]);
-
   // Compute check-in time per room for the table
   const checkInTimeMap = useMemo(() => {
     if (!report) return new Map<string, string>();
@@ -142,18 +137,7 @@ function ReportPage() {
     return map;
   }, [report]);
 
-  // Average check-in time
-  const avgCheckInTime = useMemo(() => {
-    if (!report || report.checkIns.length === 0) return null;
-    const totalMinutes = report.checkIns.reduce((sum, ci) => {
-      const d = new Date(ci.timestamp);
-      return sum + d.getHours() * 60 + d.getMinutes();
-    }, 0);
-    const avg = totalMinutes / report.checkIns.length;
-    const h = Math.floor(avg / 60);
-    const m = Math.round(avg % 60);
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  }, [report]);
+  // Average check-in time removed — peak is shown in the rush chart instead.
 
   // Filtered + searched rooms
   const filteredRooms = useMemo(() => {
@@ -281,12 +265,6 @@ function ReportPage() {
                   <div className="text-2xl font-black text-dark tabular-nums">{allIn.length + partial.length}<span className="text-sm font-medium text-muted">/{report.totalRooms}</span></div>
                   <div className="text-[9px] text-muted uppercase tracking-wide">{t("report.rooms")}</div>
                 </div>
-                {avgCheckInTime && (
-                  <div>
-                    <div className="text-lg font-black text-dark tabular-nums">{avgCheckInTime}</div>
-                    <div className="text-[9px] text-muted uppercase tracking-wide">{t("report.avgTime")}</div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -350,37 +328,8 @@ function ReportPage() {
             </div>
           </div>
 
-          {/* ═══ RUSH HOUR CHART ═══ */}
-          {rushSlots.length > 0 && rushSlots.some(s => s.count > 0) && (
-            <div className="glass-liquid rounded-[14px] p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[9px] text-muted uppercase tracking-wider font-semibold">{t("report.rushHour")}</span>
-                {peakSlot && (
-                  <span className="text-[9px] font-bold text-brand px-2 py-0.5 glass-brand rounded-full">
-                    {t("report.peakTime")}: {peakSlot.label}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-end gap-[3px] h-20">
-                {rushSlots.map((slot) => (
-                  <div key={slot.time} className="flex-1 flex flex-col items-center gap-1">
-                    <span className={`text-[8px] font-bold tabular-nums ${slot.isPeak ? "text-brand" : "text-muted"}`}>
-                      {slot.count > 0 ? slot.count : ""}
-                    </span>
-                    <div className="w-full relative" style={{ height: "48px" }}>
-                      <div
-                        className={`absolute bottom-0 w-full rounded-t-[3px] transition-all duration-700 ${slot.isPeak ? "bg-brand" : "bg-brand/30 dark:bg-brand/40"}`}
-                        style={{ height: `${maxRush > 0 ? (slot.count / maxRush) * 100 : 0}%`, minHeight: slot.count > 0 ? "3px" : "0" }}
-                      />
-                    </div>
-                    <span className={`text-[7px] tabular-nums ${slot.isPeak ? "text-brand font-bold" : "text-muted"}`}>
-                      {slot.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* ═══ RUSH HOUR CHART (zoomable 5/10/30/60 min) ═══ */}
+          {dailyData && <RushHourChart data={dailyData} />}
 
           {/* ═══ EXTRAS — RECEPTION DISCREPANCIES ═══ */}
           {extrasRooms.length > 0 && (

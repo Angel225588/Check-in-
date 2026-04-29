@@ -19,6 +19,52 @@
   --color-bg-alt: #F4F4F4;
   --radius-card: 14px;
   --radius-pill: 52px;
+
+  /* shadcn/ui tokens — Courtyard by Marriott brand mapping */
+  --color-background: #FBF8F3;
+  --color-foreground: #1C1C1C;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1C1C1C;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1C1C1C;
+  --color-primary: #A66914;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F5E6C8;
+  --color-secondary-foreground: #1C1C1C;
+  --color-muted-bg: #F4F4F4;
+  --color-muted-foreground: #707070;
+  --color-accent: #DD9C28;
+  --color-accent-foreground: #1C1C1C;
+  --color-destructive: #D0021B;
+  --color-destructive-foreground: #FFFFFF;
+  --color-input: #E8E4DA;
+  --color-ring: #A66914;
+  --radius: 14px;
+}
+
+:root {
+  --radius: 14px;
+}
+
+html.dark {
+  --color-background: #0A0A0F;
+  --color-foreground: #F0F0F5;
+  --color-card: #14141A;
+  --color-card-foreground: #F0F0F5;
+  --color-popover: #14141A;
+  --color-popover-foreground: #F0F0F5;
+  --color-primary: #DD9C28;
+  --color-primary-foreground: #1C1C1C;
+  --color-secondary: #2A2018;
+  --color-secondary-foreground: #F0F0F5;
+  --color-muted-bg: #1A1A22;
+  --color-muted-foreground: #A0A0AA;
+  --color-accent: #A66914;
+  --color-accent-foreground: #F0F0F5;
+  --color-destructive: #ED4956;
+  --color-destructive-foreground: #FFFFFF;
+  --color-input: #2A2A35;
+  --color-ring: #DD9C28;
 }
 
 @layer base {

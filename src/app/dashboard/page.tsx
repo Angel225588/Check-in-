@@ -5,6 +5,7 @@ import { DailyData } from "@/lib/types";
 import { getRemainingForRoom, isComp, formatTime, getRoomStatusCounts } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import AnimatedNumber from "@/components/AnimatedNumber";
+import RushHourChart from "@/components/RushHourChart";
 import {
   getHistoricalData,
   getDataForRange,
@@ -324,13 +325,21 @@ export default function DashboardPage() {
           );
           return null;
         })()}
-        {hasData && activeRushSlots.some((s) => s.count > 0) && !metricFilter && !clientSearch && (
+        {/* Today: zoomable chart (5/10/30/60). Period: legacy bar chart */}
+        {hasData && viewMode === "today" && todayData && rushSlots.some((s) => s.count > 0) && !metricFilter && !clientSearch && (
+          <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
+            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
+            <RushHourChart data={todayData} />
+          </section>
+        )}
+        {hasData && viewMode !== "today" && periodRushSlots.some((s) => s.count > 0) && !metricFilter && !clientSearch && (
           <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
             <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
             <div className="glass-liquid rounded-[16px] p-4">
               <div className="flex items-end gap-[3px] h-28">
-                {activeRushSlots.map((slot, i) => {
-                  const pct = activeMaxRush > 0 ? (slot.count / activeMaxRush) * 100 : 0;
+                {periodRushSlots.map((slot, i) => {
+                  const max = Math.max(...periodRushSlots.map((s) => s.count), 1);
+                  const pct = max > 0 ? (slot.count / max) * 100 : 0;
                   return (
                     <div key={slot.label} className="flex-1 flex flex-col items-center h-full justify-end">
                       {slot.count > 0 && (
@@ -346,9 +355,8 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
-              {/* Time labels */}
               <div className="flex mt-1.5">
-                {activeRushSlots.map((slot, i) => (
+                {periodRushSlots.map((slot, i) => (
                   <div key={slot.label} className="flex-1 text-center">
                     {i % 2 === 0 && (
                       <span className="text-[8px] text-muted tabular-nums">{slot.label.replace(":00", "h")}</span>

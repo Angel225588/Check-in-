@@ -1,4 +1,10 @@
 import { Client, CheckInRecord } from "./types";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
 
 export function getTotalGuests(clients: Client[]): number {
   return clients.reduce((sum, c) => sum + c.adults + c.children, 0);
