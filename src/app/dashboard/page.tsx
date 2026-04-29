@@ -6,6 +6,10 @@ import { getRemainingForRoom, isComp, formatTime, getRoomStatusCounts } from "@/
 import { useApp } from "@/contexts/AppContext";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import RushHourChart from "@/components/RushHourChart";
+import { generateDayReport } from "@/lib/report";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Users, Crown, Footprints, TrendingUp } from "lucide-react";
 import {
   getHistoricalData,
   getDataForRange,
@@ -82,6 +86,10 @@ export default function DashboardPage() {
   const handleMetricTap = (f: MetricFilter) => { setMetricFilter(metricFilter === f ? null : f); setShowAllClients(false); setClientSearch(""); };
 
   const snapshot = useMemo(() => (todayData ? getDailySnapshot(todayData, costPerCover) : null), [todayData, costPerCover]);
+  const todayReport = useMemo(
+    () => (todayData ? generateDayReport(todayData.clients, todayData.checkIns) : null),
+    [todayData]
+  );
   const rushSlots = useMemo(() => (todayData ? getRushHourSlots(todayData) : []), [todayData]);
   const trendData = useMemo(() => getTrendData(historicalData), [historicalData]);
   const periodStats = useMemo(() => getPeriodStats(historicalData, costPerCover), [historicalData, costPerCover]);
@@ -300,15 +308,102 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* COMP + cost — tiny inline */}
+            {/* Compliment + cost — tiny inline */}
             {compCount > 0 && (
               <div className="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-black/[0.04] dark:border-white/[0.06]">
-                <span className="text-[9px] bg-green-500/10 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">COMP</span>
+                <Badge variant="success" className="uppercase tracking-wide">{t("metrics.comp")}</Badge>
                 <span className="text-sm font-black text-dark tabular-nums">{compCount} {t("dash.guests")}</span>
                 <button onClick={() => setEditingCost(!editingCost)} className="text-sm font-black text-brand tabular-nums active:opacity-70">{compCost}€</button>
               </div>
             )}
           </div>
+        )}
+
+        {/* ═══ 1.5 SOURCE BREAKDOWN — Liste vs VIP-only vs Walk-in ═══ */}
+        {hasData && viewMode === "today" && todayReport && (todayReport.sourceBreakdown.vipListOnlyRooms > 0 || todayReport.sourceBreakdown.walkInRooms > 0) && (
+          <Card className="animate-sectionIn" style={{ animationDelay: "80ms" }}>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="size-4 text-brand" />
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                    {t("report.sourceBreakdownTitle")}
+                  </span>
+                </div>
+                <span className="text-[8px] text-muted/80">
+                  {t("report.sourceBreakdownDesc")}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-[10px] bg-black/[0.03] dark:bg-white/[0.04] p-2.5">
+                  <div className="flex items-center gap-1 text-[8px] text-muted uppercase font-semibold">
+                    <Users className="size-3" />
+                    {t("report.sourceList")}
+                  </div>
+                  <div className="text-xl font-black text-dark tabular-nums mt-0.5">
+                    {todayReport.sourceBreakdown.listEntered}
+                  </div>
+                  <div className="text-[8px] text-muted">
+                    {todayReport.sourceBreakdown.listRooms} {t("upload.rooms")}
+                  </div>
+                </div>
+                <div className="rounded-[10px] bg-brand/[0.06] p-2.5">
+                  <div className="flex items-center gap-1 text-[8px] text-brand uppercase font-semibold">
+                    <Crown className="size-3" />
+                    {t("report.sourceVipOnly")}
+                  </div>
+                  <div className="text-xl font-black text-brand tabular-nums mt-0.5">
+                    {todayReport.sourceBreakdown.vipListOnlyEntered}
+                  </div>
+                  <div className="text-[8px] text-brand/70">
+                    {todayReport.sourceBreakdown.vipListOnlyRooms} {t("upload.rooms")}
+                  </div>
+                </div>
+                <div className="rounded-[10px] bg-amber-500/[0.08] p-2.5">
+                  <div className="flex items-center gap-1 text-[8px] text-amber-700 dark:text-amber-400 uppercase font-semibold">
+                    <Footprints className="size-3" />
+                    {t("report.sourceWalkIn")}
+                  </div>
+                  <div className="text-xl font-black text-amber-700 dark:text-amber-400 tabular-nums mt-0.5">
+                    {todayReport.sourceBreakdown.walkInEntered}
+                  </div>
+                  <div className="text-[8px] text-amber-700/70 dark:text-amber-400/70">
+                    {todayReport.sourceBreakdown.walkInRooms} {t("upload.rooms")}
+                  </div>
+                </div>
+              </div>
+
+              {(todayReport.sourceBreakdown.byPayment.points + todayReport.sourceBreakdown.byPayment.paid_onsite + todayReport.sourceBreakdown.byPayment.room_charge + todayReport.sourceBreakdown.byPayment.compliment + todayReport.sourceBreakdown.byPayment.pass) > 0 && (
+                <div className="pt-2 border-t border-black/5 dark:border-white/8">
+                  <div className="text-[8px] text-muted uppercase font-semibold mb-1.5">
+                    {t("report.paymentMixOffList")}
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5 text-center">
+                    <div>
+                      <div className="text-sm font-black text-blue-600 dark:text-blue-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.points}</div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPoints")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.paid_onsite}</div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPaid")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-purple-600 dark:text-purple-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.room_charge}</div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusRoom")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-green-600 dark:text-green-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.compliment}</div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusCompliment")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-muted tabular-nums">{todayReport.sourceBreakdown.byPayment.pass}</div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPass")}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* ═══ 2. ARRIVAL TIME — Vertical bar chart 6:00–11:00 ═══ */}
