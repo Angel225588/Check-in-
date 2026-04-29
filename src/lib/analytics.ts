@@ -36,8 +36,10 @@ export function getDailySnapshot(
 export type BucketMinutes = 5 | 10 | 30 | 60;
 const ALLOWED_BUCKETS: BucketMinutes[] = [5, 10, 30, 60];
 
-const SERVICE_START_HOUR = 6;
-const SERVICE_END_HOUR = 11; // exclusive upper bound (last slot starts before 12:00)
+// Default breakfast service window. The chart auto-expands beyond this
+// when check-ins fall outside (e.g. afternoon testing, late service).
+const DEFAULT_START_HOUR = 6;
+const DEFAULT_END_HOUR = 11;
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -51,10 +53,20 @@ export function getRushHourSlots(
     ? bucketMinutes
     : 30;
 
+  // Determine effective window — default range, expanded by any check-ins
+  // that fall outside it.
+  let startHour = DEFAULT_START_HOUR;
+  let endHour = DEFAULT_END_HOUR;
+  for (const ci of data.checkIns) {
+    const h = new Date(ci.timestamp).getHours();
+    if (h < startHour) startHour = h;
+    if (h > endHour) endHour = h;
+  }
+
   const slots: { [key: string]: number } = {};
   const slotLabels: string[] = [];
 
-  for (let h = SERVICE_START_HOUR; h <= SERVICE_END_HOUR; h++) {
+  for (let h = startHour; h <= endHour; h++) {
     for (let m = 0; m < 60; m += bucket) {
       const key = `${pad(h)}:${pad(m)}`;
       slots[key] = 0;
