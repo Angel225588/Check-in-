@@ -555,9 +555,14 @@ export default function UploadPage() {
   };
 
   const handleConfirm = () => {
-    const result = saveClientsMerged(parsedClients, ocrRawText);
+    // Tag any client without an explicit vipSource as 'breakfast_list'.
+    // VIP-list-only clients are already tagged inside mergeVipIntoClients.
+    const tagged = parsedClients.map((c) =>
+      c.vipSource ? c : { ...c, vipSource: "breakfast_list" as const }
+    );
+    const result = saveClientsMerged(tagged, ocrRawText);
     // Record guest profiles for returning-guest tracking
-    recordSessionGuests(parsedClients);
+    recordSessionGuests(tagged);
     if (result.duplicatesSkipped > 0 || result.existing > 0) {
       setMergeBanner(result);
       router.push(`/search?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`);

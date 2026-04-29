@@ -15,6 +15,7 @@ export interface Client {
   isVip?: boolean;
   vipLevel?: string;
   vipNotes?: string;
+  vipSource?: "breakfast_list" | "list_only" | "walk_in";
 }
 
 export interface VipEntry {

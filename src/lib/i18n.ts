@@ -328,6 +328,31 @@ const translations = {
   "dash.download": { fr: "Télécharger", en: "Download" },
   "dash.quickNav": { fr: "Accès Rapide", en: "Quick Access" },
   "dash.noRushData": { fr: "Les arrivées apparaîtront ici au fil des check-ins", en: "Arrivals will appear here as guests check in" },
+
+  // Reception report
+  "reception.title": { fr: "Rapport Réception", en: "Reception Report" },
+  "reception.subtitle": { fr: "VIPs hors liste petit-déjeuner", en: "VIPs not on breakfast list" },
+  "reception.viewLink": { fr: "Vue Réception", en: "Reception View" },
+  "reception.legacyBanner": { fr: "Données chargées avant la mise à jour. La liste affiche tous les VIPs ; précision améliorée au prochain upload.", en: "Data loaded before this update. Showing all VIPs; precision improves at next upload." },
+  "reception.empty": { fr: "Aucun VIP hors liste pour aujourd'hui.", en: "No off-list VIPs for today." },
+  "reception.filterAll": { fr: "Tous", en: "All" },
+  "reception.filterNotYet": { fr: "Pas encore", en: "Not yet" },
+  "reception.filterCame": { fr: "Venus", en: "Came" },
+  "reception.statusNotYet": { fr: "Pas encore", en: "Not yet" },
+  "reception.statusPoints": { fr: "Points", en: "Points" },
+  "reception.statusPaid": { fr: "Payé", en: "Paid" },
+  "reception.statusRoom": { fr: "Sur chambre", en: "Room charge" },
+  "reception.statusPass": { fr: "Pass", en: "Pass" },
+  "reception.statusCompliment": { fr: "Compliment", en: "Compliment" },
+  "reception.statusCame": { fr: "Venu", en: "Came" },
+  "reception.colRoom": { fr: "Ch.", en: "Room" },
+  "reception.colName": { fr: "Nom", en: "Name" },
+  "reception.colLevel": { fr: "Niveau", en: "Level" },
+  "reception.colTime": { fr: "Heure", en: "Time" },
+  "reception.colMode": { fr: "Mode", en: "Mode" },
+  "reception.print": { fr: "Imprimer", en: "Print" },
+  "reception.sourceListOnly": { fr: "Liste VIP", en: "VIP list" },
+  "reception.sourceWalkIn": { fr: "Walk-in", en: "Walk-in" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

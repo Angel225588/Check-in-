@@ -69,6 +69,7 @@ export function mergeVipIntoClients(
         isVip: true,
         vipLevel: vip.vipLevel,
         vipNotes: vip.vipNotes,
+        vipSource: "list_only",
       });
     }
   }

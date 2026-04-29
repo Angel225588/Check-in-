@@ -112,7 +112,11 @@ export function saveRawUploadText(rawText: string): void {
 export function addClient(client: Client): void {
   const data = getTodayData();
   if (!data) return;
-  data.clients.push(client);
+  // Live additions from /search default to walk-in source unless caller specified one.
+  const tagged: Client = client.vipSource
+    ? client
+    : { ...client, vipSource: "walk_in" };
+  data.clients.push(tagged);
   saveTodayData(data);
 }
 

@@ -223,6 +223,19 @@ function ReportPage() {
                 </svg>
                 <span className="text-sm font-medium text-brand">{isHistorical ? t("reports.title") : t("report.back")}</span>
               </button>
+              <button
+                onClick={() => {
+                  const dateParam = searchParams.get("date");
+                  const url = dateParam ? `/report/reception?date=${dateParam}` : "/report/reception";
+                  router.push(url);
+                }}
+                className="no-print flex items-center gap-1.5 px-3 py-1.5 glass-brand rounded-full active:scale-[0.96] transition-all"
+              >
+                <span className="text-sm font-bold text-brand">{t("reception.viewLink")}</span>
+                <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
               <div className="flex flex-col items-end">
                 <span className="text-sm font-bold tracking-[0.08em] text-brand leading-tight" style={{ fontFamily: "'Nunito', sans-serif" }}>
                   COURTYARD
