@@ -3,7 +3,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { Client, CheckInRecord } from "@/lib/types";
-import { getTodayData, addCheckIn, updateClient, getSettings } from "@/lib/storage";
+import { getTodayData, addCheckIn, updateClient, getSettings, addClient } from "@/lib/storage";
 import { getRemainingForRoom, isComp } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
@@ -401,13 +401,79 @@ export default function CheckInPage({
           }}
         />
 
-        {/* Add Guest button */}
-        <div className="shrink-0 mb-3">
+        {/* Quick add — anonymous walk-ins (no name required) */}
+        <div className="shrink-0 mb-3 grid grid-cols-3 gap-2">
+          <button
+            onClick={() => {
+              const ts = Date.now();
+              const newClient: Client = {
+                roomNumber: client.roomNumber,
+                roomType: "",
+                rtc: "",
+                confirmationNumber: "",
+                name: `${t("checkin.walkInAdult")} ${ts.toString().slice(-4)}`,
+                arrivalDate: "",
+                departureDate: "",
+                reservationStatus: "",
+                adults: 1,
+                children: 0,
+                rateCode: "",
+                packageCode: "",
+                vipSource: "walk_in",
+              };
+              addClient(newClient);
+              const data = getTodayData();
+              if (data) {
+                const newIndex = data.clients.length - 1;
+                router.push(`/checkin/${client.roomNumber}?ci=${newIndex}`);
+              }
+            }}
+            className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.96] transition-all"
+            aria-label="Ajouter un adulte rapide"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            {t("checkin.quickAdult")}
+          </button>
+          <button
+            onClick={() => {
+              const ts = Date.now();
+              const newClient: Client = {
+                roomNumber: client.roomNumber,
+                roomType: "",
+                rtc: "",
+                confirmationNumber: "",
+                name: `${t("checkin.walkInChild")} ${ts.toString().slice(-4)}`,
+                arrivalDate: "",
+                departureDate: "",
+                reservationStatus: "",
+                adults: 0,
+                children: 1,
+                rateCode: "",
+                packageCode: "",
+                vipSource: "walk_in",
+              };
+              addClient(newClient);
+              const data = getTodayData();
+              if (data) {
+                const newIndex = data.clients.length - 1;
+                router.push(`/checkin/${client.roomNumber}?ci=${newIndex}`);
+              }
+            }}
+            className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.96] transition-all"
+            aria-label="Ajouter un enfant rapide"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            {t("checkin.quickChild")}
+          </button>
           <button
             onClick={() => setQuickAddOpen(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-sm active:scale-[0.97] transition-all"
+            className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.97] transition-all"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
             {t("checkin.addClient")}

@@ -311,6 +311,10 @@ const translations = {
 
   // Add Guest button
   "checkin.addGuest": { fr: "Ajouter un Invité", en: "Add Guest" },
+  "checkin.quickAdult": { fr: "+1 Adulte", en: "+1 Adult" },
+  "checkin.quickChild": { fr: "+1 Enfant", en: "+1 Child" },
+  "checkin.walkInAdult": { fr: "Walk-in adulte", en: "Walk-in adult" },
+  "checkin.walkInChild": { fr: "Walk-in enfant", en: "Walk-in child" },
 
   // Client directory
   "clients.title": { fr: "Répertoire Clients", en: "Client Directory" },
