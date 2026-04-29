@@ -15,6 +15,28 @@ export interface RoomReport {
   hasBreakfast: boolean; // has any breakfast package (BKF INC, BKF COMP, BKF GRP, etc.)
   packageCode: string;
   status: "all-in" | "partial" | "no-show";
+  vipSource?: "breakfast_list" | "list_only" | "walk_in";
+  paymentAction?: string; // last paymentAction used at check-in
+}
+
+export interface SourceBreakdown {
+  // Breakfast list = clients on the daily PDJ list
+  listRooms: number;
+  listEntered: number;
+  // VIP list only = VIPs not on PDJ list (took breakfast as walk-in)
+  vipListOnlyRooms: number;
+  vipListOnlyEntered: number;
+  // Walk-in = added live (not on either list)
+  walkInRooms: number;
+  walkInEntered: number;
+  // Payment mode totals across walk-ins + list-only VIPs
+  byPayment: {
+    points: number;
+    paid_onsite: number;
+    room_charge: number;
+    pass: number;
+    compliment: number;
+  };
 }
 
 export interface DayReport {
@@ -29,11 +51,75 @@ export interface DayReport {
   totalCompPersons: number; // total COMP persons
   rooms: RoomReport[];
   checkIns: CheckInRecord[];
+  sourceBreakdown: SourceBreakdown;
 }
 
 function hasBreakfastPackage(client: Client): boolean {
   const pkg = client.packageCode.toUpperCase();
   return /BKF\s*(COMP|INC|GRP|EXCL|GTT)|UPSFPDJ/.test(pkg);
+}
+
+function findCheckInPayment(
+  client: Client,
+  checkIns: CheckInRecord[]
+): string | undefined {
+  const normName = client.name.trim().toLowerCase().replace(/\s+/g, " ");
+  const ci = checkIns.find(
+    (c) =>
+      c.roomNumber === client.roomNumber &&
+      c.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
+  );
+  return ci?.paymentAction;
+}
+
+function buildSourceBreakdown(
+  clients: Client[],
+  rooms: RoomReport[]
+): SourceBreakdown {
+  const breakdown: SourceBreakdown = {
+    listRooms: 0,
+    listEntered: 0,
+    vipListOnlyRooms: 0,
+    vipListOnlyEntered: 0,
+    walkInRooms: 0,
+    walkInEntered: 0,
+    byPayment: {
+      points: 0,
+      paid_onsite: 0,
+      room_charge: 0,
+      pass: 0,
+      compliment: 0,
+    },
+  };
+
+  for (let i = 0; i < clients.length; i++) {
+    const client = clients[i];
+    const room = rooms[i];
+    const source = client.vipSource ?? "breakfast_list";
+
+    if (source === "breakfast_list") {
+      breakdown.listRooms++;
+      breakdown.listEntered += room.entered;
+    } else if (source === "list_only") {
+      breakdown.vipListOnlyRooms++;
+      breakdown.vipListOnlyEntered += room.entered;
+    } else if (source === "walk_in") {
+      breakdown.walkInRooms++;
+      breakdown.walkInEntered += room.entered;
+    }
+
+    // Payment breakdown — only count off-list (list_only + walk_in) since
+    // they're the ones whose payment mode reception cares about
+    if (source !== "breakfast_list" && room.entered > 0) {
+      if (room.isComp) breakdown.byPayment.compliment += room.entered;
+      else if (room.paymentAction === "points") breakdown.byPayment.points += room.entered;
+      else if (room.paymentAction === "pay_onsite") breakdown.byPayment.paid_onsite += room.entered;
+      else if (room.paymentAction === "room_charge") breakdown.byPayment.room_charge += room.entered;
+      else if (room.paymentAction === "pass") breakdown.byPayment.pass += room.entered;
+    }
+  }
+
+  return breakdown;
 }
 
 export function generateDayReport(
@@ -64,6 +150,8 @@ export function generateDayReport(
       hasBreakfast: hasBreakfastPackage(client),
       packageCode: client.packageCode,
       status,
+      vipSource: client.vipSource,
+      paymentAction: findCheckInPayment(client, checkIns),
     };
   });
 
@@ -71,9 +159,7 @@ export function generateDayReport(
   const totalEntered = rooms.reduce((s, r) => s + r.entered, 0);
   const totalExtras = rooms.reduce((s, r) => s + r.extras, 0);
 
-  // Count COMP by unique room numbers (not by client entries)
   const compRooms = new Set(rooms.filter((r) => r.isComp).map((r) => r.roomNumber));
-  // Children don't count for breakfast COMP
   const compPersons = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.adults, 0);
 
   return {
@@ -90,6 +176,7 @@ export function generateDayReport(
     checkIns: [...checkIns].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     ),
+    sourceBreakdown: buildSourceBreakdown(clients, rooms),
   };
 }
 

@@ -2,6 +2,13 @@
 import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  ChevronLeft,
+  AlertTriangle,
+  Crown,
+  Clock,
+  Printer,
+} from "lucide-react";
+import {
   getTodayData,
   getSessionHistory,
   getDataForDate,
@@ -12,9 +19,13 @@ import {
   ReceptionStatus,
   ReceptionWatchlistEntry,
 } from "@/lib/reception-report";
-import { formatTime } from "@/lib/utils";
+import { formatTime, cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import type { TranslationKey } from "@/lib/i18n";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Filter = "all" | "not_yet" | "came";
 
@@ -37,17 +48,16 @@ function statusKey(s: ReceptionStatus): TranslationKey {
   }
 }
 
-function statusStyles(s: ReceptionStatus): string {
-  if (s === "not_yet") return "bg-error/10 text-error";
-  if (s === "came_compliment")
-    return "bg-green-500/15 text-green-700 dark:text-green-400";
-  if (s === "came_points") return "bg-blue-500/12 text-blue-700 dark:text-blue-400";
-  if (s === "came_paid_onsite")
-    return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
-  if (s === "came_room_charge")
-    return "bg-purple-500/12 text-purple-700 dark:text-purple-400";
-  if (s === "came_pass") return "glass-liquid text-muted";
-  return "glass-brand text-brand";
+function statusVariant(
+  s: ReceptionStatus
+): "default" | "success" | "warning" | "error" | "info" | "purple" | "muted" | "vip" {
+  if (s === "not_yet") return "error";
+  if (s === "came_compliment") return "success";
+  if (s === "came_points") return "info";
+  if (s === "came_paid_onsite") return "warning";
+  if (s === "came_room_charge") return "purple";
+  if (s === "came_pass") return "muted";
+  return "default";
 }
 
 export default function ReceptionReportWrapper() {
@@ -104,8 +114,7 @@ function ReceptionReportPage() {
   }, [searchParams]);
 
   const counts = useMemo(() => countByStatus(entries), [entries]);
-  const cameTotal =
-    entries.length - counts.not_yet;
+  const cameTotal = entries.length - counts.not_yet;
   const isLegacy = entries.length > 0 && entries[0].isLegacyData;
 
   const filtered = useMemo(() => {
@@ -113,7 +122,6 @@ function ReceptionReportPage() {
     if (filter === "not_yet") list = list.filter((e) => e.status === "not_yet");
     else if (filter === "came")
       list = list.filter((e) => e.status !== "not_yet");
-    // sort: not_yet first, then by check-in time
     return [...list].sort((a, b) => {
       if (a.status === "not_yet" && b.status !== "not_yet") return -1;
       if (b.status === "not_yet" && a.status !== "not_yet") return 1;
@@ -160,27 +168,15 @@ function ReceptionReportPage() {
         <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#0A0A0F]/90 backdrop-blur-xl">
           <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
-              <button
+              <Button
+                variant="glass"
+                size="sm"
                 onClick={() => router.push("/report")}
-                className="no-print flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
+                className="no-print"
               >
-                <svg
-                  className="w-4 h-4 text-brand"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                <span className="text-sm font-medium text-brand">
-                  {t("report.back")}
-                </span>
-              </button>
+                <ChevronLeft className="size-4 text-brand" />
+                <span className="text-brand">{t("report.back")}</span>
+              </Button>
               <div className="flex flex-col items-end">
                 <span
                   className="text-sm font-bold tracking-[0.08em] text-brand leading-tight"
@@ -213,115 +209,135 @@ function ReceptionReportPage() {
 
           {/* Legacy banner */}
           {isLegacy && (
-            <div className="glass-liquid rounded-[14px] p-3 border border-amber-500/20 bg-amber-500/5">
-              <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
-                {t("reception.legacyBanner")}
-              </p>
-            </div>
+            <Card className="border-amber-500/30 bg-amber-500/5 py-3">
+              <CardContent className="flex items-start gap-2">
+                <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                  {t("reception.legacyBanner")}
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {/* KPI strip */}
           {entries.length > 0 && (
-            <div className="glass-liquid rounded-[14px] p-4">
-              <div className="grid grid-cols-4 gap-2 text-center">
-                <div>
-                  <div className="text-2xl font-black text-dark tabular-nums">
-                    {entries.length}
+            <Card>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <div className="text-2xl font-black text-dark tabular-nums">
+                      {entries.length}
+                    </div>
+                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                      Total
+                    </div>
                   </div>
-                  <div className="text-[8px] text-muted uppercase tracking-wide">
-                    Total
+                  <div>
+                    <div className="text-2xl font-black text-error tabular-nums">
+                      {counts.not_yet}
+                    </div>
+                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                      {t("reception.statusNotYet")}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-black text-green-600 dark:text-green-400 tabular-nums">
+                      {cameTotal}
+                    </div>
+                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                      {t("reception.statusCame")}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-black text-brand tabular-nums">
+                      {counts.came_points +
+                        counts.came_paid_onsite +
+                        counts.came_room_charge}
+                    </div>
+                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                      Pts/Pay/Ch
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-2xl font-black text-error tabular-nums">
-                    {counts.not_yet}
-                  </div>
-                  <div className="text-[8px] text-muted uppercase tracking-wide">
-                    {t("reception.statusNotYet")}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-green-600 dark:text-green-400 tabular-nums">
-                    {cameTotal}
-                  </div>
-                  <div className="text-[8px] text-muted uppercase tracking-wide">
-                    {t("reception.statusCame")}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-brand tabular-nums">
-                    {counts.came_points + counts.came_paid_onsite + counts.came_room_charge}
-                  </div>
-                  <div className="text-[8px] text-muted uppercase tracking-wide">
-                    Pts/Pay/Ch
-                  </div>
-                </div>
-              </div>
 
-              <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8 grid grid-cols-3 gap-2 text-[10px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">{t("reception.statusPoints")}</span>
-                  <span className="font-bold text-blue-700 dark:text-blue-400 tabular-nums">{counts.came_points}</span>
+                <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8 grid grid-cols-3 gap-2 text-[10px]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted">
+                      {t("reception.statusPoints")}
+                    </span>
+                    <Badge variant="info" className="tabular-nums">
+                      {counts.came_points}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted">
+                      {t("reception.statusPaid")}
+                    </span>
+                    <Badge variant="warning" className="tabular-nums">
+                      {counts.came_paid_onsite}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted">
+                      {t("reception.statusCompliment")}
+                    </span>
+                    <Badge variant="success" className="tabular-nums">
+                      {counts.came_compliment}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">{t("reception.statusPaid")}</span>
-                  <span className="font-bold text-amber-700 dark:text-amber-400 tabular-nums">{counts.came_paid_onsite}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">{t("reception.statusCompliment")}</span>
-                  <span className="font-bold text-green-700 dark:text-green-400 tabular-nums">{counts.came_compliment}</span>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Filter pills */}
+          {/* Filter tabs (shadcn) */}
           {entries.length > 0 && (
-            <div className="no-print flex items-center gap-1.5 overflow-x-auto">
-              {(
-                [
-                  { key: "all", label: t("reception.filterAll"), count: entries.length },
-                  { key: "not_yet", label: t("reception.filterNotYet"), count: counts.not_yet },
-                  { key: "came", label: t("reception.filterCame"), count: cameTotal },
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setFilter(tab.key)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.96] ${
-                    filter === tab.key
-                      ? "bg-dark text-white dark:bg-white dark:text-black"
-                      : "glass-liquid text-muted"
-                  }`}
-                >
-                  {tab.label}{" "}
-                  <span className="opacity-60">{tab.count}</span>
-                </button>
-              ))}
-            </div>
+            <Tabs
+              value={filter}
+              onValueChange={(v) => setFilter(v as Filter)}
+              className="no-print"
+            >
+              <TabsList>
+                <TabsTrigger value="all">
+                  {t("reception.filterAll")}{" "}
+                  <span className="opacity-60 ml-1">{entries.length}</span>
+                </TabsTrigger>
+                <TabsTrigger value="not_yet">
+                  {t("reception.filterNotYet")}{" "}
+                  <span className="opacity-60 ml-1">{counts.not_yet}</span>
+                </TabsTrigger>
+                <TabsTrigger value="came">
+                  {t("reception.filterCame")}{" "}
+                  <span className="opacity-60 ml-1">{cameTotal}</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           )}
 
           {/* Table */}
           {entries.length === 0 ? (
-            <div className="glass-liquid rounded-[14px] p-8 text-center">
-              <p className="text-sm text-muted">{t("reception.empty")}</p>
-            </div>
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-sm text-muted">{t("reception.empty")}</p>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="glass-liquid rounded-[14px] overflow-hidden">
-              <div className="grid grid-cols-[46px_1fr_60px_56px_84px] px-3 py-2 border-b border-black/5 dark:border-white/8">
-                <span className="text-[7px] text-muted uppercase font-semibold">
+            <Card className="py-0 overflow-hidden">
+              {/* Table header */}
+              <div className="grid grid-cols-[44px_1fr_64px_56px_88px] px-4 py-2.5 bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/8">
+                <span className="text-[7px] text-muted uppercase font-bold tracking-wider">
                   {t("reception.colRoom")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-semibold">
+                <span className="text-[7px] text-muted uppercase font-bold tracking-wider">
                   {t("reception.colName")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-semibold text-center">
+                <span className="text-[7px] text-muted uppercase font-bold tracking-wider text-center">
                   {t("reception.colLevel")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-semibold text-center">
+                <span className="text-[7px] text-muted uppercase font-bold tracking-wider text-center">
                   {t("reception.colTime")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-semibold text-right">
+                <span className="text-[7px] text-muted uppercase font-bold tracking-wider text-right">
                   {t("reception.colMode")}
                 </span>
               </div>
@@ -329,27 +345,23 @@ function ReceptionReportPage() {
               {filtered.map((e, i) => (
                 <div
                   key={`${e.roomNumber}-${e.name}-${i}`}
-                  className={`grid grid-cols-[46px_1fr_60px_56px_84px] px-3 py-2.5 items-center border-b border-black/3 dark:border-white/5 last:border-0 ${
-                    e.status === "not_yet"
-                      ? "bg-error/[0.04]"
-                      : e.status === "came_compliment"
-                      ? "bg-green-500/[0.05]"
-                      : ""
-                  }`}
+                  className={cn(
+                    "grid grid-cols-[44px_1fr_64px_56px_88px] px-4 py-3 items-center border-b border-black/[0.03] dark:border-white/5 last:border-0 transition-colors",
+                    e.status === "not_yet" && "bg-error/[0.04]",
+                    e.status === "came_compliment" && "bg-green-500/[0.05]"
+                  )}
                 >
                   {/* Room */}
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-xs font-bold font-mono text-dark">
-                      {e.roomNumber}
-                    </span>
-                  </div>
+                  <span className="text-xs font-bold font-mono text-dark">
+                    {e.roomNumber}
+                  </span>
 
-                  {/* Name + source tag */}
+                  {/* Name + source */}
                   <div className="min-w-0 pr-1">
-                    <span className="text-[11px] text-dark truncate block">
+                    <span className="text-[12px] text-dark truncate block font-medium">
                       {e.name}
                     </span>
-                    <span className="text-[8px] text-muted/80">
+                    <span className="text-[8px] text-muted/80 uppercase tracking-wide">
                       {e.vipSource === "walk_in"
                         ? t("reception.sourceWalkIn")
                         : t("reception.sourceListOnly")}
@@ -358,43 +370,48 @@ function ReceptionReportPage() {
 
                   {/* VIP level */}
                   <div className="text-center">
-                    <span className="text-[9px] bg-gradient-to-r from-brand to-brand-light text-white px-1.5 py-0.5 rounded-full font-black leading-none">
-                      {e.vipLevel || "VIP"}
-                    </span>
+                    <Badge variant="vip" className="gap-0.5 px-1.5 py-1">
+                      <Crown className="size-2.5" />
+                      <span className="text-[9px]">{e.vipLevel || "VIP"}</span>
+                    </Badge>
                   </div>
 
                   {/* Time */}
                   <div className="text-center">
-                    <span className="text-[9px] font-mono text-muted">
-                      {e.checkInTimestamp ? formatTime(e.checkInTimestamp) : "—"}
-                    </span>
+                    {e.checkInTimestamp ? (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-muted">
+                        <Clock className="size-2.5" />
+                        {formatTime(e.checkInTimestamp)}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-muted/40">—</span>
+                    )}
                   </div>
 
-                  {/* Status badge */}
+                  {/* Status */}
                   <div className="text-right">
-                    <span
-                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${statusStyles(
-                        e.status
-                      )}`}
-                    >
+                    <Badge variant={statusVariant(e.status)}>
                       {t(statusKey(e.status))}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               ))}
-            </div>
+            </Card>
           )}
         </div>
 
         {/* FAB */}
         <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FBF8F3] dark:from-[#0A0A0F] via-[#FBF8F3] dark:via-[#0A0A0F] to-transparent pt-6">
           <div className="max-w-2xl mx-auto px-4 pb-4">
-            <button
+            <Button
+              variant="glass"
+              size="xl"
               onClick={() => window.print()}
-              className="w-full glass-liquid py-3 rounded-[52px] text-base font-bold text-dark dark:border dark:border-white/20 active:scale-[0.97] transition-all"
+              className="w-full"
             >
+              <Printer className="size-5" />
               {t("reception.print")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

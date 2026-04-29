@@ -375,7 +375,7 @@ export default function DashboardPage() {
               { key: "all" as MetricFilter, label: t("dash.expected"), value: String(snapshot.totalExpected), sub: `${todayData?.clients.length} ${t("dash.rooms")}`, color: "text-dark" },
               { key: "show" as MetricFilter, label: t("dash.showedUp"), value: String(snapshot.totalShowedUp), sub: `${roomStatus.allIn + roomStatus.partial} ${t("dash.rooms")}`, color: "text-green-600 dark:text-green-400" },
               { key: "noshow" as MetricFilter, label: t("dash.noShows"), value: String(snapshot.noShows), sub: `${roomStatus.noShow} ${t("dash.rooms")}`, color: "text-red-500 dark:text-red-400" },
-              { key: "comp" as MetricFilter, label: "COMP", value: String(snapshot.compCount), sub: `${snapshot.compCost}€`, color: "text-green-700 dark:text-green-400" },
+              { key: "comp" as MetricFilter, label: t("metrics.comp"), value: String(snapshot.compCount), sub: `${snapshot.compCost}€`, color: "text-green-700 dark:text-green-400" },
             ]).map(({ key, label, value, sub, color }) => (
               <button key={key} onClick={() => handleMetricTap(key)}
                 className={`rounded-[14px] p-3 text-center transition-all active:scale-[0.95] ${

@@ -310,7 +310,7 @@ function ReportPage() {
                 </div>
                 <div>
                   <div className="text-base font-black text-green-700 dark:text-green-400 tabular-nums">{report.totalComp}</div>
-                  <div className="text-[8px] text-green-700/60 dark:text-green-400/60 uppercase">COMP</div>
+                  <div className="text-[8px] text-green-700/60 dark:text-green-400/60 uppercase">{t("metrics.comp")}</div>
                 </div>
                 {report.totalExtras > 0 && (
                   <div>
@@ -330,6 +330,101 @@ function ReportPage() {
 
           {/* ═══ RUSH HOUR CHART (zoomable 5/10/30/60 min) ═══ */}
           {dailyData && <RushHourChart data={dailyData} />}
+
+          {/* ═══ SOURCE BREAKDOWN — Liste vs VIP-only vs Walk-in ═══ */}
+          {(report.sourceBreakdown.vipListOnlyRooms > 0 ||
+            report.sourceBreakdown.walkInRooms > 0) && (
+            <div className="glass-liquid rounded-[14px] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9px] text-muted uppercase tracking-wider font-semibold">
+                  {t("report.sourceBreakdownTitle")}
+                </span>
+                <span className="text-[8px] text-muted/80">
+                  {t("report.sourceBreakdownDesc")}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="rounded-[10px] bg-black/[0.03] dark:bg-white/[0.04] p-2.5">
+                  <div className="text-[8px] text-muted uppercase font-semibold">
+                    {t("report.sourceList")}
+                  </div>
+                  <div className="text-lg font-black text-dark tabular-nums">
+                    {report.sourceBreakdown.listEntered}
+                  </div>
+                  <div className="text-[8px] text-muted">
+                    {report.sourceBreakdown.listRooms} {t("upload.rooms")}
+                  </div>
+                </div>
+                <div className="rounded-[10px] bg-brand/[0.06] p-2.5">
+                  <div className="text-[8px] text-brand uppercase font-semibold">
+                    {t("report.sourceVipOnly")}
+                  </div>
+                  <div className="text-lg font-black text-brand tabular-nums">
+                    {report.sourceBreakdown.vipListOnlyEntered}
+                  </div>
+                  <div className="text-[8px] text-brand/70">
+                    {report.sourceBreakdown.vipListOnlyRooms} {t("upload.rooms")}
+                  </div>
+                </div>
+                <div className="rounded-[10px] bg-amber-500/[0.08] p-2.5">
+                  <div className="text-[8px] text-amber-700 dark:text-amber-400 uppercase font-semibold">
+                    {t("report.sourceWalkIn")}
+                  </div>
+                  <div className="text-lg font-black text-amber-700 dark:text-amber-400 tabular-nums">
+                    {report.sourceBreakdown.walkInEntered}
+                  </div>
+                  <div className="text-[8px] text-amber-700/70 dark:text-amber-400/70">
+                    {report.sourceBreakdown.walkInRooms} {t("upload.rooms")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment breakdown for off-list guests */}
+              {(report.sourceBreakdown.byPayment.points +
+                report.sourceBreakdown.byPayment.paid_onsite +
+                report.sourceBreakdown.byPayment.room_charge +
+                report.sourceBreakdown.byPayment.compliment +
+                report.sourceBreakdown.byPayment.pass) > 0 && (
+                <div className="pt-2 border-t border-black/5 dark:border-white/8">
+                  <div className="text-[8px] text-muted uppercase font-semibold mb-1.5">
+                    {t("report.paymentMixOffList")}
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5 text-center">
+                    <div>
+                      <div className="text-sm font-black text-blue-600 dark:text-blue-400 tabular-nums">
+                        {report.sourceBreakdown.byPayment.points}
+                      </div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPoints")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">
+                        {report.sourceBreakdown.byPayment.paid_onsite}
+                      </div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPaid")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-purple-600 dark:text-purple-400 tabular-nums">
+                        {report.sourceBreakdown.byPayment.room_charge}
+                      </div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusRoom")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-green-600 dark:text-green-400 tabular-nums">
+                        {report.sourceBreakdown.byPayment.compliment}
+                      </div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusCompliment")}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-muted tabular-nums">
+                        {report.sourceBreakdown.byPayment.pass}
+                      </div>
+                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPass")}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ═══ EXTRAS — RECEPTION DISCREPANCIES ═══ */}
           {extrasRooms.length > 0 && (
@@ -368,7 +463,7 @@ function ReportPage() {
                 { key: "allIn", label: t("report.allIn"), count: allIn.length },
                 { key: "partial", label: t("report.partial"), count: partial.length },
                 { key: "noshow", label: t("report.noShows"), count: noShow.length },
-                { key: "comp", label: "COMP", count: report.totalComp },
+                { key: "comp", label: t("metrics.comp"), count: report.totalComp },
                 ...(extrasRooms.length > 0 ? [{ key: "extras" as const, label: "Extras", count: extrasRooms.length }] : []),
               ] as const).map((tab) => (
                 <button
