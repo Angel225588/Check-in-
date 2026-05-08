@@ -14,7 +14,7 @@ import {
   getDataForDate,
 } from "@/lib/storage";
 import {
-  getReceptionWatchlist,
+  getAllVipsForReception,
   countByStatus,
   ReceptionStatus,
   ReceptionWatchlistEntry,
@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type Filter = "all" | "not_yet" | "came";
+type Filter = "all" | "in_list" | "off_list" | "not_yet" | "came";
 
 function statusKey(s: ReceptionStatus): TranslationKey {
   switch (s) {
@@ -108,7 +108,7 @@ function ReceptionReportPage() {
       setLoaded(true);
       return;
     }
-    setEntries(getReceptionWatchlist(data.clients, data.checkIns));
+    setEntries(getAllVipsForReception(data.clients, data.checkIns));
     setDate(data.date);
     setLoaded(true);
   }, [searchParams]);
@@ -117,11 +117,28 @@ function ReceptionReportPage() {
   const cameTotal = entries.length - counts.not_yet;
   const isLegacy = entries.length > 0 && entries[0].isLegacyData;
 
+  const inListCount = useMemo(
+    () => entries.filter((e) => e.vipSource === "breakfast_list").length,
+    [entries]
+  );
+  const offListCount = useMemo(
+    () =>
+      entries.filter(
+        (e) => e.vipSource === "list_only" || e.vipSource === "walk_in"
+      ).length,
+    [entries]
+  );
+
   const filtered = useMemo(() => {
     let list = entries;
     if (filter === "not_yet") list = list.filter((e) => e.status === "not_yet");
-    else if (filter === "came")
-      list = list.filter((e) => e.status !== "not_yet");
+    else if (filter === "came") list = list.filter((e) => e.status !== "not_yet");
+    else if (filter === "in_list")
+      list = list.filter((e) => e.vipSource === "breakfast_list");
+    else if (filter === "off_list")
+      list = list.filter(
+        (e) => e.vipSource === "list_only" || e.vipSource === "walk_in"
+      );
     return [...list].sort((a, b) => {
       if (a.status === "not_yet" && b.status !== "not_yet") return -1;
       if (b.status === "not_yet" && a.status !== "not_yet") return 1;
@@ -290,27 +307,37 @@ function ReceptionReportPage() {
             </Card>
           )}
 
-          {/* Filter tabs (shadcn) */}
+          {/* Filter tabs (shadcn) — scroll horizontal pour 5 filtres */}
           {entries.length > 0 && (
             <Tabs
               value={filter}
               onValueChange={(v) => setFilter(v as Filter)}
               className="no-print"
             >
-              <TabsList>
-                <TabsTrigger value="all">
-                  {t("reception.filterAll")}{" "}
-                  <span className="opacity-60 ml-1">{entries.length}</span>
-                </TabsTrigger>
-                <TabsTrigger value="not_yet">
-                  {t("reception.filterNotYet")}{" "}
-                  <span className="opacity-60 ml-1">{counts.not_yet}</span>
-                </TabsTrigger>
-                <TabsTrigger value="came">
-                  {t("reception.filterCame")}{" "}
-                  <span className="opacity-60 ml-1">{cameTotal}</span>
-                </TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto -mx-4 px-4 pb-1">
+                <TabsList className="inline-flex">
+                  <TabsTrigger value="all">
+                    {t("reception.filterAll")}{" "}
+                    <span className="opacity-60 ml-1">{entries.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="in_list">
+                    {t("reception.filterInList")}{" "}
+                    <span className="opacity-60 ml-1">{inListCount}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="off_list">
+                    {t("reception.filterOffList")}{" "}
+                    <span className="opacity-60 ml-1">{offListCount}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="not_yet">
+                    {t("reception.filterNotYet")}{" "}
+                    <span className="opacity-60 ml-1">{counts.not_yet}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="came">
+                    {t("reception.filterCame")}{" "}
+                    <span className="opacity-60 ml-1">{cameTotal}</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </Tabs>
           )}
 
@@ -364,7 +391,9 @@ function ReceptionReportPage() {
                     <span className="text-[8px] text-muted/80 uppercase tracking-wide">
                       {e.vipSource === "walk_in"
                         ? t("reception.sourceWalkIn")
-                        : t("reception.sourceListOnly")}
+                        : e.vipSource === "list_only"
+                        ? t("reception.sourceListOnly")
+                        : t("reception.sourceInList")}
                     </span>
                   </div>
 

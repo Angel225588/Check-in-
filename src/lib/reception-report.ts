@@ -94,6 +94,39 @@ export function getReceptionWatchlist(
   });
 }
 
+/**
+ * Returns ALL VIPs of the day with their current check-in status.
+ * Both on-list (breakfast_list) and off-list (list_only / walk_in) VIPs
+ * are included so reception can monitor the entire VIP cohort with one
+ * filterable view.
+ */
+export function getAllVipsForReception(
+  clients: Client[],
+  checkIns: CheckInRecord[]
+): ReceptionWatchlistEntry[] {
+  const hasAnyVipSource = clients.some((c) => c.vipSource !== undefined);
+  const isLegacy = !hasAnyVipSource;
+
+  const vips = clients.filter((c) => c.isVip);
+
+  return vips.map((c) => {
+    const ci = findCheckInForClient(c, checkIns);
+    return {
+      roomNumber: c.roomNumber,
+      name: c.name,
+      vipLevel: c.vipLevel || "",
+      vipNotes: c.vipNotes || "",
+      vipSource: c.vipSource ?? "unknown",
+      status: deriveStatus(c, ci),
+      checkInTimestamp: ci?.timestamp,
+      peopleEntered: ci?.peopleEntered ?? 0,
+      expectedAdults: c.adults,
+      expectedChildren: c.children,
+      isLegacyData: isLegacy,
+    };
+  });
+}
+
 export function countByStatus(
   entries: ReceptionWatchlistEntry[]
 ): Record<ReceptionStatus, number> {

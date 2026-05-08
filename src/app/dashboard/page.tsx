@@ -9,7 +9,7 @@ import RushHourChart from "@/components/RushHourChart";
 import { generateDayReport } from "@/lib/report";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Crown, Footprints, TrendingUp } from "lucide-react";
+import { Users, Crown, Footprints, TrendingUp, Package } from "lucide-react";
 import {
   getHistoricalData,
   getDataForRange,
@@ -23,6 +23,7 @@ import {
   getRushHourSlots,
   getTrendData,
   getPeriodStats,
+  getTopPackages,
 } from "@/lib/analytics";
 
 type ViewMode = "today" | "7days" | "custom";
@@ -75,7 +76,8 @@ export default function DashboardPage() {
       if (cs) today = { date: cs.date, clients: cs.clients, checkIns: cs.checkIns, rawUploadText: cs.rawUploadText };
     }
     setTodayData(today);
-    setHistoricalData(getHistoricalData(30));
+    // Default to 7 days on mount; user can switch to longer ranges via tabs.
+    setHistoricalData(getHistoricalData(7));
   };
 
   useEffect(() => { loadData(); }, []);
@@ -89,6 +91,10 @@ export default function DashboardPage() {
   const todayReport = useMemo(
     () => (todayData ? generateDayReport(todayData.clients, todayData.checkIns) : null),
     [todayData]
+  );
+  const topPackages = useMemo(
+    () => (historicalData.length > 0 ? getTopPackages(historicalData, 3) : []),
+    [historicalData]
   );
   const rushSlots = useMemo(() => (todayData ? getRushHourSlots(todayData) : []), [todayData]);
   const trendData = useMemo(() => getTrendData(historicalData), [historicalData]);
@@ -198,7 +204,7 @@ export default function DashboardPage() {
                     if (!td) { const ts = new Date().toISOString().split("T")[0]; const cs = getSessionHistory().find((s) => s.date === ts); if (cs) td = { date: cs.date, clients: cs.clients, checkIns: cs.checkIns, rawUploadText: cs.rawUploadText }; }
                     setTodayData(td);
                   }
-                  if (mode === "7days") setHistoricalData(getHistoricalData(30));
+                  if (mode === "7days") setHistoricalData(getHistoricalData(7));
                 }}
                 className={`flex-1 py-1.5 rounded-[8px] text-[12px] font-semibold transition-all active:scale-[0.97] ${
                   viewMode === mode ? "bg-white dark:bg-white/15 text-dark shadow-sm" : "text-muted"
@@ -593,6 +599,45 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
+          </section>
+        )}
+
+        {/* ═══ 5.5 TOP PACKAGES ═══ */}
+        {topPackages.length > 0 && !metricFilter && !clientSearch && (
+          <section className="animate-sectionIn" style={{ animationDelay: "350ms" }}>
+            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">
+              {t("dash.topPackages")}
+            </h2>
+            <Card>
+              <CardContent className="space-y-2">
+                <div className="flex items-center gap-2 text-[9px] text-muted">
+                  <Package className="size-3" />
+                  <span className="uppercase tracking-wide">{t("dash.topPackagesHint")}</span>
+                </div>
+                {topPackages.map((p, i) => {
+                  const maxRooms = topPackages[0].rooms;
+                  const widthPct = maxRooms > 0 ? (p.rooms / maxRooms) * 100 : 0;
+                  return (
+                    <div key={p.code} className="space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-dark font-mono">
+                          {i + 1}. {p.code}
+                        </span>
+                        <span className="text-xs font-black text-brand tabular-nums">
+                          {p.rooms} <span className="text-[9px] text-muted font-medium">{t("upload.rooms")}</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-brand to-brand-light transition-all duration-700"
+                          style={{ width: `${widthPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
           </section>
         )}
 

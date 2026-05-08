@@ -108,9 +108,11 @@ export function getTrendData(historicalData: DailyData[]): TrendDay[] {
       const totalExpected = getTotalGuests(data.clients);
       const totalShowedUp = getCheckedInCount(data.checkIns);
       const noShows = Math.max(0, totalExpected - totalShowedUp);
+      // Cap at 100% — extras (showedUp > expected) shouldn't inflate the trend.
+      // The discrepancy is surfaced separately in the Extras section.
       const utilization =
         totalExpected > 0
-          ? Math.round((totalShowedUp / totalExpected) * 100)
+          ? Math.min(100, Math.round((totalShowedUp / totalExpected) * 100))
           : 0;
 
       const d = new Date(data.date + "T12:00:00");
@@ -209,4 +211,47 @@ export function getPeriodStats(
         ? Math.round(totalShowedUp / historicalData.length)
         : 0,
   };
+}
+
+// --- Top packages over a period ---
+
+export interface PackageStat {
+  code: string;       // raw package code, e.g. "BKF INC"
+  rooms: number;      // unique rooms over the period
+  guests: number;     // total guests (adults + children) summed
+}
+
+const PACKAGE_FALLBACK = "—";
+
+function normalizePackage(raw: string): string {
+  return raw.toUpperCase().replace(/\s+/g, " ").trim() || PACKAGE_FALLBACK;
+}
+
+/**
+ * Aggregate package codes across one or several days.
+ * Counts unique rooms (a chambre that appears 3 days = 3 rooms),
+ * which matches how operations think about volume per package.
+ * Returns the top N entries, sorted by rooms desc.
+ */
+export function getTopPackages(
+  historicalData: DailyData[],
+  topN = 5
+): PackageStat[] {
+  const counts: Map<string, { rooms: number; guests: number }> = new Map();
+
+  for (const day of historicalData) {
+    for (const c of day.clients) {
+      const code = normalizePackage(c.packageCode);
+      if (code === PACKAGE_FALLBACK) continue;
+      const cur = counts.get(code) ?? { rooms: 0, guests: 0 };
+      cur.rooms += 1;
+      cur.guests += c.adults + c.children;
+      counts.set(code, cur);
+    }
+  }
+
+  return Array.from(counts.entries())
+    .map(([code, v]) => ({ code, rooms: v.rooms, guests: v.guests }))
+    .sort((a, b) => b.rooms - a.rooms)
+    .slice(0, topN);
 }

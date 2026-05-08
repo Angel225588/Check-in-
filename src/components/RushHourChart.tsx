@@ -113,19 +113,19 @@ export default function RushHourChart({
           <>
             <div
               className={cn(
-                "flex items-end gap-[2px]",
-                variant === "compact" ? "h-16" : "h-24"
+                "flex items-end gap-[3px]",
+                variant === "compact" ? "h-24" : "h-40"
               )}
             >
               {slots.map((slot) => (
                 <div
                   key={slot.time}
-                  className="flex-1 flex flex-col items-center gap-0.5 min-w-0"
+                  className="flex-1 flex flex-col items-center gap-1 min-w-0"
                 >
                   <span
                     className={cn(
-                      "text-[8px] font-bold tabular-nums leading-none",
-                      slot.isPeak ? "text-brand" : "text-muted/60"
+                      "text-[10px] font-bold tabular-nums leading-none",
+                      slot.isPeak ? "text-brand" : "text-muted/70"
                     )}
                   >
                     {slot.count > 0 ? slot.count : ""}
@@ -133,16 +133,16 @@ export default function RushHourChart({
                   <div className="w-full relative flex-1">
                     <div
                       className={cn(
-                        "absolute bottom-0 w-full rounded-t-[3px] transition-all duration-700",
+                        "absolute bottom-0 w-full rounded-t-[4px] transition-all duration-700",
                         slot.isPeak
-                          ? "bg-gradient-to-t from-brand to-brand-light"
+                          ? "bg-gradient-to-t from-brand to-brand-light shadow-[0_0_12px_-2px] shadow-brand/40"
                           : slot.count > 0
-                          ? "bg-brand/40 dark:bg-brand/50"
+                          ? "bg-brand/45 dark:bg-brand/55"
                           : "bg-black/[0.04] dark:bg-white/[0.04]"
                       )}
                       style={{
                         height: `${maxCount > 0 ? (slot.count / maxCount) * 100 : 0}%`,
-                        minHeight: slot.count > 0 ? "3px" : "0",
+                        minHeight: slot.count > 0 ? "5px" : "0",
                       }}
                     />
                   </div>

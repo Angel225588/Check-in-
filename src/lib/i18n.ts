@@ -339,14 +339,18 @@ const translations = {
   "dash.download": { fr: "Télécharger", en: "Download" },
   "dash.quickNav": { fr: "Accès Rapide", en: "Quick Access" },
   "dash.noRushData": { fr: "Les arrivées apparaîtront ici au fil des check-ins", en: "Arrivals will appear here as guests check in" },
+  "dash.topPackages": { fr: "Top Packages", en: "Top Packages" },
+  "dash.topPackagesHint": { fr: "les packages qui drainent le plus le service", en: "packages driving the most service volume" },
 
   // Reception report
   "reception.title": { fr: "Rapport Réception", en: "Reception Report" },
-  "reception.subtitle": { fr: "VIPs hors liste petit-déjeuner", en: "VIPs not on breakfast list" },
+  "reception.subtitle": { fr: "Tous les VIPs du jour · pointage · paiement", en: "All today's VIPs · attendance · payment" },
   "reception.viewLink": { fr: "Vue Réception", en: "Reception View" },
   "reception.legacyBanner": { fr: "Données chargées avant la mise à jour. La liste affiche tous les VIPs ; précision améliorée au prochain upload.", en: "Data loaded before this update. Showing all VIPs; precision improves at next upload." },
   "reception.empty": { fr: "Aucun VIP hors liste pour aujourd'hui.", en: "No off-list VIPs for today." },
   "reception.filterAll": { fr: "Tous", en: "All" },
+  "reception.filterInList": { fr: "Dans la liste", en: "In list" },
+  "reception.filterOffList": { fr: "Hors liste", en: "Off-list" },
   "reception.filterNotYet": { fr: "Pas encore", en: "Not yet" },
   "reception.filterCame": { fr: "Venus", en: "Came" },
   "reception.statusNotYet": { fr: "Pas encore", en: "Not yet" },
@@ -362,8 +366,9 @@ const translations = {
   "reception.colTime": { fr: "Heure", en: "Time" },
   "reception.colMode": { fr: "Mode", en: "Mode" },
   "reception.print": { fr: "Imprimer", en: "Print" },
-  "reception.sourceListOnly": { fr: "Liste VIP", en: "VIP list" },
+  "reception.sourceListOnly": { fr: "Liste VIP (hors PDJ)", en: "VIP list (off-PDJ)" },
   "reception.sourceWalkIn": { fr: "Walk-in", en: "Walk-in" },
+  "reception.sourceInList": { fr: "Dans liste PDJ", en: "On PDJ list" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
