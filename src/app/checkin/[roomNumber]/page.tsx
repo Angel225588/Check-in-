@@ -9,6 +9,8 @@ import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import QuickAddGuest from "@/components/QuickAddGuest";
 import ClientHistory from "@/components/ClientHistory";
+import RoomEventBadges from "@/components/RoomEventBadges";
+import { getRoomEvents, RoomEvent } from "@/lib/room-events";
 
 export default function CheckInPage({
   params,
@@ -33,6 +35,7 @@ export default function CheckInPage({
   const [costPerCover, setCostPerCover] = useState(26);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [todayCheckIns, setTodayCheckIns] = useState<CheckInRecord[]>([]);
+  const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
 
   useEffect(() => {
     const data = getTodayData();
@@ -61,6 +64,11 @@ export default function CheckInPage({
     setRemaining(rem);
     setCount(Math.max(1, rem));
     setCostPerCover(getSettings().costPerCover);
+
+    // Pull morning-brief events that touch this room (anniversaire,
+    // honeymoon, ambassador, top VIP, complaint) so the team sees them
+    // before checking the guest in.
+    setRoomEvents(getRoomEvents(roomNumber));
 
     // Restore persisted payment selection
     if (found.pendingPaymentAction) {
@@ -259,6 +267,15 @@ export default function CheckInPage({
             <div className="mt-2 inline-flex items-center gap-2 bg-purple-500/10 dark:bg-purple-500/15 rounded-full px-3 py-1">
               <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide">COMP</span>
               <span className="text-sm font-black text-purple-700 dark:text-purple-300 tabular-nums">{total * costPerCover}€</span>
+            </div>
+          )}
+
+          {/* Morning brief events for this room — anniversaire, honeymoon,
+              ambassador, top VIP, complaint. Communicates immediately to
+              the team what context this guest carries. */}
+          {roomEvents.length > 0 && (
+            <div className="mt-3">
+              <RoomEventBadges events={roomEvents} variant="stack" showReason />
             </div>
           )}
         </div>

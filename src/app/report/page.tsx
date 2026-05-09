@@ -9,6 +9,9 @@ import { useApp } from "@/contexts/AppContext";
 import type { TranslationKey } from "@/lib/i18n";
 import type { DailyData } from "@/lib/types";
 import RushHourChart from "@/components/RushHourChart";
+import RoomEventBadges from "@/components/RoomEventBadges";
+import { getRoomEvents } from "@/lib/room-events";
+import { getMorningBrief } from "@/lib/morning-brief";
 
 type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp" | "extras";
 
@@ -645,13 +648,19 @@ function ReportPage() {
                         )}
                       </div>
 
-                      {/* Name */}
+                      {/* Name + morning-brief event icons (anniversaire, honeymoon, etc.) */}
                       <div className="min-w-0 pr-1">
-                        <span className={`text-[11px] text-dark truncate block ${
-                          room.isComp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""
-                        }`}>
-                          {room.name}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[11px] text-dark truncate ${
+                            room.isComp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""
+                          }`}>
+                            {room.name}
+                          </span>
+                          <RoomEventBadges
+                            events={getRoomEvents(room.roomNumber, getMorningBrief(report.date))}
+                            variant="inline"
+                          />
+                        </div>
                       </div>
 
                       {/* Pax + extras indicator */}
