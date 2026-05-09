@@ -1,6 +1,7 @@
 "use client";
 import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Door, User, TrendUp, TrendDown, Minus } from "@phosphor-icons/react/dist/ssr";
 import { getTodayData, closeDay, getSessionHistory, getDataForDate } from "@/lib/storage";
 import { generateDayReport, exportReportCSV, DayReport, RoomReport } from "@/lib/report";
 import { formatTime } from "@/lib/utils";
@@ -139,6 +140,33 @@ function ReportPage() {
 
   // Average check-in time removed — peak is shown in the rush chart instead.
 
+  // Yesterday's presence — for the ±% delta indicator on the donut.
+  const yesterdayPercent = useMemo(() => {
+    if (!report) return null;
+    const today = new Date(report.date + "T00:00:00");
+    const yest = new Date(today);
+    yest.setDate(yest.getDate() - 1);
+    const yestDate = yest.toISOString().split("T")[0];
+
+    // Look in session history first, then unclosed daily data
+    const sessions = getSessionHistory();
+    const session = sessions.find((s) => s.date === yestDate);
+    let clients = session?.clients;
+    let checkIns = session?.checkIns;
+    if (!session) {
+      const u = getDataForDate(yestDate);
+      if (u) {
+        clients = u.clients;
+        checkIns = u.checkIns;
+      }
+    }
+    if (!clients || !checkIns) return null;
+    const expected = clients.reduce((s, c) => s + c.adults + c.children, 0);
+    if (expected === 0) return null;
+    const entered = checkIns.reduce((s, c) => s + c.peopleEntered, 0);
+    return Math.min(100, Math.round((entered / expected) * 100));
+  }, [report]);
+
   // Filtered + searched rooms
   const filteredRooms = useMemo(() => {
     if (!report) return [];
@@ -241,7 +269,7 @@ function ReportPage() {
             <p className="text-xs text-muted">{t("report.title")}</p>
           </div>
 
-          {/* ═══ DONUT + PRESENCE ═══ */}
+          {/* ═══ DONUT + PRESENCE (with ±% vs hier) ═══ */}
           <div className="glass-liquid rounded-[14px] p-5">
             <div className="flex items-center justify-center gap-6">
               {/* Donut */}
@@ -252,37 +280,105 @@ function ReportPage() {
                     {presencePercent}%
                   </span>
                   <span className="text-[9px] text-muted uppercase tracking-wide">{t("report.presence")}</span>
+                  {yesterdayPercent !== null && (() => {
+                    const delta = presencePercent - yesterdayPercent;
+                    if (delta === 0) {
+                      return (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] text-muted mt-0.5">
+                          <Minus weight="bold" className="size-2.5" />
+                          {t("report.vsYesterday")}
+                        </span>
+                      );
+                    }
+                    const positive = delta > 0;
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-0.5 text-[9px] font-bold mt-0.5 ${
+                          positive
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-error"
+                        }`}
+                      >
+                        {positive ? (
+                          <TrendUp weight="duotone" className="size-2.5" />
+                        ) : (
+                          <TrendDown weight="duotone" className="size-2.5" />
+                        )}
+                        {positive ? "+" : ""}
+                        {delta}% {t("report.vsYesterday")}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
-              {/* Key metrics beside donut */}
+              {/* Key metrics beside donut — Phosphor User & Door icons */}
               <div className="space-y-3">
                 <div>
-                  <div className="text-2xl font-black text-dark tabular-nums">{report.totalEntered}<span className="text-sm font-medium text-muted">/{report.totalGuests}</span></div>
-                  <div className="text-[9px] text-muted uppercase tracking-wide">{t("report.persons")}</div>
+                  <div className="text-2xl font-black text-dark tabular-nums">
+                    {report.totalEntered}
+                    <span className="text-sm font-medium text-muted">/{report.totalGuests}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wide">
+                    <User weight="duotone" className="size-3 text-brand" />
+                    {t("report.persons")}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-dark tabular-nums">{allIn.length + partial.length}<span className="text-sm font-medium text-muted">/{report.totalRooms}</span></div>
-                  <div className="text-[9px] text-muted uppercase tracking-wide">{t("report.rooms")}</div>
+                  <div className="text-2xl font-black text-dark tabular-nums">
+                    {allIn.length + partial.length}
+                    <span className="text-sm font-medium text-muted">/{report.totalRooms}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wide">
+                    <Door weight="duotone" className="size-3 text-brand" />
+                    {t("report.rooms")}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ═══ STATUS BAR (green/brown/red) ═══ */}
+          {/* ═══ STATUS BAR (green/brown/red) — chambres + pax séparés ═══ */}
           <div className="glass-liquid rounded-[14px] p-4">
-            <div className="flex items-center gap-3 text-sm mb-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-dark font-medium">{t("report.allIn")}: <b>{allIn.length}</b></span>
+            <div className="grid grid-cols-3 gap-2 mb-3 text-[11px]">
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
+                  <span className="text-dark font-bold">{t("report.allIn")}</span>
+                </div>
+                <div className="text-muted/90 tabular-nums pl-4">
+                  <Door weight="duotone" className="inline size-2.5 mr-0.5" />
+                  {allIn.length} ch
+                  <span className="mx-1 text-muted/50">·</span>
+                  <User weight="duotone" className="inline size-2.5 mr-0.5" />
+                  {allIn.reduce((s, r) => s + r.entered, 0)} pers
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-brand" />
-                <span className="text-dark font-medium">{t("report.partial")}: <b>{partial.length}</b></span>
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-brand shrink-0" />
+                  <span className="text-dark font-bold">{t("report.partial")}</span>
+                </div>
+                <div className="text-muted/90 tabular-nums pl-4">
+                  <Door weight="duotone" className="inline size-2.5 mr-0.5" />
+                  {partial.length} ch
+                  <span className="mx-1 text-muted/50">·</span>
+                  <User weight="duotone" className="inline size-2.5 mr-0.5" />
+                  {partial.reduce((s, r) => s + r.entered, 0)} pers
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-error" />
-                <span className="text-dark font-medium">{t("report.noShow")}: <b>{noShow.length}</b></span>
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-error shrink-0" />
+                  <span className="text-dark font-bold">{t("report.noShow")}</span>
+                </div>
+                <div className="text-muted/90 tabular-nums pl-4">
+                  <Door weight="duotone" className="inline size-2.5 mr-0.5" />
+                  {noShow.length} ch
+                  <span className="mx-1 text-muted/50">·</span>
+                  <User weight="duotone" className="inline size-2.5 mr-0.5" />
+                  {noShow.reduce((s, r) => s + r.totalGuests - r.entered, 0)} pers
+                </div>
               </div>
             </div>
             {report.totalRooms > 0 && (

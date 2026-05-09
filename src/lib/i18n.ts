@@ -339,6 +339,7 @@ const translations = {
   "dash.download": { fr: "Télécharger", en: "Download" },
   "dash.quickNav": { fr: "Accès Rapide", en: "Quick Access" },
   "dash.noRushData": { fr: "Les arrivées apparaîtront ici au fil des check-ins", en: "Arrivals will appear here as guests check in" },
+  "report.vsYesterday": { fr: "vs hier", en: "vs yesterday" },
   "chart.staffInRoom": { fr: "Équipe matinale en salle", en: "Morning staff in room" },
   "chart.staffShort": { fr: "équipe", en: "staff" },
   "chart.movingAvg": { fr: "moyenne mobile", en: "moving avg" },
