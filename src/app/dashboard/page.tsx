@@ -637,7 +637,7 @@ export default function DashboardPage() {
                       {day.utilization > 0 ? `${day.utilization}%` : ""}
                     </span>
                     <div className="w-full bg-black/[0.03] dark:bg-white/[0.04] rounded-[3px] relative flex-1 flex items-end">
-                      <div className={`w-full rounded-[3px] transition-all duration-500 ${
+                      <div className={`w-full rounded-[3px] transition-all duration-200 ${
                         day.utilization >= 80 ? "bg-green-500" : day.utilization >= 50 ? "bg-brand/60" : day.utilization > 0 ? "bg-red-400/60" : ""
                       }`} style={{ height: `${day.utilization}%` }} />
                     </div>
@@ -676,7 +676,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="h-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-brand to-brand-light transition-all duration-700"
+                          className="h-full bg-gradient-to-r from-brand to-brand-light transition-all duration-200"
                           style={{ width: `${widthPct}%` }}
                         />
                       </div>

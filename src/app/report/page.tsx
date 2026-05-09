@@ -383,9 +383,9 @@ function ReportPage() {
             </div>
             {report.totalRooms > 0 && (
               <div className="flex h-3 rounded-full overflow-hidden">
-                {allIn.length > 0 && <div className="bg-green-500 transition-all duration-700" style={{ width: `${(allIn.length / report.totalRooms) * 100}%` }} />}
-                {partial.length > 0 && <div className="bg-brand transition-all duration-700" style={{ width: `${(partial.length / report.totalRooms) * 100}%` }} />}
-                {noShow.length > 0 && <div className="bg-error transition-all duration-700" style={{ width: `${(noShow.length / report.totalRooms) * 100}%` }} />}
+                {allIn.length > 0 && <div className="bg-green-500 transition-all duration-200" style={{ width: `${(allIn.length / report.totalRooms) * 100}%` }} />}
+                {partial.length > 0 && <div className="bg-brand transition-all duration-200" style={{ width: `${(partial.length / report.totalRooms) * 100}%` }} />}
+                {noShow.length > 0 && <div className="bg-error transition-all duration-200" style={{ width: `${(noShow.length / report.totalRooms) * 100}%` }} />}
               </div>
             )}
 

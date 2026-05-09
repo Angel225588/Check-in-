@@ -274,7 +274,7 @@ export default function CheckInPage({
           </div>
           <div className="w-full h-2 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500 ease-out"
+              className="h-full rounded-full transition-all duration-200 ease-out"
               style={{
                 width: `${progressPercent}%`,
                 background: allDone
