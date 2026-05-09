@@ -1,6 +1,12 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Sparkle as PhSparkle,
+  UsersThree as PhUsersThree,
+  FileText as PhFileText,
+  ChartBar as PhChartBar,
+} from "@phosphor-icons/react/dist/ssr";
 import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
@@ -691,17 +697,26 @@ export default function UploadPage() {
               </button>
             )}
 
-            {/* Secondary nav — 3-button row */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* Secondary nav — Phosphor duotone, 4 entries */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {/* Briefing Matin */}
+              <button
+                onClick={() => router.push("/morning-brief")}
+                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
+                  <PhSparkle weight="duotone" className="w-5 h-5 text-brand" />
+                </div>
+                <span className="text-xs font-bold text-dark">{t("upload.morningBrief")}</span>
+              </button>
+
               {/* Clients */}
               <button
                 onClick={() => router.push("/clients")}
                 className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <PhUsersThree weight="duotone" className="w-5 h-5 text-brand" />
                 </div>
                 <span className="text-xs font-bold text-dark">{t("upload.clients")}</span>
               </button>
@@ -712,9 +727,7 @@ export default function UploadPage() {
                 className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                  <PhFileText weight="duotone" className="w-5 h-5 text-brand" />
                 </div>
                 <span className="text-xs font-bold text-dark">{t("upload.reports")}</span>
               </button>
@@ -725,9 +738,7 @@ export default function UploadPage() {
                 className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
-                  </svg>
+                  <PhChartBar weight="duotone" className="w-5 h-5 text-brand" />
                 </div>
                 <span className="text-xs font-bold text-dark">{t("upload.dashboard")}</span>
               </button>

@@ -300,6 +300,7 @@ const translations = {
   "upload.uploadDocsDesc": { fr: "PDF, Scanner, Galerie, Manuel", en: "PDF, Scanner, Gallery, Manual" },
   "upload.clients": { fr: "Clients", en: "Clients" },
   "upload.reports": { fr: "Rapports", en: "Reports" },
+  "upload.morningBrief": { fr: "Briefing", en: "Briefing" },
 
   // Client history
   "clientHistory.title": { fr: "Historique", en: "History" },
