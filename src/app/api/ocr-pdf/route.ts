@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeLogError } from "@/lib/log-safe";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com";
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -227,7 +228,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error (PDF):", errorText);
+      console.error(safeLogError("Gemini API error (PDF):", errorText));
 
       if (response.status === 429) {
         return NextResponse.json(
@@ -262,7 +263,7 @@ export async function POST(request: NextRequest) {
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      console.error("Failed to parse Gemini PDF response:", cleaned);
+      console.error(safeLogError("Failed to parse Gemini PDF response:", cleaned));
       return NextResponse.json(
         { error: "AI returned invalid data. Try again or upload images instead." },
         { status: 500 }
@@ -287,7 +288,7 @@ export async function POST(request: NextRequest) {
       clients: validClients,
     });
   } catch (err) {
-    console.error("OCR PDF route error:", err);
+    console.error(safeLogError("OCR PDF route error:", err));
     return NextResponse.json(
       {
         error: "Processing failed. Please try again.",

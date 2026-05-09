@@ -17,15 +17,14 @@ const HISTORY_KEY = "sessionHistory";
 const SETTINGS_KEY = "app_settings";
 
 export function getSettings(): AppSettings {
-  if (typeof window === "undefined") {
-    return { costPerCover: 26 };
-  }
+  const defaults: AppSettings = { costPerCover: 26, localOCR: false };
+  if (typeof window === "undefined") return defaults;
   const raw = localStorage.getItem(SETTINGS_KEY);
-  if (!raw) return { costPerCover: 26 };
+  if (!raw) return defaults;
   try {
-    return JSON.parse(raw) as AppSettings;
+    return { ...defaults, ...JSON.parse(raw) } as AppSettings;
   } catch {
-    return { costPerCover: 26 };
+    return defaults;
   }
 }
 

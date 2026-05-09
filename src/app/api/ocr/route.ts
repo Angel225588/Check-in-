@@ -35,6 +35,7 @@ Rules:
 - If you cannot read the image or it's not a report, return []`;
 
 import { sanitizeAndValidateClient } from "@/lib/validate";
+import { safeLogError } from "@/lib/log-safe";
 
 function validateClient(obj: Record<string, unknown>): boolean {
   return sanitizeAndValidateClient(obj);
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", errorText);
+      console.error(safeLogError("Gemini API error", errorText));
 
       if (response.status === 429) {
         return NextResponse.json(
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
     try {
       clients = JSON.parse(cleaned);
     } catch {
-      console.error("Failed to parse Gemini response:", cleaned);
+      console.error(safeLogError("Failed to parse Gemini response", cleaned));
       return NextResponse.json(
         { error: "AI returned invalid data. Try again or paste data manually." },
         { status: 500 }
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ clients: validClients });
   } catch (err) {
-    console.error("OCR route error:", err);
+    console.error(safeLogError("OCR route error", err));
     return NextResponse.json(
       {
         error: "Processing failed. Please try again.",

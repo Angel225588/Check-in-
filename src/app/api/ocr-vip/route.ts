@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeLogError } from "@/lib/log-safe";
 
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", errorText);
+      console.error(safeLogError("Gemini API error:", errorText));
 
       if (response.status === 429) {
         return NextResponse.json(
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest) {
     try {
       entries = JSON.parse(cleaned);
     } catch {
-      console.error("Failed to parse Gemini VIP response:", cleaned);
+      console.error(safeLogError("Failed to parse Gemini VIP response:", cleaned));
       return NextResponse.json(
         { error: "AI returned invalid data. Try again." },
         { status: 500 }
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ vipEntries: validEntries });
   } catch (err) {
-    console.error("VIP OCR route error:", err);
+    console.error(safeLogError("VIP OCR route error:", err));
     return NextResponse.json(
       {
         error: "Processing failed. Please try again.",

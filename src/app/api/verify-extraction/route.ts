@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeLogError } from "@/lib/log-safe";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com";
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -221,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error (verify-extraction):", errorText);
+      console.error(safeLogError("Gemini API error (verify-extraction):", errorText));
 
       if (response.status === 429) {
         return NextResponse.json(
@@ -255,7 +256,7 @@ export async function POST(request: NextRequest) {
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      console.error("Failed to parse verification response:", cleaned);
+      console.error(safeLogError("Failed to parse verification response:", cleaned));
       return NextResponse.json(
         { error: "AI returned invalid verification data. Try again." },
         { status: 500 }
@@ -275,7 +276,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(report);
   } catch (err) {
-    console.error("Verify extraction route error:", err);
+    console.error(safeLogError("Verify extraction route error:", err));
     return NextResponse.json(
       {
         error: "Verification failed. Please try again.",

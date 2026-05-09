@@ -63,6 +63,7 @@ export interface SessionRecord {
 
 export interface AppSettings {
   costPerCover: number; // e.g., 26 (euros)
+  localOCR?: boolean;   // when true, skip Gemini and use Tesseract directly (Marriott-confidential mode)
 }
 
 // Dashboard analytics types
