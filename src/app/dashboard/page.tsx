@@ -9,7 +9,8 @@ import RushHourChart from "@/components/RushHourChart";
 import { generateDayReport } from "@/lib/report";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Crown, Footprints, TrendingUp, Package } from "lucide-react";
+import { Users, Crown, Footprints, TrendingUp, Package, FileText, Copy, Check } from "lucide-react";
+import { computeMonthlyStats, formatMonthlyStatsMarkdown } from "@/lib/monthly-stats";
 import {
   getHistoricalData,
   getDataForRange,
@@ -96,6 +97,52 @@ export default function DashboardPage() {
     () => (historicalData.length > 0 ? getTopPackages(historicalData, 3) : []),
     [historicalData]
   );
+
+  // Monthly stats — built from the full session history (not just current view)
+  const monthData = useMemo(() => {
+    const byDate = new Map<string, DailyData>();
+    for (const d of historicalData) byDate.set(d.date, d);
+    // Always pull session history for the full month coverage
+    for (const s of getSessionHistory()) {
+      if (!byDate.has(s.date)) {
+        byDate.set(s.date, {
+          date: s.date,
+          clients: s.clients,
+          checkIns: s.checkIns,
+          rawUploadText: s.rawUploadText,
+        });
+      }
+    }
+    if (todayData && !byDate.has(todayData.date)) {
+      byDate.set(todayData.date, todayData);
+    }
+    return Array.from(byDate.values());
+  }, [historicalData, todayData]);
+
+  const monthlyStats = useMemo(
+    () => computeMonthlyStats(monthData, costPerCover),
+    [monthData, costPerCover]
+  );
+
+  const [statsCopied, setStatsCopied] = useState(false);
+  const handleCopyMonthlyStats = async () => {
+    const md = formatMonthlyStatsMarkdown(monthlyStats);
+    try {
+      await navigator.clipboard.writeText(md);
+      setStatsCopied(true);
+      setTimeout(() => setStatsCopied(false), 2500);
+    } catch {
+      // Fallback: open a textarea for manual copy on browsers without clipboard
+      const ta = document.createElement("textarea");
+      ta.value = md;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setStatsCopied(true);
+      setTimeout(() => setStatsCopied(false), 2500);
+    }
+  };
   const rushSlots = useMemo(() => (todayData ? getRushHourSlots(todayData) : []), [todayData]);
   const trendData = useMemo(() => getTrendData(historicalData), [historicalData]);
   const periodStats = useMemo(() => getPeriodStats(historicalData, costPerCover), [historicalData, costPerCover]);
@@ -636,6 +683,111 @@ export default function DashboardPage() {
                     </div>
                   );
                 })}
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
+        {/* ═══ 5.7 MONTHLY STATS — for the proposal email ═══ */}
+        {monthlyStats.daysActive > 0 && !metricFilter && !clientSearch && (
+          <section className="animate-sectionIn" style={{ animationDelay: "400ms" }}>
+            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">
+              {t("dash.monthlyStats")}
+            </h2>
+            <Card>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <FileText className="size-4 text-brand" />
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                      {t("dash.monthlyStatsHint")}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleCopyMonthlyStats}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand text-white text-xs font-bold active:scale-[0.96] transition-all"
+                  >
+                    {statsCopied ? (
+                      <>
+                        <Check className="size-3.5" />
+                        {t("dash.statsCopied")}
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3.5" />
+                        {t("dash.copyStats")}
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div>
+                    <div className="text-2xl font-black text-dark tabular-nums">
+                      {monthlyStats.daysActive}
+                    </div>
+                    <div className="text-[8px] text-muted uppercase">{t("dash.daysActive")}</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-black text-brand tabular-nums">
+                      {monthlyStats.attendanceRate}%
+                    </div>
+                    <div className="text-[8px] text-muted uppercase">
+                      {t("dash.attendance")}
+                    </div>
+                    {monthlyStats.attendanceRateMax > 0 && (
+                      <div className="text-[8px] text-muted/60 tabular-nums mt-0.5">
+                        {monthlyStats.attendanceRateMin}% – {monthlyStats.attendanceRateMax}%
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-2xl font-black text-green-600 dark:text-green-400 tabular-nums">
+                      {monthlyStats.totalServed}
+                    </div>
+                    <div className="text-[8px] text-muted uppercase">
+                      {t("dash.served")}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums">
+                      {monthlyStats.compCost.toLocaleString("fr-FR")}€
+                    </div>
+                    <div className="text-[8px] text-muted uppercase">
+                      {t("dash.compCostShort")}
+                    </div>
+                    <div className="text-[8px] text-muted/60 tabular-nums mt-0.5">
+                      {monthlyStats.compPersons} pers
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-black/5 dark:border-white/8 text-center text-[10px]">
+                  <div>
+                    <div className="font-bold text-dark tabular-nums">
+                      {monthlyStats.walkInTotal}
+                    </div>
+                    <div className="text-muted uppercase text-[8px]">Walk-ins</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-dark tabular-nums">
+                      {monthlyStats.vipsServed}/{monthlyStats.vipsTotal}
+                    </div>
+                    <div className="text-muted uppercase text-[8px]">VIPs servis</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-dark tabular-nums">
+                      {monthlyStats.peakHourMostCommon || "—"}
+                    </div>
+                    <div className="text-muted uppercase text-[8px]">Pic type</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-dark tabular-nums">
+                      {monthlyStats.noShows}
+                    </div>
+                    <div className="text-muted uppercase text-[8px]">No-shows</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </section>
