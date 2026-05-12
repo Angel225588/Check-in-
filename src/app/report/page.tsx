@@ -13,7 +13,7 @@ import RoomEventBadges from "@/components/RoomEventBadges";
 import { getRoomEvents } from "@/lib/room-events";
 import { getMorningBrief } from "@/lib/morning-brief";
 
-type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp" | "extras";
+type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp" | "extras" | "offlist";
 
 function StatusBadge({ status, t }: { status: RoomReport["status"]; t: (key: TranslationKey) => string }) {
   const styles = {
@@ -181,6 +181,12 @@ function ReportPage() {
     else if (statusFilter === "noshow") rooms = rooms.filter((r) => r.status === "no-show");
     else if (statusFilter === "comp") rooms = rooms.filter((r) => r.isComp);
     else if (statusFilter === "extras") rooms = rooms.filter((r) => r.extras > 0);
+    else if (statusFilter === "offlist") {
+      // VIPs hors liste PDJ (vipSource = list_only ou walk_in)
+      rooms = rooms.filter(
+        (r) => r.isVip && (r.vipSource === "list_only" || r.vipSource === "walk_in")
+      );
+    }
 
     // Search
     if (searchQuery.trim()) {
@@ -238,19 +244,6 @@ function ReportPage() {
                 </svg>
                 <span className="text-sm font-medium text-brand">{isHistorical ? t("reports.title") : t("report.back")}</span>
               </button>
-              <button
-                onClick={() => {
-                  const dateParam = searchParams.get("date");
-                  const url = dateParam ? `/report/reception?date=${dateParam}` : "/report/reception";
-                  router.push(url);
-                }}
-                className="no-print flex items-center gap-1.5 px-3 py-1.5 glass-brand rounded-full active:scale-[0.96] transition-all"
-              >
-                <span className="text-sm font-bold text-brand">{t("reception.viewLink")}</span>
-                <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
               <div className="flex flex-col items-end">
                 <span className="text-sm font-bold tracking-[0.08em] text-brand leading-tight" style={{ fontFamily: "'Nunito', sans-serif" }}>
                   COURTYARD
@@ -272,67 +265,69 @@ function ReportPage() {
             <p className="text-xs text-muted">{t("report.title")}</p>
           </div>
 
-          {/* ═══ DONUT + PRESENCE (with ±% vs hier) ═══ */}
-          <div className="glass-liquid rounded-[14px] p-5">
-            <div className="flex items-center justify-center gap-6">
-              {/* Donut */}
+          {/* ═══ DONUT + PRESENCE (with ±% vs hier) — compact ═══ */}
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center justify-center gap-5">
+              {/* Donut — compact 90px */}
               <div className="relative">
-                <DonutRing percent={presencePercent} size={120} stroke={10} />
+                <DonutRing percent={presencePercent} size={90} stroke={8} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-3xl font-black tabular-nums ${presencePercent >= 70 ? "text-green-600 dark:text-green-400" : presencePercent >= 40 ? "text-brand" : "text-error"}`}>
+                  <span className={`text-2xl font-black tabular-nums leading-none ${presencePercent >= 70 ? "text-green-600 dark:text-green-400" : presencePercent >= 40 ? "text-brand" : "text-error"}`}>
                     {presencePercent}%
                   </span>
-                  <span className="text-[9px] text-muted uppercase tracking-wide">{t("report.presence")}</span>
-                  {yesterdayPercent !== null && (() => {
-                    const delta = presencePercent - yesterdayPercent;
-                    if (delta === 0) {
-                      return (
-                        <span className="inline-flex items-center gap-0.5 text-[9px] text-muted mt-0.5">
-                          <Minus weight="bold" className="size-2.5" />
-                          {t("report.vsYesterday")}
-                        </span>
-                      );
-                    }
-                    const positive = delta > 0;
-                    return (
-                      <span
-                        className={`inline-flex items-center gap-0.5 text-[9px] font-bold mt-0.5 ${
-                          positive
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-error"
-                        }`}
-                      >
-                        {positive ? (
-                          <TrendUp weight="duotone" className="size-2.5" />
-                        ) : (
-                          <TrendDown weight="duotone" className="size-2.5" />
-                        )}
-                        {positive ? "+" : ""}
-                        {delta}% {t("report.vsYesterday")}
-                      </span>
-                    );
-                  })()}
+                  <span className="text-[7px] text-muted uppercase tracking-wide mt-0.5">{t("report.presence")}</span>
                 </div>
               </div>
 
-              {/* Key metrics beside donut — Phosphor User & Door icons */}
-              <div className="space-y-3">
+              {/* Delta vs hier — chip outside the donut */}
+              {yesterdayPercent !== null && (() => {
+                const delta = presencePercent - yesterdayPercent;
+                if (delta === 0) {
+                  return (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted bg-black/[0.04] dark:bg-white/[0.06] px-2 py-1 rounded-full self-start">
+                      <Minus weight="bold" className="size-3" />
+                      {t("report.vsYesterday")}
+                    </span>
+                  );
+                }
+                const positive = delta > 0;
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full self-start ${
+                      positive
+                        ? "text-green-700 dark:text-green-400 bg-green-500/15"
+                        : "text-error bg-error/15"
+                    }`}
+                  >
+                    {positive ? (
+                      <TrendUp weight="duotone" className="size-3" />
+                    ) : (
+                      <TrendDown weight="duotone" className="size-3" />
+                    )}
+                    {positive ? "+" : ""}
+                    {delta}% {t("report.vsYesterday")}
+                  </span>
+                );
+              })()}
+
+              {/* Key metrics beside donut — compact, lecture < 3 sec */}
+              <div className="flex items-center gap-5">
                 <div>
-                  <div className="text-2xl font-black text-dark tabular-nums">
+                  <div className="text-xl font-black text-dark tabular-nums leading-none">
                     {report.totalEntered}
-                    <span className="text-sm font-medium text-muted">/{report.totalGuests}</span>
+                    <span className="text-xs font-medium text-muted">/{report.totalGuests}</span>
                   </div>
-                  <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wide">
+                  <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wide mt-1">
                     <User weight="duotone" className="size-3 text-brand" />
                     {t("report.persons")}
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-dark tabular-nums">
+                  <div className="text-xl font-black text-dark tabular-nums leading-none">
                     {allIn.length + partial.length}
-                    <span className="text-sm font-medium text-muted">/{report.totalRooms}</span>
+                    <span className="text-xs font-medium text-muted">/{report.totalRooms}</span>
                   </div>
-                  <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wide">
+                  <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wide mt-1">
                     <Door weight="duotone" className="size-3 text-brand" />
                     {t("report.rooms")}
                   </div>
@@ -392,39 +387,29 @@ function ReportPage() {
               </div>
             )}
 
-            {/* Guest pax breakdown */}
-            <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8">
-              <div className="grid grid-cols-5 gap-1.5 text-center">
-                <div>
-                  <div className="text-base font-black text-dark tabular-nums">{report.totalGuests}</div>
-                  <div className="text-[8px] text-muted uppercase">{t("report.expected")}</div>
-                </div>
-                <div>
-                  <div className="text-base font-black text-green-600 dark:text-green-400 tabular-nums">{report.totalEntered}</div>
-                  <div className="text-[8px] text-green-700/60 dark:text-green-400/60 uppercase">{t("report.received")}</div>
-                </div>
-                <div>
-                  <div className="text-base font-black text-error tabular-nums">{report.totalRemaining}</div>
-                  <div className="text-[8px] text-error/60 uppercase">{t("report.noShows")}</div>
-                </div>
-                <div>
-                  <div className="text-base font-black text-green-700 dark:text-green-400 tabular-nums">{report.totalComp}</div>
-                  <div className="text-[8px] text-green-700/60 dark:text-green-400/60 uppercase">{t("metrics.comp")}</div>
-                </div>
-                {report.totalExtras > 0 && (
-                  <div>
-                    <div className="text-base font-black text-amber-600 dark:text-amber-400 tabular-nums">+{report.totalExtras}</div>
-                    <div className="text-[8px] text-amber-600/60 uppercase">Extras</div>
-                  </div>
+            {/* Compliment + Extras + VIP — petite ligne discrète sous la barre */}
+            {(report.totalComp > 0 || report.totalExtras > 0 || report.totalVip > 0) && (
+              <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8 flex items-center justify-center gap-4 text-[10px]">
+                {report.totalComp > 0 && (
+                  <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400">
+                    <span className="font-black tabular-nums">{report.totalComp}</span>
+                    <span className="uppercase opacity-70">{t("metrics.comp")}</span>
+                  </span>
                 )}
-                {report.totalExtras === 0 && (
-                  <div>
-                    <div className="text-base font-black text-dark tabular-nums">{report.totalVip}</div>
-                    <div className="text-[8px] text-muted uppercase">VIP</div>
-                  </div>
+                {report.totalExtras > 0 && (
+                  <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <span className="font-black tabular-nums">+{report.totalExtras}</span>
+                    <span className="uppercase opacity-70">Extras</span>
+                  </span>
+                )}
+                {report.totalVip > 0 && (
+                  <span className="inline-flex items-center gap-1 text-brand">
+                    <span className="font-black tabular-nums">{report.totalVip}</span>
+                    <span className="uppercase opacity-70">VIP</span>
+                  </span>
                 )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* ═══ RUSH HOUR CHART (zoomable 5/10/30/60 min) ═══ */}
@@ -480,10 +465,10 @@ function ReportPage() {
 
               {/* Payment breakdown for off-list guests */}
               {(report.sourceBreakdown.byPayment.points +
-                report.sourceBreakdown.byPayment.paid_onsite +
-                report.sourceBreakdown.byPayment.room_charge +
+                report.sourceBreakdown.byPayment.cash +
+                report.sourceBreakdown.byPayment.room +
                 report.sourceBreakdown.byPayment.compliment +
-                report.sourceBreakdown.byPayment.pass) > 0 && (
+                report.sourceBreakdown.byPayment.supervisor) > 0 && (
                 <div className="pt-2 border-t border-black/5 dark:border-white/8">
                   <div className="text-[8px] text-muted uppercase font-semibold mb-1.5">
                     {t("report.paymentMixOffList")}
@@ -497,13 +482,13 @@ function ReportPage() {
                     </div>
                     <div>
                       <div className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">
-                        {report.sourceBreakdown.byPayment.paid_onsite}
+                        {report.sourceBreakdown.byPayment.cash}
                       </div>
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusPaid")}</div>
                     </div>
                     <div>
                       <div className="text-sm font-black text-purple-600 dark:text-purple-400 tabular-nums">
-                        {report.sourceBreakdown.byPayment.room_charge}
+                        {report.sourceBreakdown.byPayment.room}
                       </div>
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusRoom")}</div>
                     </div>
@@ -515,7 +500,7 @@ function ReportPage() {
                     </div>
                     <div>
                       <div className="text-sm font-black text-muted tabular-nums">
-                        {report.sourceBreakdown.byPayment.pass}
+                        {report.sourceBreakdown.byPayment.supervisor}
                       </div>
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusPass")}</div>
                     </div>
@@ -524,6 +509,85 @@ function ReportPage() {
               )}
             </div>
           )}
+
+          {/* ═══ VIPs HORS LISTE — VIPs sans PDJ inclus qui sont venus ═══ */}
+          {(() => {
+            const offlistVips = report.rooms.filter(
+              (r) =>
+                r.isVip &&
+                (r.vipSource === "list_only" || r.vipSource === "walk_in") &&
+                r.entered > 0
+            );
+            if (offlistVips.length === 0) return null;
+            const labelFor = (action?: string, isComp?: boolean) => {
+              if (isComp) return "Compliment";
+              switch (action) {
+                case "points": return "Points";
+                case "cash":
+                case "pay_onsite": return "Cash";
+                case "room":
+                case "room_charge": return "Chambre";
+                case "card": return "Carte B";
+                case "supervisor": return "Supervisor";
+                case "pass": return "Pass";
+                default: return "(à confirmer)";
+              }
+            };
+            return (
+              <div className="glass-liquid rounded-[14px] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <span className="text-[9px] text-brand uppercase tracking-wider font-semibold">
+                      {t("report.offListVipsTitle")}
+                    </span>
+                    <p className="text-[8px] text-muted mt-0.5">
+                      {t("report.offListVipsDesc")}
+                    </p>
+                  </div>
+                  <span className="text-lg font-black text-brand tabular-nums">
+                    {offlistVips.length}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {offlistVips.map((room, i) => {
+                    const chosen = labelFor(room.paymentAction, room.isComp);
+                    return (
+                      <div
+                        key={`offlist-${room.roomNumber}-${i}`}
+                        className="flex items-center justify-between bg-brand/[0.06] dark:bg-brand/[0.10] rounded-[10px] px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-bold font-mono text-dark shrink-0">
+                            {room.roomNumber}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-gradient-to-r from-brand to-brand-light text-white px-2 py-0.5 rounded-full shrink-0">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 6l5.5 5L12 4l3.5 7L21 6l-2 10H5zm14 3H5v-2h14v2z"/></svg>
+                            {room.vipLevel || "VIP"}
+                          </span>
+                          <span className="text-xs text-dark truncate">{room.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] text-muted">(Points)</span>
+                          <span className="text-[10px] text-brand">→</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            chosen === "Compliment" ? "bg-green-500/15 text-green-700 dark:text-green-400" :
+                            chosen === "Points" ? "bg-purple-500/15 text-purple-700 dark:text-purple-400" :
+                            chosen === "Cash" ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" :
+                            chosen === "Chambre" ? "bg-blue-500/15 text-blue-700 dark:text-blue-400" :
+                            chosen === "Carte B" ? "bg-orange-500/15 text-orange-700 dark:text-orange-400" :
+                            chosen === "Supervisor" ? "bg-slate-500/15 text-slate-700 dark:text-slate-400" :
+                            "bg-muted/15 text-muted"
+                          }`}>
+                            ({chosen})
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ═══ EXTRAS — RECEPTION DISCREPANCIES ═══ */}
           {extrasRooms.length > 0 && (
@@ -557,14 +621,20 @@ function ReportPage() {
           <div>
             {/* Filter tabs */}
             <div className="flex items-center gap-1.5 mb-2 overflow-x-auto">
-              {([
-                { key: "all", label: t("report.all"), count: report.rooms.length },
-                { key: "allIn", label: t("report.allIn"), count: allIn.length },
-                { key: "partial", label: t("report.partial"), count: partial.length },
-                { key: "noshow", label: t("report.noShows"), count: noShow.length },
-                { key: "comp", label: t("metrics.comp"), count: report.totalComp },
-                ...(extrasRooms.length > 0 ? [{ key: "extras" as const, label: "Extras", count: extrasRooms.length }] : []),
-              ] as const).map((tab) => (
+              {(() => {
+                const offlistCount = report.rooms.filter(
+                  (r) => r.isVip && (r.vipSource === "list_only" || r.vipSource === "walk_in")
+                ).length;
+                return [
+                  { key: "all" as const, label: t("report.all"), count: report.rooms.length },
+                  { key: "allIn" as const, label: t("report.allIn"), count: allIn.length },
+                  { key: "partial" as const, label: t("report.partial"), count: partial.length },
+                  { key: "noshow" as const, label: t("report.noShows"), count: noShow.length },
+                  { key: "comp" as const, label: t("metrics.comp"), count: report.totalComp },
+                  ...(offlistCount > 0 ? [{ key: "offlist" as const, label: t("report.filterOffList"), count: offlistCount }] : []),
+                  ...(extrasRooms.length > 0 ? [{ key: "extras" as const, label: "Extras", count: extrasRooms.length }] : []),
+                ];
+              })().map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => { setStatusFilter(tab.key); setSearchQuery(""); }}
@@ -641,16 +711,19 @@ function ReportPage() {
                       }`}
                     >
                       {/* Room */}
-                      <div className="flex items-center gap-0.5">
+                      <div className="flex items-center">
                         <span className="text-xs font-bold font-mono text-dark">{room.roomNumber}</span>
-                        {room.isVip && (
-                          <span className="text-[6px] bg-gradient-to-r from-brand to-brand-light text-white px-1 py-0.5 rounded-full font-black leading-none">V</span>
-                        )}
                       </div>
 
-                      {/* Name + morning-brief event icons (anniversaire, honeymoon, etc.) */}
+                      {/* Name + VIP crown badge + event icons */}
                       <div className="min-w-0 pr-1">
                         <div className="flex items-center gap-1.5">
+                          {room.isVip && (
+                            <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-gradient-to-r from-brand to-brand-light text-white px-1.5 py-0.5 rounded-full leading-none shrink-0">
+                              <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 6l5.5 5L12 4l3.5 7L21 6l-2 10H5zm14 3H5v-2h14v2z"/></svg>
+                              {room.vipLevel || "VIP"}
+                            </span>
+                          )}
                           <span className={`text-[11px] text-dark truncate ${
                             room.isComp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""
                           }`}>

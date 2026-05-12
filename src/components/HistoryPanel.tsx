@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckInRecord } from "@/lib/types";
 import { formatTime } from "@/lib/utils";
-import { removeCheckIn } from "@/lib/storage";
+import { removeCheckIn, getTodayData } from "@/lib/storage";
 import { useApp } from "@/contexts/AppContext";
 
 interface HistoryPanelProps {
@@ -39,6 +39,27 @@ export default function HistoryPanel({
     onUndo?.();
   };
 
+  const goToClient = (record: CheckInRecord) => {
+    // Find the client index by matching room + name (handles shared rooms)
+    const data = getTodayData();
+    if (!data) {
+      onClose();
+      router.push(`/checkin/${record.roomNumber}`);
+      return;
+    }
+    const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+    const target = norm(record.clientName);
+    const idx = data.clients.findIndex(
+      (c) => c.roomNumber === record.roomNumber && norm(c.name) === target
+    );
+    onClose();
+    router.push(
+      idx >= 0
+        ? `/checkin/${record.roomNumber}?ci=${idx}`
+        : `/checkin/${record.roomNumber}`
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 glass-dark" onClick={onClose} />
@@ -57,7 +78,12 @@ export default function HistoryPanel({
             <p className="text-muted text-center py-8">{t("history.noCheckins")}</p>
           )}
           {sorted.map((record) => (
-            <div key={record.id} className="flex items-center gap-3 p-3 glass rounded-[14px]">
+            <button
+              key={record.id}
+              onClick={() => goToClient(record)}
+              className="w-full flex items-center gap-3 p-3 glass rounded-[14px] text-left active:scale-[0.99] transition-all hover:bg-white/60 dark:hover:bg-white/[0.06]"
+              aria-label={`Voir détails ${record.clientName} chambre ${record.roomNumber}`}
+            >
               <div className="text-sm text-muted font-mono w-14 shrink-0">
                 {formatTime(record.timestamp)}
               </div>
@@ -69,8 +95,9 @@ export default function HistoryPanel({
                 <span className="glass-brand text-brand px-2.5 py-1 rounded-full text-sm font-bold">
                   {record.peopleEntered}
                 </span>
-                <button
-                  onClick={() => setConfirmUndo(record)}
+                <span
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); setConfirmUndo(record); }}
                   className="p-2.5 -m-1 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
                   aria-label={`${t("undo.confirm")} ${record.clientName}`}
                   title={t("undo.confirm")}
@@ -79,9 +106,9 @@ export default function HistoryPanel({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H7" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 6l-4 4 4 4" />
                   </svg>
-                </button>
+                </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 

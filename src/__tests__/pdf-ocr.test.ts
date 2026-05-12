@@ -132,7 +132,7 @@ describe("PDF OCR API - Input Validation", () => {
   });
 
   it("accepts a valid GEMINI_API_KEY", () => {
-    const key = "AIzaSyD_real_key_here";
+    const key: string = "AIzaSyD_real_key_here";
     const isValid = key && key !== "your_gemini_api_key_here";
     expect(isValid).toBeTruthy();
   });

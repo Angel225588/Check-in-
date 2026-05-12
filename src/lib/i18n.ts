@@ -51,6 +51,9 @@ const translations = {
   "metrics.compHint": { fr: "petit-déjeuner offert · adultes", en: "complimentary breakfast · adults" },
   "report.sourceBreakdownTitle": { fr: "Répartition par source", en: "Breakdown by source" },
   "report.sourceBreakdownDesc": { fr: "Liste · VIP hors liste · Walk-in", en: "List · Off-list VIPs · Walk-ins" },
+  "report.filterOffList": { fr: "Hors liste", en: "Off-list" },
+  "report.offListVipsTitle": { fr: "VIPs hors liste PDJ", en: "VIPs off breakfast list" },
+  "report.offListVipsDesc": { fr: "VIPs sans petit-déjeuner inclus qui sont venus — choix de paiement à confirmer", en: "VIPs without included breakfast who attended — payment choice to confirm" },
   "report.sourceList": { fr: "Liste PDJ", en: "Breakfast List" },
   "report.sourceVipOnly": { fr: "VIPs hors liste", en: "Off-list VIPs" },
   "report.sourceWalkIn": { fr: "Walk-ins", en: "Walk-ins" },
@@ -313,6 +316,7 @@ const translations = {
   // Add Guest button
   "checkin.addGuest": { fr: "Ajouter un Invité", en: "Add Guest" },
   "checkin.quickAdult": { fr: "+1 Adulte", en: "+1 Adult" },
+  "checkin.paymentQuestion": { fr: "Comment paie le client ?", en: "How does the guest pay?" },
   "checkin.quickChild": { fr: "+1 Enfant", en: "+1 Child" },
   "checkin.walkInAdult": { fr: "Walk-in adulte", en: "Walk-in adult" },
   "checkin.walkInChild": { fr: "Walk-in enfant", en: "Walk-in child" },

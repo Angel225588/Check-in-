@@ -439,7 +439,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {(todayReport.sourceBreakdown.byPayment.points + todayReport.sourceBreakdown.byPayment.paid_onsite + todayReport.sourceBreakdown.byPayment.room_charge + todayReport.sourceBreakdown.byPayment.compliment + todayReport.sourceBreakdown.byPayment.pass) > 0 && (
+              {(todayReport.sourceBreakdown.byPayment.points + todayReport.sourceBreakdown.byPayment.cash + todayReport.sourceBreakdown.byPayment.room + todayReport.sourceBreakdown.byPayment.compliment + todayReport.sourceBreakdown.byPayment.supervisor) > 0 && (
                 <div className="pt-2 border-t border-black/5 dark:border-white/8">
                   <div className="text-[8px] text-muted uppercase font-semibold mb-1.5">
                     {t("report.paymentMixOffList")}
@@ -450,11 +450,11 @@ export default function DashboardPage() {
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusPoints")}</div>
                     </div>
                     <div>
-                      <div className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.paid_onsite}</div>
+                      <div className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.cash}</div>
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusPaid")}</div>
                     </div>
                     <div>
-                      <div className="text-sm font-black text-purple-600 dark:text-purple-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.room_charge}</div>
+                      <div className="text-sm font-black text-purple-600 dark:text-purple-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.room}</div>
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusRoom")}</div>
                     </div>
                     <div>
@@ -462,7 +462,7 @@ export default function DashboardPage() {
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusCompliment")}</div>
                     </div>
                     <div>
-                      <div className="text-sm font-black text-muted tabular-nums">{todayReport.sourceBreakdown.byPayment.pass}</div>
+                      <div className="text-sm font-black text-muted tabular-nums">{todayReport.sourceBreakdown.byPayment.supervisor}</div>
                       <div className="text-[7px] text-muted uppercase">{t("reception.statusPass")}</div>
                     </div>
                   </div>

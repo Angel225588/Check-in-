@@ -29,12 +29,15 @@ export interface SourceBreakdown {
   // Walk-in = added live (not on either list)
   walkInRooms: number;
   walkInEntered: number;
-  // Payment mode totals across walk-ins + list-only VIPs
+  // Payment mode totals across walk-ins + list-only VIPs.
+  // 5 canonical modes: room (Chambre, default), points, cash, card (Carte B), supervisor.
+  // Plus compliment when the package code marks it as offered.
   byPayment: {
+    room: number;
     points: number;
-    paid_onsite: number;
-    room_charge: number;
-    pass: number;
+    cash: number;
+    card: number;
+    supervisor: number;
     compliment: number;
   };
 }
@@ -84,10 +87,11 @@ function buildSourceBreakdown(
     walkInRooms: 0,
     walkInEntered: 0,
     byPayment: {
+      room: 0,
       points: 0,
-      paid_onsite: 0,
-      room_charge: 0,
-      pass: 0,
+      cash: 0,
+      card: 0,
+      supervisor: 0,
       compliment: 0,
     },
   };
@@ -109,13 +113,16 @@ function buildSourceBreakdown(
     }
 
     // Payment breakdown — only count off-list (list_only + walk_in) since
-    // they're the ones whose payment mode reception cares about
+    // they're the ones whose payment mode reception cares about.
+    // Normalize legacy aliases: room_charge → room, pay_onsite → cash.
     if (source !== "breakfast_list" && room.entered > 0) {
+      const action = room.paymentAction;
       if (room.isComp) breakdown.byPayment.compliment += room.entered;
-      else if (room.paymentAction === "points") breakdown.byPayment.points += room.entered;
-      else if (room.paymentAction === "pay_onsite") breakdown.byPayment.paid_onsite += room.entered;
-      else if (room.paymentAction === "room_charge") breakdown.byPayment.room_charge += room.entered;
-      else if (room.paymentAction === "pass") breakdown.byPayment.pass += room.entered;
+      else if (action === "points") breakdown.byPayment.points += room.entered;
+      else if (action === "cash" || action === "pay_onsite") breakdown.byPayment.cash += room.entered;
+      else if (action === "room" || action === "room_charge") breakdown.byPayment.room += room.entered;
+      else if (action === "card") breakdown.byPayment.card += room.entered;
+      else if (action === "supervisor") breakdown.byPayment.supervisor += room.entered;
     }
   }
 

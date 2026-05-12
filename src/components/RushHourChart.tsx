@@ -23,16 +23,13 @@ function getStaffKey(date: string): string {
 }
 
 // Min width per bar (px) — ensures readable size and triggers horizontal scroll
-// when too many buckets to fit the container.
+// when too many buckets to fit the container. Larger values per Angel's feedback.
 const MIN_BAR_WIDTH: Record<BucketMinutes, number> = {
-  5: 22,
-  10: 26,
-  30: 40,
-  60: 56,
+  5: 28,
+  10: 36,
+  30: 56,
+  60: 80,
 };
-
-// Moving average window size (in buckets) — how many buckets to average.
-const MA_WINDOW = 3;
 
 interface Props {
   data: DailyData;
@@ -95,38 +92,11 @@ export default function RushHourChart({
     [slots]
   );
 
-  // Centered moving average (window = MA_WINDOW). Smoothes the curve so the
-  // chart reads like a trading chart with bars + trend line.
-  const movingAvg = useMemo(() => {
-    if (slots.length === 0) return [] as number[];
-    const half = Math.floor(MA_WINDOW / 2);
-    return slots.map((_, i) => {
-      const start = Math.max(0, i - half);
-      const end = Math.min(slots.length, i + half + 1);
-      let sum = 0;
-      for (let k = start; k < end; k++) sum += slots[k].count;
-      return sum / (end - start);
-    });
-  }, [slots]);
-
   const hasData = slots.some((s) => s.count > 0);
   const labelEvery = bucket === 5 ? 4 : bucket === 10 ? 2 : 1;
   const minBarWidth = MIN_BAR_WIDTH[bucket];
   const totalGridWidth = slots.length * (minBarWidth + 3);
-  const chartHeightClass = variant === "compact" ? "h-28" : "h-44";
-  const chartHeightPx = variant === "compact" ? 112 : 176;
-
-  // Build SVG polyline points for the moving average overlay
-  const polylinePoints = useMemo(() => {
-    if (movingAvg.length === 0) return "";
-    return movingAvg
-      .map((v, i) => {
-        const x = (i + 0.5) * (minBarWidth + 3);
-        const y = chartHeightPx - (maxCount > 0 ? (v / maxCount) * chartHeightPx : 0);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
-  }, [movingAvg, minBarWidth, maxCount, chartHeightPx]);
+  const chartHeightClass = variant === "compact" ? "h-32" : "h-52";
 
   return (
     <Card className={cn("gap-3 py-4", className)}>
@@ -214,7 +184,7 @@ export default function RushHourChart({
                   {slots.map((slot) => (
                     <div
                       key={slot.time}
-                      className="flex flex-col items-center gap-1 shrink-0"
+                      className="flex flex-col items-center gap-1 shrink-0 h-full"
                       style={{ width: `${minBarWidth}px` }}
                     >
                       <span
@@ -225,48 +195,25 @@ export default function RushHourChart({
                       >
                         {slot.count > 0 ? slot.count : ""}
                       </span>
-                      <div className="w-full relative flex-1">
+                      <div className="w-full relative flex-1 min-h-0">
                         <div
                           className={cn(
-                            "absolute bottom-0 w-full rounded-t-[4px] transition-all duration-700",
+                            "absolute bottom-0 w-full rounded-t-[10px] transition-all duration-700",
                             slot.isPeak
-                              ? "bg-gradient-to-t from-brand to-brand-light shadow-[0_0_12px_-2px] shadow-brand/40"
+                              ? "bg-brand shadow-[0_0_16px_-2px] shadow-brand/50"
                               : slot.count > 0
-                              ? "bg-brand/45 dark:bg-brand/55"
+                              ? "bg-brand/55 dark:bg-brand/65"
                               : "bg-black/[0.04] dark:bg-white/[0.04]"
                           )}
                           style={{
                             height: `${maxCount > 0 ? (slot.count / maxCount) * 100 : 0}%`,
-                            minHeight: slot.count > 0 ? "5px" : "0",
+                            minHeight: slot.count > 0 ? "20px" : "0",
                           }}
                         />
                       </div>
                     </div>
                   ))}
                 </div>
-
-                {/* Moving average line — SVG overlay */}
-                <svg
-                  className="absolute left-0 pointer-events-none"
-                  style={{
-                    top: "14px", // accounts for the count labels above the bars
-                    width: `${totalGridWidth}px`,
-                    height: `${chartHeightPx}px`,
-                  }}
-                  viewBox={`0 0 ${totalGridWidth} ${chartHeightPx}`}
-                  preserveAspectRatio="none"
-                >
-                  <polyline
-                    points={polylinePoints}
-                    fill="none"
-                    stroke="#A66914"
-                    strokeWidth="2"
-                    strokeOpacity="0.85"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeDasharray="4 3"
-                  />
-                </svg>
 
                 {/* X-axis labels — same min-width grid */}
                 <div className="flex items-start gap-[3px] mt-1.5">
@@ -297,13 +244,6 @@ export default function RushHourChart({
               <span className="text-muted">
                 <span className="font-bold tabular-nums text-dark">{totalEntered}</span>{" "}
                 {t("report.persons").toLowerCase()}
-              </span>
-              <span className="inline-flex items-center gap-1 text-muted">
-                <span
-                  className="inline-block w-3 h-[2px] bg-brand rounded-full"
-                  style={{ borderTop: "2px dashed #A66914" }}
-                />
-                {t("chart.movingAvg")}
               </span>
               {peak && (
                 <span className="text-muted">

@@ -162,9 +162,9 @@ function buildDay(date: string): { clients: Client[]; checkIns: CheckInRecord[] 
       // Payment action for off-list entries
       let paymentAction: string | undefined;
       if (c.vipSource === "list_only") {
-        paymentAction = pick(["points", "pay_onsite", "room_charge"]);
+        paymentAction = pick(["points", "cash", "room", "card"]);
       } else if (c.vipSource === "walk_in") {
-        paymentAction = pick(["pay_onsite", "points"]);
+        paymentAction = pick(["cash", "card", "room"]);
       }
 
       checkIns.push({

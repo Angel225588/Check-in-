@@ -461,8 +461,8 @@ export default function DirectionDashboardPage() {
       if (todayReport.sourceBreakdown.walkInRooms > 0) {
         const paid =
           todayReport.sourceBreakdown.byPayment.points +
-          todayReport.sourceBreakdown.byPayment.paid_onsite +
-          todayReport.sourceBreakdown.byPayment.room_charge;
+          todayReport.sourceBreakdown.byPayment.cash +
+          todayReport.sourceBreakdown.byPayment.room;
         const free = todayReport.sourceBreakdown.byPayment.compliment;
         if (free > paid && paid + free > 0) {
           out.push({

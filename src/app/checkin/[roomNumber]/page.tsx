@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { Client, CheckInRecord } from "@/lib/types";
 import { getTodayData, addCheckIn, updateClient, getSettings, addClient } from "@/lib/storage";
-import { getRemainingForRoom, isComp } from "@/lib/utils";
+import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import QuickAddGuest from "@/components/QuickAddGuest";
@@ -26,7 +26,9 @@ export default function CheckInPage({
   const [remaining, setRemaining] = useState(0);
   const [count, setCount] = useState(1);
   const [checkInSuccess, setCheckInSuccess] = useState(false);
-  const [paymentAction, setPaymentAction] = useState<string | null>(null);
+  // Default = Chambre (room charge). Reception is required to ASK the guest;
+  // the UI prompts even when the default is fine, so the question gets asked.
+  const [paymentAction, setPaymentAction] = useState<string | null>("room");
   const [editingRoom, setEditingRoom] = useState(false);
   const [editRoom, setEditRoom] = useState("");
   const [editingPeople, setEditingPeople] = useState(false);
@@ -36,6 +38,7 @@ export default function CheckInPage({
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [todayCheckIns, setTodayCheckIns] = useState<CheckInRecord[]>([]);
   const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
+  const [quickAddPopup, setQuickAddPopup] = useState<{ kind: "adult" | "child" } | null>(null);
 
   useEffect(() => {
     const data = getTodayData();
@@ -194,8 +197,25 @@ export default function CheckInPage({
       )}
 
       {/* Header area with brand gradient */}
-      <div className="shrink-0 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3" />
+      <div className={`shrink-0 relative overflow-hidden mx-3 mt-3 rounded-[20px] ${
+        client.isVip ? "vip-glow" : ""
+      }`}>
+        <div className={
+          client.isVip
+            ? "absolute inset-0 bg-gradient-to-br from-brand/25 via-brand-light/15 to-brand/20 dark:from-brand/30 dark:via-brand-light/20 dark:to-brand/25"
+            : "absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3"
+        } />
+        {client.isVip && (
+          <>
+            {/* Halo doré — diffusion radiale subtile */}
+            <div className="absolute inset-0 pointer-events-none" style={{
+              background: "radial-gradient(circle at 70% 30%, rgba(221,156,40,0.18), transparent 60%)",
+            }} />
+            {/* Bordure inférieure dorée — délimite la card VIP */}
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand to-transparent" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-[3px] bg-gradient-to-r from-transparent via-brand-light to-transparent blur-sm" />
+          </>
+        )}
         <div className="relative px-4 pt-3 pb-4">
           <button
             onClick={() => router.push("/search")}
@@ -340,42 +360,68 @@ export default function CheckInPage({
           </button>
         )}
 
-        {/* Payment tabs — for clients not on breakfast list */}
-        {showPaymentTabs && (
-          <div className="shrink-0 mb-3">
-            <div className="text-[10px] text-muted uppercase tracking-wide mb-1.5 font-medium">{t("checkin.paymentMethod")}</div>
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ touchAction: "pan-x" }}>
-              {[
-                { key: "pdj", label: "PDJ", icon: "🥐" },
-                { key: "card", label: t("checkin.payCard"), icon: "💳" },
-                { key: "room", label: t("checkin.payRoom"), icon: "🏨" },
-                { key: "points", label: t("checkin.payPoints"), icon: "⭐" },
-                { key: "cash", label: "Cash", icon: "💵" },
-                { key: "pass", label: t("checkin.payPass"), icon: "→" },
-                { key: "reception", label: "Réception", icon: "🔔" },
-                { key: "supervisor", label: "Supervisor", icon: "👤" },
-              ].map((opt) => (
+        {/* Mode de paiement — 5 gros boutons 3D Aurelle style.
+            Défaut : Chambre. La réception doit DEMANDER au client.
+            Affiché UNIQUEMENT quand le petit-déjeuner n'est pas déjà inclus
+            dans le forfait (off-list VIPs ou clients sans BKF INC/GRP/etc.) */}
+        {needsPaymentChoice(client) && (
+        <div className="shrink-0 mb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] text-muted uppercase tracking-wide font-medium">
+              {t("checkin.paymentMethod")}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[9px] text-brand bg-brand/10 px-2 py-0.5 rounded-full">
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+              demande au client
+            </span>
+          </div>
+          <div className="grid grid-cols-5 gap-1.5">
+            {[
+              { key: "room",       label: "Chambre",    icon: "🏨" },
+              { key: "points",     label: "Points",     icon: "⭐" },
+              { key: "cash",       label: "Cash",       icon: "💵" },
+              { key: "card",       label: "Carte B",    icon: "💳" },
+              { key: "supervisor", label: "Supervisor", icon: "👤" },
+            ].map((opt) => {
+              const active = paymentAction === opt.key;
+              return (
                 <button
                   key={opt.key}
                   onClick={() => {
-                    const newAction = paymentAction === opt.key ? null : opt.key;
-                    setPaymentAction(newAction);
+                    setPaymentAction(opt.key);
                     if (clientIndex !== null) {
-                      updateClient(clientIndex, { pendingPaymentAction: newAction || undefined });
+                      updateClient(clientIndex, { pendingPaymentAction: opt.key });
                     }
                   }}
-                  className={`shrink-0 py-2.5 px-4 rounded-xl text-center transition-all active:scale-[0.95] ${
-                    paymentAction === opt.key
-                      ? "bg-brand text-white shadow-md shadow-brand/20 font-bold"
-                      : "glass-liquid text-dark font-medium"
+                  className={`flex flex-col items-center justify-center gap-1 py-3 rounded-[16px] transition-all active:scale-[0.94] ${
+                    active
+                      ? "bg-dark text-white shadow-lg shadow-black/30 dark:bg-white dark:text-black"
+                      : "glass-liquid text-dark"
                   }`}
+                  aria-pressed={active}
                 >
-                  <div className="text-lg leading-none mb-0.5">{opt.icon}</div>
-                  <div className="text-[10px] leading-tight whitespace-nowrap">{opt.label}</div>
+                  <span
+                    className={`w-9 h-9 rounded-[12px] grid place-items-center text-lg ${
+                      active
+                        ? "bg-gradient-to-br from-brand to-brand-light shadow-inner"
+                        : "bg-black/[0.04] dark:bg-white/[0.06]"
+                    }`}
+                    style={
+                      active
+                        ? { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 12px -4px rgba(166,105,20,0.5)" }
+                        : { boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 4px -2px rgba(0,0,0,0.06)" }
+                    }
+                  >
+                    {opt.icon}
+                  </span>
+                  <span className={`text-[10px] font-bold leading-none ${active ? "" : "text-dark/80"}`}>
+                    {opt.label}
+                  </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
         )}
 
         <div className="shrink-0 grid grid-cols-2 gap-2 mb-3">
@@ -418,35 +464,28 @@ export default function CheckInPage({
           }}
         />
 
-        {/* Quick add — anonymous walk-ins (no name required) */}
+        {/* Quick add — incrémente le client EN PLACE (jamais de nouvelle chambre).
+            Ouvre un popup paiement quand nécessaire (sinon ajoute direct). */}
         <div className="shrink-0 mb-3 grid grid-cols-3 gap-2">
           <button
             onClick={() => {
-              const ts = Date.now();
-              const newClient: Client = {
-                roomNumber: client.roomNumber,
-                roomType: "",
-                rtc: "",
-                confirmationNumber: "",
-                name: `${t("checkin.walkInAdult")} ${ts.toString().slice(-4)}`,
-                arrivalDate: "",
-                departureDate: "",
-                reservationStatus: "",
-                adults: 1,
-                children: 0,
-                rateCode: "",
-                packageCode: "",
-                vipSource: "walk_in",
-              };
-              addClient(newClient);
-              const data = getTodayData();
-              if (data) {
-                const newIndex = data.clients.length - 1;
-                router.push(`/checkin/${client.roomNumber}?ci=${newIndex}`);
+              // Si paiement nécessaire (off-list ou pas de package BKF) → popup
+              if (needsPaymentChoice(client)) {
+                setQuickAddPopup({ kind: "adult" });
+              } else {
+                // VIP avec PDJ inclus → ajout direct, gratuit
+                if (clientIndex !== null) {
+                  updateClient(clientIndex, { adults: client.adults + 1 });
+                  const data = getTodayData();
+                  if (data && data.clients[clientIndex]) {
+                    setClient({ ...data.clients[clientIndex] });
+                    setRemaining(getRemainingForRoom(data.clients[clientIndex], data.checkIns));
+                  }
+                }
               }
             }}
             className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.96] transition-all"
-            aria-label="Ajouter un adulte rapide"
+            aria-label="Ajouter un adulte"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -455,31 +494,21 @@ export default function CheckInPage({
           </button>
           <button
             onClick={() => {
-              const ts = Date.now();
-              const newClient: Client = {
-                roomNumber: client.roomNumber,
-                roomType: "",
-                rtc: "",
-                confirmationNumber: "",
-                name: `${t("checkin.walkInChild")} ${ts.toString().slice(-4)}`,
-                arrivalDate: "",
-                departureDate: "",
-                reservationStatus: "",
-                adults: 0,
-                children: 1,
-                rateCode: "",
-                packageCode: "",
-                vipSource: "walk_in",
-              };
-              addClient(newClient);
-              const data = getTodayData();
-              if (data) {
-                const newIndex = data.clients.length - 1;
-                router.push(`/checkin/${client.roomNumber}?ci=${newIndex}`);
+              if (needsPaymentChoice(client)) {
+                setQuickAddPopup({ kind: "child" });
+              } else {
+                if (clientIndex !== null) {
+                  updateClient(clientIndex, { children: client.children + 1 });
+                  const data = getTodayData();
+                  if (data && data.clients[clientIndex]) {
+                    setClient({ ...data.clients[clientIndex] });
+                    setRemaining(getRemainingForRoom(data.clients[clientIndex], data.checkIns));
+                  }
+                }
               }
             }}
             className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.96] transition-all"
-            aria-label="Ajouter un enfant rapide"
+            aria-label="Ajouter un enfant"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -541,6 +570,76 @@ export default function CheckInPage({
           }
         }}
       />
+
+      {/* Quick-add payment popup — incrémente le client courant + paiement */}
+      {quickAddPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-[fadeIn_0.18s_ease-out]"
+          onClick={() => setQuickAddPopup(null)}
+        >
+          <div
+            className="w-full sm:max-w-md bg-[#FBF8F3] dark:bg-[#14141A] rounded-t-[24px] sm:rounded-[24px] p-5 pb-7 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4 sm:hidden" />
+            <div className="text-center mb-4">
+              <h3 className="text-base font-black text-dark">
+                +1 {quickAddPopup.kind === "adult" ? t("checkin.quickAdult").replace("+1 ", "") : t("checkin.quickChild").replace("+1 ", "")}
+              </h3>
+              <p className="text-xs text-muted mt-1">{t("checkin.paymentQuestion")}</p>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {[
+                { key: "room",       label: "Chambre",    icon: "🏨" },
+                { key: "points",     label: "Points",     icon: "⭐" },
+                { key: "cash",       label: "Cash",       icon: "💵" },
+                { key: "card",       label: "Carte B",    icon: "💳" },
+                { key: "supervisor", label: "Supervisor", icon: "👤" },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    if (clientIndex === null) return;
+                    if (quickAddPopup.kind === "adult") {
+                      updateClient(clientIndex, {
+                        adults: client.adults + 1,
+                        pendingPaymentAction: opt.key,
+                      });
+                    } else {
+                      updateClient(clientIndex, {
+                        children: client.children + 1,
+                        pendingPaymentAction: opt.key,
+                      });
+                    }
+                    const data = getTodayData();
+                    if (data && data.clients[clientIndex]) {
+                      setClient({ ...data.clients[clientIndex] });
+                      setRemaining(getRemainingForRoom(data.clients[clientIndex], data.checkIns));
+                      setPaymentAction(opt.key);
+                    }
+                    setQuickAddPopup(null);
+                  }}
+                  className="flex flex-col items-center justify-center gap-1 py-3 rounded-[14px] glass-liquid active:scale-[0.94] transition-all"
+                >
+                  <span
+                    className="w-9 h-9 rounded-[12px] grid place-items-center text-lg bg-black/[0.04] dark:bg-white/[0.06]"
+                    style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 4px -2px rgba(0,0,0,0.06)" }}
+                  >
+                    {opt.icon}
+                  </span>
+                  <span className="text-[10px] font-bold leading-none text-dark/80">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setQuickAddPopup(null)}
+              className="w-full mt-4 py-2.5 rounded-full text-sm font-medium text-muted glass-liquid"
+            >
+              {t("checkin.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes fadeIn {

@@ -573,3 +573,23 @@ html.dark .aur-gate { background: rgba(0, 0, 0, 0.65); }
   60% { transform: translateX(-3px); }
   80% { transform: translateX(3px); }
 }
+
+/* ─────────────────────────────────────────────
+   VIP glow — premium card halo for /checkin profile
+   ───────────────────────────────────────────── */
+.vip-glow {
+  /* Light mode — gold border + multi-layer outer glow */
+  box-shadow:
+    0 0 0 1.5px rgba(166, 105, 20, 0.45) inset,
+    0 4px 14px -4px rgba(166, 105, 20, 0.55),
+    0 10px 30px -8px rgba(221, 156, 40, 0.55),
+    0 0 70px -8px rgba(221, 156, 40, 0.40);
+}
+html.dark .vip-glow {
+  /* Dark mode — brighter gold glow against the dark canvas */
+  box-shadow:
+    0 0 0 1.5px rgba(221, 156, 40, 0.50) inset,
+    0 4px 14px -4px rgba(221, 156, 40, 0.55),
+    0 14px 40px -8px rgba(221, 156, 40, 0.65),
+    0 0 90px -8px rgba(221, 156, 40, 0.50);
+}

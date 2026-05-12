@@ -126,9 +126,9 @@ export function computeMonthlyStats(
 
     const report = generateDayReport(day.clients, day.checkIns);
     totalExtras += report.totalExtras;
-    walkInPaid += report.sourceBreakdown.byPayment.paid_onsite;
+    walkInPaid += report.sourceBreakdown.byPayment.cash + report.sourceBreakdown.byPayment.card;
     walkInPoints += report.sourceBreakdown.byPayment.points;
-    walkInRoom += report.sourceBreakdown.byPayment.room_charge;
+    walkInRoom += report.sourceBreakdown.byPayment.room;
     walkInCompliment += report.sourceBreakdown.byPayment.compliment;
 
     // VIP attendance — count VIPs that actually had a check-in

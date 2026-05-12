@@ -45,10 +45,14 @@ function deriveStatus(
   switch (ci.paymentAction) {
     case "points":
       return "came_points";
+    case "cash":
     case "pay_onsite":
-      return "came_paid_onsite";
+    case "card":
+      return "came_paid_onsite"; // legacy enum kept; covers cash + card
+    case "room":
     case "room_charge":
       return "came_room_charge";
+    case "supervisor":
     case "pass":
       return "came_pass";
     default:

@@ -191,7 +191,9 @@ describe("OCR API - Gemini Response Scenarios", () => {
   });
 
   it("handles Gemini returning null/undefined text", () => {
-    const result = { candidates: [{ content: { parts: [{}] } }] };
+    const result: { candidates: Array<{ content: { parts: Array<{ text?: string }> } }> } = {
+      candidates: [{ content: { parts: [{}] } }],
+    };
     const textContent =
       result.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
     expect(textContent).toBe("[]");
@@ -199,7 +201,9 @@ describe("OCR API - Gemini Response Scenarios", () => {
   });
 
   it("handles Gemini returning completely empty candidates", () => {
-    const result = { candidates: [] };
+    const result: { candidates: Array<{ content: { parts: Array<{ text?: string }> } }> } = {
+      candidates: [],
+    };
     const textContent =
       result.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
     expect(textContent).toBe("[]");

@@ -86,6 +86,27 @@ export function isComp(client: Client): boolean {
   return client.packageCode.toUpperCase().replace(/\s+/g, " ").includes("BKF COMP");
 }
 
+/**
+ * True when reception must ASK the guest how they want to pay.
+ *
+ * The 5-button payment selector should appear ONLY when the breakfast
+ * is not already covered by the booking. VIPs whose package includes
+ * breakfast (BKF INC / BKF GRP / BKF EXCL / BKF COMP / UPSFPDJ) do not
+ * need to be asked — it's already paid.
+ *
+ * Returns true for:
+ *  - Off-list guests (vipSource = list_only or walk_in)
+ *  - Anyone with no recognised breakfast package code
+ */
+export function needsPaymentChoice(client: Client): boolean {
+  if (client.vipSource === "list_only" || client.vipSource === "walk_in") return true;
+  const pkg = (client.packageCode || "").toUpperCase().replace(/\s+/g, " ");
+  // Breakfast covered by the booking — no need to ask
+  const includes =
+    /BKF\s*(INC|GRP|EXCL|COMP|GTT)|UPSFPDJ/.test(pkg);
+  return !includes;
+}
+
 export function getRoomStatusCounts(
   clients: Client[],
   checkIns: CheckInRecord[]
