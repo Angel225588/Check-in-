@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
 
@@ -34,10 +35,12 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
-        {/* Prevent dark mode flash — apply .dark class before first paint */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var d=localStorage.getItem("app-dark");if(d==="true"||(d===null&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark")}catch(e){}})()` }} />
       </head>
       <body className="bg-bg-alt text-dark min-h-screen">
+        {/* Prevent dark mode flash — runs before first paint via beforeInteractive */}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function(){try{var d=localStorage.getItem("app-dark");if(d==="true"||(d===null&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark")}catch(e){}})()`}
+        </Script>
         <AppProvider>
           {children}
         </AppProvider>

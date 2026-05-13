@@ -1,108 +1,433 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DailyData } from "@/lib/types";
-import { getRemainingForRoom, isComp, formatTime, getRoomStatusCounts } from "@/lib/utils";
-import { useApp } from "@/contexts/AppContext";
-import AnimatedNumber from "@/components/AnimatedNumber";
-import RushHourChart from "@/components/RushHourChart";
-import { generateDayReport } from "@/lib/report";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, Crown, Footprints, TrendingUp, Package, FileText, Copy, Check } from "lucide-react";
-import { computeMonthlyStats, formatMonthlyStatsMarkdown } from "@/lib/monthly-stats";
+import {
+  ShieldCheck,
+  ArrowUp,
+  ArrowDown,
+  Clock,
+  Gift,
+  Users,
+  Footprints,
+  WarningCircle,
+  CheckCircle,
+  TrendUp,
+  CaretLeft,
+  Copy,
+  Check,
+  Calendar,
+  Star,
+  Pencil,
+  ChatCircleDots,
+  Repeat,
+} from "@phosphor-icons/react/dist/ssr";
 import {
   getHistoricalData,
-  getDataForRange,
-  getSettings,
-  saveSettings,
   getTodayData,
   getSessionHistory,
+  getDataForDate,
+  getSettings,
+  saveSettings,
 } from "@/lib/storage";
+import { seedDemoMonths } from "@/lib/mock-seeder";
+import { getTopPackages } from "@/lib/analytics";
 import {
-  getDailySnapshot,
-  getRushHourSlots,
-  getTrendData,
-  getPeriodStats,
-  getTopPackages,
-} from "@/lib/analytics";
+  computeMonthlyStats,
+  formatMonthlyStatsMarkdown,
+} from "@/lib/monthly-stats";
+import { generateDayReport } from "@/lib/report";
+import {
+  getMorningBrief,
+  type GSSScore,
+  type ClientComment,
+} from "@/lib/morning-brief";
+import type { DailyData } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-type ViewMode = "today" | "7days" | "custom";
-type MetricFilter = "all" | "show" | "noshow" | "comp" | null;
+type Range = "1J" | "7J" | "30J" | "3M" | "6M";
 
-/* ── Donut Ring ── */
-function DonutRing({ percent, size = 100, stroke = 8 }: { percent: number; size?: number; stroke?: number }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = mounted ? circ - (Math.min(percent, 100) / 100) * circ : circ;
-  const color = percent >= 70 ? "stroke-green-500 dark:stroke-green-400" : percent >= 40 ? "stroke-brand" : "stroke-red-500 dark:stroke-red-400";
+interface DayPoint {
+  date: string;
+  pax: number;
+  isToday: boolean;
+  dow: number;
+  label: string;
+  mavg: number;
+}
+
+function applyMovingAverage(pts: DayPoint[], window: number) {
+  for (let i = 0; i < pts.length; i++) {
+    const start = Math.max(0, i - Math.floor(window / 2));
+    const end = Math.min(pts.length, i + Math.ceil(window / 2));
+    let sum = 0;
+    for (let k = start; k < end; k++) sum += pts[k].pax;
+    pts[i].mavg = sum / (end - start);
+  }
+}
+
+function buildSeries(history: DailyData[], days: number): DayPoint[] {
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const map = new Map<string, DailyData>();
+  for (const d of history) map.set(d.date, d);
+
+  const out: DayPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    const data = map.get(dateStr);
+    const pax = data
+      ? data.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0)
+      : 0;
+    out.push({
+      date: dateStr,
+      pax,
+      isToday: dateStr === todayStr,
+      dow: d.getDay(),
+      label: d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
+      mavg: 0,
+    });
+  }
+  applyMovingAverage(out, 7);
+  return out;
+}
+
+function buildWeeklySeries(history: DailyData[]): DayPoint[] {
+  // 13 weeks ending today (~3 months) → ~13 chunky bars
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const map = new Map<string, DailyData>();
+  for (const d of history) map.set(d.date, d);
+
+  const out: DayPoint[] = [];
+  for (let w = 12; w >= 0; w--) {
+    let weekPax = 0;
+    let containsToday = false;
+    let weekStart: Date | null = null;
+    for (let dd = 6; dd >= 0; dd--) {
+      const offset = w * 7 + dd;
+      const d = new Date(today);
+      d.setDate(d.getDate() - offset);
+      const dateStr = d.toISOString().split("T")[0];
+      weekStart = d;
+      const data = map.get(dateStr);
+      if (data) weekPax += data.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0);
+      if (dateStr === todayStr) containsToday = true;
+    }
+    const ws = weekStart!;
+    out.push({
+      date: ws.toISOString().split("T")[0],
+      pax: weekPax,
+      isToday: containsToday,
+      dow: 0,
+      label: `${String(ws.getDate()).padStart(2, "0")}/${String(ws.getMonth() + 1).padStart(2, "0")}`,
+      mavg: 0,
+    });
+  }
+  applyMovingAverage(out, 3);
+  return out;
+}
+
+function buildMonthlySeries(history: DailyData[]): DayPoint[] {
+  // Last 6 months → 6 bars
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const map = new Map<string, DailyData>();
+  for (const d of history) map.set(d.date, d);
+
+  const out: DayPoint[] = [];
+  for (let m = 5; m >= 0; m--) {
+    const monthStart = new Date(today.getFullYear(), today.getMonth() - m, 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() - m + 1, 0);
+    let monthPax = 0;
+    let containsToday = false;
+    for (let dd = 1; dd <= monthEnd.getDate(); dd++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - m, dd);
+      const dateStr = d.toISOString().split("T")[0];
+      if (dateStr === todayStr) containsToday = true;
+      const data = map.get(dateStr);
+      if (data) monthPax += data.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0);
+    }
+    out.push({
+      date: monthStart.toISOString().split("T")[0],
+      pax: monthPax,
+      isToday: containsToday,
+      dow: 0,
+      label: monthStart.toLocaleDateString("fr-FR", { month: "short" }).replace(".", ""),
+      mavg: 0,
+    });
+  }
+  applyMovingAverage(out, 3);
+  return out;
+}
+
+function smoothPath(pts: Array<[number, number]>): string {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M ${pts[0][0]},${pts[0][1]}`;
+  const segs: string[] = [`M ${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const t = 0.2;
+    const cp1x = p1[0] + (p2[0] - p0[0]) * t;
+    const cp1y = p1[1] + (p2[1] - p0[1]) * t;
+    const cp2x = p2[0] - (p3[0] - p1[0]) * t;
+    const cp2y = p2[1] - (p3[1] - p1[1]) * t;
+    segs.push(
+      `C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`
+    );
+  }
+  return segs.join(" ");
+}
+
+function Delta({ pct }: { pct: number }) {
+  if (pct === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted bg-black/[0.04] dark:bg-white/[0.06] px-1.5 py-0.5 rounded-md">
+        —
+      </span>
+    );
+  }
+  const positive = pct > 0;
   return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} className="stroke-black/[0.04] dark:stroke-white/[0.06]" />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
-        className={color} strokeLinecap="round"
-        strokeDasharray={circ} strokeDashoffset={offset}
-        style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(.25,.46,.45,.94)" }} />
-    </svg>
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md",
+        positive
+          ? "text-green-700 dark:text-green-400 bg-green-500/15"
+          : "text-error bg-error/15"
+      )}
+    >
+      {positive ? <ArrowUp size={10} weight="bold" /> : <ArrowDown size={10} weight="bold" />}
+      {positive ? "+" : ""}
+      {pct}%
+    </span>
   );
 }
 
+function TimeToggle({
+  value,
+  onChange,
+}: {
+  value: Range;
+  onChange: (v: Range) => void;
+}) {
+  const opts: Range[] = ["1J", "7J", "30J", "3M", "6M"];
+  return (
+    <div className="inline-flex p-0.5 glass-liquid rounded-full gap-0.5">
+      {opts.map((o) => (
+        <button
+          key={o}
+          aria-pressed={value === o}
+          onClick={() => onChange(o)}
+          className={cn(
+            "appearance-none border-0 text-[11px] font-mono font-bold px-2.5 py-1.5 rounded-full transition-all",
+            value === o
+              ? "bg-dark text-white dark:bg-white dark:text-black"
+              : "bg-transparent text-muted hover:text-dark"
+          )}
+        >
+          {o}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TradingChart({ series }: { series: DayPoint[] }) {
+  if (series.length === 0) return null;
+  const w = 1000;
+  const h = 260;
+  const padL = 32;
+  const padR = 16;
+  const padT = 24;
+  const padB = 32;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
+  const max = Math.max(...series.map((d) => d.pax), 1) * 1.15;
+  const total = series.reduce((s, d) => s + d.pax, 0);
+  const avg = total / series.length;
+  const bw = innerW / series.length;
+  const xy = (i: number, v: number): [number, number] => [
+    padL + i * bw + bw / 2,
+    padT + innerH - (v / max) * innerH,
+  ];
+
+  const maxBarW = 90;
+  const minBarW = 6;
+  const mavgPath = smoothPath(series.map((d, i) => xy(i, d.mavg)));
+
+  return (
+    <div className="w-full">
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        width="100%"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ display: "block", maxHeight: 320 }}
+      >
+        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
+          const y = padT + innerH - p * innerH;
+          return (
+            <line
+              key={i}
+              x1={padL}
+              x2={w - padR}
+              y1={y}
+              y2={y}
+              stroke="currentColor"
+              strokeOpacity="0.06"
+              strokeWidth="0.5"
+              className="text-dark"
+            />
+          );
+        })}
+
+        {series.map((d, i) => {
+          const yTop = padT + innerH - (d.pax / max) * innerH;
+          const barW = Math.min(maxBarW, Math.max(minBarW, bw - 6));
+          const above = d.pax >= avg;
+          const [cx] = xy(i, 0);
+          return (
+            <g key={i}>
+              <rect
+                x={cx - barW / 2}
+                y={yTop}
+                width={barW}
+                height={Math.max(0, padT + innerH - yTop)}
+                rx={6}
+                ry={6}
+                fill={d.isToday ? "#A66914" : above ? "currentColor" : "#A89E8C"}
+                opacity={d.isToday ? 1 : above ? 0.92 : 0.7}
+                className="text-dark"
+              >
+                <title>{`${d.label}: ${d.pax} pax`}</title>
+              </rect>
+              {d.pax > 0 && (
+                <text
+                  x={cx}
+                  y={yTop - 6}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontWeight="700"
+                  fill={d.isToday ? "#A66914" : "currentColor"}
+                  className="text-dark"
+                >
+                  {d.pax}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        <path
+          d={mavgPath}
+          fill="none"
+          stroke="#A66914"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        <line
+          x1={padL}
+          x2={w - padR}
+          y1={padT + innerH - (avg / max) * innerH}
+          y2={padT + innerH - (avg / max) * innerH}
+          stroke="currentColor"
+          strokeOpacity="0.25"
+          strokeWidth="0.5"
+          strokeDasharray="2 4"
+          className="text-muted"
+        />
+
+        {series.map((d, i) => {
+          const stride = Math.max(1, Math.floor(series.length / 10));
+          if (i % stride !== 0 && !d.isToday) return null;
+          const [x] = xy(i, 0);
+          return (
+            <text
+              key={i}
+              x={x}
+              y={h - 8}
+              textAnchor="middle"
+              fontSize="10"
+              fontFamily="ui-monospace,monospace"
+              fill={d.isToday ? "#A66914" : "currentColor"}
+              opacity={d.isToday ? 1 : 0.55}
+              className="text-dark"
+            >
+              {d.label}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+interface StaffingAlert {
+  date: string;
+  dateLabel: string;
+  occupancyPercent: number;
+  severity: "warn" | "danger";
+  message: string;
+}
+
+function buildStaffingAlerts(): StaffingAlert[] {
+  const brief = getMorningBrief();
+  if (!brief || brief.forecast.length === 0) return [];
+  const out: StaffingAlert[] = [];
+  for (const f of brief.forecast) {
+    if (f.occupancyPercent >= 95) {
+      out.push({
+        date: f.date,
+        dateLabel: f.date,
+        occupancyPercent: f.occupancyPercent,
+        severity: "danger",
+        message: "Renforcer équipe (+2 pers) — appeler aujourd'hui",
+      });
+    } else if (f.occupancyPercent >= 80) {
+      out.push({
+        date: f.date,
+        dateLabel: f.date,
+        occupancyPercent: f.occupancyPercent,
+        severity: "warn",
+        message: "Prévoir +1 personne 08h-09h",
+      });
+    }
+  }
+  return out;
+}
+
+const EYEBROW =
+  "text-[10px] text-muted uppercase tracking-wider font-bold";
+
 export default function DashboardPage() {
   const router = useRouter();
-  const { t } = useApp();
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window === "undefined") return "today";
-    return getTodayData() ? "today" : "7days";
-  });
-  const [costPerCover, setCostPerCover] = useState(26);
-  const [editingCost, setEditingCost] = useState(false);
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
-  const [historicalData, setHistoricalData] = useState<DailyData[]>([]);
+  const [range, setRange] = useState<Range>("7J");
+  const [history, setHistory] = useState<DailyData[]>([]);
   const [todayData, setTodayData] = useState<DailyData | null>(null);
-  const [refreshed, setRefreshed] = useState(false);
-  const [clientSearch, setClientSearch] = useState("");
-  const [showAllClients, setShowAllClients] = useState(false);
-  const [metricFilter, setMetricFilter] = useState<MetricFilter>(null);
+  const [costPerCover, setCostPerCover] = useState(26);
+  const [copied, setCopied] = useState(false);
+  const [seedBusy, setSeedBusy] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [tempPrice, setTempPrice] = useState("26");
 
-  const loadData = () => {
-    const settings = getSettings();
-    setCostPerCover(settings.costPerCover);
-    let today = getTodayData();
-    if (!today) {
-      const todayStr = new Date().toISOString().split("T")[0];
-      const cs = getSessionHistory().find((s) => s.date === todayStr);
-      if (cs) today = { date: cs.date, clients: cs.clients, checkIns: cs.checkIns, rawUploadText: cs.rawUploadText };
-    }
-    setTodayData(today);
-    // Default to 7 days on mount; user can switch to longer ranges via tabs.
-    setHistoricalData(getHistoricalData(7));
-  };
+  useEffect(() => {
+    setMounted(true);
+    setCostPerCover(getSettings().costPerCover);
+    setHistory(getHistoricalData(180));
+    setTodayData(getTodayData());
+  }, []);
 
-  useEffect(() => { loadData(); }, []);
-
-  const handleRefresh = () => { loadData(); setRefreshed(true); setTimeout(() => setRefreshed(false), 2000); };
-  const handleCostSave = () => { saveSettings({ costPerCover }); setEditingCost(false); };
-  const handleCustomRange = () => { if (customStart && customEnd) { setHistoricalData(getDataForRange(customStart, customEnd)); setViewMode("custom"); } };
-  const handleMetricTap = (f: MetricFilter) => { setMetricFilter(metricFilter === f ? null : f); setShowAllClients(false); setClientSearch(""); };
-
-  const snapshot = useMemo(() => (todayData ? getDailySnapshot(todayData, costPerCover) : null), [todayData, costPerCover]);
-  const todayReport = useMemo(
-    () => (todayData ? generateDayReport(todayData.clients, todayData.checkIns) : null),
-    [todayData]
-  );
-  const topPackages = useMemo(
-    () => (historicalData.length > 0 ? getTopPackages(historicalData, 3) : []),
-    [historicalData]
-  );
-
-  // Monthly stats — built from the full session history (not just current view)
   const monthData = useMemo(() => {
+    if (!mounted) return [];
     const byDate = new Map<string, DailyData>();
-    for (const d of historicalData) byDate.set(d.date, d);
-    // Always pull session history for the full month coverage
+    for (const d of history) byDate.set(d.date, d);
     for (const s of getSessionHistory()) {
       if (!byDate.has(s.date)) {
         byDate.set(s.date, {
@@ -113,740 +438,943 @@ export default function DashboardPage() {
         });
       }
     }
-    if (todayData && !byDate.has(todayData.date)) {
-      byDate.set(todayData.date, todayData);
-    }
+    if (todayData && !byDate.has(todayData.date)) byDate.set(todayData.date, todayData);
     return Array.from(byDate.values());
-  }, [historicalData, todayData]);
+  }, [mounted, history, todayData]);
 
-  const monthlyStats = useMemo(
+  const stats = useMemo(
     () => computeMonthlyStats(monthData, costPerCover),
     [monthData, costPerCover]
   );
 
-  const [statsCopied, setStatsCopied] = useState(false);
-  const handleCopyMonthlyStats = async () => {
-    const md = formatMonthlyStatsMarkdown(monthlyStats);
+  const todayReport = useMemo(
+    () => (todayData ? generateDayReport(todayData.clients, todayData.checkIns) : null),
+    [todayData]
+  );
+
+  const yesterdayPercent = useMemo(() => {
+    if (!mounted) return null;
+    const today = new Date();
+    const yest = new Date(today);
+    yest.setDate(yest.getDate() - 1);
+    const dateStr = yest.toISOString().split("T")[0];
+    const sessions = getSessionHistory();
+    const sess = sessions.find((s) => s.date === dateStr);
+    const data = sess ? { clients: sess.clients, checkIns: sess.checkIns } : getDataForDate(dateStr);
+    if (!data) return null;
+    const expected = data.clients.reduce((s, c) => s + c.adults + c.children, 0);
+    if (expected === 0) return null;
+    const entered = data.checkIns.reduce((s, c) => s + c.peopleEntered, 0);
+    return Math.min(100, Math.round((entered / expected) * 100));
+  }, [mounted]);
+
+  const todayPercent = todayReport && todayReport.totalGuests > 0
+    ? Math.min(100, Math.round((todayReport.totalEntered / todayReport.totalGuests) * 100))
+    : 0;
+  const deltaService = yesterdayPercent !== null ? todayPercent - yesterdayPercent : 0;
+
+  const walkInPax = todayReport?.sourceBreakdown
+    ? todayReport.sourceBreakdown.walkInEntered + todayReport.sourceBreakdown.vipListOnlyEntered
+    : 0;
+  const walkInRevenue = todayReport?.sourceBreakdown
+    ? (todayReport.sourceBreakdown.byPayment.cash +
+        todayReport.sourceBreakdown.byPayment.card +
+        todayReport.sourceBreakdown.byPayment.room) * costPerCover
+    : 0;
+
+  const health: { label: string; cls: string } = useMemo(() => {
+    if (todayPercent >= 70) return { label: "SAIN", cls: "text-green-700 dark:text-green-400 bg-green-500/12" };
+    if (todayPercent >= 40) return { label: "ATTENTION", cls: "text-amber-700 dark:text-amber-400 bg-amber-500/12" };
+    if (todayReport === null || todayReport.totalGuests === 0)
+      return { label: "EN ATTENTE", cls: "text-muted bg-black/[0.04] dark:bg-white/[0.06]" };
+    return { label: "FAIBLE", cls: "text-error bg-error/12" };
+  }, [todayPercent, todayReport]);
+
+  // 1J view = intra-day bars (30-min buckets, 6h-12h). Other ranges = daily bars.
+  const series = useMemo(() => {
+    if (range === "1J") {
+      // Find today's data first; if none, use most recent day with check-ins
+      const today = new Date().toISOString().split("T")[0];
+      const all = monthData.slice().sort((a, b) => b.date.localeCompare(a.date));
+      const day =
+        all.find((d) => d.date === today && d.checkIns.length > 0) ??
+        all.find((d) => d.checkIns.length > 0) ??
+        null;
+      if (!day) return [];
+
+      // Auto-extend window if check-ins fall outside default 6h-12h
+      let startHour = 6;
+      let endHour = 11;
+      for (const ci of day.checkIns) {
+        const h = new Date(ci.timestamp).getHours();
+        if (h < startHour) startHour = h;
+        if (h > endHour) endHour = h;
+      }
+
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const buckets: Record<string, number> = {};
+      const labels: string[] = [];
+      for (let h = startHour; h <= endHour; h++) {
+        for (const m of [0, 30]) {
+          const key = `${pad(h)}:${pad(m)}`;
+          buckets[key] = 0;
+          labels.push(key);
+        }
+      }
+      for (const ci of day.checkIns) {
+        const d = new Date(ci.timestamp);
+        const k = `${pad(d.getHours())}:${pad(d.getMinutes() < 30 ? 0 : 30)}`;
+        if (k in buckets) buckets[k] += ci.peopleEntered;
+      }
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      const isShowingToday = day.date === todayStr;
+      const pts: DayPoint[] = labels.map((key) => ({
+        date: `${day.date} ${key}`,
+        pax: buckets[key],
+        isToday: isShowingToday,
+        dow: new Date(day.date + "T12:00:00").getDay(),
+        label: key,
+        mavg: 0,
+      }));
+      // moving average window 3 (smoother on intra-day)
+      const w = 3;
+      for (let i = 0; i < pts.length; i++) {
+        const start = Math.max(0, i - Math.floor(w / 2));
+        const end = Math.min(pts.length, i + Math.ceil(w / 2));
+        let s = 0;
+        for (let k = start; k < end; k++) s += pts[k].pax;
+        pts[i].mavg = s / (end - start);
+      }
+      return pts;
+    }
+
+    if (range === "3M") return buildWeeklySeries(monthData);
+    if (range === "6M") return buildMonthlySeries(monthData);
+    return buildSeries(monthData, range === "7J" ? 7 : 30);
+  }, [monthData, range]);
+  const totalPax = series.reduce((s, d) => s + d.pax, 0);
+  const avgPax = series.length > 0 ? Math.round(totalPax / series.length) : 0;
+  const peakDay = useMemo(() => {
+    let best: DayPoint | null = null;
+    for (const d of series) if (!best || d.pax > best.pax) best = d;
+    return best;
+  }, [series]);
+
+  const dowAvg = useMemo(() => {
+    const buckets: number[][] = [[], [], [], [], [], [], []];
+    for (const d of monthData) {
+      const dt = new Date(d.date + "T12:00:00");
+      const dow = dt.getDay();
+      const pax = d.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0);
+      if (pax > 0) buckets[dow].push(pax);
+    }
+    return buckets.map((arr) =>
+      arr.length === 0 ? 0 : Math.round(arr.reduce((s, v) => s + v, 0) / arr.length)
+    );
+  }, [monthData]);
+  const dowMax = Math.max(...dowAvg, 1);
+  const dowLabels = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+  const todayDow = new Date().getDay();
+
+  const topPackages = useMemo(
+    () => (monthData.length > 0 ? getTopPackages(monthData, 4) : []),
+    [monthData]
+  );
+
+  const forecast = useMemo(() => {
+    if (!mounted) return [];
+    const b = getMorningBrief();
+    return b?.forecast ?? [];
+  }, [mounted]);
+  const staffingAlerts = useMemo(() => (mounted ? buildStaffingAlerts() : []), [mounted]);
+
+  const gss = useMemo<GSSScore[]>(() => {
+    if (!mounted) return [];
+    const b = getMorningBrief();
+    if (!b) return [];
+    const order = [
+      "Intent to Recommend property",
+      "Staff Overall Service",
+      "Elite Appreciation",
+      "F&B Overall",
+      "F&B Service",
+    ];
+    return order
+      .map((name) => b.gss.find((g) => g.metric === name))
+      .filter((g): g is GSSScore => Boolean(g));
+  }, [mounted]);
+
+  const recurrentGuests = useMemo(() => {
+    if (!mounted) return [];
+    const counts = new Map<
+      string,
+      { display: string; count: number; lastVisit: string; lastRoom: string }
+    >();
+    for (const d of monthData) {
+      const seen = new Set<string>();
+      for (const c of d.clients) {
+        const key = c.name.trim().toLowerCase();
+        if (!key || key === "(demo)" || seen.has(key)) continue;
+        seen.add(key);
+        const entry = counts.get(key);
+        if (entry) {
+          entry.count += 1;
+          if (d.date > entry.lastVisit) {
+            entry.lastVisit = d.date;
+            entry.lastRoom = c.roomNumber;
+          }
+        } else {
+          counts.set(key, {
+            display: c.name,
+            count: 1,
+            lastVisit: d.date,
+            lastRoom: c.roomNumber,
+          });
+        }
+      }
+    }
+    return Array.from(counts.values())
+      .filter((g) => g.count > 1)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [mounted, monthData]);
+
+  const comments = useMemo<ClientComment[]>(() => {
+    if (!mounted) return [];
+    const b = getMorningBrief();
+    return b?.comments.slice(0, 3) ?? [];
+  }, [mounted]);
+
+  const handleSavePrice = () => {
+    const next = Math.max(1, Math.min(200, Math.round(Number(tempPrice) || 26)));
+    setCostPerCover(next);
+    saveSettings({ ...getSettings(), costPerCover: next });
+    setEditingPrice(false);
+  };
+
+  const extractRating = (text: string): number | null => {
+    const m = text.match(/(\d+(?:[.,]\d+)?)\s*\/\s*10/);
+    if (!m) return null;
+    const n = Number(m[1].replace(",", "."));
+    return isFinite(n) ? n : null;
+  };
+
+  const gssShort: Record<string, string> = {
+    "Intent to Recommend property": "Intent to Recommend",
+    "Staff Overall Service": "Service global",
+    "Elite Appreciation": "Elite",
+    "F&B Overall": "F&B Global",
+    "F&B Service": "F&B Service",
+  };
+
+  const hasNoData = monthData.length === 0;
+
+  const showDemoBanner =
+    (range === "3M" || range === "6M") && monthData.length < 30;
+
+  const handleSeedDemo = () => {
+    if (
+      !confirm(
+        "Cela remplacera les données existantes par 6 mois de données de démonstration (180 jours, variation saisonnière). Continuer ?"
+      )
+    )
+      return;
+    setSeedBusy(true);
+    setTimeout(() => {
+      const result = seedDemoMonths(180);
+      if (result.error) {
+        setSeedBusy(false);
+        alert(`Erreur génération démo: ${result.error}`);
+        return;
+      }
+      window.location.reload();
+    }, 50);
+  };
+
+  const handleCopy = async () => {
+    const md = formatMonthlyStatsMarkdown(stats);
     try {
       await navigator.clipboard.writeText(md);
-      setStatsCopied(true);
-      setTimeout(() => setStatsCopied(false), 2500);
     } catch {
-      // Fallback: open a textarea for manual copy on browsers without clipboard
       const ta = document.createElement("textarea");
       ta.value = md;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      setStatsCopied(true);
-      setTimeout(() => setStatsCopied(false), 2500);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2400);
   };
-  const rushSlots = useMemo(() => (todayData ? getRushHourSlots(todayData) : []), [todayData]);
-  const trendData = useMemo(() => getTrendData(historicalData), [historicalData]);
-  const periodStats = useMemo(() => getPeriodStats(historicalData, costPerCover), [historicalData, costPerCover]);
-  const maxRush = useMemo(() => Math.max(...rushSlots.map((s) => s.count), 1), [rushSlots]);
-
-  const roomStatus = useMemo(() => {
-    if (!todayData) return { allIn: 0, partial: 0, noShow: 0, totalRooms: 0 };
-    return getRoomStatusCounts(todayData.clients, todayData.checkIns);
-  }, [todayData]);
-
-  const periodRoomStatus = useMemo(() => {
-    if (historicalData.length === 0) return { allIn: 0, partial: 0, noShow: 0, totalRooms: 0 };
-    let allIn = 0, partial = 0, noShow = 0, totalRooms = 0;
-    for (const d of historicalData) { const s = getRoomStatusCounts(d.clients, d.checkIns); allIn += s.allIn; partial += s.partial; noShow += s.noShow; totalRooms += s.totalRooms; }
-    return { allIn, partial, noShow, totalRooms };
-  }, [historicalData]);
-
-  // Aggregate rush slots for period view
-  const periodRushSlots = useMemo(() => {
-    if (historicalData.length === 0) return [];
-    const agg: Record<string, { count: number; label: string }> = {};
-    for (const d of historicalData) {
-      const slots = getRushHourSlots(d);
-      for (const s of slots) {
-        if (!agg[s.time]) agg[s.time] = { count: 0, label: s.label };
-        agg[s.time].count += s.count;
-      }
-    }
-    // Average per day
-    const averaged = Object.values(agg).map((v) => ({ ...v, count: Math.round(v.count / historicalData.length) }));
-    const maxCount = Math.max(...averaged.map((v) => v.count), 0);
-    return averaged.map((v) => ({ ...v, isPeak: v.count === maxCount && maxCount > 0 }));
-  }, [historicalData]);
-
-  const filteredClients = useMemo(() => {
-    if (!todayData) return [];
-    let list = todayData.clients;
-    if (metricFilter === "show") {
-      // Filter by client name + room to avoid shared-room false positives
-      list = list.filter((c) => {
-        const normName = c.name.trim().toLowerCase().replace(/\s+/g, " ");
-        return todayData.checkIns.filter((ci) =>
-          ci.roomNumber === c.roomNumber &&
-          ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
-        ).reduce((s, ci) => s + ci.peopleEntered, 0) > 0;
-      });
-    } else if (metricFilter === "noshow") {
-      list = list.filter((c) => getRemainingForRoom(c, todayData.checkIns) === c.adults + c.children);
-    } else if (metricFilter === "comp") {
-      list = list.filter((c) => isComp(c));
-    } else if (metricFilter === "all") {
-      /* all */
-    } else if (!clientSearch.trim()) {
-      return [];
-    }
-    const q = clientSearch.toUpperCase();
-    if (q) list = list.filter((c) => c.name.toUpperCase().includes(q) || c.roomNumber.includes(q));
-    return list;
-  }, [todayData, metricFilter, clientSearch]);
-
-  const displayedClients = showAllClients ? filteredClients : filteredClients.slice(0, 15);
-
-  // Unified data for both views
-  const rs = viewMode === "today" ? roomStatus : periodRoomStatus;
-  const totalPeople = viewMode === "today" ? (snapshot?.totalExpected || 0) : periodStats.totalExpected;
-  const enteredPeople = viewMode === "today" ? (snapshot?.totalShowedUp || 0) : periodStats.totalShowedUp;
-  const remainingPeople = totalPeople - enteredPeople;
-  const utilPercent = totalPeople > 0 ? Math.round((enteredPeople / totalPeople) * 100) : 0;
-  const compCost = viewMode === "today" ? (snapshot?.compCost || 0) : periodStats.totalCompCost;
-  const compCount = viewMode === "today" ? (snapshot?.compCount || 0) : periodStats.totalCompGuests;
-  const hasData = viewMode === "today" ? !!snapshot : periodStats.totalDays > 0;
-  const activeRushSlots = viewMode === "today" ? rushSlots : periodRushSlots;
-  const activeMaxRush = Math.max(...activeRushSlots.map((s) => s.count), 1);
 
   return (
     <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
-      {/* ═══ STICKY HEADER — minimal, just nav + tabs ═══ */}
-      <div className="sticky top-0 z-30 bg-[#FBF8F3]/80 dark:bg-[#0A0A0F]/80 backdrop-blur-2xl">
-        <div className="max-w-lg mx-auto px-4 pt-3 pb-2">
-          <div className="flex items-center justify-between mb-2.5">
-            <button onClick={() => router.push("/search")}
-              className="flex items-center gap-1 active:scale-[0.96] transition-all">
-              <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-[15px] font-black text-dark tracking-tight">{t("dash.title")}</h1>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => router.push("/dashboard/direction")}
-                aria-label="Vue Direction"
-                title="Vue Direction (code requis)"
-                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-full glass-brand text-brand text-[10px] font-bold tracking-wider uppercase active:scale-[0.95] transition-all"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Direction
-              </button>
-              <button onClick={handleRefresh}
-                aria-label="Refresh data"
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-[0.9] ${refreshed ? "bg-green-500 text-white" : "text-muted"}`}>
-                {refreshed ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                )}
-              </button>
-            </div>
-          </div>
-          {/* Segmented control */}
-          <div className="glass-liquid rounded-[10px] p-0.5 flex">
-            {(["today", "7days", "custom"] as ViewMode[]).map((mode) => (
-              <button key={mode}
-                onClick={() => {
-                  setViewMode(mode); setMetricFilter(null);
-                  if (mode === "today") {
-                    let td = getTodayData();
-                    if (!td) { const ts = new Date().toISOString().split("T")[0]; const cs = getSessionHistory().find((s) => s.date === ts); if (cs) td = { date: cs.date, clients: cs.clients, checkIns: cs.checkIns, rawUploadText: cs.rawUploadText }; }
-                    setTodayData(td);
-                  }
-                  if (mode === "7days") setHistoricalData(getHistoricalData(7));
-                }}
-                className={`flex-1 py-1.5 rounded-[8px] text-[12px] font-semibold transition-all active:scale-[0.97] ${
-                  viewMode === mode ? "bg-white dark:bg-white/15 text-dark shadow-sm" : "text-muted"
-                }`}>
-                {mode === "today" ? t("dash.today") : mode === "7days" ? t("dash.last7") : t("dash.custom")}
-              </button>
-            ))}
-          </div>
+      <div className="max-w-6xl mx-auto px-4 py-5 pb-20">
+        {/* BACK BUTTON — top-left, matches other screens */}
+        <div className="mb-3">
+          <button
+            onClick={() => router.push("/upload")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 glass-liquid text-brand text-xs font-bold rounded-full active:scale-[0.97] transition-all"
+          >
+            <CaretLeft size={12} weight="bold" />
+            Accueil
+          </button>
         </div>
-      </div>
 
-      {/* ═══ CONTENT ═══ */}
-      <div className="max-w-lg mx-auto px-4 pb-8 pt-3 space-y-5">
-
-        {/* Cost editor */}
-        {editingCost && (
-          <div className="glass-liquid rounded-[14px] p-3 flex items-center gap-3">
-            <label className="text-sm text-muted">{t("dash.costPerCover")}:</label>
-            <input type="number" value={costPerCover} onChange={(e) => setCostPerCover(Number(e.target.value))}
-              min="0" max="500" className="border border-border rounded-xl px-2 py-1 w-20 text-center bg-white/50 text-dark focus:outline-none focus:ring-2 focus:ring-brand/30" />
-            <span className="text-sm text-muted">€</span>
-            <button onClick={handleCostSave} className="bg-brand text-white px-4 py-1.5 rounded-full text-sm font-medium active:scale-95">{t("dash.save")}</button>
-          </div>
-        )}
-
-        {/* Custom range */}
-        {viewMode === "custom" && (
-          <div className="glass-liquid rounded-[14px] p-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="text-[10px] text-muted block mb-1 uppercase">{t("dash.from")}</label>
-                <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="border border-border rounded-xl px-2 py-1.5 text-sm bg-white/50 text-dark focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted block mb-1 uppercase">{t("dash.to")}</label>
-                <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="border border-border rounded-xl px-2 py-1.5 text-sm bg-white/50 text-dark focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <button onClick={handleCustomRange} disabled={!customStart || !customEnd} className="bg-brand text-white px-4 py-1.5 rounded-full text-sm font-medium disabled:opacity-40 active:scale-95">{t("dash.apply")}</button>
-            </div>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!hasData && (
-          <div className="glass-liquid rounded-[14px] p-10 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand/8 flex items-center justify-center">
-              <svg className="w-8 h-8 text-brand/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" /></svg>
-            </div>
-            <p className="text-muted text-sm">{viewMode === "today" ? t("dash.noData") : t("dash.noHistory")}</p>
-            {viewMode === "today" && <button onClick={() => router.push("/upload")} className="mt-3 text-brand font-semibold text-sm active:opacity-70">{t("search.uploadReport")}</button>}
-          </div>
-        )}
-
-        {/* ═══ 1. HERO CARD — Ring + Room Status + People ═══ */}
-        {hasData && (
-          <div className="glass-liquid rounded-[20px] p-5 animate-sectionIn">
-            <div className="flex items-center gap-5">
-              {/* Ring */}
-              <div className="relative shrink-0">
-                <DonutRing percent={utilPercent} size={96} stroke={7} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-[28px] font-black leading-none ${utilPercent >= 70 ? "text-green-600 dark:text-green-400" : utilPercent >= 40 ? "text-brand" : "text-red-500"}`}>
-                    <AnimatedNumber value={utilPercent} duration={900} /><span className="text-[14px]">%</span>
-                  </span>
-                  <span className="text-[8px] text-muted uppercase tracking-widest mt-0.5">service</span>
-                </div>
-              </div>
-
-              {/* Room status */}
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500" /><span className="text-[13px] text-dark">{t("dash.allIn")}</span></div>
-                  <AnimatedNumber value={rs.allIn} className="text-[15px] font-black text-green-600 dark:text-green-400 tabular-nums" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-brand" /><span className="text-[13px] text-dark">{t("dash.partial")}</span></div>
-                  <AnimatedNumber value={rs.partial} className="text-[15px] font-black text-brand tabular-nums" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500" /><span className="text-[13px] text-dark">{t("dash.absent")}</span></div>
-                  <AnimatedNumber value={rs.noShow} className="text-[15px] font-black text-red-500 dark:text-red-400 tabular-nums" />
-                </div>
-                {/* Bar */}
-                {rs.totalRooms > 0 && (
-                  <div className="flex h-1.5 rounded-full overflow-hidden mt-1">
-                    {rs.allIn > 0 && <div className="bg-green-500" style={{ width: `${(rs.allIn / rs.totalRooms) * 100}%` }} />}
-                    {rs.partial > 0 && <div className="bg-brand" style={{ width: `${(rs.partial / rs.totalRooms) * 100}%` }} />}
-                    {rs.noShow > 0 && <div className="bg-red-500" style={{ width: `${(rs.noShow / rs.totalRooms) * 100}%` }} />}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* People row */}
-            <div className="grid grid-cols-3 mt-4 pt-3 border-t border-black/[0.04] dark:border-white/[0.06]">
-              <div className="text-center">
-                <AnimatedNumber value={totalPeople} className="text-[22px] font-black text-dark tabular-nums" duration={700} />
-                <div className="text-[9px] text-muted uppercase tracking-wider">{t("dash.totalPeople")}</div>
-              </div>
-              <div className="text-center border-x border-black/[0.04] dark:border-white/[0.06]">
-                <AnimatedNumber value={enteredPeople} className="text-[22px] font-black text-green-600 dark:text-green-400 tabular-nums" duration={700} />
-                <div className="text-[9px] text-green-700/70 dark:text-green-400/70 uppercase tracking-wider">{t("dash.peopleIn")}</div>
-              </div>
-              <div className="text-center">
-                <AnimatedNumber value={remainingPeople} className="text-[22px] font-black text-red-500 dark:text-red-400 tabular-nums" duration={700} />
-                <div className="text-[9px] text-red-500/70 dark:text-red-400/70 uppercase tracking-wider">{t("dash.peopleLeft")}</div>
-              </div>
-            </div>
-
-            {/* Compliment + cost — tiny inline */}
-            {compCount > 0 && (
-              <div className="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-black/[0.04] dark:border-white/[0.06]">
-                <Badge variant="success" className="uppercase tracking-wide">{t("metrics.comp")}</Badge>
-                <span className="text-sm font-black text-dark tabular-nums">{compCount} {t("dash.guests")}</span>
-                <button onClick={() => setEditingCost(!editingCost)} className="text-sm font-black text-brand tabular-nums active:opacity-70">{compCost}€</button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ═══ 1.5 SOURCE BREAKDOWN — Liste vs VIP-only vs Walk-in ═══ */}
-        {hasData && viewMode === "today" && todayReport && (todayReport.sourceBreakdown.vipListOnlyRooms > 0 || todayReport.sourceBreakdown.walkInRooms > 0) && (
-          <Card className="animate-sectionIn" style={{ animationDelay: "80ms" }}>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="size-4 text-brand" />
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
-                    {t("report.sourceBreakdownTitle")}
-                  </span>
-                </div>
-                <span className="text-[8px] text-muted/80">
-                  {t("report.sourceBreakdownDesc")}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-[10px] bg-black/[0.03] dark:bg-white/[0.04] p-2.5">
-                  <div className="flex items-center gap-1 text-[8px] text-muted uppercase font-semibold">
-                    <Users className="size-3" />
-                    {t("report.sourceList")}
-                  </div>
-                  <div className="text-xl font-black text-dark tabular-nums mt-0.5">
-                    {todayReport.sourceBreakdown.listEntered}
-                  </div>
-                  <div className="text-[8px] text-muted">
-                    {todayReport.sourceBreakdown.listRooms} {t("upload.rooms")}
-                  </div>
-                </div>
-                <div className="rounded-[10px] bg-brand/[0.06] p-2.5">
-                  <div className="flex items-center gap-1 text-[8px] text-brand uppercase font-semibold">
-                    <Crown className="size-3" />
-                    {t("report.sourceVipOnly")}
-                  </div>
-                  <div className="text-xl font-black text-brand tabular-nums mt-0.5">
-                    {todayReport.sourceBreakdown.vipListOnlyEntered}
-                  </div>
-                  <div className="text-[8px] text-brand/70">
-                    {todayReport.sourceBreakdown.vipListOnlyRooms} {t("upload.rooms")}
-                  </div>
-                </div>
-                <div className="rounded-[10px] bg-amber-500/[0.08] p-2.5">
-                  <div className="flex items-center gap-1 text-[8px] text-amber-700 dark:text-amber-400 uppercase font-semibold">
-                    <Footprints className="size-3" />
-                    {t("report.sourceWalkIn")}
-                  </div>
-                  <div className="text-xl font-black text-amber-700 dark:text-amber-400 tabular-nums mt-0.5">
-                    {todayReport.sourceBreakdown.walkInEntered}
-                  </div>
-                  <div className="text-[8px] text-amber-700/70 dark:text-amber-400/70">
-                    {todayReport.sourceBreakdown.walkInRooms} {t("upload.rooms")}
-                  </div>
-                </div>
-              </div>
-
-              {(todayReport.sourceBreakdown.byPayment.points + todayReport.sourceBreakdown.byPayment.cash + todayReport.sourceBreakdown.byPayment.room + todayReport.sourceBreakdown.byPayment.compliment + todayReport.sourceBreakdown.byPayment.supervisor) > 0 && (
-                <div className="pt-2 border-t border-black/5 dark:border-white/8">
-                  <div className="text-[8px] text-muted uppercase font-semibold mb-1.5">
-                    {t("report.paymentMixOffList")}
-                  </div>
-                  <div className="grid grid-cols-5 gap-1.5 text-center">
-                    <div>
-                      <div className="text-sm font-black text-blue-600 dark:text-blue-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.points}</div>
-                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPoints")}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.cash}</div>
-                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPaid")}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-purple-600 dark:text-purple-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.room}</div>
-                      <div className="text-[7px] text-muted uppercase">{t("reception.statusRoom")}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-green-600 dark:text-green-400 tabular-nums">{todayReport.sourceBreakdown.byPayment.compliment}</div>
-                      <div className="text-[7px] text-muted uppercase">{t("reception.statusCompliment")}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-muted tabular-nums">{todayReport.sourceBreakdown.byPayment.supervisor}</div>
-                      <div className="text-[7px] text-muted uppercase">{t("reception.statusPass")}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ═══ 2. ARRIVAL TIME — Vertical bar chart 6:00–11:00 ═══ */}
-        {hasData && !metricFilter && !clientSearch && (() => {
-          const hasAnyCheckins = activeRushSlots.some((s) => s.count > 0);
-          if (!hasAnyCheckins) return (
-            <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
-              <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
-              <div className="glass-liquid rounded-[16px] p-6 text-center">
-                <div className="text-[22px] mb-1">⏳</div>
-                <p className="text-xs text-muted">{t("dash.noRushData")}</p>
-              </div>
-            </section>
-          );
-          return null;
-        })()}
-        {/* Today: zoomable chart (5/10/30/60). Period: legacy bar chart */}
-        {hasData && viewMode === "today" && todayData && rushSlots.some((s) => s.count > 0) && !metricFilter && !clientSearch && (
-          <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
-            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
-            <RushHourChart data={todayData} />
-          </section>
-        )}
-        {hasData && viewMode !== "today" && periodRushSlots.some((s) => s.count > 0) && !metricFilter && !clientSearch && (
-          <section className="animate-sectionIn" style={{ animationDelay: "100ms" }}>
-            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.rushHours")}</h2>
-            <div className="glass-liquid rounded-[16px] p-4">
-              <div className="flex items-end gap-[3px] h-28">
-                {periodRushSlots.map((slot, i) => {
-                  const max = Math.max(...periodRushSlots.map((s) => s.count), 1);
-                  const pct = max > 0 ? (slot.count / max) * 100 : 0;
-                  return (
-                    <div key={slot.label} className="flex-1 flex flex-col items-center h-full justify-end">
-                      {slot.count > 0 && (
-                        <span className="text-[8px] font-bold text-dark tabular-nums mb-0.5">{slot.count}</span>
-                      )}
-                      <div
-                        className={`w-full rounded-t-[3px] animate-barGrow ${
-                          slot.isPeak && slot.count > 0 ? "bg-brand" : slot.count > 0 ? "bg-brand/40 dark:bg-brand-light/40" : "bg-black/[0.03] dark:bg-white/[0.04]"
-                        }`}
-                        style={{ height: `${Math.max(pct, slot.count > 0 ? 8 : 3)}%`, animationDelay: `${200 + i * 40}ms` }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex mt-1.5">
-                {periodRushSlots.map((slot, i) => (
-                  <div key={slot.label} className="flex-1 text-center">
-                    {i % 2 === 0 && (
-                      <span className="text-[8px] text-muted tabular-nums">{slot.label.replace(":00", "h")}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ═══ 3. TAPPABLE FILTER CARDS (today view) — always visible ═══ */}
-        {viewMode === "today" && snapshot && (
-          <div className="grid grid-cols-4 gap-2 animate-sectionIn" style={{ animationDelay: "200ms" }}>
-            {([
-              { key: "all" as MetricFilter, label: t("dash.expected"), value: String(snapshot.totalExpected), sub: `${todayData?.clients.length} ${t("dash.rooms")}`, color: "text-dark" },
-              { key: "show" as MetricFilter, label: t("dash.showedUp"), value: String(snapshot.totalShowedUp), sub: `${roomStatus.allIn + roomStatus.partial} ${t("dash.rooms")}`, color: "text-green-600 dark:text-green-400" },
-              { key: "noshow" as MetricFilter, label: t("dash.noShows"), value: String(snapshot.noShows), sub: `${roomStatus.noShow} ${t("dash.rooms")}`, color: "text-red-500 dark:text-red-400" },
-              { key: "comp" as MetricFilter, label: t("metrics.comp"), value: String(snapshot.compCount), sub: `${snapshot.compCost}€`, color: "text-green-700 dark:text-green-400" },
-            ]).map(({ key, label, value, sub, color }) => (
-              <button key={key} onClick={() => handleMetricTap(key)}
-                className={`rounded-[14px] p-3 text-center transition-all active:scale-[0.95] ${
-                  metricFilter === key ? "glass-liquid-active ring-1 ring-brand/20" : "glass-liquid"
-                }`}>
-                <div className="text-[8px] text-muted uppercase tracking-wider font-semibold">{label}</div>
-                <AnimatedNumber value={parseInt(value) || 0} className={`text-[22px] font-black tabular-nums leading-tight ${color}`} duration={600} />
-                <div className="text-[9px] text-muted mt-0.5">{sub}</div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ═══ 3a. SEARCH BAR (today view) — always below metrics ═══ */}
-        {viewMode === "today" && todayData && (
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
-            <input type="text" value={clientSearch} onChange={(e) => setClientSearch(e.target.value)}
-              placeholder={t("dash.searchClients")}
-              aria-label={t("dash.searchClients")}
-              className="w-full px-3 py-2 rounded-xl glass-liquid text-sm text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand/20" />
-          </div>
-        )}
-
-        {/* ═══ 3b. FILTERED TABLE (after metric tap or search) ═══ */}
-        {viewMode === "today" && (metricFilter || clientSearch) && todayData && (
-          <section>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] px-1">
-                {filteredClients.length} {t("upload.rooms")}
-              </h2>
-              {metricFilter && (
-                <button onClick={() => setMetricFilter(null)} className="text-xs text-brand font-semibold active:opacity-70">{t("upload.clear")}</button>
-              )}
+            <div className="inline-flex items-center gap-1.5 text-[10px] text-brand uppercase tracking-wider font-bold">
+              <ShieldCheck size={11} weight="duotone" />
+              Direction · F&B · Opérations
             </div>
-
-            <div className="glass-liquid rounded-[14px] overflow-hidden">
-              <div className="grid grid-cols-[55px_1fr_44px_44px] px-3 py-2 border-b border-black/[0.04] dark:border-white/[0.06]">
-                <span className="text-[8px] text-muted uppercase font-bold tracking-wider">{t("checkin.room")}</span>
-                <span className="text-[8px] text-muted uppercase font-bold tracking-wider">{t("checkin.guestName")}</span>
-                <span className="text-[8px] text-muted uppercase font-bold tracking-wider text-center">N</span>
-                <span className="text-[8px] text-muted uppercase font-bold tracking-wider text-right"></span>
-              </div>
-              {displayedClients.map((client, i) => {
-                const ci = todayData.clients.indexOf(client);
-                const remaining = getRemainingForRoom(client, todayData.checkIns);
-                const total = client.adults + client.children;
-                const checkedIn = remaining === 0 && total > 0;
-                const comp = isComp(client);
-                return (
-                  <button key={`${client.roomNumber}-${i}`}
-                    onClick={() => router.push(`/checkin/${client.roomNumber}${ci >= 0 ? `?ci=${ci}` : ""}`)}
-                    className={`grid grid-cols-[55px_1fr_44px_44px] px-3 py-2 items-center border-b border-black/[0.03] dark:border-white/[0.04] last:border-0 w-full text-left active:bg-black/[0.03] dark:active:bg-white/[0.03] transition-colors ${
-                      comp ? "bg-green-500/[0.04]" : ""
-                    }`}>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[13px] font-bold font-mono text-dark">{client.roomNumber}</span>
-                      {client.isVip && <span className="text-[6px] bg-gradient-to-r from-brand to-brand-light text-white px-1 py-px rounded-full font-black">V</span>}
-                    </div>
-                    <div className="min-w-0">
-                      <span className={`text-[12px] text-dark truncate block ${comp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""}`}>{client.name}</span>
-                    </div>
-                    <div className="text-center">
-                      <span className={`text-[13px] font-bold tabular-nums ${checkedIn ? "text-green-600 dark:text-green-400" : "text-dark"}`}>{total - remaining}/{total}</span>
-                    </div>
-                    <div className="text-right">
-                      {comp && <span className="text-[7px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">COMP</span>}
-                      {!comp && checkedIn && <span className="text-[7px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">IN</span>}
-                      {!comp && !checkedIn && <span className="text-[7px] bg-black/[0.04] dark:bg-white/[0.06] text-muted px-1.5 py-0.5 rounded-full font-bold">—</span>}
-                    </div>
-                  </button>
-                );
+            <h1 className="text-3xl font-black text-dark leading-tight mt-1">
+              Bonjour Direction.
+            </h1>
+            <div className="text-xs text-muted mt-0.5">
+              {new Date().toLocaleDateString("fr-FR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
               })}
             </div>
-            {filteredClients.length > 15 && (
-              <button onClick={() => setShowAllClients(!showAllClients)}
-                className="mt-2 w-full text-center text-[11px] font-semibold text-brand active:opacity-70 py-1">
-                {showAllClients ? t("dash.showLess") : `${t("dash.showAll")} (${filteredClients.length})`}
-              </button>
-            )}
-          </section>
+          </div>
+          <div className="flex items-center gap-2">
+            <TimeToggle value={range} onChange={setRange} />
+          </div>
+        </div>
+
+        {hasNoData && (
+          <div className="glass-liquid rounded-[14px] p-5 mb-5 text-center">
+            <p className="text-sm text-dark font-bold">Aucune donnée disponible</p>
+            <p className="text-xs text-muted mt-1">
+              Ouvre <code className="font-mono bg-black/5 dark:bg-white/10 px-1 rounded">/debug</code> →
+              clique <b>🌱 Seed Mock Data</b> ou <b>Clear All</b> puis re-seed pour générer des données fraîches.
+            </p>
+          </div>
         )}
 
-        {/* ═══ 4. RECENT CHECK-INS (today, compact) ═══ */}
-        {viewMode === "today" && todayData && todayData.checkIns.length > 0 && !metricFilter && !clientSearch && (
-          <section>
-            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.recentCheckins")}</h2>
-            <div className="glass-liquid rounded-[14px] divide-y divide-black/[0.04] dark:divide-white/[0.05] overflow-hidden">
-              {[...todayData.checkIns].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 6).map((ci) => (
-                <div key={ci.id} className="px-3 py-2 flex items-center gap-3">
-                  <span className="text-[11px] text-muted font-mono w-11 shrink-0">{formatTime(ci.timestamp)}</span>
-                  <span className="text-[13px] font-bold font-mono text-dark w-10 shrink-0">{ci.roomNumber}</span>
-                  <span className="text-[11px] text-muted truncate flex-1">{ci.clientName}</span>
-                  <span className="text-[11px] font-bold text-brand tabular-nums">{ci.peopleEntered}</span>
+        {/* ZONE 1 — KPI STRIP */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 mb-5">
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className={EYEBROW}>Service</span>
+              <Delta pct={deltaService} />
+            </div>
+            <div className={cn(
+              "text-3xl font-black tabular-nums leading-none",
+              todayPercent >= 70 ? "text-green-600 dark:text-green-400"
+              : todayPercent >= 40 ? "text-brand"
+              : "text-error"
+            )}>
+              {todayPercent}%
+            </div>
+            <div className="text-[10px] text-muted mt-1.5 tabular-nums">
+              {todayReport?.totalEntered ?? 0}/{todayReport?.totalGuests ?? 0} pax
+            </div>
+          </div>
+
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className={EYEBROW}>Pic</span>
+              <Clock size={12} weight="duotone" className="text-brand" />
+            </div>
+            <div className="text-2xl font-black text-dark tabular-nums leading-none">
+              {stats.peakHourMostCommon || "—"}
+            </div>
+            <div className="text-[10px] text-muted mt-1.5">
+              affluence récurrente
+            </div>
+          </div>
+
+          <div className="glass-liquid rounded-[14px] p-4 bg-gradient-to-br from-brand/8 to-transparent">
+            <div className="flex items-center justify-between mb-2">
+              <span className={cn(EYEBROW, "text-brand")}>Compliments</span>
+              <Gift size={12} weight="duotone" className="text-brand" />
+            </div>
+            <div className="text-2xl font-black text-brand tabular-nums leading-none">
+              {stats.compCost.toLocaleString("fr-FR")}
+              <span className="text-base opacity-70 ml-0.5">€</span>
+            </div>
+            <div className="text-[10px] text-muted mt-1.5 tabular-nums flex items-center gap-1.5 flex-wrap">
+              <span>{stats.compPersons} cv ·</span>
+              {editingPrice ? (
+                <span className="inline-flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={tempPrice}
+                    onChange={(e) => setTempPrice(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSavePrice();
+                      if (e.key === "Escape") setEditingPrice(false);
+                    }}
+                    autoFocus
+                    className="w-12 px-1 py-0.5 rounded-md bg-white dark:bg-white/10 border border-brand/40 text-dark text-[11px] font-bold text-right tabular-nums"
+                  />
+                  <button
+                    onClick={handleSavePrice}
+                    aria-label="Confirmer prix"
+                    className="text-brand font-bold text-[11px]"
+                  >
+                    OK
+                  </button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => {
+                    setTempPrice(String(costPerCover));
+                    setEditingPrice(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-muted hover:text-brand transition-colors"
+                  aria-label="Modifier prix par couvert"
+                >
+                  <span className="tabular-nums">{costPerCover}€/cv</span>
+                  <Pencil size={9} weight="bold" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className={EYEBROW}>Walk-ins (J)</span>
+              <Footprints size={12} weight="duotone" className="text-muted" />
+            </div>
+            <div className="text-2xl font-black text-dark tabular-nums leading-none">
+              {walkInPax}
+            </div>
+            <div className="text-[10px] text-muted mt-1.5 tabular-nums">
+              {walkInRevenue > 0 ? `${walkInRevenue.toLocaleString("fr-FR")}€ revenu` : "aucun revenu"}
+            </div>
+          </div>
+
+          <div className={cn("rounded-[14px] p-4 glass-liquid", health.cls.includes("bg-") ? health.cls : "")}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={cn(EYEBROW, health.cls.split(" ")[0])}>Statut</span>
+              {todayPercent >= 70 ? (
+                <CheckCircle size={12} weight="duotone" className={health.cls.split(" ")[0]} />
+              ) : (
+                <WarningCircle size={12} weight="duotone" className={health.cls.split(" ")[0]} />
+              )}
+            </div>
+            <div className={cn("text-xl font-black tabular-nums leading-none tracking-wide", health.cls.split(" ")[0])}>
+              {health.label}
+            </div>
+            <div className="text-[10px] text-muted mt-1.5">
+              {deltaService > 0 ? `↑ ${deltaService}% vs hier` : deltaService < 0 ? `↓ ${Math.abs(deltaService)}% vs hier` : "stable vs hier"}
+            </div>
+          </div>
+        </div>
+
+        {/* ZONE 2 — TRADING CHART */}
+        <div className="glass-liquid rounded-[14px] p-5 mb-5">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div className="flex items-center gap-4 flex-wrap">
+              <TrendUp weight="duotone" size={20} className="text-brand" />
+              <div>
+                <div className={EYEBROW}>
+                  {range === "1J" ? "Heure de pointe · journée"
+                    : range === "3M" ? "Performance · 3M · 13 semaines"
+                    : range === "6M" ? "Performance · 6M · 6 mois"
+                    : `Performance · ${range}`}
+                </div>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <div className="text-3xl font-black text-dark tabular-nums leading-none">
+                    {totalPax.toLocaleString("fr-FR")}
+                  </div>
+                  <span className="text-xs text-muted">
+                    {range === "1J" ? "pax entrés" : "pax cumulés"}
+                  </span>
+                </div>
+              </div>
+              {range !== "1J" && (
+                <>
+                  <div className="w-px h-10 bg-black/10 dark:bg-white/10" />
+                  <div>
+                    <div className="text-[10px] text-muted uppercase">Moyenne</div>
+                    <div className="text-xl font-black text-dark tabular-nums mt-0.5">
+                      {avgPax}
+                      <span className="text-[10px] text-muted font-medium ml-1">
+                        {range === "3M" ? "/sem" : range === "6M" ? "/mois" : "/j"}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+              {peakDay && peakDay.pax > 0 && (
+                <>
+                  <div className="w-px h-10 bg-black/10 dark:bg-white/10" />
+                  <div>
+                    <div className="text-[10px] text-muted uppercase">
+                      {range === "1J" ? "Pic horaire"
+                        : range === "3M" ? "Pic semaine"
+                        : range === "6M" ? "Pic mois"
+                        : "Pic"}
+                    </div>
+                    <div className="text-xl font-black text-brand tabular-nums mt-0.5">
+                      {peakDay.pax}
+                      <span className="text-[10px] text-muted font-medium ml-1">{peakDay.label}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <span className="text-[10px] text-muted inline-flex items-center gap-1.5">
+              <span className="inline-block w-4 h-[2px] rounded-full bg-brand" />
+              moyenne mobile {range === "1J" ? "1h30"
+                : range === "3M" ? "3 sem"
+                : range === "6M" ? "3 mois"
+                : "7j"}
+            </span>
+          </div>
+          {showDemoBanner && (
+            <div className="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-brand/10 border border-brand/20">
+              <span className="text-xs text-dark flex-1">
+                Données insuffisantes pour la vue <b>{range}</b>. Générer 6 mois
+                de données de démonstration (variation hebdo + saisonnière) ?
+              </span>
+              <button
+                onClick={handleSeedDemo}
+                disabled={seedBusy}
+                className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-brand text-white active:scale-[0.97] transition-all disabled:opacity-50"
+              >
+                {seedBusy ? "Génération…" : "🌱 Générer 6 mois"}
+              </button>
+            </div>
+          )}
+          <TradingChart series={series} />
+        </div>
+
+        {/* ZONE 3 — FORECAST + PATTERN */}
+        <div className="grid md:grid-cols-[1.3fr_1fr] gap-4 mb-5">
+          {/* Forecast */}
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar weight="duotone" size={14} className="text-brand" />
+              <span className={EYEBROW}>Prévision 7 jours · Morning Doc</span>
+            </div>
+
+            {forecast.length === 0 ? (
+              <div className="text-xs text-muted text-center py-5">
+                Aucune prévision chargée.
+                <br />
+                <span className="text-[10px]">Importer le briefing du matin pour voir le forecast d'occupation.</span>
+              </div>
+            ) : (
+              <>
+                <div
+                  className="grid gap-2 items-end mb-1"
+                  style={{ gridTemplateColumns: `repeat(${forecast.length}, 1fr)`, height: 110 }}
+                >
+                  {forecast.map((d, i) => {
+                    const danger = d.occupancyPercent >= 95;
+                    const warn = d.occupancyPercent >= 80;
+                    const heightPx = Math.max(4, (d.occupancyPercent / 100) * 88);
+                    return (
+                      <div key={i} className="flex flex-col items-center gap-1 justify-end h-full">
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold tabular-nums leading-none",
+                            danger ? "text-error" : warn ? "text-amber-600 dark:text-amber-400" : "text-dark"
+                          )}
+                        >
+                          {Math.round(d.occupancyPercent)}%
+                        </span>
+                        <div
+                          className={cn(
+                            "w-full rounded-t-[6px]",
+                            danger ? "bg-error" : warn ? "bg-amber-500" : "bg-dark dark:bg-white/80"
+                          )}
+                          style={{
+                            height: `${heightPx}px`,
+                            opacity: danger ? 1 : warn ? 0.95 : 0.85,
+                          }}
+                        />
+                        <div className="text-[9px] text-muted font-mono text-center leading-tight">
+                          {d.date.split(" ")[0]?.slice(0, 3) || d.date.slice(0, 5)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {staffingAlerts.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8">
+                    <div className={cn(EYEBROW, "text-amber-600 dark:text-amber-400 mb-2")}>
+                      ⚠ Alertes staffing
+                    </div>
+                    <div className="space-y-1.5">
+                      {staffingAlerts.map((a, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "flex items-start gap-2 text-[11px]",
+                            a.severity === "danger" ? "text-error" : "text-amber-700 dark:text-amber-400"
+                          )}
+                        >
+                          <span className="font-bold min-w-[110px] truncate">{a.dateLabel}</span>
+                          <span className="flex-1 text-dark">{a.message}</span>
+                          <span className="font-mono opacity-70 tabular-nums">
+                            {Math.round(a.occupancyPercent)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Pattern + Top packages */}
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendUp weight="duotone" size={14} className="text-brand" />
+              <span className={EYEBROW}>Affluence · jour de la semaine</span>
+            </div>
+            <div className="text-[10px] text-muted mb-3">
+              moyenne pax par jour · aujourd&apos;hui en or
+            </div>
+            <div
+              className="grid gap-2 items-end mb-3"
+              style={{ gridTemplateColumns: "repeat(7, 1fr)", height: 100 }}
+            >
+              {dowAvg.map((v, i) => (
+                <div key={i} className="flex flex-col items-center gap-1 justify-end h-full">
+                  {v > 0 && (
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold tabular-nums leading-none",
+                        i === todayDow ? "text-brand" : "text-dark"
+                      )}
+                    >
+                      {v}
+                    </span>
+                  )}
+                  <div
+                    className={cn(
+                      "w-full rounded-t-[6px]",
+                      i === todayDow ? "bg-brand" : "bg-dark dark:bg-white/80"
+                    )}
+                    style={{
+                      height: `${(v / dowMax) * 70}px`,
+                      minHeight: v > 0 ? "4px" : "0",
+                      opacity: i === todayDow ? 1 : v > 0 ? 0.85 : 0.15,
+                    }}
+                  />
+                  <div
+                    className={cn(
+                      "text-[9px] font-mono",
+                      i === todayDow ? "text-brand font-bold" : "text-muted"
+                    )}
+                  >
+                    {dowLabels[i]}
+                  </div>
                 </div>
               ))}
             </div>
-          </section>
-        )}
 
-        {/* ═══ 5. WEEKLY TREND (always visible when data exists) ═══ */}
-        {trendData.length > 0 && !metricFilter && !clientSearch && (
-          <section className="animate-sectionIn" style={{ animationDelay: "300ms" }}>
-            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">
-              {viewMode === "today" ? t("dash.last7") : t("dash.trend")}
-            </h2>
-            <div className="glass-liquid rounded-[16px] p-4">
-              <div className="flex items-end gap-1.5 h-24">
-                {trendData.map((day) => (
-                  <div key={day.date} className="flex-1 flex flex-col items-center h-full justify-end">
-                    <span className="text-[9px] font-bold text-dark tabular-nums mb-0.5">
-                      {day.utilization > 0 ? `${day.utilization}%` : ""}
-                    </span>
-                    <div className="w-full bg-black/[0.03] dark:bg-white/[0.04] rounded-[3px] relative flex-1 flex items-end">
-                      <div className={`w-full rounded-[3px] transition-all duration-200 ${
-                        day.utilization >= 80 ? "bg-green-500" : day.utilization >= 50 ? "bg-brand/60" : day.utilization > 0 ? "bg-red-400/60" : ""
-                      }`} style={{ height: `${day.utilization}%` }} />
-                    </div>
-                    <span className="text-[9px] text-muted mt-1">{day.dayLabel}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ═══ 5.5 TOP PACKAGES ═══ */}
-        {topPackages.length > 0 && !metricFilter && !clientSearch && (
-          <section className="animate-sectionIn" style={{ animationDelay: "350ms" }}>
-            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">
-              {t("dash.topPackages")}
-            </h2>
-            <Card>
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-2 text-[9px] text-muted">
-                  <Package className="size-3" />
-                  <span className="uppercase tracking-wide">{t("dash.topPackagesHint")}</span>
-                </div>
-                {topPackages.map((p, i) => {
-                  const maxRooms = topPackages[0].rooms;
-                  const widthPct = maxRooms > 0 ? (p.rooms / maxRooms) * 100 : 0;
+            <div className={EYEBROW + " mb-2"}>Top packages</div>
+            <div className="flex flex-col gap-2">
+              {topPackages.length === 0 ? (
+                <div className="text-[11px] text-muted">Aucun package détecté.</div>
+              ) : (
+                topPackages.slice(0, 3).map((p, i) => {
+                  const maxRooms = topPackages[0].rooms || 1;
                   return (
-                    <div key={p.code} className="space-y-0.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-dark font-mono">
-                          {i + 1}. {p.code}
-                        </span>
-                        <span className="text-xs font-black text-brand tabular-nums">
-                          {p.rooms} <span className="text-[9px] text-muted font-medium">{t("upload.rooms")}</span>
-                        </span>
+                    <div key={p.code}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-xs text-dark">{i + 1}. {p.code}</span>
+                        <span className="font-mono text-muted text-[11px] tabular-nums">{p.rooms} ch</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] overflow-hidden">
+                      <div className="h-1.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06] overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-brand to-brand-light transition-all duration-200"
-                          style={{ width: `${widthPct}%` }}
+                          className="h-full bg-gradient-to-r from-brand to-brand-light rounded-full transition-all duration-200"
+                          style={{ width: `${(p.rooms / maxRooms) * 100}%` }}
                         />
                       </div>
                     </div>
                   );
-                })}
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {/* ═══ 5.7 MONTHLY STATS — for the proposal email ═══ */}
-        {monthlyStats.daysActive > 0 && !metricFilter && !clientSearch && (
-          <section className="animate-sectionIn" style={{ animationDelay: "400ms" }}>
-            <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">
-              {t("dash.monthlyStats")}
-            </h2>
-            <Card>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <FileText className="size-4 text-brand" />
-                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
-                      {t("dash.monthlyStatsHint")}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleCopyMonthlyStats}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand text-white text-xs font-bold active:scale-[0.96] transition-all"
-                  >
-                    {statsCopied ? (
-                      <>
-                        <Check className="size-3.5" />
-                        {t("dash.statsCopied")}
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3.5" />
-                        {t("dash.copyStats")}
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                  <div>
-                    <div className="text-2xl font-black text-dark tabular-nums">
-                      {monthlyStats.daysActive}
-                    </div>
-                    <div className="text-[8px] text-muted uppercase">{t("dash.daysActive")}</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-black text-brand tabular-nums">
-                      {monthlyStats.attendanceRate}%
-                    </div>
-                    <div className="text-[8px] text-muted uppercase">
-                      {t("dash.attendance")}
-                    </div>
-                    {monthlyStats.attendanceRateMax > 0 && (
-                      <div className="text-[8px] text-muted/60 tabular-nums mt-0.5">
-                        {monthlyStats.attendanceRateMin}% – {monthlyStats.attendanceRateMax}%
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-2xl font-black text-green-600 dark:text-green-400 tabular-nums">
-                      {monthlyStats.totalServed}
-                    </div>
-                    <div className="text-[8px] text-muted uppercase">
-                      {t("dash.served")}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums">
-                      {monthlyStats.compCost.toLocaleString("fr-FR")}€
-                    </div>
-                    <div className="text-[8px] text-muted uppercase">
-                      {t("dash.compCostShort")}
-                    </div>
-                    <div className="text-[8px] text-muted/60 tabular-nums mt-0.5">
-                      {monthlyStats.compPersons} pers
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-black/5 dark:border-white/8 text-center text-[10px]">
-                  <div>
-                    <div className="font-bold text-dark tabular-nums">
-                      {monthlyStats.walkInTotal}
-                    </div>
-                    <div className="text-muted uppercase text-[8px]">Walk-ins</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-dark tabular-nums">
-                      {monthlyStats.vipsServed}/{monthlyStats.vipsTotal}
-                    </div>
-                    <div className="text-muted uppercase text-[8px]">VIPs servis</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-dark tabular-nums">
-                      {monthlyStats.peakHourMostCommon || "—"}
-                    </div>
-                    <div className="text-muted uppercase text-[8px]">Pic type</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-dark tabular-nums">
-                      {monthlyStats.noShows}
-                    </div>
-                    <div className="text-muted uppercase text-[8px]">No-shows</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {/* ═══ 6. QUICK NAV ═══ */}
-        <section>
-          <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2 px-1">{t("dash.quickNav")}</h2>
-          <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => router.push("/clients")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
-              <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <span className="text-xs font-bold text-dark">{t("upload.clients")}</span>
-            </button>
-            <button onClick={() => router.push("/reports")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
-              <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <span className="text-xs font-bold text-dark">{t("upload.reports")}</span>
-            </button>
-            {todayData ? (
-              <button onClick={() => router.push("/upload?mode=add")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
-                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                </div>
-                <span className="text-xs font-bold text-dark">{t("search.upload")}</span>
-              </button>
-            ) : (
-              <button onClick={() => router.push("/reports")} className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all">
-                <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <span className="text-xs font-bold text-dark">{t("dash.download")}</span>
-              </button>
-            )}
+                })
+              )}
+            </div>
           </div>
-        </section>
+        </div>
+
+        {/* GSS — Satisfaction client (from Morning Brief) */}
+        {gss.length > 0 && (
+          <div className="glass-liquid rounded-[14px] p-5 mb-5">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Star weight="duotone" size={16} className="text-brand" />
+                <div>
+                  <div className={EYEBROW}>Satisfaction client · GSS</div>
+                  <div className="text-xs text-muted mt-0.5">
+                    Source · Morning Brief · MTD vs objectif
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+              {gss.map((g) => {
+                const mtd = g.mtd ?? 0;
+                const goal = g.goal;
+                const ytd = g.ytd;
+                const aboveGoal = goal !== undefined && mtd >= goal;
+                const nearGoal =
+                  goal !== undefined && mtd >= goal * 0.95 && mtd < goal;
+                const delta =
+                  goal !== undefined
+                    ? Math.round((mtd - goal) * 10) / 10
+                    : null;
+                const mtdCls = aboveGoal
+                  ? "text-green-700 dark:text-green-400"
+                  : nearGoal
+                  ? "text-amber-700 dark:text-amber-400"
+                  : goal !== undefined
+                  ? "text-error"
+                  : "text-dark";
+                const strokeCls = aboveGoal
+                  ? "border-l-green-500/70"
+                  : nearGoal
+                  ? "border-l-amber-500/70"
+                  : goal !== undefined
+                  ? "border-l-error/70"
+                  : "border-l-transparent";
+                return (
+                  <div
+                    key={g.metric}
+                    className={cn(
+                      "glass-liquid rounded-[12px] p-3 border-l-[3px]",
+                      strokeCls
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                      <span className={cn(EYEBROW, "truncate")}>
+                        {gssShort[g.metric] ?? g.metric}
+                      </span>
+                      {delta !== null && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md shrink-0",
+                            delta >= 0
+                              ? "text-green-700 dark:text-green-400 bg-green-500/15"
+                              : "text-error bg-error/15"
+                          )}
+                        >
+                          {delta > 0 ? "+" : ""}
+                          {delta}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        "text-2xl font-black tabular-nums leading-none",
+                        mtdCls
+                      )}
+                    >
+                      {mtd.toFixed(1)}
+                    </div>
+                    <div className="text-[10px] text-muted mt-1.5 tabular-nums">
+                      YTD {ytd !== undefined ? ytd.toFixed(1) : "—"}
+                      {goal !== undefined && (
+                        <span className="opacity-70"> · obj {goal}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* RECURRENT GUESTS + COMMENTS */}
+        {(recurrentGuests.length > 0 || comments.length > 0) && (
+          <div className="grid md:grid-cols-2 gap-4 mb-5">
+            {/* Recurrent guests */}
+            <div className="glass-liquid rounded-[14px] p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Repeat weight="duotone" size={14} className="text-brand" />
+                <span className={EYEBROW}>Clients récurrents · top 5</span>
+              </div>
+              {recurrentGuests.length === 0 ? (
+                <div className="text-xs text-muted py-3">
+                  Aucun client récurrent sur la période.
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {recurrentGuests.map((g, i) => (
+                    <li
+                      key={g.display}
+                      className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-[10px] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-muted text-[10px] font-mono tabular-nums w-4 shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-bold text-dark truncate">
+                          {g.display}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-muted font-mono tabular-nums">
+                          ch {g.lastRoom}
+                        </span>
+                        <span className="inline-flex items-center justify-center min-w-[28px] h-[22px] px-1.5 rounded-full bg-brand/12 text-brand text-[11px] font-black tabular-nums">
+                          ×{g.count}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Comments */}
+            <div className="glass-liquid rounded-[14px] p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ChatCircleDots
+                  weight="duotone"
+                  size={14}
+                  className="text-brand"
+                />
+                <span className={EYEBROW}>Commentaires · Morning Brief</span>
+              </div>
+              {comments.length === 0 ? (
+                <div className="text-xs text-muted py-3">
+                  Aucun commentaire chargé.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {comments.map((c, i) => {
+                    const rating = extractRating(c.text);
+                    const ratingCls =
+                      rating === null
+                        ? "text-muted bg-black/[0.04] dark:bg-white/[0.06]"
+                        : rating >= 9
+                        ? "text-green-700 dark:text-green-400 bg-green-500/15"
+                        : rating >= 7
+                        ? "text-amber-700 dark:text-amber-400 bg-amber-500/15"
+                        : "text-error bg-error/15";
+                    return (
+                      <div
+                        key={i}
+                        className="rounded-[10px] p-2.5 bg-black/[0.02] dark:bg-white/[0.03]"
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[11px] font-bold text-dark truncate">
+                              {c.guestName}
+                            </span>
+                            <span className="text-[9px] text-muted font-mono uppercase tracking-wider">
+                              {c.source}
+                            </span>
+                          </div>
+                          {rating !== null && (
+                            <span
+                              className={cn(
+                                "shrink-0 inline-flex items-center text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md",
+                                ratingCls
+                              )}
+                            >
+                              {rating}/10
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted leading-relaxed line-clamp-3">
+                          {c.text}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* MONTHLY SUMMARY */}
+        <div className="glass-liquid rounded-[14px] p-5 bg-black/[0.02] dark:bg-white/[0.02]">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <div className={EYEBROW}>Synthèse mensuelle</div>
+              <div className="text-lg font-black text-dark mt-0.5 capitalize">
+                {new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" })} · à date
+              </div>
+            </div>
+            <button
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-dark text-white dark:bg-white dark:text-black active:scale-[0.97] transition-all"
+            >
+              {copied ? <><Check size={13} weight="bold" />Copié</> : <><Copy size={13} weight="duotone" />Copier la synthèse</>}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+            <div className="glass-liquid rounded-[12px] p-3">
+              <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wider font-bold">
+                <Users size={10} weight="duotone" />
+                Couverts
+              </div>
+              <div className="text-2xl font-black text-dark tabular-nums mt-1 leading-none">
+                {stats.totalServed.toLocaleString("fr-FR")}
+              </div>
+              <div className="text-[10px] text-muted tabular-nums mt-1">
+                / {stats.totalExpected.toLocaleString("fr-FR")} attendus
+              </div>
+            </div>
+
+            <div className="rounded-[12px] p-3 bg-gradient-to-br from-brand/10 to-transparent border border-brand/15">
+              <div className="inline-flex items-center gap-1 text-[9px] text-brand uppercase tracking-wider font-bold">
+                <Gift size={10} weight="duotone" />
+                Compliments
+              </div>
+              <div className="text-2xl font-black text-brand tabular-nums mt-1 leading-none">
+                {stats.compCost.toLocaleString("fr-FR")}
+                <span className="text-sm opacity-70 ml-0.5">€</span>
+              </div>
+              <div className="text-[10px] text-muted tabular-nums mt-1">
+                {stats.compPersons} couverts
+              </div>
+            </div>
+
+            <div className="glass-liquid rounded-[12px] p-3">
+              <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wider font-bold">
+                <Footprints size={10} weight="duotone" />
+                Walk-ins
+              </div>
+              <div className="text-2xl font-black text-dark tabular-nums mt-1 leading-none">
+                {stats.walkInTotal}
+              </div>
+              <div className="text-[10px] text-muted mt-1">
+                couverts hors-liste
+              </div>
+            </div>
+
+            <div className="glass-liquid rounded-[12px] p-3">
+              <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wider font-bold">
+                <ShieldCheck size={10} weight="duotone" />
+                VIPs servis
+              </div>
+              <div className="text-2xl font-black text-dark tabular-nums mt-1 leading-none">
+                {stats.vipsServed}
+                <span className="text-sm text-muted ml-1">/{stats.vipsTotal}</span>
+              </div>
+              <div className="text-[10px] text-muted mt-1">
+                {stats.vipsMissed} non-vus
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 text-[11px] text-muted font-mono tabular-nums">
+            {stats.daysActive} jours actifs · taux d'assistance{" "}
+            <span className="text-dark font-bold">{stats.attendanceRate}%</span>{" "}
+            (min {stats.attendanceRateMin}% · max {stats.attendanceRateMax}%)
+          </div>
+        </div>
       </div>
     </div>
   );

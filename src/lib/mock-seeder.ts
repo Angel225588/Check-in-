@@ -1,4 +1,9 @@
 import { Client, CheckInRecord, DailyData, SessionRecord } from "./types";
+import {
+  mockMorningBrief,
+  saveMorningBrief,
+  type ForecastDay,
+} from "./morning-brief";
 
 /**
  * Realistic mock dataset for local testing.
@@ -75,9 +80,10 @@ function buildClient(
   };
 }
 
-function buildDay(date: string): { clients: Client[]; checkIns: CheckInRecord[] } {
+function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: CheckInRecord[] } {
   const allNames = [...FRENCH_NAMES, ...INTL_NAMES];
-  const numRooms = 80 + Math.floor(Math.random() * 30); // 80-110
+  const baseRooms = 80 + Math.floor(Math.random() * 30); // 80-110
+  const numRooms = Math.max(20, Math.round(baseRooms * scale));
   const clients: Client[] = [];
   const used = new Set<string>();
 
@@ -94,9 +100,10 @@ function buildDay(date: string): { clients: Client[]; checkIns: CheckInRecord[] 
     clients.push(buildClient(room, name));
   }
 
-  // Sprinkle ~12 VIPs from the breakfast list
-  for (let i = 0; i < 12; i++) {
-    const c = clients[i * 7];
+  // Sprinkle VIPs from the breakfast list (scale with room count)
+  const numVips = Math.min(clients.length, Math.max(3, Math.round(12 * scale)));
+  for (let i = 0; i < numVips; i++) {
+    const c = clients[Math.floor((i / numVips) * clients.length)];
     if (c) {
       c.isVip = true;
       c.vipLevel = pick(VIP_LEVELS);
@@ -104,7 +111,7 @@ function buildDay(date: string): { clients: Client[]; checkIns: CheckInRecord[] 
   }
 
   // Add ~3 VIPs that are list-only (off-list)
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < Math.max(1, Math.round(3 * scale)); i++) {
     let room = "";
     do {
       const floor = 1 + Math.floor(Math.random() * 8);
@@ -122,8 +129,9 @@ function buildDay(date: string): { clients: Client[]; checkIns: CheckInRecord[] 
     );
   }
 
-  // Add ~5 walk-ins
-  for (let i = 0; i < 5; i++) {
+  // Add ~5 walk-ins (scaled)
+  const numWalkIns = Math.max(1, Math.round(5 * scale));
+  for (let i = 0; i < numWalkIns; i++) {
     let room = "";
     do {
       const floor = 1 + Math.floor(Math.random() * 8);
@@ -247,6 +255,212 @@ export function seedMockData(): { sessions: number; clientsToday: number } {
     sessions: sessions.length,
     clientsToday: todayData.clients.length,
   };
+}
+
+/**
+ * Compute a per-day scale factor for realistic 6-month variation.
+ * Combines day-of-week pattern (business hotel: weekends lower),
+ * monthly seasonality (summer peak), gentle growth trend, and noise.
+ */
+function scaleForDate(date: string, dayIndex: number, totalDays: number): number {
+  const dt = new Date(date + "T12:00:00");
+  const dow = dt.getDay(); // 0=Sun ... 6=Sat
+  const month = dt.getMonth(); // 0=Jan ... 11=Dec
+  const dowFactor = dow === 0 ? 0.7 : dow === 6 ? 0.78 : dow === 5 ? 0.92 : 1.0;
+  const monthFactors = [0.85, 0.85, 0.95, 1.0, 1.05, 1.1, 1.15, 1.15, 1.05, 1.0, 0.9, 0.95];
+  const monthFactor = monthFactors[month];
+  const growthFactor = 1 + (dayIndex / Math.max(1, totalDays - 1)) * 0.08;
+  const noise = 0.92 + Math.random() * 0.16;
+  return dowFactor * monthFactor * growthFactor * noise;
+}
+
+/**
+ * Compact session for historical demo days. ~600 bytes vs ~75 KB for a full day.
+ * Keeps just enough fidelity for the chart (daily totals, peak-hour bucket)
+ * and dashboard analytics (aggregate adults/guests). Older days don't need
+ * per-room VIP/package detail.
+ */
+function buildCompactDay(date: string, scale: number): SessionRecord {
+  const totalRooms = Math.max(20, Math.round(95 * scale));
+  const totalGuests = Math.round(totalRooms * 1.45);
+  const attendance = 0.74 + Math.random() * 0.12;
+  const totalEntered = Math.round(totalGuests * attendance);
+
+  // One aggregate stub client (carries totalGuests as adults so dashboard math works)
+  const clients: Client[] = [
+    {
+      roomNumber: "000",
+      roomType: "",
+      rtc: "",
+      confirmationNumber: "",
+      name: "(demo)",
+      arrivalDate: "",
+      departureDate: "",
+      reservationStatus: "CKIN",
+      adults: totalGuests,
+      children: 0,
+      rateCode: "",
+      packageCode: "",
+    },
+  ];
+
+  // One aggregate check-in at 08:30 (peak hour bucket)
+  const checkIns: CheckInRecord[] = totalEntered > 0
+    ? [
+        {
+          id: `${date}_compact`,
+          roomNumber: "000",
+          clientName: "(demo)",
+          peopleEntered: totalEntered,
+          timestamp: `${date}T08:30:00.000Z`,
+        },
+      ]
+    : [];
+
+  return {
+    date,
+    closedAt: `${date}T11:30:00.000Z`,
+    totalRooms,
+    totalGuests,
+    totalEntered,
+    totalRemaining: Math.max(0, totalGuests - totalEntered),
+    totalVip: 0,
+    clients,
+    checkIns,
+    rawUploadText: "",
+  };
+}
+
+/**
+ * Realistic forecast for the next 7 days. Paris business-hotel pattern:
+ * weekdays high (peak Thu/Fri), weekend lower. Mixes occupancies that will
+ * trigger staffing alerts (≥80% warn, ≥95% danger) so the dashboard's
+ * "Prévision 7 jours" + alert list both show real content.
+ */
+function buildDynamicForecast(): ForecastDay[] {
+  const today = new Date();
+  const dowPattern = [0.50, 0.68, 0.80, 0.88, 0.94, 0.97, 0.58]; // Sun..Sat
+  const dayNames = [
+    "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi",
+  ];
+  const forecast: ForecastDay[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const dow = d.getDay();
+    const base = dowPattern[dow];
+    const noise = (Math.random() - 0.5) * 0.05;
+    const occupancyPercent = Math.max(20, Math.min(100, (base + noise) * 100));
+    const sellLimit = 339;
+    const occupied = Math.round(sellLimit * (occupancyPercent / 100));
+    const arrivals = Math.round(40 + Math.random() * 50);
+    const departures = Math.round(35 + Math.random() * 45);
+    const label =
+      `${dayNames[dow]} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    forecast.push({
+      date: label,
+      sellLimit,
+      occupied,
+      occupancyPercent: Math.round(occupancyPercent * 10) / 10,
+      arrivals,
+      departures,
+    });
+  }
+  return forecast;
+}
+
+/**
+ * Inject N days of mock data with realistic seasonality.
+ * - Last 7 historic days: full buildDay (rich VIP / package / per-room detail)
+ * - Days 8 → N back: compact stub (aggregate only) so we stay under the
+ *   5 MB localStorage quota.
+ * Used by the dashboard "Générer 6 mois de démo" button so 3M / 6M views
+ * actually show week-over-week and month-over-month patterns.
+ */
+export function seedDemoMonths(
+  days = 180
+): { sessions: number; days: number; error?: string } {
+  // Wipe existing app data (preserve settings/user prefs)
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    if (key.startsWith("dailyData_") || key === "sessionHistory") {
+      localStorage.removeItem(key);
+    }
+  }
+
+  const sessions: SessionRecord[] = [];
+  for (let offset = days - 1; offset >= 1; offset--) {
+    const date = todayStr(-offset);
+    const dayIndex = days - 1 - offset;
+    const scale = scaleForDate(date, dayIndex, days);
+
+    if (offset <= 7) {
+      const day = buildDay(date, scale);
+      const totalGuests = day.clients.reduce(
+        (s, c) => s + c.adults + c.children,
+        0
+      );
+      const totalEntered = day.checkIns.reduce(
+        (s, c) => s + c.peopleEntered,
+        0
+      );
+      sessions.push({
+        date,
+        closedAt: `${date}T11:30:00.000Z`,
+        totalRooms: day.clients.length,
+        totalGuests,
+        totalEntered,
+        totalRemaining: Math.max(0, totalGuests - totalEntered),
+        totalVip: day.clients.filter((c) => c.isVip).length,
+        clients: day.clients,
+        checkIns: day.checkIns,
+        rawUploadText: "",
+      });
+    } else {
+      sessions.push(buildCompactDay(date, scale));
+    }
+  }
+
+  try {
+    localStorage.setItem("sessionHistory", JSON.stringify(sessions));
+  } catch (e) {
+    return {
+      sessions: 0,
+      days,
+      error: `Espace de stockage saturé (${(e as Error).message}). Essayez de vider d'abord.`,
+    };
+  }
+
+  const today = todayStr(0);
+  const todayScale = scaleForDate(today, days - 1, days);
+  const todayData = buildDay(today, todayScale);
+  const activeData: DailyData = {
+    date: today,
+    clients: todayData.clients,
+    checkIns: todayData.checkIns,
+    rawUploadText: "",
+  };
+  try {
+    localStorage.setItem(`dailyData_${today}`, JSON.stringify(activeData));
+  } catch (e) {
+    return {
+      sessions: sessions.length,
+      days,
+      error: `Données historiques OK mais aujourd'hui non sauvegardé: ${(e as Error).message}`,
+    };
+  }
+
+  // Morning brief — populates "Prévision 7 jours" + staffing alerts on dashboard
+  try {
+    const brief = mockMorningBrief(today);
+    brief.forecast = buildDynamicForecast();
+    saveMorningBrief(brief);
+  } catch {
+    // Brief is optional decoration — chart still works without it
+  }
+
+  return { sessions: sessions.length, days };
 }
 
 /**
