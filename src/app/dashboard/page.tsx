@@ -204,7 +204,7 @@ function Delta({ pct }: { pct: number }) {
       className={cn(
         "inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md",
         positive
-          ? "text-green-700 dark:text-green-400 bg-green-500/15"
+          ? "text-brand bg-brand/15"
           : "text-error bg-error/15"
       )}
     >
@@ -488,8 +488,8 @@ export default function DashboardPage() {
     : 0;
 
   const health: { label: string; cls: string } = useMemo(() => {
-    if (todayPercent >= 70) return { label: "SAIN", cls: "text-green-700 dark:text-green-400 bg-green-500/12" };
-    if (todayPercent >= 40) return { label: "ATTENTION", cls: "text-amber-700 dark:text-amber-400 bg-amber-500/12" };
+    if (todayPercent >= 70) return { label: "SAIN", cls: "text-brand bg-brand/12" };
+    if (todayPercent >= 40) return { label: "ATTENTION", cls: "text-brand bg-brand/12" };
     if (todayReport === null || todayReport.totalGuests === 0)
       return { label: "EN ATTENTE", cls: "text-muted bg-black/[0.04] dark:bg-white/[0.06]" };
     return { label: "FAIBLE", cls: "text-error bg-error/12" };
@@ -732,9 +732,9 @@ export default function DashboardPage() {
             </div>
             <div className={cn(
               "text-3xl font-black tabular-nums leading-none",
-              todayPercent >= 70 ? "text-green-600 dark:text-green-400"
-              : todayPercent >= 40 ? "text-brand"
-              : "text-error"
+              todayPercent >= 40 ? "text-brand"
+              : todayPercent > 0 ? "text-error"
+              : "text-dark/40"
             )}>
               {todayPercent}%
             </div>
@@ -944,7 +944,7 @@ export default function DashboardPage() {
                         <span
                           className={cn(
                             "text-[10px] font-bold tabular-nums leading-none",
-                            danger ? "text-error" : warn ? "text-amber-600 dark:text-amber-400" : "text-dark"
+                            danger ? "text-error" : warn ? "text-brand" : "text-dark"
                           )}
                         >
                           {Math.round(d.occupancyPercent)}%
@@ -952,7 +952,7 @@ export default function DashboardPage() {
                         <div
                           className={cn(
                             "w-full rounded-t-[6px]",
-                            danger ? "bg-error" : warn ? "bg-amber-500" : "bg-dark dark:bg-white/80"
+                            danger ? "bg-error" : warn ? "bg-brand" : "bg-dark dark:bg-white/80"
                           )}
                           style={{
                             height: `${heightPx}px`,
@@ -969,7 +969,7 @@ export default function DashboardPage() {
 
                 {staffingAlerts.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8">
-                    <div className={cn(EYEBROW, "text-amber-600 dark:text-amber-400 mb-2")}>
+                    <div className={cn(EYEBROW, "text-brand mb-2")}>
                       ⚠ Alertes staffing
                     </div>
                     <div className="space-y-1.5">
@@ -978,7 +978,7 @@ export default function DashboardPage() {
                           key={i}
                           className={cn(
                             "flex items-start gap-2 text-[11px]",
-                            a.severity === "danger" ? "text-error" : "text-amber-700 dark:text-amber-400"
+                            a.severity === "danger" ? "text-error" : "text-brand"
                           )}
                         >
                           <span className="font-bold min-w-[110px] truncate">{a.dateLabel}</span>
@@ -1068,23 +1068,18 @@ export default function DashboardPage() {
                 const goal = g.goal;
                 const ytd = g.ytd;
                 const aboveGoal = goal !== undefined && mtd >= goal;
-                const nearGoal =
-                  goal !== undefined && mtd >= goal * 0.95 && mtd < goal;
                 const delta =
                   goal !== undefined
                     ? Math.round((mtd - goal) * 10) / 10
                     : null;
+                // 2 tiers only: above goal (gold) vs below (red). No amber middle tier.
                 const mtdCls = aboveGoal
-                  ? "text-green-700 dark:text-green-400"
-                  : nearGoal
-                  ? "text-amber-700 dark:text-amber-400"
+                  ? "text-brand"
                   : goal !== undefined
                   ? "text-error"
                   : "text-dark";
                 const strokeCls = aboveGoal
-                  ? "border-l-green-500/70"
-                  : nearGoal
-                  ? "border-l-amber-500/70"
+                  ? "border-l-brand/70"
                   : goal !== undefined
                   ? "border-l-error/70"
                   : "border-l-transparent";
@@ -1105,7 +1100,7 @@ export default function DashboardPage() {
                           className={cn(
                             "inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md shrink-0",
                             delta >= 0
-                              ? "text-green-700 dark:text-green-400 bg-green-500/15"
+                              ? "text-brand bg-brand/15"
                               : "text-error bg-error/15"
                           )}
                         >
@@ -1158,10 +1153,8 @@ export default function DashboardPage() {
                     const ratingCls =
                       rating === null
                         ? "text-muted bg-black/[0.04] dark:bg-white/[0.06]"
-                        : rating >= 9
-                        ? "text-green-700 dark:text-green-400 bg-green-500/15"
                         : rating >= 7
-                        ? "text-amber-700 dark:text-amber-400 bg-amber-500/15"
+                        ? "text-brand bg-brand/15"
                         : "text-error bg-error/15";
                     return (
                       <div
