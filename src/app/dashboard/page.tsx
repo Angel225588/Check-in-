@@ -19,6 +19,8 @@ import {
   Star,
   Pencil,
   ChatCircleDots,
+  CaretDown,
+  CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   getHistoricalData,
@@ -421,6 +423,7 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
   const [tempPrice, setTempPrice] = useState("26");
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -640,6 +643,33 @@ export default function DashboardPage() {
     (range === "3M" || range === "6M") &&
     monthData.length < 30;
 
+  // Hero action line — one sentence answering "what should I do right now?"
+  const remainingPax = Math.max(
+    0,
+    (todayReport?.totalGuests ?? 0) - (todayReport?.totalEntered ?? 0)
+  );
+  const totalToday = todayReport?.totalGuests ?? 0;
+  const heroAction = (() => {
+    if (totalToday === 0) return "Aucun service chargé · uploader la liste";
+    if (remainingPax === 0) return "Service terminé · tous passés";
+    if (todayPercent >= 70) return `${remainingPax} restants · finir avant 11h`;
+    if (todayPercent >= 40) return `${remainingPax} restants · cadence normale`;
+    if (todayPercent > 0) return `${remainingPax} restants · accélérer`;
+    return `Service à démarrer · ${totalToday} clients attendus`;
+  })();
+
+  // Tomorrow forecast for the "Demain" call-to-action card
+  const tomorrow = forecast[1] ?? forecast[0] ?? null;
+  const tomorrowAlert = (() => {
+    if (!tomorrow) return null;
+    const occ = tomorrow.occupancyPercent;
+    if (occ >= 95)
+      return { tone: "danger" as const, text: "Renforcer équipe +2 pers · appeler aujourd'hui" };
+    if (occ >= 80)
+      return { tone: "warn" as const, text: "Prévoir +1 personne 08h-09h" };
+    return null;
+  })();
+
   const handleSeedDemo = () => {
     if (
       !confirm(
@@ -696,7 +726,10 @@ export default function DashboardPage() {
               <ShieldCheck size={11} weight="duotone" />
               Direction · F&B · Opérations
             </div>
-            <h1 className="text-3xl font-black text-dark leading-tight mt-1">
+            <h1
+              className="text-4xl text-dark leading-tight mt-1"
+              style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}
+            >
               Bonjour Direction.
             </h1>
             <div className="text-xs text-muted mt-0.5">
@@ -723,45 +756,87 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ZONE 1 — KPI STRIP */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 mb-5">
-          <div className="glass-liquid rounded-[14px] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className={EYEBROW}>Service</span>
-              <Delta pct={deltaService} />
+        {/* HERO — service % + action line + status. The ONE card that answers
+            "how's the business right now and what do I do about it" */}
+        <div
+          className="rounded-[20px] p-6 mb-3 glass-liquid"
+          style={{
+            boxShadow:
+              "inset 0 1px 0 rgba(255, 252, 245, 0.95), inset 0 0 0 1px rgba(255, 252, 245, 0.4), 0 2px 4px rgba(28, 28, 28, 0.04), 0 12px 24px -6px rgba(40, 40, 45, 0.10), 0 40px 80px -16px rgba(166, 105, 20, 0.18)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-3 mb-1.5">
+                <span className={EYEBROW}>Service du jour</span>
+                <Delta pct={deltaService} />
+              </div>
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <div
+                  className={cn(
+                    "tabular-nums leading-none font-black",
+                    todayPercent >= 70
+                      ? "text-brand"
+                      : todayPercent >= 40
+                      ? "text-brand"
+                      : todayPercent > 0
+                      ? "text-error"
+                      : "text-dark/40"
+                  )}
+                  style={{ fontSize: "84px" }}
+                >
+                  {todayPercent}
+                  <span className="text-3xl opacity-60 align-top mt-3 inline-block ml-1">%</span>
+                </div>
+                <div className="text-base text-muted tabular-nums">
+                  {todayReport?.totalEntered ?? 0}/{totalToday} pax
+                </div>
+              </div>
+              <p className="text-sm text-dark mt-2 font-medium">{heroAction}</p>
             </div>
-            <div className={cn(
-              "text-3xl font-black tabular-nums leading-none",
-              todayPercent >= 70 ? "text-green-600 dark:text-green-400"
-              : todayPercent >= 40 ? "text-brand"
-              : "text-error"
-            )}>
-              {todayPercent}%
-            </div>
-            <div className="text-[10px] text-muted mt-1.5 tabular-nums">
-              {todayReport?.totalEntered ?? 0}/{todayReport?.totalGuests ?? 0} pax
-            </div>
+            <span
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase",
+                todayPercent >= 70
+                  ? "bg-brand/12 text-brand"
+                  : todayPercent >= 40
+                  ? "bg-black/[0.05] dark:bg-white/[0.06] text-dark"
+                  : totalToday === 0
+                  ? "bg-black/[0.04] dark:bg-white/[0.06] text-muted"
+                  : "bg-error/12 text-error"
+              )}
+            >
+              {todayPercent >= 70 ? (
+                <CheckCircle size={12} weight="duotone" />
+              ) : totalToday === 0 ? null : (
+                <WarningCircle size={12} weight="duotone" />
+              )}
+              {health.label}
+            </span>
           </div>
+        </div>
 
-          <div className="glass-liquid rounded-[14px] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className={EYEBROW}>Pic</span>
-              <Clock size={12} weight="duotone" className="text-brand" />
-            </div>
-            <div className="text-2xl font-black text-dark tabular-nums leading-none">
+        {/* 3 SUPPORTS — Pic / Compliments / Walk-ins. Lighter shadow than hero. */}
+        <div
+          className="grid grid-cols-3 gap-2.5 mb-5"
+        >
+          <div
+            className="rounded-[14px] p-4 bg-white/50 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.04]"
+            style={{ boxShadow: "0 1px 2px rgba(28, 28, 28, 0.03)" }}
+          >
+            <span className={EYEBROW}>Pic</span>
+            <div className="text-2xl font-black text-dark tabular-nums leading-none mt-1.5">
               {stats.peakHourMostCommon || "—"}
             </div>
-            <div className="text-[10px] text-muted mt-1.5">
-              affluence récurrente
-            </div>
+            <div className="text-[10px] text-muted mt-1.5">affluence récurrente</div>
           </div>
 
-          <div className="glass-liquid rounded-[14px] p-4 bg-gradient-to-br from-brand/8 to-transparent">
-            <div className="flex items-center justify-between mb-2">
-              <span className={cn(EYEBROW, "text-brand")}>Compliments</span>
-              <Gift size={12} weight="duotone" className="text-brand" />
-            </div>
-            <div className="text-2xl font-black text-brand tabular-nums leading-none">
+          <div
+            className="rounded-[14px] p-4 bg-white/50 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.04]"
+            style={{ boxShadow: "0 1px 2px rgba(28, 28, 28, 0.03)" }}
+          >
+            <span className={cn(EYEBROW, "text-brand")}>Compliments</span>
+            <div className="text-2xl font-black text-brand tabular-nums leading-none mt-1.5">
               {stats.compCost.toLocaleString("fr-FR")}
               <span className="text-base opacity-70 ml-0.5">€</span>
             </div>
@@ -804,39 +879,25 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="glass-liquid rounded-[14px] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className={EYEBROW}>Walk-ins (J)</span>
-              <Footprints size={12} weight="duotone" className="text-muted" />
-            </div>
-            <div className="text-2xl font-black text-dark tabular-nums leading-none">
+          <div
+            className="rounded-[14px] p-4 bg-white/50 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.04]"
+            style={{ boxShadow: "0 1px 2px rgba(28, 28, 28, 0.03)" }}
+          >
+            <span className={EYEBROW}>Walk-ins</span>
+            <div className="text-2xl font-black text-dark tabular-nums leading-none mt-1.5">
               {walkInPax}
             </div>
             <div className="text-[10px] text-muted mt-1.5 tabular-nums">
               {walkInRevenue > 0 ? `${walkInRevenue.toLocaleString("fr-FR")}€ revenu` : "aucun revenu"}
             </div>
           </div>
-
-          <div className={cn("rounded-[14px] p-4 glass-liquid", health.cls.includes("bg-") ? health.cls : "")}>
-            <div className="flex items-center justify-between mb-2">
-              <span className={cn(EYEBROW, health.cls.split(" ")[0])}>Statut</span>
-              {todayPercent >= 70 ? (
-                <CheckCircle size={12} weight="duotone" className={health.cls.split(" ")[0]} />
-              ) : (
-                <WarningCircle size={12} weight="duotone" className={health.cls.split(" ")[0]} />
-              )}
-            </div>
-            <div className={cn("text-xl font-black tabular-nums leading-none tracking-wide", health.cls.split(" ")[0])}>
-              {health.label}
-            </div>
-            <div className="text-[10px] text-muted mt-1.5">
-              {deltaService > 0 ? `↑ ${deltaService}% vs hier` : deltaService < 0 ? `↓ ${Math.abs(deltaService)}% vs hier` : "stable vs hier"}
-            </div>
-          </div>
         </div>
 
-        {/* ZONE 2 — TRADING CHART */}
-        <div className="glass-liquid rounded-[14px] p-5 mb-5">
+        {/* CHART — trend context */}
+        <div
+          className="rounded-[14px] p-5 mb-3 bg-white/50 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.04]"
+          style={{ boxShadow: "0 1px 2px rgba(28, 28, 28, 0.03)" }}
+        >
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-4 flex-wrap">
               <TrendUp weight="duotone" size={20} className="text-brand" />
@@ -914,139 +975,152 @@ export default function DashboardPage() {
           <TradingChart series={series} />
         </div>
 
-        {/* ZONE 3 — FORECAST + PATTERN */}
-        <div className="grid md:grid-cols-[1.3fr_1fr] gap-4 mb-5">
-          {/* Forecast */}
-          <div className="glass-liquid rounded-[14px] p-4">
-            <div className="flex items-center gap-2 mb-3">
+        {/* DEMAIN — call-to-action card. The Direction's "what should I plan for tomorrow" answer. */}
+        {forecast.length > 0 && tomorrow && (
+          <div
+            className="rounded-[14px] p-5 mb-3 bg-white/50 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.04]"
+            style={{ boxShadow: "0 1px 2px rgba(28, 28, 28, 0.03)" }}
+          >
+            <div className="flex items-baseline gap-3 mb-2 flex-wrap">
               <Calendar weight="duotone" size={14} className="text-brand" />
-              <span className={EYEBROW}>Prévision 7 jours · Morning Doc</span>
+              <span className={EYEBROW}>Demain</span>
+              <span className="text-xs text-muted">{tomorrow.date}</span>
             </div>
-
-            {forecast.length === 0 ? (
-              <div className="text-xs text-muted text-center py-5">
-                Aucune prévision chargée.
-                <br />
-                <span className="text-[10px]">Importer le briefing du matin pour voir le forecast d'occupation.</span>
+            <div className="flex items-baseline gap-3 flex-wrap mb-2">
+              <div
+                className={cn(
+                  "text-5xl font-black tabular-nums leading-none",
+                  tomorrow.occupancyPercent >= 95
+                    ? "text-error"
+                    : tomorrow.occupancyPercent >= 80
+                    ? "text-brand"
+                    : "text-dark"
+                )}
+              >
+                {Math.round(tomorrow.occupancyPercent)}
+                <span className="text-2xl opacity-60 ml-0.5">%</span>
               </div>
-            ) : (
-              <>
-                <div
-                  className="grid gap-2 items-end mb-1"
-                  style={{ gridTemplateColumns: `repeat(${forecast.length}, 1fr)`, height: 110 }}
-                >
-                  {forecast.map((d, i) => {
-                    const danger = d.occupancyPercent >= 95;
-                    const warn = d.occupancyPercent >= 80;
-                    const heightPx = Math.max(4, (d.occupancyPercent / 100) * 88);
-                    return (
-                      <div key={i} className="flex flex-col items-center gap-1 justify-end h-full">
-                        <span
-                          className={cn(
-                            "text-[10px] font-bold tabular-nums leading-none",
-                            danger ? "text-error" : warn ? "text-amber-600 dark:text-amber-400" : "text-dark"
-                          )}
-                        >
-                          {Math.round(d.occupancyPercent)}%
-                        </span>
-                        <div
-                          className={cn(
-                            "w-full rounded-t-[6px]",
-                            danger ? "bg-error" : warn ? "bg-amber-500" : "bg-dark dark:bg-white/80"
-                          )}
-                          style={{
-                            height: `${heightPx}px`,
-                            opacity: danger ? 1 : warn ? 0.95 : 0.85,
-                          }}
-                        />
-                        <div className="text-[9px] text-muted font-mono text-center leading-tight">
-                          {d.date.split(" ")[0]?.slice(0, 3) || d.date.slice(0, 5)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {staffingAlerts.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8">
-                    <div className={cn(EYEBROW, "text-amber-600 dark:text-amber-400 mb-2")}>
-                      ⚠ Alertes staffing
-                    </div>
-                    <div className="space-y-1.5">
-                      {staffingAlerts.map((a, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            "flex items-start gap-2 text-[11px]",
-                            a.severity === "danger" ? "text-error" : "text-amber-700 dark:text-amber-400"
-                          )}
-                        >
-                          <span className="font-bold min-w-[110px] truncate">{a.dateLabel}</span>
-                          <span className="flex-1 text-dark">{a.message}</span>
-                          <span className="font-mono opacity-70 tabular-nums">
-                            {Math.round(a.occupancyPercent)}%
-                          </span>
-                        </div>
-                      ))}
+              <div className="text-sm text-muted tabular-nums">
+                {tomorrow.occupied}/{tomorrow.sellLimit} chambres · {tomorrow.arrivals} arr. / {tomorrow.departures} dép.
+              </div>
+            </div>
+            {tomorrowAlert && (
+              <p
+                className={cn(
+                  "text-sm font-semibold",
+                  tomorrowAlert.tone === "danger" ? "text-error" : "text-brand"
+                )}
+              >
+                {tomorrowAlert.tone === "danger" ? "⚠ " : "→ "}
+                {tomorrowAlert.text}
+              </p>
+            )}
+            {/* Thin 7-day strip below — glanceable context */}
+            <div
+              className="grid gap-1.5 items-end mt-4 pt-3 border-t border-black/5 dark:border-white/8"
+              style={{ gridTemplateColumns: `repeat(${forecast.length}, 1fr)`, height: 48 }}
+            >
+              {forecast.map((d, i) => {
+                const danger = d.occupancyPercent >= 95;
+                const warn = d.occupancyPercent >= 80;
+                const isTomorrow = tomorrow && d.date === tomorrow.date;
+                const heightPx = Math.max(3, (d.occupancyPercent / 100) * 28);
+                return (
+                  <div key={i} className="flex flex-col items-center gap-1 justify-end h-full">
+                    <div
+                      className={cn(
+                        "w-full rounded-t-[4px]",
+                        isTomorrow ? "bg-brand" : danger ? "bg-error" : "bg-dark dark:bg-white/80"
+                      )}
+                      style={{
+                        height: `${heightPx}px`,
+                        opacity: isTomorrow ? 1 : danger ? 0.9 : warn ? 0.75 : 0.45,
+                      }}
+                    />
+                    <div className="text-[9px] text-muted font-mono leading-tight">
+                      {d.date.split(" ")[0]?.slice(0, 3) || d.date.slice(0, 5)}
                     </div>
                   </div>
-                )}
-              </>
-            )}
+                );
+              })}
+            </div>
           </div>
+        )}
 
-          {/* Pattern + Top packages */}
-          <div className="glass-liquid rounded-[14px] p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendUp weight="duotone" size={14} className="text-brand" />
-              <span className={EYEBROW}>Rythme de la semaine</span>
-            </div>
-            <div className="text-[11px] text-muted mb-3 leading-relaxed">
-              Sur les 6 derniers mois, combien de personnes viennent en
-              moyenne chaque jour. <span className="text-brand font-bold">Barre en or</span> = aujourd&apos;hui ({["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"][todayDow]}).
-            </div>
-            <div
-              className="grid gap-2 items-end mb-3"
-              style={{ gridTemplateColumns: "repeat(7, 1fr)", height: 100 }}
-            >
-              {dowAvg.map((v, i) => (
-                <div key={i} className="flex flex-col items-center gap-1 justify-end h-full">
-                  {v > 0 && (
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold tabular-nums leading-none",
-                        i === todayDow ? "text-brand" : "text-dark"
-                      )}
-                    >
-                      {v}
-                    </span>
-                  )}
-                  <div
+        {/* RYTHME DE LA SEMAINE — ambient pattern */}
+        <div
+          className="rounded-[14px] p-4 mb-5 bg-white/50 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.04]"
+          style={{ boxShadow: "0 1px 2px rgba(28, 28, 28, 0.03)" }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <TrendUp weight="duotone" size={14} className="text-brand" />
+            <span className={EYEBROW}>Rythme de la semaine</span>
+          </div>
+          <div className="text-[11px] text-muted mb-3 leading-relaxed">
+            Sur les 6 derniers mois, combien de personnes viennent en
+            moyenne chaque jour. <span className="text-brand font-bold">Barre en or</span> = aujourd&apos;hui ({["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"][todayDow]}).
+          </div>
+          <div
+            className="grid gap-2 items-end mb-1"
+            style={{ gridTemplateColumns: "repeat(7, 1fr)", height: 100 }}
+          >
+            {dowAvg.map((v, i) => (
+              <div key={i} className="flex flex-col items-center gap-1 justify-end h-full">
+                {v > 0 && (
+                  <span
                     className={cn(
-                      "w-full rounded-t-[6px]",
-                      i === todayDow ? "bg-brand" : "bg-dark dark:bg-white/80"
-                    )}
-                    style={{
-                      height: `${(v / dowMax) * 70}px`,
-                      minHeight: v > 0 ? "4px" : "0",
-                      opacity: i === todayDow ? 1 : v > 0 ? 0.85 : 0.15,
-                    }}
-                  />
-                  <div
-                    className={cn(
-                      "text-[9px] font-mono",
-                      i === todayDow ? "text-brand font-bold" : "text-muted"
+                      "text-[10px] font-bold tabular-nums leading-none",
+                      i === todayDow ? "text-brand" : "text-dark"
                     )}
                   >
-                    {dowLabels[i]}
-                  </div>
+                    {v}
+                  </span>
+                )}
+                <div
+                  className={cn(
+                    "w-full rounded-t-[6px]",
+                    i === todayDow ? "bg-brand" : "bg-dark dark:bg-white/80"
+                  )}
+                  style={{
+                    height: `${(v / dowMax) * 70}px`,
+                    minHeight: v > 0 ? "4px" : "0",
+                    opacity: i === todayDow ? 1 : v > 0 ? 0.85 : 0.15,
+                  }}
+                />
+                <div
+                  className={cn(
+                    "text-[9px] font-mono",
+                    i === todayDow ? "text-brand font-bold" : "text-muted"
+                  )}
+                >
+                  {dowLabels[i]}
                 </div>
-              ))}
-            </div>
-
+              </div>
+            ))}
           </div>
         </div>
 
+        {/* DETAILS ACCORDION — GSS, Comments, Monthly Summary.
+            Closed by default. A morning Direction won't open it; a weekly
+            review will. Reduces noise on the daily view. */}
+        <button
+          onClick={() => setDetailsOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-[14px] bg-white/40 dark:bg-white/[0.04] hover:bg-white/60 dark:hover:bg-white/[0.06] border border-black/[0.04] dark:border-white/[0.04] active:scale-[0.997] transition-all mb-3"
+          aria-expanded={detailsOpen}
+        >
+          <span className="text-sm font-bold text-dark">Détails du mois</span>
+          <span className="flex items-center gap-2 text-xs text-muted">
+            GSS · Commentaires · Synthèse
+            {detailsOpen ? (
+              <CaretDown size={14} weight="bold" />
+            ) : (
+              <CaretRight size={14} weight="bold" />
+            )}
+          </span>
+        </button>
+
+        {detailsOpen && (
+        <>
         {/* GSS — Satisfaction client (from Morning Brief) */}
         {gss.length > 0 && (
           <div className="glass-liquid rounded-[14px] p-5 mb-5">
@@ -1279,6 +1353,8 @@ export default function DashboardPage() {
             (min {stats.attendanceRateMin}% · max {stats.attendanceRateMax}%)
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
