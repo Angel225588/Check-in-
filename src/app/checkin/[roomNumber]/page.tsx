@@ -1,16 +1,34 @@
 "use client";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useMemo, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
+import { Clock, Star, X } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
-import { getTodayData, addCheckIn, updateClient, getSettings, addClient } from "@/lib/storage";
+import {
+  getTodayData,
+  addCheckIn,
+  updateClient,
+  getSettings,
+  getSessionHistory,
+} from "@/lib/storage";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
-import QuickAddGuest from "@/components/QuickAddGuest";
 import ClientHistory from "@/components/ClientHistory";
 import RoomEventBadges from "@/components/RoomEventBadges";
 import { getRoomEvents, RoomEvent } from "@/lib/room-events";
+
+function normalizeNameForId(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join("");
+}
 
 export default function CheckInPage({
   params,
@@ -35,10 +53,9 @@ export default function CheckInPage({
   const [editAdults, setEditAdults] = useState("");
   const [editChildren, setEditChildren] = useState("");
   const [costPerCover, setCostPerCover] = useState(26);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [todayCheckIns, setTodayCheckIns] = useState<CheckInRecord[]>([]);
   const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
-  const [quickAddPopup, setQuickAddPopup] = useState<{ kind: "adult" | "child" } | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     const data = getTodayData();
@@ -89,6 +106,40 @@ export default function CheckInPage({
     );
   }, [roomNumber, router, searchParams]);
 
+  // Hooks must run unconditionally, BEFORE any early return.
+  const guestId = useMemo(
+    () => (client ? normalizeNameForId(client.name) : ""),
+    [client]
+  );
+
+  /** Past stays for this guest, identified by normalized-name ID
+   *  (so they map even when they come back to a different room). */
+  const pastStays = useMemo(() => {
+    if (!guestId) return [];
+    const sessions = getSessionHistory();
+    const todayIso = new Date().toISOString().split("T")[0];
+    const visits: Array<{
+      date: string;
+      roomNumber: string;
+      pax: number;
+      vipLevel?: string;
+    }> = [];
+    for (const s of sessions) {
+      if (s.date === todayIso) continue;
+      for (const c of s.clients) {
+        if (normalizeNameForId(c.name) !== guestId) continue;
+        visits.push({
+          date: s.date,
+          roomNumber: c.roomNumber,
+          pax: c.adults + c.children,
+          vipLevel: c.vipLevel,
+        });
+        break;
+      }
+    }
+    return visits.sort((a, b) => b.date.localeCompare(a.date));
+  }, [guestId]);
+
   if (!client) {
     return (
       <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4">
@@ -101,18 +152,6 @@ export default function CheckInPage({
       </div>
     );
   }
-
-  const handleToggleVip = () => {
-    if (clientIndex === null) return;
-    const newVip = !client.isVip;
-    updateClient(clientIndex, { isVip: newVip, vipLevel: newVip ? "" : undefined });
-    setClient({ ...client, isVip: newVip, vipLevel: newVip ? "" : undefined });
-  };
-
-  // Payment carousel: walk-ins (no package) and extra guests only
-  // VIPs with a breakfast package are covered — no carousel needed
-  const notOnList = !client.packageCode || client.packageCode === "";
-  const showPaymentTabs = notOnList;
 
   const handleSaveRoom = () => {
     if (!editRoom.trim() || clientIndex === null) return;
@@ -144,24 +183,6 @@ export default function CheckInPage({
   const allDone = remaining === 0;
   const entered = total - remaining;
   const progressPercent = total > 0 ? (entered / total) * 100 : 0;
-
-  const getVipBadgeClasses = (level?: string): string => {
-    const normalized = (level || "").toLowerCase();
-    if (normalized.includes("platinum") || normalized.includes("titanium") || normalized.includes("ambassador")) {
-      // Platinum/Titanium/Ambassador — dark premium with subtle shine
-      return "bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900 text-white px-5 py-2 text-base shadow-lg shadow-gray-900/40 ring-1 ring-white/10";
-    }
-    if (normalized.includes("gold")) {
-      // Gold Elite — warm gold gradient
-      return "bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-500 text-white px-5 py-2 text-base shadow-lg shadow-amber-500/30";
-    }
-    if (normalized.includes("silver")) {
-      // Silver Elite — cool metallic
-      return "bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 text-gray-800 px-5 py-2 text-base shadow-lg shadow-slate-400/30";
-    }
-    // Generic VIP — brand gradient
-    return "bg-gradient-to-r from-brand to-brand-light text-white px-5 py-2 text-base shadow-lg shadow-brand/30 dark:glow-brand";
-  };
 
   const handleCheckIn = () => {
     if (count <= 0 || allDone || checkInSuccess) return;
@@ -227,76 +248,87 @@ export default function CheckInPage({
             <span className="text-sm font-medium text-brand">{t("checkin.search")}</span>
           </button>
 
-          {/* Room + badges row */}
-          <div className="flex items-end justify-between mb-2">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted mb-0.5">{t("checkin.room")}</div>
-              {editingRoom ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={editRoom}
-                    onChange={(e) => setEditRoom(e.target.value)}
-                    className="w-28 text-4xl font-black font-mono text-dark bg-white/50 rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand/30"
-                    autoFocus
-                    maxLength={10}
-                  />
-                  <button onClick={handleSaveRoom} className="text-brand font-bold text-sm">{t("checkin.save")}</button>
-                  <button onClick={() => setEditingRoom(false)} className="text-muted text-sm">{t("checkin.cancel")}</button>
-                </div>
-              ) : (
+          {/* Hero card — room # + guest name on one line, with depth */}
+          <div className="glass-liquid rounded-[20px] px-5 py-5 mb-3 relative">
+            {/* Clock icon → past-stays history */}
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted hover:text-brand active:scale-[0.94] transition-all"
+              aria-label="Historique du client"
+              title={pastStays.length > 0 ? `${pastStays.length} séjour(s) précédent(s)` : "Aucun séjour précédent"}
+            >
+              <Clock weight="duotone" size={14} />
+              {pastStays.length > 0 && (
+                <span className="text-[10px] font-black tabular-nums">{pastStays.length}</span>
+              )}
+            </button>
+
+            <div className="text-[10px] uppercase tracking-wider text-muted mb-2">
+              {t("checkin.room")}
+            </div>
+
+            {editingRoom ? (
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={editRoom}
+                  onChange={(e) => setEditRoom(e.target.value)}
+                  className="w-32 text-5xl font-black font-mono text-dark bg-white/50 rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  autoFocus
+                  maxLength={10}
+                />
+                <button onClick={handleSaveRoom} className="text-brand font-bold text-sm">{t("checkin.save")}</button>
+                <button onClick={() => setEditingRoom(false)} className="text-muted text-sm">{t("checkin.cancel")}</button>
+              </div>
+            ) : (
+              <div className="flex items-baseline gap-4 flex-wrap">
                 <button
                   onClick={() => { setEditRoom(client.roomNumber); setEditingRoom(true); }}
-                  className="text-5xl font-black font-mono text-dark leading-none tracking-tight active:opacity-70 transition-opacity"
+                  className="text-6xl font-black font-mono text-brand leading-none tracking-tight active:opacity-70 transition-opacity"
                 >
                   {client.roomNumber}
                 </button>
-              )}
-            </div>
-            <div className="flex gap-2 flex-wrap justify-end pb-1">
-              <button
-                onClick={handleToggleVip}
-                className={`inline-flex items-center rounded-full font-black active:scale-[0.94] transition-all ${
-                  client.isVip
-                    ? getVipBadgeClasses(client.vipLevel)
-                    : "glass-liquid text-muted border border-dashed border-current text-sm px-4 py-1.5"
-                }`}
-              >
-                {client.isVip ? (
-                  <>
-                    <span className="drop-shadow-sm tracking-wide">{client.vipLevel || "VIP"}</span>
-                  </>
-                ) : (
-                  <>+ VIP</>
-                )}
-              </button>
-              {comp && (
-                <span className="inline-flex items-center text-base bg-purple-600 text-white px-5 py-2 rounded-full font-black shadow-sm shadow-purple-500/20 tracking-wide">
-                  COMP
-                </span>
-              )}
-            </div>
+                <h2
+                  className="text-[34px] text-dark leading-none tracking-tight"
+                  style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}
+                >
+                  {client.name}
+                </h2>
+              </div>
+            )}
+
+            {/* COMP cost badge */}
+            {comp && (
+              <div className="mt-3 inline-flex items-center gap-2 bg-purple-500/10 dark:bg-purple-500/15 rounded-full px-3 py-1">
+                <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide">COMP</span>
+                <span className="text-sm font-black text-purple-700 dark:text-purple-300 tabular-nums">{total * costPerCover}€</span>
+              </div>
+            )}
           </div>
 
-          {/* Guest name */}
-          <h2 className="text-[28px] font-black text-dark leading-tight tracking-tight">{client.name}</h2>
-
-          {/* COMP cost badge */}
-          {comp && (
-            <div className="mt-2 inline-flex items-center gap-2 bg-purple-500/10 dark:bg-purple-500/15 rounded-full px-3 py-1">
-              <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide">COMP</span>
-              <span className="text-sm font-black text-purple-700 dark:text-purple-300 tabular-nums">{total * costPerCover}€</span>
+          {/* VIP banner — same prominent gradient as the Ambassador banner.
+              Shown ONLY when the guest is on the VIP list (client.isVip = true). */}
+          {client.isVip && (
+            <div className="flex items-center gap-3 px-4 py-3 mb-3 rounded-[14px] bg-gradient-to-r from-brand via-brand-light to-brand text-white shadow-[0_4px_20px_-4px] shadow-brand/50">
+              <span className="grid place-items-center size-9 rounded-full bg-white/20 backdrop-blur-sm">
+                <Star weight="fill" className="size-5 text-white drop-shadow" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <span className="text-[13px] font-black tracking-[0.10em] uppercase drop-shadow-sm">
+                  {client.vipLevel || "VIP"}
+                </span>
+                <p className="text-[11px] text-white/90 mt-0.5 leading-relaxed">
+                  Client VIP — accueil prioritaire
+                </p>
+              </div>
             </div>
           )}
 
           {/* Morning brief events for this room — anniversaire, honeymoon,
-              ambassador, top VIP, complaint. Communicates immediately to
-              the team what context this guest carries. */}
+              ambassador. Maps to /checkin via the room number. */}
           {roomEvents.length > 0 && (
-            <div className="mt-3">
-              <RoomEventBadges events={roomEvents} variant="stack" showReason />
-            </div>
+            <RoomEventBadges events={roomEvents} variant="stack" showReason />
           )}
         </div>
       </div>
@@ -424,20 +456,23 @@ export default function CheckInPage({
         </div>
         )}
 
-        <div className="shrink-0 grid grid-cols-2 gap-2 mb-3">
+        {/* Arrival · Departure · Package — Apple-style varied widths in one row */}
+        <div
+          className="shrink-0 grid gap-2 mb-3"
+          style={{ gridTemplateColumns: "1fr 1fr 1.4fr" }}
+        >
           <div className="glass-liquid rounded-[14px] p-3">
             <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.arrival")}</div>
-            <div className="text-sm font-semibold mt-0.5 text-dark">{client.arrivalDate}</div>
+            <div className="text-sm font-semibold mt-0.5 text-dark truncate">{client.arrivalDate || "—"}</div>
           </div>
           <div className="glass-liquid rounded-[14px] p-3">
             <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.departure")}</div>
-            <div className="text-sm font-semibold mt-0.5 text-dark">{client.departureDate}</div>
+            <div className="text-sm font-semibold mt-0.5 text-dark truncate">{client.departureDate || "—"}</div>
           </div>
-        </div>
-
-        <div className="shrink-0 glass-liquid rounded-[14px] p-3 mb-3">
-          <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.package")}</div>
-          <div className="text-sm font-semibold mt-0.5 text-dark">{client.packageCode || "N/A"}</div>
+          <div className="glass-liquid rounded-[14px] p-3">
+            <div className="text-[10px] text-muted uppercase tracking-wide">{t("checkin.package")}</div>
+            <div className="text-sm font-semibold mt-0.5 text-dark truncate">{client.packageCode || "—"}</div>
+          </div>
         </div>
 
         {/* Client history + undo timeline */}
@@ -463,68 +498,6 @@ export default function CheckInPage({
             }
           }}
         />
-
-        {/* Quick add — incrémente le client EN PLACE (jamais de nouvelle chambre).
-            Ouvre un popup paiement quand nécessaire (sinon ajoute direct). */}
-        <div className="shrink-0 mb-3 grid grid-cols-3 gap-2">
-          <button
-            onClick={() => {
-              // Si paiement nécessaire (off-list ou pas de package BKF) → popup
-              if (needsPaymentChoice(client)) {
-                setQuickAddPopup({ kind: "adult" });
-              } else {
-                // VIP avec PDJ inclus → ajout direct, gratuit
-                if (clientIndex !== null) {
-                  updateClient(clientIndex, { adults: client.adults + 1 });
-                  const data = getTodayData();
-                  if (data && data.clients[clientIndex]) {
-                    setClient({ ...data.clients[clientIndex] });
-                    setRemaining(getRemainingForRoom(data.clients[clientIndex], data.checkIns));
-                  }
-                }
-              }
-            }}
-            className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.96] transition-all"
-            aria-label="Ajouter un adulte"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-            {t("checkin.quickAdult")}
-          </button>
-          <button
-            onClick={() => {
-              if (needsPaymentChoice(client)) {
-                setQuickAddPopup({ kind: "child" });
-              } else {
-                if (clientIndex !== null) {
-                  updateClient(clientIndex, { children: client.children + 1 });
-                  const data = getTodayData();
-                  if (data && data.clients[clientIndex]) {
-                    setClient({ ...data.clients[clientIndex] });
-                    setRemaining(getRemainingForRoom(data.clients[clientIndex], data.checkIns));
-                  }
-                }
-              }
-            }}
-            className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.96] transition-all"
-            aria-label="Ajouter un enfant"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-            {t("checkin.quickChild")}
-          </button>
-          <button
-            onClick={() => setQuickAddOpen(true)}
-            className="flex items-center justify-center gap-1 py-2.5 glass-liquid rounded-[14px] text-brand font-semibold text-xs active:scale-[0.97] transition-all"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-            {t("checkin.addClient")}
-          </button>
-        </div>
 
         <div className="flex-1" />
 
@@ -558,85 +531,73 @@ export default function CheckInPage({
         )}
       </div>
 
-      <QuickAddGuest
-        roomNumber={client.roomNumber}
-        isOpen={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
-        onAdded={(newClient) => {
-          const data = getTodayData();
-          if (data) {
-            const newIndex = data.clients.length - 1;
-            router.push(`/checkin/${newClient.roomNumber}?ci=${newIndex}`);
-          }
-        }}
-      />
-
-      {/* Quick-add payment popup — incrémente le client courant + paiement */}
-      {quickAddPopup && (
+      {/* Past-stays history modal */}
+      {historyOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-[fadeIn_0.18s_ease-out]"
-          onClick={() => setQuickAddPopup(null)}
+          onClick={() => setHistoryOpen(false)}
         >
           <div
-            className="w-full sm:max-w-md bg-[#FBF8F3] dark:bg-[#14141A] rounded-t-[24px] sm:rounded-[24px] p-5 pb-7 shadow-2xl"
+            className="w-full sm:max-w-md bg-[#FBF8F3] dark:bg-[#14141A] rounded-t-[24px] sm:rounded-[24px] p-5 pb-7 shadow-2xl max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4 sm:hidden" />
-            <div className="text-center mb-4">
-              <h3 className="text-base font-black text-dark">
-                +1 {quickAddPopup.kind === "adult" ? t("checkin.quickAdult").replace("+1 ", "") : t("checkin.quickChild").replace("+1 ", "")}
-              </h3>
-              <p className="text-xs text-muted mt-1">{t("checkin.paymentQuestion")}</p>
-            </div>
-            <div className="grid grid-cols-5 gap-1.5">
-              {[
-                { key: "room",       label: "Chambre",    icon: "🏨" },
-                { key: "points",     label: "Points",     icon: "⭐" },
-                { key: "cash",       label: "Cash",       icon: "💵" },
-                { key: "card",       label: "Carte B",    icon: "💳" },
-                { key: "supervisor", label: "Supervisor", icon: "👤" },
-              ].map((opt) => (
-                <button
-                  key={opt.key}
-                  onClick={() => {
-                    if (clientIndex === null) return;
-                    if (quickAddPopup.kind === "adult") {
-                      updateClient(clientIndex, {
-                        adults: client.adults + 1,
-                        pendingPaymentAction: opt.key,
-                      });
-                    } else {
-                      updateClient(clientIndex, {
-                        children: client.children + 1,
-                        pendingPaymentAction: opt.key,
-                      });
-                    }
-                    const data = getTodayData();
-                    if (data && data.clients[clientIndex]) {
-                      setClient({ ...data.clients[clientIndex] });
-                      setRemaining(getRemainingForRoom(data.clients[clientIndex], data.checkIns));
-                      setPaymentAction(opt.key);
-                    }
-                    setQuickAddPopup(null);
-                  }}
-                  className="flex flex-col items-center justify-center gap-1 py-3 rounded-[14px] glass-liquid active:scale-[0.94] transition-all"
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h3 className="text-base font-black text-dark">Historique du client</h3>
+                <p
+                  className="text-[20px] text-dark mt-1 leading-none"
+                  style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}
                 >
-                  <span
-                    className="w-9 h-9 rounded-[12px] grid place-items-center text-lg bg-black/[0.04] dark:bg-white/[0.06]"
-                    style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 4px -2px rgba(0,0,0,0.06)" }}
-                  >
-                    {opt.icon}
-                  </span>
-                  <span className="text-[10px] font-bold leading-none text-dark/80">{opt.label}</span>
-                </button>
-              ))}
+                  {client.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setHistoryOpen(false)}
+                className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                aria-label="Fermer"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <button
-              onClick={() => setQuickAddPopup(null)}
-              className="w-full mt-4 py-2.5 rounded-full text-sm font-medium text-muted glass-liquid"
-            >
-              {t("checkin.cancel")}
-            </button>
+
+            <div className="flex-1 overflow-y-auto -mx-1 px-1">
+              {pastStays.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-dark">Premier séjour chez nous.</p>
+                  <p className="text-xs text-muted mt-1">
+                    Aucun séjour précédent enregistré pour ce client.
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {pastStays.map((v, i) => (
+                    <li
+                      key={`${v.date}-${i}`}
+                      className="flex items-center justify-between gap-2 py-2 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]"
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-bold text-dark tabular-nums">
+                          {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                        <span className="text-[10px] text-muted">
+                          ch {v.roomNumber} · {v.pax} pax
+                          {v.vipLevel && ` · ${v.vipLevel}`}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="text-[10px] text-muted text-center mt-3">
+              {pastStays.length} séjour(s) précédent(s)
+            </div>
           </div>
         </div>
       )}

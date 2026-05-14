@@ -7,12 +7,28 @@ export interface MergeResult {
   existing: number;
 }
 
+/**
+ * Order-independent, accent-insensitive name key.
+ * Handles OCR variants: "POLANCO Angel" vs "Angel POLANCO" vs "ANGEL  POLANCO."
+ */
 function normalizeNameForKey(name: string): string {
-  return name.toUpperCase().replace(/[^A-Z]/g, "");
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip accents (é → e)
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, "") // drop punctuation; keep letters/digits/whitespace
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join("");
+}
+
+function normalizeRoomForKey(room: string): string {
+  return room.trim().toUpperCase().replace(/\s+/g, "");
 }
 
 function clientKey(c: Client): string {
-  return `${c.roomNumber}::${normalizeNameForKey(c.name)}`;
+  return `${normalizeRoomForKey(c.roomNumber)}::${normalizeNameForKey(c.name)}`;
 }
 
 /**

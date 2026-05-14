@@ -75,6 +75,14 @@ function styleFor(type: RoomEventType): { iconName: string; colorClass: string; 
 }
 
 /**
+ * Normalize a room number for comparison.
+ * Handles OCR variants like "#707", " 707", "707 " all matching "707".
+ */
+function normRoom(s: string): string {
+  return (s || "").trim().replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+}
+
+/**
  * Returns every event that touches the given room number, sorted by
  * priority (complaint first, then top-vip, then anniversaire, etc.).
  */
@@ -85,10 +93,11 @@ export function getRoomEvents(
   const b = brief ?? getMorningBrief();
   if (!b) return [];
 
+  const target = normRoom(roomNumber);
   const events: RoomEvent[] = [];
 
   for (const e of b.specialEvents) {
-    if (e.roomNumber !== roomNumber) continue;
+    if (normRoom(e.roomNumber) !== target) continue;
     const style = styleFor(e.type);
     events.push({
       type: e.type,
@@ -99,7 +108,7 @@ export function getRoomEvents(
   }
 
   for (const a of b.ambassadors) {
-    if (a.roomNumber !== roomNumber) continue;
+    if (normRoom(a.roomNumber) !== target) continue;
     events.push({
       type: "ambassador",
       reason: a.notes ?? "Ambassador",
@@ -109,7 +118,7 @@ export function getRoomEvents(
   }
 
   for (const v of b.topVips) {
-    if (v.roomNumber !== roomNumber) continue;
+    if (normRoom(v.roomNumber) !== target) continue;
     events.push({
       type: "top-vip",
       reason: v.notes ?? `Top VIP · ${v.vipLevel}`,
@@ -118,7 +127,7 @@ export function getRoomEvents(
   }
 
   for (const c of b.complaints) {
-    if (!c.roomNumber || c.roomNumber !== roomNumber) continue;
+    if (!c.roomNumber || normRoom(c.roomNumber) !== target) continue;
     events.push({
       type: "complaint",
       reason: c.text,
@@ -148,11 +157,11 @@ export function anyRoomHasEvent(
 ): boolean {
   const b = brief ?? getMorningBrief();
   if (!b) return false;
-  const set = new Set(roomNumbers);
-  if (b.specialEvents.some((e) => set.has(e.roomNumber))) return true;
-  if (b.ambassadors.some((e) => set.has(e.roomNumber))) return true;
-  if (b.topVips.some((e) => set.has(e.roomNumber))) return true;
-  if (b.complaints.some((e) => e.roomNumber && set.has(e.roomNumber)))
+  const set = new Set(roomNumbers.map(normRoom));
+  if (b.specialEvents.some((e) => set.has(normRoom(e.roomNumber)))) return true;
+  if (b.ambassadors.some((e) => set.has(normRoom(e.roomNumber)))) return true;
+  if (b.topVips.some((e) => set.has(normRoom(e.roomNumber)))) return true;
+  if (b.complaints.some((e) => e.roomNumber && set.has(normRoom(e.roomNumber))))
     return true;
   return false;
 }

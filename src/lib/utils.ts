@@ -101,9 +101,10 @@ export function isComp(client: Client): boolean {
 export function needsPaymentChoice(client: Client): boolean {
   if (client.vipSource === "list_only" || client.vipSource === "walk_in") return true;
   const pkg = (client.packageCode || "").toUpperCase().replace(/\s+/g, " ");
-  // Breakfast covered by the booking — no need to ask
+  // Breakfast covered by the booking — no need to ask.
+  // Matches: BKF INC / GRP / EXCL / COMP / GTT and UPSPDJ / UPSFPDJ / UPS PDJ / UPS F PDJ
   const includes =
-    /BKF\s*(INC|GRP|EXCL|COMP|GTT)|UPSFPDJ/.test(pkg);
+    /BKF\s*(INC|GRP|EXCL|COMP|GTT)|UPS\s*F?\s*PDJ/.test(pkg);
   return !includes;
 }
 

@@ -30,6 +30,9 @@ import { Button } from "@/components/ui/button";
 export default function MorningBriefPage() {
   const router = useRouter();
   const [brief, setBrief] = useState<MorningBrief | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -41,6 +44,39 @@ export default function MorningBriefPage() {
     const demo = mockMorningBrief();
     saveMorningBrief(demo);
     setBrief(demo);
+  };
+
+  const handleUpload = async (files: File[]) => {
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      for (const f of files) fd.append("file", f);
+      const res = await fetch("/api/ocr-morning-brief", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setUploadError(data.error || "Échec de l'extraction.");
+        return;
+      }
+      // Force today's date so the dashboard picks it up
+      const today = new Date().toISOString().split("T")[0];
+      const extracted: MorningBrief = { ...data.brief, date: today };
+      saveMorningBrief(extracted);
+      setBrief(extracted);
+      const summary: string[] = [];
+      if (extracted.forecast.length) summary.push(`${extracted.forecast.length} jours forecast`);
+      if (extracted.specialEvents.length) summary.push(`${extracted.specialEvents.length} événements (anniv. / honeymoon)`);
+      if (extracted.ambassadors.length) summary.push(`${extracted.ambassadors.length} ambassadeurs`);
+      setUploadSuccess(summary.length ? `Extrait : ${summary.join(" · ")}` : "Aucune donnée détectée dans ce document.");
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Échec du téléversement.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const isEmpty =
@@ -110,24 +146,60 @@ export default function MorningBriefPage() {
           <p className="text-xs text-muted mt-0.5">{brief.date}</p>
         </div>
 
-        {/* Empty state with demo seed */}
-        {isEmpty && (
-          <Card className="border-amber-500/30 bg-amber-500/5">
-            <CardContent className="text-center space-y-3 py-6">
-              <Sparkle weight="duotone" className="size-8 text-amber-600 mx-auto" />
-              <p className="text-sm text-dark font-medium">
-                Aucun briefing pour aujourd'hui
+        {/* Upload + demo seed card */}
+        <Card className="border-brand/30 bg-brand/5">
+          <CardContent className="space-y-3 py-5">
+            <div className="flex items-center gap-2">
+              <Sparkle weight="duotone" className="size-5 text-brand" />
+              <p className="text-sm text-dark font-bold">
+                {isEmpty
+                  ? "Aucun briefing pour aujourd'hui"
+                  : "Mettre à jour le briefing"}
               </p>
-              <p className="text-xs text-muted">
-                Charge le briefing du matin (depuis le PDF Marriott Front Office) ou
-                clique pour générer un exemple basé sur le doc du 30 avril.
-              </p>
-              <Button onClick={seedDemo} variant="default" size="sm">
-                Charger un briefing exemple
+            </div>
+            <p className="text-xs text-muted leading-relaxed">
+              Téléverse le PDF (ou les 2 photos recto/verso) du briefing Marriott
+              Front Office — l&apos;IA extrait forecast, GSS, commentaires,
+              ambassadeurs, événements et plus. Tout est sauvegardé localement.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-brand text-white text-sm font-bold cursor-pointer active:scale-[0.97] transition-all">
+                {uploading ? "Extraction en cours…" : "Téléverser PDF / photo(s)"}
+                <input
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const list = e.target.files;
+                    if (list && list.length) handleUpload(Array.from(list));
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <Button
+                onClick={seedDemo}
+                variant="glass"
+                size="sm"
+                disabled={uploading}
+                className="flex-1"
+              >
+                Charger exemple démo
               </Button>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+            {uploadError && (
+              <p className="text-[11px] text-error font-medium bg-error/10 rounded-lg px-3 py-2">
+                {uploadError}
+              </p>
+            )}
+            {uploadSuccess && (
+              <p className="text-[11px] text-green-700 dark:text-green-400 font-medium bg-green-500/10 rounded-lg px-3 py-2">
+                ✓ {uploadSuccess}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* FORECAST 7 jours */}
         {brief.forecast.length > 0 && (

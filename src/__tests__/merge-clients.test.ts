@@ -121,6 +121,35 @@ describe("mergeNewClients", () => {
     expect(result.duplicatesSkipped).toBe(1);
   });
 
+  it("dedups same room when surname/first-name order differs", () => {
+    // Real OCR scenario from 2026-05-14 field test: same guest captured twice,
+    // once as "POLANCO Angel" and once as "Angel POLANCO" on a list continuation.
+    const existing = [makeClient("708", "POLANCO Angel")];
+    const incoming = [makeClient("708", "Angel POLANCO")];
+    const result = mergeNewClients(existing, incoming);
+
+    expect(result.merged).toHaveLength(1);
+    expect(result.duplicatesSkipped).toBe(1);
+  });
+
+  it("dedups same room when room number has leading whitespace", () => {
+    const existing = [makeClient("708", "Smith John")];
+    const incoming = [makeClient(" 708", "Smith John")];
+    const result = mergeNewClients(existing, incoming);
+
+    expect(result.merged).toHaveLength(1);
+    expect(result.duplicatesSkipped).toBe(1);
+  });
+
+  it("dedups when name has accents (é vs e)", () => {
+    const existing = [makeClient("404", "Réné Dupont")];
+    const incoming = [makeClient("404", "Rene Dupont")];
+    const result = mergeNewClients(existing, incoming);
+
+    expect(result.merged).toHaveLength(1);
+    expect(result.duplicatesSkipped).toBe(1);
+  });
+
   it("returns empty merge when both lists are empty", () => {
     const result = mergeNewClients([], []);
     expect(result.merged).toHaveLength(0);

@@ -416,9 +416,7 @@ function ReportPage() {
           {dailyData && <RushHourChart data={dailyData} />}
 
           {/* ═══ SOURCE BREAKDOWN — Liste vs VIP-only vs Walk-in ═══ */}
-          {(report.sourceBreakdown.vipListOnlyRooms > 0 ||
-            report.sourceBreakdown.walkInRooms > 0) && (
-            <div className="glass-liquid rounded-[14px] p-4">
+          <div className="glass-liquid rounded-[14px] p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[9px] text-muted uppercase tracking-wider font-semibold">
                   {t("report.sourceBreakdownTitle")}
@@ -507,8 +505,7 @@ function ReportPage() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
+          </div>
 
           {/* ═══ VIPs HORS LISTE — VIPs sans PDJ inclus qui sont venus ═══ */}
           {(() => {
@@ -518,7 +515,6 @@ function ReportPage() {
                 (r.vipSource === "list_only" || r.vipSource === "walk_in") &&
                 r.entered > 0
             );
-            if (offlistVips.length === 0) return null;
             const labelFor = (action?: string, isComp?: boolean) => {
               if (isComp) return "Compliment";
               switch (action) {
@@ -548,6 +544,11 @@ function ReportPage() {
                     {offlistVips.length}
                   </span>
                 </div>
+                {offlistVips.length === 0 ? (
+                  <p className="text-[11px] text-muted text-center py-2">
+                    Aucun VIP hors-liste enregistré aujourd&apos;hui.
+                  </p>
+                ) : (
                 <div className="space-y-1.5">
                   {offlistVips.map((room, i) => {
                     const chosen = labelFor(room.paymentAction, room.isComp);
@@ -585,20 +586,23 @@ function ReportPage() {
                     );
                   })}
                 </div>
+                )}
               </div>
             );
           })()}
 
           {/* ═══ EXTRAS — RECEPTION DISCREPANCIES ═══ */}
-          {extrasRooms.length > 0 && (
-            <div className="glass-liquid rounded-[14px] p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <span className="text-[9px] text-amber-600 dark:text-amber-400 uppercase tracking-wider font-semibold">{t("report.extras")}</span>
-                  <p className="text-[8px] text-muted mt-0.5">{t("report.extrasDesc")}</p>
-                </div>
-                <span className="text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums">+{report.totalExtras}</span>
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="text-[9px] text-amber-600 dark:text-amber-400 uppercase tracking-wider font-semibold">{t("report.extras")}</span>
+                <p className="text-[8px] text-muted mt-0.5">{t("report.extrasDesc")}</p>
               </div>
+              <span className="text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums">+{report.totalExtras}</span>
+            </div>
+            {extrasRooms.length === 0 ? (
+              <p className="text-[11px] text-muted text-center py-2">Aucun écart pour le moment.</p>
+            ) : (
               <div className="space-y-1.5">
                 {extrasRooms.map((room) => (
                   <div key={`extra-${room.roomNumber}-${room.name}`} className="flex items-center justify-between bg-amber-500/8 dark:bg-amber-500/10 rounded-[10px] px-3 py-2">
@@ -614,8 +618,8 @@ function ReportPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* ═══ CLIENT TABLE ═══ */}
           <div>

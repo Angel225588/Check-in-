@@ -19,7 +19,6 @@ import {
   Star,
   Pencil,
   ChatCircleDots,
-  Repeat,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   getHistoricalData,
@@ -30,7 +29,6 @@ import {
   saveSettings,
 } from "@/lib/storage";
 import { seedDemoMonths } from "@/lib/mock-seeder";
-import { getTopPackages } from "@/lib/analytics";
 import {
   computeMonthlyStats,
   formatMonthlyStatsMarkdown,
@@ -93,6 +91,15 @@ function buildSeries(history: DailyData[], days: number): DayPoint[] {
   return out;
 }
 
+function isoWeekNumber(d: Date): number {
+  const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNr = (target.getUTCDay() + 6) % 7; // Mon=0 ... Sun=6
+  target.setUTCDate(target.getUTCDate() - dayNr + 3); // Thursday of this week
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
+  const diff = (target.getTime() - firstThursday.getTime()) / 86400000;
+  return 1 + Math.round((diff - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+}
+
 function buildWeeklySeries(history: DailyData[]): DayPoint[] {
   // 13 weeks ending today (~3 months) → ~13 chunky bars
   const today = new Date();
@@ -121,7 +128,7 @@ function buildWeeklySeries(history: DailyData[]): DayPoint[] {
       pax: weekPax,
       isToday: containsToday,
       dow: 0,
-      label: `${String(ws.getDate()).padStart(2, "0")}/${String(ws.getMonth() + 1).padStart(2, "0")}`,
+      label: `S${isoWeekNumber(ws)}`,
       mavg: 0,
     });
   }
@@ -344,8 +351,6 @@ function TradingChart({ series }: { series: DayPoint[] }) {
         />
 
         {series.map((d, i) => {
-          const stride = Math.max(1, Math.floor(series.length / 10));
-          if (i % stride !== 0 && !d.isToday) return null;
           const [x] = xy(i, 0);
           return (
             <text
@@ -577,11 +582,6 @@ export default function DashboardPage() {
   const dowLabels = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
   const todayDow = new Date().getDay();
 
-  const topPackages = useMemo(
-    () => (monthData.length > 0 ? getTopPackages(monthData, 4) : []),
-    [monthData]
-  );
-
   const forecast = useMemo(() => {
     if (!mounted) return [];
     const b = getMorningBrief();
@@ -604,41 +604,6 @@ export default function DashboardPage() {
       .map((name) => b.gss.find((g) => g.metric === name))
       .filter((g): g is GSSScore => Boolean(g));
   }, [mounted]);
-
-  const recurrentGuests = useMemo(() => {
-    if (!mounted) return [];
-    const counts = new Map<
-      string,
-      { display: string; count: number; lastVisit: string; lastRoom: string }
-    >();
-    for (const d of monthData) {
-      const seen = new Set<string>();
-      for (const c of d.clients) {
-        const key = c.name.trim().toLowerCase();
-        if (!key || key === "(demo)" || seen.has(key)) continue;
-        seen.add(key);
-        const entry = counts.get(key);
-        if (entry) {
-          entry.count += 1;
-          if (d.date > entry.lastVisit) {
-            entry.lastVisit = d.date;
-            entry.lastRoom = c.roomNumber;
-          }
-        } else {
-          counts.set(key, {
-            display: c.name,
-            count: 1,
-            lastVisit: d.date,
-            lastRoom: c.roomNumber,
-          });
-        }
-      }
-    }
-    return Array.from(counts.values())
-      .filter((g) => g.count > 1)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-  }, [mounted, monthData]);
 
   const comments = useMemo<ClientComment[]>(() => {
     if (!mounted) return [];
@@ -671,7 +636,9 @@ export default function DashboardPage() {
   const hasNoData = monthData.length === 0;
 
   const showDemoBanner =
-    (range === "3M" || range === "6M") && monthData.length < 30;
+    process.env.NODE_ENV !== "production" &&
+    (range === "3M" || range === "6M") &&
+    monthData.length < 30;
 
   const handleSeedDemo = () => {
     if (
@@ -1032,10 +999,11 @@ export default function DashboardPage() {
           <div className="glass-liquid rounded-[14px] p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendUp weight="duotone" size={14} className="text-brand" />
-              <span className={EYEBROW}>Affluence · jour de la semaine</span>
+              <span className={EYEBROW}>Rythme de la semaine</span>
             </div>
-            <div className="text-[10px] text-muted mb-3">
-              moyenne pax par jour · aujourd&apos;hui en or
+            <div className="text-[11px] text-muted mb-3 leading-relaxed">
+              Sur les 6 derniers mois, combien de personnes viennent en
+              moyenne chaque jour. <span className="text-brand font-bold">Barre en or</span> = aujourd&apos;hui ({["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"][todayDow]}).
             </div>
             <div
               className="grid gap-2 items-end mb-3"
@@ -1076,30 +1044,6 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            <div className={EYEBROW + " mb-2"}>Top packages</div>
-            <div className="flex flex-col gap-2">
-              {topPackages.length === 0 ? (
-                <div className="text-[11px] text-muted">Aucun package détecté.</div>
-              ) : (
-                topPackages.slice(0, 3).map((p, i) => {
-                  const maxRooms = topPackages[0].rooms || 1;
-                  return (
-                    <div key={p.code}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-xs text-dark">{i + 1}. {p.code}</span>
-                        <span className="font-mono text-muted text-[11px] tabular-nums">{p.rooms} ch</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06] overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-brand to-brand-light rounded-full transition-all duration-200"
-                          style={{ width: `${(p.rooms / maxRooms) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
           </div>
         </div>
 
@@ -1191,49 +1135,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* RECURRENT GUESTS + COMMENTS */}
-        {(recurrentGuests.length > 0 || comments.length > 0) && (
-          <div className="grid md:grid-cols-2 gap-4 mb-5">
-            {/* Recurrent guests */}
-            <div className="glass-liquid rounded-[14px] p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Repeat weight="duotone" size={14} className="text-brand" />
-                <span className={EYEBROW}>Clients récurrents · top 5</span>
-              </div>
-              {recurrentGuests.length === 0 ? (
-                <div className="text-xs text-muted py-3">
-                  Aucun client récurrent sur la période.
-                </div>
-              ) : (
-                <ul className="space-y-1.5">
-                  {recurrentGuests.map((g, i) => (
-                    <li
-                      key={g.display}
-                      className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-[10px] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-muted text-[10px] font-mono tabular-nums w-4 shrink-0">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm font-bold text-dark truncate">
-                          {g.display}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] text-muted font-mono tabular-nums">
-                          ch {g.lastRoom}
-                        </span>
-                        <span className="inline-flex items-center justify-center min-w-[28px] h-[22px] px-1.5 rounded-full bg-brand/12 text-brand text-[11px] font-black tabular-nums">
-                          ×{g.count}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* Comments */}
+        {/* COMMENTS */}
+        {comments.length > 0 && (
+          <div className="mb-5">
             <div className="glass-liquid rounded-[14px] p-4">
               <div className="flex items-center gap-2 mb-3">
                 <ChatCircleDots
