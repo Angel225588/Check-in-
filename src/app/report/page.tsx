@@ -10,10 +10,40 @@ import type { TranslationKey } from "@/lib/i18n";
 import type { DailyData } from "@/lib/types";
 import RushHourChart from "@/components/RushHourChart";
 import RoomEventBadges from "@/components/RoomEventBadges";
+import MetricsBar, { MetricFilter } from "@/components/MetricsBar";
 import { getRoomEvents } from "@/lib/room-events";
 import { getMorningBrief } from "@/lib/morning-brief";
 
-type StatusFilter = "all" | "allIn" | "partial" | "noshow" | "comp" | "extras" | "offlist";
+type StatusFilter =
+  | "all"
+  | "allIn"
+  | "partial"
+  | "noshow"
+  | "comp"
+  | "extras"
+  | "offlist"
+  | "entered"
+  | "remaining"
+  | "vip";
+
+// Map the MetricsBar's MetricFilter to our local StatusFilter.
+// MetricsBar emits "total" | "entered" | "remaining" | "comp" | "vip" | null.
+function metricToStatusFilter(metric: MetricFilter): StatusFilter {
+  if (metric === null) return "all";
+  if (metric === "total") return "all";
+  // "entered" | "remaining" | "comp" | "vip" map 1-to-1
+  return metric;
+}
+
+function statusToMetricFilter(status: StatusFilter): MetricFilter {
+  if (status === "all") return "total";
+  if (status === "entered" || status === "remaining" || status === "comp" || status === "vip") {
+    return status;
+  }
+  // status-only filters (allIn / partial / noshow / extras / offlist) don't map back —
+  // the MetricsBar pill will appear inactive, but the status filter chips above stay active.
+  return null;
+}
 
 function StatusBadge({ status, t }: { status: RoomReport["status"]; t: (key: TranslationKey) => string }) {
   const styles = {
@@ -181,6 +211,9 @@ function ReportPage() {
     else if (statusFilter === "noshow") rooms = rooms.filter((r) => r.status === "no-show");
     else if (statusFilter === "comp") rooms = rooms.filter((r) => r.isComp);
     else if (statusFilter === "extras") rooms = rooms.filter((r) => r.extras > 0);
+    else if (statusFilter === "entered") rooms = rooms.filter((r) => r.entered > 0);
+    else if (statusFilter === "remaining") rooms = rooms.filter((r) => r.remaining > 0);
+    else if (statusFilter === "vip") rooms = rooms.filter((r) => r.isVip);
     else if (statusFilter === "offlist") {
       // VIPs hors liste PDJ (vipSource = list_only ou walk_in)
       rooms = rooms.filter(
@@ -388,11 +421,11 @@ function ReportPage() {
             )}
 
             {/* Compliment + Extras + VIP — petite ligne discrète sous la barre */}
-            {(report.totalComp > 0 || report.totalExtras > 0 || report.totalVip > 0) && (
+            {(report.totalCompPersons > 0 || report.totalExtras > 0 || report.totalVip > 0) && (
               <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8 flex items-center justify-center gap-4 text-[10px]">
-                {report.totalComp > 0 && (
+                {report.totalCompPersons > 0 && (
                   <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400">
-                    <span className="font-black tabular-nums">{report.totalComp}</span>
+                    <span className="font-black tabular-nums">{report.totalCompPersonsEntered}/{report.totalCompPersons}</span>
                     <span className="uppercase opacity-70">{t("metrics.comp")}</span>
                   </span>
                 )}
@@ -623,20 +656,42 @@ function ReportPage() {
 
           {/* ═══ CLIENT TABLE ═══ */}
           <div>
+            {/* MetricsBar — same component as the main check-in screen, ensures the same Comp counter (persons entered/expected) is shown here */}
+            {dailyData && (
+              <div className="mb-2">
+                <MetricsBar
+                  clients={dailyData.clients}
+                  checkIns={dailyData.checkIns}
+                  onHistoryToggle={() => {}}
+                  activeFilter={statusToMetricFilter(statusFilter)}
+                  onFilterChange={(metric) => {
+                    setStatusFilter(metricToStatusFilter(metric));
+                    setSearchQuery("");
+                  }}
+                  hideNav
+                />
+              </div>
+            )}
+
             {/* Filter tabs */}
             <div className="flex items-center gap-1.5 mb-2 overflow-x-auto">
               {(() => {
                 const offlistCount = report.rooms.filter(
                   (r) => r.isVip && (r.vipSource === "list_only" || r.vipSource === "walk_in")
                 ).length;
+                // Comp count shown in the chip uses persons entered/expected (matches the MetricsBar + top frame).
+                // Other chips remain as room counts (since they're status-based, not progress-based).
+                const compChipCount: string | number = report.totalCompPersons > 0
+                  ? `${report.totalCompPersonsEntered}/${report.totalCompPersons}`
+                  : 0;
                 return [
-                  { key: "all" as const, label: t("report.all"), count: report.rooms.length },
-                  { key: "allIn" as const, label: t("report.allIn"), count: allIn.length },
-                  { key: "partial" as const, label: t("report.partial"), count: partial.length },
-                  { key: "noshow" as const, label: t("report.noShows"), count: noShow.length },
-                  { key: "comp" as const, label: t("metrics.comp"), count: report.totalComp },
-                  ...(offlistCount > 0 ? [{ key: "offlist" as const, label: t("report.filterOffList"), count: offlistCount }] : []),
-                  ...(extrasRooms.length > 0 ? [{ key: "extras" as const, label: "Extras", count: extrasRooms.length }] : []),
+                  { key: "all" as const, label: t("report.all"), count: report.rooms.length as string | number },
+                  { key: "allIn" as const, label: t("report.allIn"), count: allIn.length as string | number },
+                  { key: "partial" as const, label: t("report.partial"), count: partial.length as string | number },
+                  { key: "noshow" as const, label: t("report.noShows"), count: noShow.length as string | number },
+                  { key: "comp" as const, label: t("metrics.comp"), count: compChipCount },
+                  ...(offlistCount > 0 ? [{ key: "offlist" as const, label: t("report.filterOffList"), count: offlistCount as string | number }] : []),
+                  ...(extrasRooms.length > 0 ? [{ key: "extras" as const, label: "Extras", count: extrasRooms.length as string | number }] : []),
                 ];
               })().map((tab) => (
                 <button

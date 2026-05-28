@@ -51,7 +51,8 @@ export interface DayReport {
   totalExtras: number; // total extra people beyond expected
   totalVip: number;
   totalComp: number; // unique COMP rooms (not entries)
-  totalCompPersons: number; // total COMP persons
+  totalCompPersons: number; // total COMP persons expected (sum of adults on COMP rooms)
+  totalCompPersonsEntered: number; // total COMP persons who actually checked in (sum of entered on COMP rooms)
   rooms: RoomReport[];
   checkIns: CheckInRecord[];
   sourceBreakdown: SourceBreakdown;
@@ -168,6 +169,8 @@ export function generateDayReport(
 
   const compRooms = new Set(rooms.filter((r) => r.isComp).map((r) => r.roomNumber));
   const compPersons = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.adults, 0);
+  // Live counter: how many COMP persons have actually been checked in (matches main screen MetricsBar semantics)
+  const compPersonsEntered = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.entered, 0);
 
   return {
     date: new Date().toISOString().split("T")[0],
@@ -179,6 +182,7 @@ export function generateDayReport(
     totalVip: rooms.filter((r) => r.isVip).length,
     totalComp: compRooms.size,
     totalCompPersons: compPersons,
+    totalCompPersonsEntered: compPersonsEntered,
     rooms,
     checkIns: [...checkIns].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()

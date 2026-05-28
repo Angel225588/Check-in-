@@ -67,6 +67,34 @@ describe("Report - generateDayReport", () => {
     expect(report.totalComp).toBe(1);
   });
 
+  it("counts COMP persons expected (adults across COMP rooms)", () => {
+    // Room 505 (COMP) has 2 adults → totalCompPersons = 2
+    expect(report.totalCompPersons).toBe(2);
+  });
+
+  it("counts COMP persons entered (live progress matching main screen MetricsBar)", () => {
+    // Room 505 has check-in for 2 people → totalCompPersonsEntered = 2
+    expect(report.totalCompPersonsEntered).toBe(2);
+  });
+
+  it("invariant: totalCompPersonsEntered <= totalCompPersons", () => {
+    expect(report.totalCompPersonsEntered).toBeLessThanOrEqual(report.totalCompPersons);
+  });
+
+  it("totalCompPersonsEntered handles no check-ins (returns 0)", () => {
+    const r = generateDayReport(clients, []);
+    expect(r.totalCompPersonsEntered).toBe(0);
+    // …but totalCompPersons stays at 2 (expected, not progress)
+    expect(r.totalCompPersons).toBe(2);
+  });
+
+  it("totalCompPersonsEntered handles no COMP rooms (returns 0)", () => {
+    const noCompClients = clients.filter((c) => !c.packageCode.includes("COMP"));
+    const r = generateDayReport(noCompClients, checkIns);
+    expect(r.totalCompPersonsEntered).toBe(0);
+    expect(r.totalCompPersons).toBe(0);
+  });
+
   it("marks all-in rooms correctly", () => {
     const room101 = report.rooms.find((r) => r.roomNumber === "101");
     expect(room101?.status).toBe("all-in");

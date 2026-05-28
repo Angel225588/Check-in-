@@ -13,6 +13,8 @@ interface MetricsBarProps {
   onHistoryToggle: () => void;
   activeFilter?: MetricFilter;
   onFilterChange?: (filter: MetricFilter) => void;
+  /** Hide the history + dashboard nav buttons on the right. Use when reusing this component outside the main check-in screen. */
+  hideNav?: boolean;
 }
 
 export default function MetricsBar({
@@ -21,6 +23,7 @@ export default function MetricsBar({
   onHistoryToggle,
   activeFilter = null,
   onFilterChange,
+  hideNav = false,
 }: MetricsBarProps) {
   const { t } = useApp();
   const router = useRouter();
@@ -98,26 +101,28 @@ export default function MetricsBar({
           <AnimatedNumber value={vipCount} className="text-xl md:text-2xl font-black text-brand" />
         </button>
       )}
-      <div className="flex flex-col gap-0.5">
-        <button
-          onClick={onHistoryToggle}
-          className="p-1.5 md:p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"
-          aria-label="History"
-        >
-          <svg className="w-5 h-5 md:w-6 md:h-6 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="p-1.5 md:p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"
-          aria-label="Dashboard"
-        >
-          <svg className="w-5 h-5 md:w-6 md:h-6 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
-          </svg>
-        </button>
-      </div>
+      {!hideNav && (
+        <div className="flex flex-col gap-0.5">
+          <button
+            onClick={onHistoryToggle}
+            className="p-1.5 md:p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"
+            aria-label="History"
+          >
+            <svg className="w-5 h-5 md:w-6 md:h-6 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="p-1.5 md:p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"
+            aria-label="Dashboard"
+          >
+            <svg className="w-5 h-5 md:w-6 md:h-6 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13h4v8H3V13zm7-8h4v16h-4V5zm7 4h4v12h-4V9z" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
