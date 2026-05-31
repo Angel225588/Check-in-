@@ -213,6 +213,73 @@ export function getSessionHistory(): SessionRecord[] {
   }
 }
 
+/**
+ * One-time / startup space reclaimer.
+ *
+ * Devices that ran an older build accumulated multi-MB raw OCR dumps inside
+ * sessionHistory and past dailyData_* days. On a small-quota browser (iPad
+ * Safari / installed PWA) that old bloat can fill localStorage so completely
+ * that even today's tiny ~45KB session can no longer be saved — which sends
+ * the user back to the upload screen on every "Start".
+ *
+ * This strips the bulky rawUploadText from all stored history + daily data,
+ * keeping only a small capped snippet. The parsed rooms, check-ins, and all
+ * stats are preserved untouched. Safe to call on every app load — it only
+ * rewrites a key when it actually shrinks it.
+ *
+ * Returns the approximate number of bytes reclaimed.
+ */
+export function reclaimStorageSpace(): number {
+  if (typeof window === "undefined") return 0;
+  let reclaimed = 0;
+
+  // 1) Trim raw text inside the session-history blob.
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw) as SessionRecord[];
+      let changed = false;
+      for (const s of history) {
+        if (s.rawUploadText && s.rawUploadText.length > RAW_TEXT_CAP) {
+          s.rawUploadText = s.rawUploadText.slice(0, RAW_TEXT_CAP);
+          changed = true;
+        }
+      }
+      if (changed) {
+        const next = JSON.stringify(history);
+        reclaimed += raw.length - next.length;
+        localStorage.setItem(HISTORY_KEY, next);
+      }
+    }
+  } catch {
+    // Corrupt history — leave it; autoCloseStale / normal paths handle it.
+  }
+
+  // 2) Trim raw text inside every dailyData_* day (today included).
+  const dailyKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("dailyData_")) dailyKeys.push(key);
+  }
+  for (const key of dailyKeys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const data = JSON.parse(raw) as DailyData;
+      if (data.rawUploadText && data.rawUploadText.length > RAW_TEXT_CAP) {
+        data.rawUploadText = data.rawUploadText.slice(0, RAW_TEXT_CAP);
+        const next = JSON.stringify(data);
+        reclaimed += raw.length - next.length;
+        localStorage.setItem(key, next);
+      }
+    } catch {
+      // Skip unparseable day.
+    }
+  }
+
+  return reclaimed;
+}
+
 export function closeDay(): SessionRecord | null {
   const data = getTodayData();
   if (!data) return null;

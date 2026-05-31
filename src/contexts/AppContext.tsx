@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Lang, TranslationKey, t as translate } from "@/lib/i18n";
-import { autoCloseStale } from "@/lib/storage";
+import { autoCloseStale, reclaimStorageSpace } from "@/lib/storage";
 
 interface AppContextValue {
   lang: Lang;
@@ -29,6 +29,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
     }
     setMounted(true);
+
+    // Reclaim localStorage space first: older builds saved multi-MB raw OCR
+    // dumps that can fill a small-quota browser (iPad Safari / PWA) and block
+    // today's session from saving. Trim them before anything else runs.
+    try { reclaimStorageSpace(); } catch (e) { console.error("reclaimStorageSpace failed:", e); }
 
     // Auto-close any sessions from previous days that were never closed
     try { autoCloseStale(); } catch (e) { console.error("autoCloseStale failed:", e); }

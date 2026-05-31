@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { saveClients, saveClientsMerged, getTodayData } from "../lib/storage";
+import {
+  saveClients,
+  saveClientsMerged,
+  getTodayData,
+  reclaimStorageSpace,
+} from "../lib/storage";
 import { Client } from "../lib/types";
 
 function makeClient(room: string, name: string): Client {
@@ -117,5 +122,78 @@ describe("saveClientsMerged under localStorage quota pressure", () => {
     expect(data!.clients.length).toBe(1);
     // Raw text is capped to a small snippet, not the full multi-MB dump.
     expect(data!.rawUploadText.length).toBeLessThanOrEqual(30_000);
+  });
+});
+
+/**
+ * Regression test for the upgrade case: a tablet that ran an OLDER build has
+ * multi-MB raw OCR dumps already sitting in storage. reclaimStorageSpace()
+ * runs at startup and trims them so today's session can save again.
+ */
+describe("reclaimStorageSpace strips pre-existing bloat", () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it("trims giant rawUploadText from existing history + daily data, keeps rooms", () => {
+    const bloatedHistory = [
+      {
+        date: "2026-05-24",
+        closedAt: "2026-05-24T08:00:00Z",
+        totalRooms: 2,
+        totalGuests: 4,
+        totalEntered: 0,
+        totalRemaining: 4,
+        totalVip: 0,
+        clients: [makeClient("101", "Old Guest A"), makeClient("102", "Old Guest B")],
+        checkIns: [],
+        rawUploadText: "A".repeat(2_000_000),
+      },
+    ];
+    localStorage.setItem("sessionHistory", JSON.stringify(bloatedHistory));
+    localStorage.setItem(
+      "dailyData_2026-05-30",
+      JSON.stringify({
+        date: "2026-05-30",
+        clients: [makeClient("201", "Yesterday Guest")],
+        checkIns: [],
+        rawUploadText: "B".repeat(2_000_000),
+      })
+    );
+
+    const before =
+      (localStorage.getItem("sessionHistory")?.length ?? 0) +
+      (localStorage.getItem("dailyData_2026-05-30")?.length ?? 0);
+
+    const reclaimed = reclaimStorageSpace();
+    expect(reclaimed).toBeGreaterThan(3_000_000);
+
+    const after =
+      (localStorage.getItem("sessionHistory")?.length ?? 0) +
+      (localStorage.getItem("dailyData_2026-05-30")?.length ?? 0);
+    expect(after).toBeLessThan(before);
+
+    // Rooms preserved, raw text trimmed.
+    const hist = JSON.parse(localStorage.getItem("sessionHistory")!);
+    expect(hist[0].clients.length).toBe(2);
+    expect(hist[0].rawUploadText.length).toBeLessThanOrEqual(30_000);
+
+    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-30")!);
+    expect(day.clients.length).toBe(1);
+    expect(day.rawUploadText.length).toBeLessThanOrEqual(30_000);
+  });
+
+  it("is a no-op when nothing is bloated", () => {
+    localStorage.setItem(
+      "dailyData_2026-05-31",
+      JSON.stringify({
+        date: "2026-05-31",
+        clients: [makeClient("301", "Today")],
+        checkIns: [],
+        rawUploadText: "tiny",
+      })
+    );
+    expect(reclaimStorageSpace()).toBe(0);
+    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-31")!);
+    expect(day.rawUploadText).toBe("tiny");
   });
 });
