@@ -105,4 +105,17 @@ describe("saveClientsMerged under localStorage quota pressure", () => {
     expect(data!.clients.length).toBe(1);
     expect(data!.rawUploadText).toContain("small raw text");
   });
+
+  it("caps the persisted raw OCR text so it cannot bloat localStorage", () => {
+    const clients = [makeClient("401", "Durand")];
+    const enormousRaw = "Z".repeat(5_000_000); // 5MB raw OCR dump
+
+    saveClientsMerged(clients, enormousRaw);
+
+    const data = getTodayData();
+    expect(data).not.toBeNull();
+    expect(data!.clients.length).toBe(1);
+    // Raw text is capped to a small snippet, not the full multi-MB dump.
+    expect(data!.rawUploadText.length).toBeLessThanOrEqual(30_000);
+  });
 });

@@ -12,6 +12,14 @@ function getKey(date: string): string {
 
 const HISTORY_KEY = "sessionHistory";
 
+// Stopgap (pre-Supabase): the parsed rooms for a day are only ~45KB, but the
+// raw OCR dump from the local Tesseract fallback can be several MB and is the
+// main thing that exhausts the small iPad Safari / PWA localStorage budget. It
+// is only used for an optional "Raw data" debug view, so we keep at most a
+// capped snippet. This lets a full week (and well beyond) of sessions persist
+// comfortably until everything migrates to Supabase.
+const RAW_TEXT_CAP = 30_000;
+
 // --- Settings ---
 
 const SETTINGS_KEY = "app_settings";
@@ -73,10 +81,11 @@ export function saveClients(clients: Client[], rawText?: string): void {
     date: getTodayString(),
     clients,
     checkIns: existing?.checkIns ?? [],
-    rawUploadText: rawText || existing?.rawUploadText || "",
+    rawUploadText: (rawText || existing?.rawUploadText || "").slice(0, RAW_TEXT_CAP),
   };
-  // If the bulky raw OCR text pushes us over the localStorage quota (common on
-  // iPad Safari / installed PWA), drop it and retry so the rooms still persist.
+  // If the (capped) raw OCR text still pushes us over the localStorage quota
+  // (common on iPad Safari / installed PWA), drop it and retry so the rooms
+  // still persist.
   if (!saveTodayData(data) && data.rawUploadText) {
     data.rawUploadText = "";
     saveTodayData(data);
@@ -94,7 +103,8 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
 
   const combinedRaw = [existing?.rawUploadText, rawText]
     .filter(Boolean)
-    .join("\n---\n");
+    .join("\n---\n")
+    .slice(0, RAW_TEXT_CAP);
 
   const data: DailyData = {
     date: getTodayString(),
@@ -102,10 +112,10 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
     checkIns: existing?.checkIns ?? [],
     rawUploadText: combinedRaw,
   };
-  // If the bulky raw OCR text pushes us over the localStorage quota (common on
-  // iPad Safari / installed PWA), drop it and retry so the rooms still persist.
-  // Otherwise the session silently fails to save and the next screen bounces
-  // the user back to the upload screen.
+  // If the (capped) raw OCR text still pushes us over the localStorage quota
+  // (common on iPad Safari / installed PWA), drop it and retry so the rooms
+  // still persist. Otherwise the session silently fails to save and the next
+  // screen bounces the user back to the upload screen.
   if (!saveTodayData(data) && data.rawUploadText) {
     data.rawUploadText = "";
     saveTodayData(data);
