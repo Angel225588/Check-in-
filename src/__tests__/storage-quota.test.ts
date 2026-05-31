@@ -4,6 +4,7 @@ import {
   saveClientsMerged,
   getTodayData,
   reclaimStorageSpace,
+  freeUpSpace,
 } from "../lib/storage";
 import { Client } from "../lib/types";
 
@@ -195,5 +196,63 @@ describe("reclaimStorageSpace strips pre-existing bloat", () => {
     expect(reclaimStorageSpace()).toBe(0);
     const day = JSON.parse(localStorage.getItem("dailyData_2026-05-31")!);
     expect(day.rawUploadText).toBe("tiny");
+  });
+});
+
+/**
+ * The manual "Free up space" Settings button. Must strip ALL raw text but
+ * preserve every room, check-in, and session.
+ */
+describe("freeUpSpace removes only raw text, keeps everything else", () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  it("clears raw text from history + daily data, preserves rooms/check-ins/stats", () => {
+    const history = [
+      {
+        date: "2026-05-28",
+        closedAt: "2026-05-28T08:00:00Z",
+        totalRooms: 2,
+        totalGuests: 4,
+        totalEntered: 2,
+        totalRemaining: 2,
+        totalVip: 1,
+        clients: [makeClient("101", "Guest A"), makeClient("102", "Guest B")],
+        checkIns: [
+          { id: "ci1", roomNumber: "101", clientName: "Guest A", peopleEntered: 2, timestamp: "2026-05-28T07:30:00Z" },
+        ],
+        rawUploadText: "R".repeat(1_000_000),
+      },
+    ];
+    localStorage.setItem("sessionHistory", JSON.stringify(history));
+    localStorage.setItem(
+      "dailyData_2026-05-31",
+      JSON.stringify({
+        date: "2026-05-31",
+        clients: [makeClient("201", "Today Guest")],
+        checkIns: [],
+        rawUploadText: "T".repeat(1_000_000),
+      })
+    );
+
+    const freed = freeUpSpace();
+    expect(freed).toBeGreaterThan(1_900_000);
+
+    // History: rooms, check-ins, stats intact; raw text gone.
+    const h = JSON.parse(localStorage.getItem("sessionHistory")!);
+    expect(h[0].clients.length).toBe(2);
+    expect(h[0].checkIns.length).toBe(1);
+    expect(h[0].totalVip).toBe(1);
+    expect(h[0].rawUploadText).toBe("");
+
+    // Today's daily data: rooms intact; raw text gone.
+    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-31")!);
+    expect(day.clients.length).toBe(1);
+    expect(day.rawUploadText).toBe("");
+
+    // The active session is still readable afterward (no bounce-to-upload).
+    const active = getTodayData();
+    expect(active).not.toBeNull();
+    expect(active!.clients.length).toBe(1);
   });
 });

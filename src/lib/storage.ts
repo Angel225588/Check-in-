@@ -280,7 +280,70 @@ export function reclaimStorageSpace(): number {
   return reclaimed;
 }
 
-export function closeDay(): SessionRecord | null {
+/**
+ * Manual "free up space" action (Settings button).
+ *
+ * Like reclaimStorageSpace() but strips the raw OCR text *entirely* (not just
+ * down to the cap) from every stored session + daily-data key, for maximum
+ * reclamation. This is the safe, user-facing escape hatch for a device whose
+ * storage is full.
+ *
+ * IMPORTANT — what this keeps vs removes:
+ *   KEEPS:   every room list, every check-in, all 30-day session history,
+ *            VIP / COMP flags, stats, dashboard data, settings, guest profiles.
+ *   REMOVES: ONLY the raw unformatted OCR text dump (the "Raw data" debug
+ *            expander). Nothing functional is lost.
+ *
+ * Returns the approximate number of bytes freed.
+ */
+export function freeUpSpace(): number {
+  if (typeof window === "undefined") return 0;
+  let freed = 0;
+
+  // Session history — clear raw text on every record.
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw) as SessionRecord[];
+      let changed = false;
+      for (const s of history) {
+        if (s.rawUploadText) {
+          freed += s.rawUploadText.length;
+          s.rawUploadText = "";
+          changed = true;
+        }
+      }
+      if (changed) localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+  } catch {
+    // Leave corrupt history untouched.
+  }
+
+  // Every dailyData_* day (today included) — clear raw text.
+  const dailyKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("dailyData_")) dailyKeys.push(key);
+  }
+  for (const key of dailyKeys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const data = JSON.parse(raw) as DailyData;
+      if (data.rawUploadText) {
+        freed += data.rawUploadText.length;
+        data.rawUploadText = "";
+        localStorage.setItem(key, JSON.stringify(data));
+      }
+    } catch {
+      // Skip unparseable day.
+    }
+  }
+
+  return freed;
+}
+
+
   const data = getTodayData();
   if (!data) return null;
 
