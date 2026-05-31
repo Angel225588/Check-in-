@@ -74,7 +74,7 @@ describe("saveClientsMerged under localStorage quota pressure", () => {
     expect(data).not.toBeNull();
     expect(data!.clients.length).toBe(2);
     // Raw text was dropped so the rooms could fit under quota.
-    expect(data!.rawUploadText.length).toBeLessThan(QUOTA);
+    expect((data!.rawUploadText ?? "").length).toBeLessThan(QUOTA);
   });
 
   it("saveClients also persists rooms when raw text would exceed quota", () => {
@@ -99,7 +99,7 @@ describe("saveClientsMerged under localStorage quota pressure", () => {
     const data = getTodayData();
     expect(data).not.toBeNull();
     expect(data!.clients.length).toBe(1);
-    expect(data!.rawUploadText.length).toBeLessThan(QUOTA);
+    expect((data!.rawUploadText ?? "").length).toBeLessThan(QUOTA);
   });
 
   it("still persists rooms + raw text normally when under quota", () => {
@@ -122,7 +122,7 @@ describe("saveClientsMerged under localStorage quota pressure", () => {
     expect(data).not.toBeNull();
     expect(data!.clients.length).toBe(1);
     // Raw text is capped to a small snippet, not the full multi-MB dump.
-    expect(data!.rawUploadText.length).toBeLessThanOrEqual(30_000);
+    expect((data!.rawUploadText ?? "").length).toBeLessThanOrEqual(30_000);
   });
 });
 

@@ -343,7 +343,7 @@ export function freeUpSpace(): number {
   return freed;
 }
 
-
+export function closeDay(): SessionRecord | null {
   const data = getTodayData();
   if (!data) return null;
 
