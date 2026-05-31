@@ -75,7 +75,12 @@ export function saveClients(clients: Client[], rawText?: string): void {
     checkIns: existing?.checkIns ?? [],
     rawUploadText: rawText || existing?.rawUploadText || "",
   };
-  saveTodayData(data);
+  // If the bulky raw OCR text pushes us over the localStorage quota (common on
+  // iPad Safari / installed PWA), drop it and retry so the rooms still persist.
+  if (!saveTodayData(data) && data.rawUploadText) {
+    data.rawUploadText = "";
+    saveTodayData(data);
+  }
 }
 
 /**
@@ -97,7 +102,14 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
     checkIns: existing?.checkIns ?? [],
     rawUploadText: combinedRaw,
   };
-  saveTodayData(data);
+  // If the bulky raw OCR text pushes us over the localStorage quota (common on
+  // iPad Safari / installed PWA), drop it and retry so the rooms still persist.
+  // Otherwise the session silently fails to save and the next screen bounces
+  // the user back to the upload screen.
+  if (!saveTodayData(data) && data.rawUploadText) {
+    data.rawUploadText = "";
+    saveTodayData(data);
+  }
   return result;
 }
 
