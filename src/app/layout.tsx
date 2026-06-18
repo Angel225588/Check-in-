@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
+import { Analytics } from '@vercel/analytics/next';
 
 
 export const metadata: Metadata = {
@@ -44,6 +45,7 @@ export default function RootLayout({
         <AppProvider>
           {children}
         </AppProvider>
+        <Analytics />
       </body>
     </html>
   );
