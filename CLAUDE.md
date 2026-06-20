@@ -4,6 +4,15 @@
 ## Overview
 Hotel breakfast check-in PWA. Upload daily report photos (Gemini Vision API), search rooms, check in guests.
 
+## Status Pulse — "where are we at?" (MANDATORY when asked)
+When the user asks "where are we at" (or similar), do NOT answer from git alone. Pull the real state and synthesize **signal vs noise so we focus on value**:
+1. **Git** — current branch, clean/dirty, recent commits.
+2. **ClickUp** — read the live tasks. Workspace: `Imarketin` (space `90143235266`).
+   - Client deal — folder **Marriott — Courtyard Paris Porte de Versailles** (`90149650540`): lists `📋 Now — Pré-signature` (`901416757254`), `🚀 Next — Post-signature build` (`901416757259`), `✅ Done` (`901416757260`).
+   - Platform/GTM — folder **Imarketin Hôtellerie** (`90149952181`): `🌐 GTM & Assets — Site·Landing·Démo` (`901417135321`), `🧩 Produit & Modules (Roadmap)` (`901417135322`), `🧠 Stratégie & Décisions` (`901417135324`), `🎯 Acquisition & Pipeline` (`901417135326`), `🗄️ Supabase — Migration & Sync` (`901417152354`).
+3. **Devlog** — session journal (ClickUp doc "Journal de bord"); also repo `BUGS.md`, `PROCESSES.md`, `OCR-AUDIT.md`, `docs/PRD.md`.
+4. **Synthesize** — lead with the highest-value / time-sensitive items (urgent + pre-signature), separate them from noise, recommend the next move. Then ask where we're heading.
+
 ## Tech Stack
 - Next.js 16 App Router, TypeScript, Tailwind CSS v4
 - Gemini 2.5 Flash Vision API for OCR
