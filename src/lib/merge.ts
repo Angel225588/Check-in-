@@ -11,7 +11,7 @@ export interface MergeResult {
  * Order-independent, accent-insensitive name key.
  * Handles OCR variants: "POLANCO Angel" vs "Angel POLANCO" vs "ANGEL  POLANCO."
  */
-function normalizeNameForKey(name: string): string {
+export function normalizeNameForKey(name: string): string {
   return name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // strip accents (é → e)
@@ -23,11 +23,11 @@ function normalizeNameForKey(name: string): string {
     .join("");
 }
 
-function normalizeRoomForKey(room: string): string {
+export function normalizeRoomForKey(room: string): string {
   return room.trim().toUpperCase().replace(/\s+/g, "");
 }
 
-function clientKey(c: Client): string {
+export function clientKey(c: Client): string {
   return `${normalizeRoomForKey(c.roomNumber)}::${normalizeNameForKey(c.name)}`;
 }
 

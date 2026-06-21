@@ -1,6 +1,6 @@
 import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
 import { mergeVipIntoClients } from "./vip";
-import { mergeNewClients, MergeResult } from "./merge";
+import { mergeNewClients, MergeResult, clientKey } from "./merge";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -355,10 +355,8 @@ export function autoCloseStale(): number {
  * Merge two session records for the same date.
  * Combines clients (dedup by room+name) and check-ins (dedup by id).
  */
-function mergeSessionRecords(existing: SessionRecord, incoming: SessionRecord): SessionRecord {
-  // Merge clients: dedup by room + normalized name
-  const clientKey = (c: Client) =>
-    `${c.roomNumber}::${c.name.trim().toLowerCase().replace(/\s+/g, " ")}`;
+export function mergeSessionRecords(existing: SessionRecord, incoming: SessionRecord): SessionRecord {
+  // Merge clients: dedup by room + normalized name (unified normalizer from merge.ts)
   const clientMap = new Map<string, Client>();
   for (const c of existing.clients) clientMap.set(clientKey(c), c);
   for (const c of incoming.clients) {

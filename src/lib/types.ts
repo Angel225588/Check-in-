@@ -16,6 +16,13 @@ export interface Client {
   vipLevel?: string;
   vipNotes?: string;
   vipSource?: "breakfast_list" | "list_only" | "walk_in";
+  // --- sync fields (optional; absent when sync flag off) ---
+  id?: string;                 // random, immutable, minted once at first localStorage entry
+  clientLocalKey?: string;     // advisory content key for cross-device first-contact match
+  clientRev?: number;          // client-authored LWW clock (bumped once per local edit)
+  serverUpdatedAt?: string;    // server pull watermark for this row
+  deletedAt?: string | null;   // tombstone
+  deviceId?: string;           // device that authored the latest edit (LWW tiebreak)
 }
 
 export interface VipEntry {
@@ -39,6 +46,11 @@ export interface CheckInRecord {
   peopleEntered: number;
   timestamp: string;
   paymentAction?: string; // 'card' | 'room' | 'points' | 'pass'
+  // --- sync fields (optional; absent when sync flag off) ---
+  clientRev?: number;
+  serverUpdatedAt?: string;
+  deletedAt?: string | null;
+  deviceId?: string;
 }
 
 export interface DailyData {
@@ -46,6 +58,10 @@ export interface DailyData {
   clients: Client[];
   checkIns: CheckInRecord[];
   rawUploadText?: string;
+  // --- sync fields (optional; absent when sync flag off) ---
+  id?: string;              // server session id (adopted after first upsert)
+  sessionRev?: number;      // client-authored LWW clock for the session row
+  serverUpdatedAt?: string;
 }
 
 export interface SessionRecord {
