@@ -25,7 +25,7 @@ describe("outbox extensions (step 5)", () => {
 
   it("peekDue excludes a backed-off mutation until nextDueAt, then includes it", () => {
     const m = enqueue({ entity: "client", op: "upsert", payload: { id: "c1" } });
-    scheduleRetry(m.id, 10_000, "boom");
+    scheduleRetry(m.id, Date.now() + 10_000, "boom");
     expect(peekDue(Date.now())).toHaveLength(0);
     expect(peekDue(Date.now() + 11_000)).toHaveLength(1);
   });

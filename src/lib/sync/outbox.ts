@@ -163,12 +163,12 @@ export function markTried(id: string): void {
   }
 }
 
-/** Schedule a retry: defer eligibility + record the error. */
-export function scheduleRetry(id: string, delayMs: number, err?: string): void {
+/** Schedule a retry: defer eligibility until an ABSOLUTE due-time + record the error. */
+export function scheduleRetry(id: string, dueAt: number, err?: string): void {
   const items = read();
   const m = items.find((x) => x.id === id);
   if (m) {
-    m.nextDueAt = Date.now() + delayMs;
+    m.nextDueAt = dueAt;
     if (err) m.lastError = err;
     write(items);
   }
