@@ -1,6 +1,16 @@
 import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
 import { mergeVipIntoClients } from "./vip";
 import { mergeNewClients, MergeResult, clientKey } from "./merge";
+import { SYNC_ENABLED } from "./sync/config";
+import { hasPendingForDate } from "./sync/outbox";
+import {
+  stampClient,
+  stampCheckin,
+  onClientUpsert,
+  onCheckinUpsert,
+  onCheckinDelete,
+  onSessionUpsert,
+} from "./sync/hooks";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -96,8 +106,19 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
     clients: result.merged,
     checkIns: existing?.checkIns ?? [],
     rawUploadText: combinedRaw,
+    id: existing?.id,
+    sessionRev: existing?.sessionRev,
+    serverUpdatedAt: existing?.serverUpdatedAt,
   };
+  const fresh: Client[] = [];
+  if (SYNC_ENABLED) {
+    for (const c of data.clients) if (!c.id) { stampClient(c); fresh.push(c); }
+  }
   saveTodayData(data);
+  if (SYNC_ENABLED) {
+    for (const c of fresh) onClientUpsert(c, data.date, data.id);
+    onSessionUpsert(data, {});
+  }
   return result;
 }
 
@@ -115,22 +136,29 @@ export function addClient(client: Client): void {
   const tagged: Client = client.vipSource
     ? client
     : { ...client, vipSource: "walk_in" };
+  if (SYNC_ENABLED) stampClient(tagged);
   data.clients.push(tagged);
   saveTodayData(data);
+  onClientUpsert(tagged, data.date, data.id);
 }
 
 export function updateClient(index: number, updates: Partial<Client>): void {
   const data = getTodayData();
   if (!data || !data.clients[index]) return;
-  data.clients[index] = { ...data.clients[index], ...updates };
+  const updated = { ...data.clients[index], ...updates };
+  if (SYNC_ENABLED) stampClient(updated);
+  data.clients[index] = updated;
   saveTodayData(data);
+  onClientUpsert(updated, data.date, data.id, Object.keys(updates));
 }
 
 export function addCheckIn(record: CheckInRecord): void {
   const data = getTodayData();
   if (!data) return;
+  if (SYNC_ENABLED) stampCheckin(record);
   data.checkIns.push(record);
   saveTodayData(data);
+  onCheckinUpsert(record, data.date, data.id);
 }
 
 export function removeCheckIn(id: string): boolean {
@@ -138,8 +166,12 @@ export function removeCheckIn(id: string): boolean {
   if (!data) return false;
   const idx = data.checkIns.findIndex((c) => c.id === id);
   if (idx === -1) return false;
-  data.checkIns.splice(idx, 1);
+  const [rec] = data.checkIns.splice(idx, 1);
   saveTodayData(data);
+  if (SYNC_ENABLED) {
+    stampCheckin(rec);
+    onCheckinDelete(rec, data.date); // syncs a tombstone; pull won't resurrect (pending guard)
+  }
   return true;
 }
 
@@ -252,9 +284,16 @@ export function closeDay(): SessionRecord | null {
     }
   }
 
+  if (SYNC_ENABLED) {
+    onSessionUpsert(data, { status: "closed", closedAt: record.closedAt });
+  }
+
   // ONLY clear today's data if history was saved successfully
   if (saved) {
-    clearDayData(data.date);
+    // When sync is on, keep the day until its outbox is drained (never lose unsynced writes).
+    if (!(SYNC_ENABLED && hasPendingForDate(data.date))) {
+      clearDayData(data.date);
+    }
   }
 
   return record;

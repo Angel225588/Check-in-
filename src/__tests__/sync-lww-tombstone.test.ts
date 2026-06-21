@@ -21,11 +21,15 @@ describe("pull merge — LWW + tombstones (convergence)", () => {
     expect(lose[0].name).toBe("LOCAL");
   });
 
-  it("equal rev: a server tombstone beats a local edit", () => {
+  it("equal rev: a confirmed server tombstone removes the local row (delete wins)", () => {
     const local = [client({ id: "x", name: "LOCAL", clientRev: 5, deletedAt: null })];
     const merged = mergePulledClients(local, [client({ id: "x", clientRev: 5, deletedAt: "2026-06-21T08:00:00Z" })], none);
-    expect(merged[0].deletedAt).toBeTruthy(); // kept as tombstone, not removed
-    expect(merged).toHaveLength(1);
+    expect(merged).toHaveLength(0);
+  });
+
+  it("a server tombstone for an unknown row is ignored (not added back)", () => {
+    const merged = mergePulledClients([], [client({ id: "ghost", clientRev: 1, deletedAt: "2026-06-21T08:00:00Z" })], none);
+    expect(merged).toHaveLength(0);
   });
 
   it("equal rev, no tombstone: greater device_id wins (deterministic tiebreak)", () => {
@@ -72,6 +76,6 @@ describe("pull merge — LWW + tombstones (convergence)", () => {
     expect(ignored[0].peopleEntered).toBe(2);
 
     const tombstoned = mergePulledCheckins(local, [ci({ id: "ck1", clientRev: 6, deletedAt: "2026-06-21T09:00:00Z" })], none);
-    expect(tombstoned[0].deletedAt).toBeTruthy();
+    expect(tombstoned).toHaveLength(0); // confirmed delete removes the local row
   });
 });

@@ -6,8 +6,9 @@
 //   2. tie on rev -> a delete (tombstone) wins over an edit
 //   3. still tied -> lexically greater device_id wins
 // A row with a pending local outbox mutation is NOT overwritten by the server
-// (local intent wins until it flushes). Tombstones are kept (filtered from UI at
-// read time), never spliced — so a local tombstone can still sync.
+// (local intent wins until it flushes). A confirmed server tombstone REMOVES the
+// local row; a tombstone for a row we never had is ignored. Local deletes splice
+// locally and sync as a delete mutation.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
 import type { Client, CheckInRecord } from "../types";
@@ -57,9 +58,14 @@ export function mergePulledClients(
 
     if (existing) {
       if (pendingIds.has(sid)) continue; // our queued change wins until flushed
-      if (lwwServerWins(s, existing)) byId.set(sid, { ...existing, ...s });
+      if (lwwServerWins(s, existing)) {
+        if (s.deletedAt) byId.delete(sid); // confirmed server delete -> remove locally
+        else byId.set(sid, { ...existing, ...s });
+      }
       continue;
     }
+
+    if (s.deletedAt) continue; // tombstone for a row we don't have -> nothing to do
 
     // first-contact adoption (avoid duplicate of the same guest created on 2 devices)
     const key = s.clientLocalKey;
@@ -91,8 +97,11 @@ export function mergePulledCheckins(
     const existing = byId.get(s.id);
     if (existing) {
       if (pendingIds.has(s.id)) continue;
-      if (lwwServerWins(s, existing)) byId.set(s.id, { ...existing, ...s });
-    } else {
+      if (lwwServerWins(s, existing)) {
+        if (s.deletedAt) byId.delete(s.id); // confirmed server delete -> remove locally
+        else byId.set(s.id, { ...existing, ...s });
+      }
+    } else if (!s.deletedAt) {
       byId.set(s.id, s);
     }
   }
