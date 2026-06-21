@@ -19,6 +19,15 @@ Hotel breakfast check-in PWA. Upload daily report photos (Gemini Vision API), se
 5. All tests must pass before committing — currently 91 tests across 5 files
 6. Test files: `parser.test.ts`, `ocr-api.test.ts`, `photo-capture.test.ts`, `vip.test.ts`, `report.test.ts`
 
+## Git & Cloud-Sync Workflow (MANDATORY — locked 2026-06-21)
+**Hard rule: never leave work local-only. A commit that isn't pushed does not exist for Angel, GitHub, or Vercel.**
+- **Push after every commit** (or at the latest at the end of each work turn). Local commits are invisible to Angel and create no Vercel preview — always `git push` the working branch.
+- **Work on a branch, never commit straight to `main`** unless the change is explicitly a production landing (e.g. the marketing page). Feature work lives on its branch (e.g. `feat/supabase-migration`).
+- **`main` is production** — Vercel auto-deploys it. Only merge/push to `main` when the change is meant to go live.
+- **Pushing a branch = a Vercel preview** (separate URL, never prod). That's how Angel sees and tests WIP. Preview URLs sit behind Vercel deployment protection; for an Angel phone-test, expose a publicly reachable preview.
+- **Documented at all times:** every substantive change is committed with a clear message + reflected in `docs/DEVLOG.md` and the relevant ClickUp task's Proof-of-Done. So work is portable across local and cloud with zero context loss.
+- At the end of a work session, state the branch + that it's pushed, so status is never ambiguous.
+
 ## Key Paths
 - API routes: `src/app/api/ocr/route.ts`, `src/app/api/ocr-vip/route.ts`
 - Pages: `src/app/upload/`, `src/app/search/`, `src/app/checkin/[roomNumber]/`, `src/app/report/`
