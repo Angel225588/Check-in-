@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Imarketin — Hôtellerie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#A66914; --gold-l:#DD9C28; --ink:#1A1714; --cream:#F5F0E8;
+    --taupe:#8A7E6E; --hair:#E2D9C9; --dark:#16130F;
+    --gold-soft:rgba(166,105,20,.10); --gold-glow:rgba(221,156,40,.35);
+    --serif:'Playfair Display', Georgia, serif;
+    --serif2:'Cormorant Garamond', Georgia, serif;
+    --sans:'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    --r:14px; --pill:52px;
+    --sh-sm:0 1px 2px rgba(26,23,20,.04), 0 1px 8px rgba(26,23,20,.04);
+    --sh-md:0 4px 16px rgba(26,23,20,.06), 0 1px 3px rgba(26,23,20,.05);
+    --sh-lg:0 18px 50px rgba(26,23,20,.10), 0 4px 14px rgba(26,23,20,.05);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:var(--sans); color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(221,156,40,.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(166,105,20,.07), transparent 55%),
+      #FBF8F2;
+    min-height:100vh; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  .app{max-width:1180px; margin:0 auto; min-height:100vh; position:relative;}
+
+  .view{display:none; animation:fade .5s ease both;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(10px) scale(.995);} to{opacity:1; transform:none;}}
+  @keyframes rise{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
+
+  button{font-family:var(--sans); cursor:pointer; border:none; background:none; color:inherit;}
+  .pill{
+    border-radius:var(--pill); padding:15px 26px; font-weight:700; font-size:15px;
+    letter-spacing:.2px; transition:transform .18s, box-shadow .25s, background .2s; border:1px solid transparent;
+  }
+  .pill:active{transform:scale(.97);}
+  .btn-gold{
+    background:linear-gradient(135deg, var(--gold-l), var(--gold)); color:#fff;
+    box-shadow:0 10px 28px rgba(166,105,20,.30), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .btn-gold:hover{box-shadow:0 16px 38px rgba(166,105,20,.40), inset 0 1px 0 rgba(255,255,255,.3);}
+
+  .back{
+    display:inline-flex; align-items:center; gap:9px; font-weight:600; font-size:14px; color:var(--taupe);
+    padding:10px 16px 10px 12px; border-radius:var(--pill); background:rgba(255,255,255,.65);
+    border:1px solid var(--hair); transition:.2s; box-shadow:var(--sh-sm);
+  }
+  .back:hover{color:var(--gold); border-color:var(--gold-l); transform:translateX(-2px);}
+  .back svg{width:17px; height:17px;}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px 26px 8px;}
+  .topbar .mark{font-family:var(--serif); font-weight:700; letter-spacing:3px; font-size:17px; color:var(--ink);}
+  .topbar .mark span{color:var(--gold);}
+  .roletag{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--gold);
+    background:var(--gold-soft); padding:7px 15px; border-radius:var(--pill); border:1px solid rgba(166,105,20,.18);}
+
+  .picker{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 26px 70px; text-align:center;}
+  .crest{width:62px; height:62px; border-radius:18px; margin:0 auto 26px;
+    background:linear-gradient(135deg, var(--gold-l), var(--gold));
+    display:flex; align-items:center; justify-content:center; box-shadow:0 14px 34px rgba(166,105,20,.35), inset 0 1px 0 rgba(255,255,255,.3);}
+  .crest svg{width:30px; height:30px; color:#fff;}
+  .wordmark{font-family:var(--serif); font-weight:700; font-size:46px; letter-spacing:8px; margin:0; color:var(--ink); line-height:1;}
+  .wordmark .dot{color:var(--gold);}
+  .tagline{font-family:var(--serif2); font-style:italic; font-size:21px; color:var(--taupe); margin:16px 0 4px; font-weight:500;}
+  .estab{font-size:12.5px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold); font-weight:700; margin:0 0 46px;}
+  .rolegrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; width:100%; max-width:860px;}
+  .rolecard{
+    background:rgba(255,255,255,.78); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(226,217,201,.9); border-radius:22px; padding:34px 22px 30px; text-align:center;
+    transition:transform .25s, box-shadow .3s, border-color .25s; box-shadow:var(--sh-md); position:relative; overflow:hidden;
+  }
+  .rolecard:hover{transform:translateY(-7px); box-shadow:var(--sh-lg); border-color:var(--gold-l);}
+  .rolecard::after{content:""; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg, transparent, var(--gold-l), transparent); opacity:0; transition:.3s;}
+  .rolecard:hover::after{opacity:1;}
+  .roleicon{width:70px; height:70px; border-radius:20px; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; font-size:32px;
+    background:var(--gold-soft); border:1px solid rgba(166,105,20,.16);}
+  .rolecard h3{font-family:var(--serif); font-weight:600; font-size:22px; margin:0 0 6px; color:var(--ink);}
+  .rolecard p{font-size:13.5px; color:var(--taupe); margin:0 0 20px; line-height:1.5; min-height:38px;}
+  .roleopen{display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:700; color:var(--gold);}
+  .roleopen svg{width:15px; height:15px; transition:transform .25s;}
+  .rolecard:hover .roleopen svg{transform:translateX(4px);}
+  .picker-foot{margin-top:46px; font-size:12px; color:var(--taupe); display:flex; gap:18px; align-items:center; flex-wrap:wrap; justify-content:center;}
+  .picker-foot b{color:var(--gold); font-weight:700;}
+  .dotsep{width:4px; height:4px; border-radius:50%; background:var(--hair);}
+
+  .page{padding:6px 26px 60px; animation:rise .45s ease both;}
+  .page-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin:18px 0 26px; flex-wrap:wrap;}
+  .page-title{font-family:var(--serif); font-weight:600; font-size:30px; margin:0; color:var(--ink); line-height:1.1;}
+  .page-sub{font-size:13.5px; color:var(--taupe); margin:6px 0 0;}
+  .section-label{font-size:11.5px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); font-weight:800; margin:30px 0 14px; display:flex; align-items:center; gap:10px;}
+  .section-label::after{content:""; flex:1; height:1px; background:linear-gradient(90deg, var(--hair), transparent);}
+
+  .card{background:#fff; border:1px solid var(--hair); border-radius:var(--r); box-shadow:var(--sh-sm); padding:18px 20px;}
+
+  .hero-upload{
+    border-radius:24px; padding:42px 34px; text-align:center; position:relative; overflow:hidden;
+    background:linear-gradient(135deg, #fff 0%, #FBF5EA 100%); border:1px solid var(--hair); box-shadow:var(--sh-md);
+  }
+  .hero-upload::before{content:""; position:absolute; width:340px; height:340px; right:-90px; top:-120px; border-radius:50%;
+    background:radial-gradient(circle, rgba(221,156,40,.18), transparent 70%);}
+  .hero-eyebrow{font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); font-weight:800; margin:0 0 8px; position:relative;}
+  .hero-h{font-family:var(--serif); font-weight:600; font-size:26px; margin:0 0 6px; position:relative;}
+  .hero-p{font-size:14px; color:var(--taupe); margin:0 0 26px; position:relative;}
+  .big-upload{
+    position:relative; display:inline-flex; align-items:center; gap:13px; font-size:17px; font-weight:800; color:#fff;
+    background:linear-gradient(135deg, var(--gold-l), var(--gold)); padding:20px 38px; border-radius:var(--pill);
+    box-shadow:0 14px 38px rgba(166,105,20,.34), inset 0 1px 0 rgba(255,255,255,.3); transition:transform .2s, box-shadow .3s;
+  }
+  .big-upload:hover{transform:translateY(-2px); box-shadow:0 20px 48px rgba(166,105,20,.42);}
+  .big-upload:active{transform:scale(.97);}
+  .big-upload svg{width:24px; height:24px;}
+  .big-upload .ring{position:absolute; inset:-6px; border-radius:var(--pill); border:2px solid var(--gold-glow); animation:pulse 2.4s ease-out infinite; pointer-events:none;}
+  @keyframes pulse{0%{transform:scale(1); opacity:.7;} 100%{transform:scale(1.12); opacity:0;}}
+  .upload-state{position:relative; margin-top:22px; display:inline-flex; align-items:center; gap:10px; font-size:13.5px; font-weight:700;
+    padding:9px 18px; border-radius:var(--pill); transition:.3s;}
+  .us-done{background:rgba(31,142,84,.10); color:#1F8E54; border:1px solid rgba(31,142,84,.22);}
+  .us-prog{background:var(--gold-soft); color:var(--gold); border:1px solid rgba(166,105,20,.2);}
+  .us-done svg, .us-prog svg{width:16px; height:16px;}
+  .spin{animation:spin 1s linear infinite;} @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* shared dark luxury "action" surface — rhymes with Direction cockpit + Restaurant start card */
+  .dark-surface{background:linear-gradient(165deg, #1E1A14 0%, #14110C 62%, #0F0C08 100%) !important; border:1px solid rgba(221,156,40,.16) !important; box-shadow:0 24px 60px rgba(15,12,8,.4) !important;}
+  .dark-surface::before{background:radial-gradient(circle, rgba(221,156,40,.22), transparent 70%) !important;}
+  .dark-surface .hero-eyebrow{color:var(--gold-l);}
+  .dark-surface .hero-h{color:#F5EEE0;}
+  .dark-surface .hero-p{color:#9C9482;}
+  .dark-surface .us-done{background:rgba(95,203,142,.12); color:#74D29D; border-color:rgba(95,203,142,.25);}
+  .dark-surface .us-prog{background:rgba(221,156,40,.12); color:var(--gold-l); border-color:rgba(221,156,40,.25);}
+
+  .handoff{margin-top:18px; background:linear-gradient(165deg,#211C15,#15110C); border:1px solid rgba(221,156,40,.16); border-radius:18px; padding:20px 22px; box-shadow:var(--sh-md);}
+  .handoff-head{display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:16px; flex-wrap:wrap;}
+  .handoff-title{display:flex; align-items:center; gap:13px;}
+  .handoff-title .hh-icon{width:38px; height:38px; border-radius:11px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--gold-l); background:rgba(221,156,40,.12); border:1px solid rgba(221,156,40,.2);}
+  .handoff-title h4{font-family:var(--serif); font-weight:600; font-size:18px; margin:0; color:#F3ECDD;}
+  .handoff-title p{font-size:12.5px; color:#9C9482; margin:2px 0 0;}
+  .handoff-live{display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:700; color:#74D29D; background:rgba(95,203,142,.1); padding:7px 14px; border-radius:var(--pill); border:1px solid rgba(95,203,142,.2); white-space:nowrap;}
+  .live-dot{width:7px; height:7px; border-radius:50%; background:#5FCB8E; box-shadow:0 0 0 0 rgba(95,203,142,.6); animation:livep 2s ease-out infinite;}
+  @keyframes livep{0%{box-shadow:0 0 0 0 rgba(95,203,142,.5);}100%{box-shadow:0 0 0 7px rgba(95,203,142,0);}}
+  .handoff-rows{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .ho-row{display:flex; align-items:center; gap:12px; padding:12px 14px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07); border-radius:12px;}
+  .ho-check{width:26px; height:26px; border-radius:8px; flex:0 0 auto; display:flex; align-items:center; justify-content:center;}
+  .ho-check svg{width:15px; height:15px; color:#fff;}
+  .ho-check.ok{background:linear-gradient(135deg,#34C77B,#1F8E54);}
+  .ho-check.warn{background:linear-gradient(135deg,#E8A07F,#C05A3A);}
+  .ho-row .ho-txt{flex:1; font-size:13.5px; color:#E4DCCB; font-weight:600;}
+  .ho-row .ho-txt small{display:block; font-size:11.5px; color:#857C6B; font-weight:400; margin-top:1px;}
+  .ho-flag{font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:var(--pill); white-space:nowrap;}
+  .ho-flag.ok{color:#74D29D; background:rgba(95,203,142,.12); border:1px solid rgba(95,203,142,.2);}
+  .ho-flag.warn{color:#E8A07F; background:rgba(224,138,107,.12); border:1px solid rgba(224,138,107,.22);}
+
+  .quick2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;}
+  .quick{display:flex; align-items:center; gap:14px; padding:20px; cursor:pointer; transition:.22s;}
+  .quick:hover{transform:translateY(-3px); box-shadow:var(--sh-md); border-color:var(--gold-l);}
+  .quick .qi{width:50px; height:50px; border-radius:14px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:24px; background:var(--gold-soft);}
+  .quick h4{margin:0 0 3px; font-size:16px; font-family:var(--serif); font-weight:600;}
+  .quick p{margin:0; font-size:12.5px; color:var(--taupe);}
+
+  .searchbar{display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--hair); border-radius:var(--pill); padding:13px 20px; box-shadow:var(--sh-sm); transition:.2s;}
+  .searchbar:focus-within{border-color:var(--gold-l); box-shadow:0 0 0 4px var(--gold-soft);}
+  .searchbar svg{width:19px; height:19px; color:var(--taupe);}
+  .searchbar input{flex:1; border:none; outline:none; font-family:var(--sans); font-size:15px; color:var(--ink); background:transparent;}
+
+  .contact{display:flex; align-items:center; gap:14px; padding:15px 18px; border-bottom:1px solid var(--hair); transition:.16s; cursor:pointer;}
+  .contact:last-child{border-bottom:none;}
+  .contact:hover{background:#FBF6EC;}
+  .avatar{width:46px; height:46px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:#fff;}
+  .contact-main{flex:1; min-width:0;}
+  .contact-main .nm{font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;}
+  .contact-main .meta{font-size:12.5px; color:var(--taupe); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .vipbadge{font-size:10px; font-weight:800; letter-spacing:.5px; color:#fff; background:linear-gradient(135deg,var(--gold-l),var(--gold)); padding:3px 9px; border-radius:var(--pill); box-shadow:0 2px 6px rgba(166,105,20,.3);}
+  .note-pill{font-size:11px; font-weight:700; color:var(--gold); background:var(--gold-soft); padding:4px 11px; border-radius:var(--pill); border:1px solid rgba(166,105,20,.16); white-space:nowrap;}
+  .chev{width:18px; height:18px; color:var(--hair); flex:0 0 auto;}
+
+  .folders{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .folder{padding:20px; cursor:pointer; transition:.22s; position:relative; overflow:hidden;}
+  .folder:hover{transform:translateY(-4px); box-shadow:var(--sh-md); border-color:var(--gold-l);}
+  .folder .ficon{width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--gold-soft); margin-bottom:14px;}
+  .folder .fdate{font-family:var(--serif); font-weight:600; font-size:18px; margin:0;}
+  .folder .fday{font-size:12px; color:var(--taupe); text-transform:capitalize; margin:2px 0 12px;}
+  .folder .fdocs{display:flex; flex-wrap:wrap; gap:6px;}
+  .doctag{font-size:10.5px; font-weight:700; color:var(--taupe); background:var(--cream); padding:4px 10px; border-radius:var(--pill); border:1px solid var(--hair);}
+  .doctag.on{color:var(--gold); background:var(--gold-soft); border-color:rgba(166,105,20,.2);}
+
+  .doclist{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .docrow{display:flex; align-items:center; gap:14px; padding:16px 18px; cursor:pointer; transition:.18s;}
+  .docrow:hover{border-color:var(--gold-l); box-shadow:var(--sh-sm);}
+  .docrow .di{width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:20px; background:var(--gold-soft); flex:0 0 auto;}
+  .docrow h5{margin:0 0 2px; font-size:14.5px; font-weight:700;}
+  .docrow p{margin:0; font-size:12px; color:var(--taupe);}
+
+  .dir-shell{background:linear-gradient(165deg, #1E1A14 0%, #14110C 60%, #0F0C08 100%); min-height:100vh; color:#EDE6D8;}
+  .dir-shell .topbar .mark{color:#F3ECDD;} .dir-shell .topbar .mark span{color:var(--gold-l);}
+  .dir-shell .back{background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.1); color:#C9BFA9;}
+  .dir-shell .back:hover{color:var(--gold-l); border-color:var(--gold-l);}
+  .dir-shell .roletag{background:rgba(221,156,40,.12); border-color:rgba(221,156,40,.25); color:var(--gold-l);}
+  .dir-page{padding:6px 26px 60px;}
+  .dir-title{font-family:var(--serif); font-weight:600; font-size:30px; margin:18px 0 4px; color:#F3ECDD;}
+  .dir-sub{font-size:13.5px; color:#9C9482; margin:0 0 8px;}
+  .dir-label{font-size:11.5px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-l); font-weight:800; margin:30px 0 14px; display:flex; align-items:center; gap:10px;}
+  .dir-label::after{content:""; flex:1; height:1px; background:linear-gradient(90deg, rgba(221,156,40,.3), transparent);}
+
+  .kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:14px;}
+  .kpi{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:var(--r); padding:18px 18px 16px; position:relative; overflow:hidden; transition:.25s;}
+  .kpi:hover{background:rgba(255,255,255,.06); border-color:rgba(221,156,40,.3); transform:translateY(-3px);}
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(var(--gold-l), var(--gold)); opacity:.85;}
+  .kpi .klabel{font-size:11.5px; color:#9C9482; font-weight:600; display:flex; align-items:center; gap:7px; margin-bottom:10px;}
+  .kpi .klabel svg{width:15px; height:15px; color:var(--gold-l);}
+  .kpi .kval{font-family:var(--serif); font-weight:600; font-size:32px; line-height:1; color:#F5EEE0;}
+  .kpi .kval small{font-size:15px; color:#9C9482; font-weight:400; font-family:var(--sans); margin-left:3px;}
+  .kpi .ktrend{font-size:11.5px; font-weight:700; margin-top:8px; display:flex; align-items:center; gap:5px;}
+  .ktrend.up{color:#5FCB8E;} .ktrend.down{color:#E08A6B;} .ktrend.flat{color:#9C9482;}
+  .kpi.alert::before{background:linear-gradient(#E08A6B, #C05A3A);}
+  .kpi.alert .klabel svg{color:#E08A6B;}
+
+  .dir-grid{display:grid; grid-template-columns:1.55fr 1fr; gap:18px; align-items:start;}
+  .panel{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:18px; padding:22px;}
+  .panel h4{font-family:var(--serif); font-weight:600; font-size:18px; margin:0 0 4px; color:#F3ECDD;}
+  .panel .ph-sub{font-size:12.5px; color:#9C9482; margin:0 0 18px;}
+
+  .chartwrap{display:flex; align-items:flex-end; gap:9px; height:160px; padding-top:10px;}
+  .bar{flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;}
+  .bar .col{width:100%; max-width:34px; border-radius:7px 7px 3px 3px; background:linear-gradient(180deg, var(--gold-l), rgba(166,105,20,.55)); transition:height 1s cubic-bezier(.2,.8,.2,1); position:relative;}
+  .bar.peak .col{background:linear-gradient(180deg, #F3B84A, var(--gold)); box-shadow:0 0 20px rgba(221,156,40,.4);}
+  .bar .blab{font-size:11px; color:#857C6B; font-weight:600;}
+  .bar .bval{font-size:11px; color:#C9BFA9; font-weight:700;}
+  .peakflag{font-size:10px; font-weight:800; color:#16130F; background:var(--gold-l); padding:2px 8px; border-radius:var(--pill); margin-bottom:-2px;}
+
+  .insight{display:flex; gap:13px; padding:14px 0; border-bottom:1px solid rgba(255,255,255,.06);}
+  .insight:last-child{border-bottom:none;}
+  .insight .idot{width:34px; height:34px; border-radius:10px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:16px;}
+  .id-warn{background:rgba(224,138,107,.14); color:#E8A07F;}
+  .id-good{background:rgba(95,203,142,.14); color:#74D29D;}
+  .id-info{background:rgba(221,156,40,.14); color:var(--gold-l);}
+  .insight .itxt{flex:1;}
+  .insight .itxt p{margin:0; font-size:13.5px; color:#E4DCCB; line-height:1.5;}
+  .insight .itxt p b{color:#F5EEE0; font-weight:700;}
+  .insight .itxt .iwhen{font-size:11px; color:#857C6B; margin-top:3px;}
+
+  .note-filters{display:flex; gap:8px; flex-wrap:wrap; margin:-4px 0 16px;}
+  .note-filter{font-size:12px; font-weight:700; color:#9C9482; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); padding:7px 15px; border-radius:var(--pill); transition:.2s;}
+  .note-filter:hover{border-color:rgba(221,156,40,.4); color:#E4DCCB;}
+  .note-filter.on{background:linear-gradient(135deg,var(--gold-l),var(--gold)); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(166,105,20,.3);}
+  .dnotes-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+  .dnote{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:14px; padding:16px 18px; transition:.2s;}
+  .dnote:hover{border-color:rgba(221,156,40,.3); background:rgba(255,255,255,.055); transform:translateY(-2px);}
+  .dnote .dn-top{display:flex; align-items:center; gap:11px; margin-bottom:10px;}
+  .dnote .dn-top .avatar{width:38px; height:38px; font-size:13px;}
+  .dnote .dn-name{font-weight:700; font-size:14.5px; color:#F3ECDD;}
+  .dnote .dn-room{font-size:11.5px; color:#9C9482;}
+  .dnote .dn-body{font-size:13px; color:#CFC6B3; line-height:1.55; font-style:italic; font-family:var(--serif2); font-size:15px;}
+  .dnote .dn-tags{display:flex; gap:7px; margin-top:11px; flex-wrap:wrap;}
+  .dn-tag{font-size:10.5px; font-weight:700; color:var(--gold-l); background:rgba(221,156,40,.12); padding:4px 10px; border-radius:var(--pill); border:1px solid rgba(221,156,40,.2);}
+
+  .rtabs{display:inline-flex; gap:6px; background:rgba(255,255,255,.05); padding:5px; border-radius:var(--pill); border:1px solid rgba(255,255,255,.08);}
+  .rtab{padding:9px 20px; border-radius:var(--pill); font-size:13px; font-weight:700; color:#9C9482; transition:.2s;}
+  .rtab.on{background:linear-gradient(135deg,var(--gold-l),var(--gold)); color:#fff; box-shadow:0 6px 16px rgba(166,105,20,.35);}
+
+  .acc-team{margin-bottom:14px;}
+  .acc-team-head{display:flex; align-items:center; gap:12px; padding:14px 18px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:14px 14px 0 0; border-bottom:none;}
+  .acc-team-head .ti{width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:20px; background:rgba(221,156,40,.12);}
+  .acc-team-head .tn{font-family:var(--serif); font-weight:600; font-size:17px; color:#F3ECDD;}
+  .acc-team-head .tc{font-size:11.5px; color:#9C9482;}
+  .acc-team-head .code{margin-left:auto; font-family:var(--serif2); font-weight:700; font-size:20px; letter-spacing:4px; color:var(--gold-l); background:rgba(221,156,40,.1); padding:6px 14px; border-radius:10px; border:1px solid rgba(221,156,40,.2);}
+  .acc-rows{background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.08); border-radius:0 0 14px 14px;}
+  .acc-row{display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid rgba(255,255,255,.05);}
+  .acc-row:last-child{border-bottom:none;}
+  .acc-row .arlab{flex:1; font-size:13.5px; color:#D9D0BD; font-weight:500;}
+  .acc-row .arsub{font-size:11.5px; color:#857C6B; font-weight:400; margin-top:2px;}
+  .toggle{width:46px; height:27px; border-radius:var(--pill); background:rgba(255,255,255,.12); position:relative; cursor:pointer; transition:.25s; flex:0 0 auto; border:1px solid rgba(255,255,255,.1);}
+  .toggle::after{content:""; position:absolute; width:21px; height:21px; border-radius:50%; background:#fff; top:2px; left:2px; transition:.25s; box-shadow:0 2px 6px rgba(0,0,0,.3);}
+  .toggle.on{background:linear-gradient(135deg,var(--gold-l),var(--gold)); border-color:transparent;}
+  .toggle.on::after{left:21px;}
+
+  .set-field{margin-bottom:16px;}
+  .set-field label{display:block; font-size:11.5px; letter-spacing:1px; text-transform:uppercase; color:#9C9482; font-weight:700; margin-bottom:7px;}
+  .set-field .val{display:flex; align-items:center; justify-content:space-between; gap:10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:11px; padding:12px 15px; font-size:14px; color:#EDE6D8; font-weight:500;}
+  .set-field .val .edit{font-size:11px; font-weight:700; color:var(--gold-l); cursor:pointer; opacity:.7; transition:.2s; white-space:nowrap;}
+  .set-field .val:hover .edit{opacity:1;}
+
+  .drawer-mask{position:absolute; inset:0; background:rgba(15,12,8,.6); backdrop-filter:blur(4px); display:none; z-index:40; animation:fade .25s;}
+  .drawer-mask.open{display:block;}
+  .drawer{position:absolute; right:0; top:0; bottom:0; width:330px; background:linear-gradient(180deg,#211C15,#16120D); border-left:1px solid rgba(221,156,40,.18); z-index:41; transform:translateX(100%); transition:transform .35s cubic-bezier(.2,.8,.2,1); padding:24px 22px; overflow-y:auto;}
+  .drawer.open{transform:translateX(0);}
+  .drawer h5{font-family:var(--serif); font-weight:600; font-size:19px; color:#F3ECDD; margin:0 0 4px;}
+  .drawer .dr-sub{font-size:12px; color:#9C9482; margin:0 0 22px;}
+  .dr-item{display:flex; align-items:center; gap:13px; padding:14px 14px; border-radius:12px; cursor:pointer; transition:.18s; margin-bottom:4px;}
+  .dr-item:hover{background:rgba(255,255,255,.05);}
+  .dr-item.active{background:rgba(221,156,40,.1); border:1px solid rgba(221,156,40,.2);}
+  .dr-item svg{width:19px; height:19px; color:var(--gold-l);}
+  .dr-item span{font-size:14px; font-weight:600; color:#E4DCCB;}
+  .burger{width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); cursor:pointer; transition:.2s;}
+  .burger:hover{border-color:var(--gold-l);}
+  .burger svg{width:21px; height:21px; color:#E4DCCB;}
+
+  .resto-page{padding:6px 26px 60px;}
+  .rest-start{text-align:center; padding:26px 0 0;}
+  .greet{font-family:var(--serif2); font-style:italic; font-size:21px; color:var(--taupe); margin:0;}
+  .rest-h{font-family:var(--serif); font-weight:600; font-size:32px; margin:6px 0 2px;}
+  .rest-date{font-size:13px; color:var(--taupe); text-transform:capitalize; margin:0 0 28px;}
+  .sumcards{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:30px;}
+  .sumcard{padding:22px 18px; text-align:center; position:relative; overflow:hidden;}
+  .sumcard .sval{font-family:var(--serif); font-weight:600; font-size:36px; color:var(--gold); line-height:1;}
+  .sumcard .slab{font-size:12px; color:var(--taupe); font-weight:600; margin-top:8px; text-transform:uppercase; letter-spacing:1px;}
+  .sumcard .si{position:absolute; right:14px; top:14px; font-size:20px; opacity:.25;}
+  .start-card{position:relative; overflow:hidden; border-radius:24px; padding:38px 34px; text-align:center; max-width:640px; margin:0 auto;}
+  .start-card::before{content:""; position:absolute; width:340px; height:340px; right:-90px; top:-120px; border-radius:50%; background:radial-gradient(circle, rgba(221,156,40,.22), transparent 70%);}
+  .start-card .hero-eyebrow{position:relative; color:var(--gold-l);}
+  .start-card-h{font-family:var(--serif); font-weight:600; font-size:26px; margin:6px 0 6px; color:#F5EEE0; position:relative;}
+  .start-card-p{font-size:14px; color:#9C9482; margin:0 0 26px; position:relative;}
+  .start-btn{position:relative; display:inline-flex; align-items:center; gap:13px; font-size:18px; font-weight:800; color:#fff;
+    background:linear-gradient(135deg, var(--gold-l), var(--gold)); padding:21px 46px; border-radius:var(--pill);
+    box-shadow:0 16px 40px rgba(166,105,20,.34), inset 0 1px 0 rgba(255,255,255,.3); transition:transform .2s, box-shadow .3s;}
+  .start-btn:hover{transform:translateY(-2px); box-shadow:0 22px 52px rgba(166,105,20,.42);}
+  .start-btn:active{transform:scale(.97);}
+  .start-btn svg{width:24px; height:24px;}
+  .start-btn .ring{position:absolute; inset:-6px; border-radius:var(--pill); border:2px solid var(--gold-glow); animation:pulse 2.4s ease-out infinite; pointer-events:none;}
+  .src-from{position:relative; font-size:12.5px; margin-top:18px; display:inline-flex; align-items:center; gap:7px; background:rgba(95,203,142,.12); color:#74D29D; padding:7px 16px; border-radius:var(--pill); border:1px solid rgba(95,203,142,.22); font-weight:700;}
+  .src-from svg{width:15px; height:15px;}
+
+  .statbar{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px;}
+  .stat{padding:16px; text-align:center; border-radius:var(--r);}
+  .stat.in{background:linear-gradient(135deg,#fff,#F3FAF5); border:1px solid rgba(31,142,84,.18);}
+  .stat.rest{background:linear-gradient(135deg,#fff,#FBF5EA); border:1px solid var(--hair);}
+  .stat.vip{background:linear-gradient(135deg,#fff,#FBF3E6); border:1px solid rgba(166,105,20,.18);}
+  .stat .stv{font-family:var(--serif); font-weight:600; font-size:30px; line-height:1;}
+  .stat.in .stv{color:#1F8E54;} .stat.rest .stv{color:var(--ink);} .stat.vip .stv{color:var(--gold);}
+  .stat .stl{font-size:11.5px; color:var(--taupe); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-top:6px;}
+
+  /* keypad + result + always-visible room list, side-by-side for rush speed */
+  .checkin-grid{display:grid; grid-template-columns:0.95fr 1fr 0.95fr; gap:18px; align-items:start;}
+  .keypad{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .key{aspect-ratio:1.5/1; background:#fff; border:1px solid var(--hair); border-radius:16px; font-family:var(--serif); font-weight:600; font-size:26px; color:var(--ink); display:flex; align-items:center; justify-content:center; transition:.12s; box-shadow:var(--sh-sm);}
+  .key:hover{border-color:var(--gold-l); background:#FBF6EC;}
+  .key:active{transform:scale(.94); background:var(--gold-soft);}
+  .key.act{background:linear-gradient(135deg,var(--gold-l),var(--gold)); color:#fff; border-color:transparent; box-shadow:0 8px 20px rgba(166,105,20,.3);}
+  .key.del{font-size:24px; font-weight:500;}
+  .kp-display{background:#fff; border:1px solid var(--hair); border-radius:16px; padding:20px 22px; text-align:center; margin-bottom:14px; box-shadow:var(--sh-sm); min-height:78px; display:flex; align-items:center; justify-content:center;}
+  .kp-display .num{font-family:var(--serif); font-weight:600; font-size:40px; letter-spacing:6px; color:var(--ink);}
+  .kp-display .ph{font-size:15px; color:var(--hair); letter-spacing:2px;}
+
+  .ci-rooms{background:#fff; border:1px solid var(--hair); border-radius:var(--r); box-shadow:var(--sh-sm); overflow:hidden;}
+  .rooms-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px 12px; border-bottom:1px solid var(--hair); font-size:11.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); font-weight:800;}
+  .rooms-count{color:var(--taupe); font-weight:700; letter-spacing:0;}
+  .rooms-list{max-height:420px; overflow-y:auto;}
+  .rooms-list::-webkit-scrollbar{width:7px;} .rooms-list::-webkit-scrollbar-thumb{background:var(--hair); border-radius:4px;}
+  .room-item{display:flex; align-items:center; gap:11px; padding:11px 15px; border-bottom:1px solid var(--hair); cursor:pointer; transition:.14s;}
+  .room-item:last-child{border-bottom:none;}
+  .room-item:hover{background:#FBF6EC;}
+  .room-item.done{opacity:.5;}
+  .room-no{font-family:var(--serif); font-weight:600; font-size:15px; color:var(--gold); width:36px; flex:0 0 auto;}
+  .room-mid{flex:1; min-width:0;}
+  .room-mid .rn{font-weight:700; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px;}
+  .room-mid .rsub{font-size:11px; color:var(--taupe); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .room-vip{font-size:10px; color:var(--gold-l);}
+  .room-done-ic{width:20px; height:20px; flex:0 0 auto; border-radius:50%; background:rgba(31,142,84,.12); display:flex; align-items:center; justify-content:center;}
+  .room-done-ic svg{width:12px; height:12px; color:#1F8E54;}
+
+  .roomresult{animation:rise .3s ease both;}
+  .rr-card{padding:22px; text-align:center; border:1px solid var(--gold-l); box-shadow:0 12px 32px rgba(166,105,20,.16);}
+  .rr-room{font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); font-weight:800;}
+  .rr-name{font-family:var(--serif); font-weight:600; font-size:26px; margin:6px 0 4px;}
+  .rr-tags{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:12px 0 18px;}
+  .rr-confirm{width:100%; justify-content:center; padding:17px;}
+  .rr-empty{padding:40px 20px; text-align:center; color:var(--taupe);}
+  .rr-empty svg{width:40px; height:40px; color:var(--hair); margin-bottom:12px;}
+  .check-anim{width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#34C77B,#1F8E54); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; box-shadow:0 10px 28px rgba(31,142,84,.35); animation:pop .4s cubic-bezier(.2,1.6,.4,1) both;}
+  @keyframes pop{from{transform:scale(0);} to{transform:scale(1);}}
+  .check-anim svg{width:34px; height:34px; color:#fff;}
+
+  .subnav{display:inline-flex; gap:6px; background:rgba(255,255,255,.6); padding:5px; border-radius:var(--pill); border:1px solid var(--hair); box-shadow:var(--sh-sm); margin-bottom:6px; flex-wrap:wrap;}
+  .subnav button{padding:9px 18px; border-radius:var(--pill); font-size:13px; font-weight:700; color:var(--taupe); transition:.2s; display:flex; align-items:center; gap:7px;}
+  .subnav button svg{width:15px; height:15px;}
+  .subnav button.on{background:linear-gradient(135deg,var(--gold-l),var(--gold)); color:#fff; box-shadow:0 6px 16px rgba(166,105,20,.3);}
+  .restsub{display:none;} .restsub.on{display:block; animation:rise .3s ease both;}
+
+  .hist-row{display:flex; align-items:center; gap:14px; padding:14px 18px; border-bottom:1px solid var(--hair);}
+  .hist-row:last-child{border-bottom:none;}
+  .hist-time{font-family:var(--serif); font-weight:600; font-size:15px; color:var(--gold); width:56px; flex:0 0 auto;}
+  .hist-main{flex:1;} .hist-main .hn{font-weight:700; font-size:14.5px;} .hist-main .hr{font-size:12px; color:var(--taupe);}
+  .hist-badge{font-size:11px; font-weight:700; color:#1F8E54; background:rgba(31,142,84,.1); padding:4px 11px; border-radius:var(--pill);}
+
+  .rep-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:8px;}
+  .rep-k{padding:18px; text-align:center;}
+  .rep-k .rv{font-family:var(--serif); font-weight:600; font-size:28px; color:var(--gold);}
+  .rep-k .rl{font-size:11.5px; color:var(--taupe); font-weight:600; margin-top:5px;}
+
+  @media(max-width:1080px){
+    /* iPad portrait: keypad + result side-by-side, room list spans full width below */
+    .checkin-grid{grid-template-columns:0.9fr 1fr;}
+    .ci-rooms{grid-column:1 / -1;}
+    .rooms-list{max-height:300px;}
+  }
+  @media(max-width:880px){
+    .rolegrid{grid-template-columns:1fr;}
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .dir-grid{grid-template-columns:1fr;}
+    .folders{grid-template-columns:1fr 1fr;}
+    .sumcards{grid-template-columns:repeat(2,1fr);}
+    .checkin-grid{grid-template-columns:1fr;}
+    .ci-rooms{grid-column:auto;}
+    .doclist, .quick2, .handoff-rows, .dnotes-grid{grid-template-columns:1fr;}
+    .wordmark{font-size:38px; letter-spacing:5px;}
+    .rep-kpis{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ================= SCREEN 0 — ROLE PICKER ================= -->
+  <section class="view active" id="v-picker">
+    <div class="picker">
+      <div class="crest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/></svg>
+      </div>
+      <h1 class="wordmark">IMARKETIN<span class="dot">.</span></h1>
+      <p class="tagline">L'intelligence du service, au quotidien</p>
+      <p class="estab">Courtyard by Marriott · Paris</p>
+
+      <div class="rolegrid">
+        <div class="rolecard" onclick="openRole('reception')">
+          <div class="roleicon">🛎️</div>
+          <h3>Réception</h3>
+          <p>Téléverser les documents du jour, contacts et fichiers.</p>
+          <span class="roleopen">Ouvrir l'espace
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+        <div class="rolecard" onclick="openRole('direction')">
+          <div class="roleicon">👔</div>
+          <h3>Direction</h3>
+          <p>Tableau de bord, rapports, notes clients et accès.</p>
+          <span class="roleopen">Ouvrir l'espace
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+        <div class="rolecard" onclick="openRole('restaurant')">
+          <div class="roleicon">🍳</div>
+          <h3>Restaurant</h3>
+          <p>Service du matin : pointage, statistiques et VIP.</p>
+          <span class="roleopen">Ouvrir l'espace
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="picker-foot">
+        <span>Connecté · <b>Salle de petit-déjeuner</b></span>
+        <span class="dotsep"></span>
+        <span>Données <b>EU · Paris</b></span>
+        <span class="dotsep"></span>
+        <span>Hors-ligne <b>prêt</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RÉCEPTION ================= -->
+  <section class="view" id="v-reception">
+    <div class="topbar">
+      <button class="back" onclick="goHome()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Accueil
+      </button>
+      <div class="mark">IMARKETIN<span>.</span></div>
+      <div class="roletag">🛎️ Réception</div>
+    </div>
+
+    <div class="page">
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">Bonjour, Réception</h2>
+          <p class="page-sub">Lundi 22 juin · Salle de petit-déjeuner · Courtyard Paris</p>
+        </div>
+      </div>
+
+      <div class="hero-upload dark-surface">
+        <p class="hero-eyebrow">Étape du jour</p>
+        <h3 class="hero-h">Téléverser les documents du jour</h3>
+        <p class="hero-p">Listing clients, VIP, no-post et briefing. Le restaurant verra le service automatiquement.</p>
+        <button class="big-upload" onclick="doUpload()">
+          <span class="ring"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+          Téléverser les documents
+        </button>
+        <div id="upload-state-wrap">
+          <div class="upload-state us-done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Documents du jour téléversés · 4 fichiers · 142 couverts
+          </div>
+        </div>
+      </div>
+
+      <div class="handoff" id="handoffPanel">
+        <div class="handoff-head">
+          <div class="handoff-title">
+            <span class="hh-icon">↗</span>
+            <div>
+              <h4>À transmettre</h4>
+              <p>Confirmation que les données du jour sont arrivées au restaurant</p>
+            </div>
+          </div>
+          <span class="handoff-live" id="handoffLive">
+            <span class="live-dot"></span> Synchronisé · il y a 2 min
+          </span>
+        </div>
+        <div class="handoff-rows" id="handoffRows"></div>
+      </div>
+
+      <div class="quick2">
+        <div class="card quick" onclick="rcShow('contacts')">
+          <div class="qi">👤</div>
+          <div>
+            <h4>Contacts</h4>
+            <p>Tous les clients, leurs notes et leur historique</p>
+          </div>
+        </div>
+        <div class="card quick" onclick="rcShow('files')">
+          <div class="qi">🗂️</div>
+          <div>
+            <h4>Fichiers</h4>
+            <p>Dossiers par jour : clients, VIP, no-post, briefing</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="rc-contacts">
+        <div class="section-label">Contacts</div>
+        <div class="searchbar" style="margin-bottom:16px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" placeholder="Rechercher un client, une chambre…" id="contactSearch" oninput="filterContacts()">
+        </div>
+        <div class="card" style="padding:4px 0;" id="contactList"></div>
+      </div>
+
+      <div id="rc-files" style="display:none;">
+        <div class="section-label" id="files-crumb">Fichiers · Dossiers par jour</div>
+        <div class="folders" id="folderGrid"></div>
+        <div id="folderDetail" style="display:none;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DIRECTION ================= -->
+  <section class="view" id="v-direction">
+    <div class="dir-shell">
+      <div class="topbar">
+        <button class="back" onclick="goHome()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+          Accueil
+        </button>
+        <div class="mark">IMARKETIN<span>.</span></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="roletag">👔 Direction</div>
+          <button class="burger" onclick="toggleDrawer(true)" aria-label="Réglages">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="dir-page">
+        <h2 class="dir-title">Tableau de bord</h2>
+        <p class="dir-sub">Lundi 22 juin · Mise à jour il y a 4 min · Service du matin</p>
+
+        <div class="dir-label">Indicateurs du jour</div>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="klabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 1 5 5c0 3-5 9-5 9s-5-6-5-9a5 5 0 0 1 5-5z"/></svg>Couverts</div>
+            <div class="kval">128<small>/142</small></div>
+            <div class="ktrend up">▲ +9% vs hier</div>
+          </div>
+          <div class="kpi">
+            <div class="klabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>Taux no-show</div>
+            <div class="kval">9,8<small>%</small></div>
+            <div class="ktrend down">▼ -2,1 pts</div>
+          </div>
+          <div class="kpi">
+            <div class="klabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Coût comps</div>
+            <div class="kval">214<small>€</small></div>
+            <div class="ktrend flat">≈ stable</div>
+          </div>
+          <div class="kpi">
+            <div class="klabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Heure de pointe</div>
+            <div class="kval">8<small>:15</small></div>
+            <div class="ktrend up">42 couverts/15min</div>
+          </div>
+          <div class="kpi alert">
+            <div class="klabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Incohérences</div>
+            <div class="kval">3</div>
+            <div class="ktrend down">À vérifier</div>
+          </div>
+        </div>
+
+        <div class="dir-grid" style="margin-top:8px;">
+          <div class="panel">
+            <h4>Affluence du service</h4>
+            <p class="ph-sub">Couverts par tranche de 15 minutes · 7h00 → 10h00</p>
+            <div class="chartwrap" id="rushChart"></div>
+          </div>
+          <div class="panel">
+            <h4>Intelligence du jour</h4>
+            <p class="ph-sub">Détections automatiques d'Imarketin</p>
+            <div class="insight">
+              <div class="idot id-warn">⚠</div>
+              <div class="itxt">
+                <p><b>Ch. 412 — M. Lefebvre</b> pointé deux fois (réception + restaurant). Doublon probable.</p>
+                <div class="iwhen">il y a 12 min</div>
+              </div>
+            </div>
+            <div class="insight">
+              <div class="idot id-info">★</div>
+              <div class="itxt">
+                <p><b>4 VIP attendus</b> n'ont pas encore pris leur petit-déjeuner. Pointe terminée à 9h30.</p>
+                <div class="iwhen">il y a 18 min</div>
+              </div>
+            </div>
+            <div class="insight">
+              <div class="idot id-good">↗</div>
+              <div class="itxt">
+                <p>No-show en baisse <b>3 jours d'affilée</b>. Économie estimée : <b>~180€</b>.</p>
+                <div class="iwhen">aujourd'hui</div>
+              </div>
+            </div>
+            <div class="insight">
+              <div class="idot id-warn">⚠</div>
+              <div class="itxt">
+                <p>Listing VIP du jour : <b>1 chambre sans nom</b> (Ch. 305). Vérifier auprès de la réception.</p>
+                <div class="iwhen">ce matin</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dir-label">Rapports</div>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:18px;">
+          <div class="rtabs" id="repTabs">
+            <button class="rtab on" onclick="repTab(this,'jour')">Quotidien</button>
+            <button class="rtab" onclick="repTab(this,'sem')">Hebdomadaire</button>
+            <button class="rtab" onclick="repTab(this,'mois')">Mensuel</button>
+          </div>
+        </div>
+        <div class="panel" id="repPanel"></div>
+
+        <div class="dir-label">Notes clients · le cœur de l'établissement</div>
+        <div class="note-filters" id="noteFilters"></div>
+        <div class="dnotes-grid" id="dirNotes"></div>
+
+        <div class="dir-label">Gérer les accès · par équipe</div>
+        <p class="dir-sub" style="margin:-6px 0 16px;">Vous contrôlez ce que chaque équipe voit et fait. Les codes sont attribués automatiquement ; seul le manager peut les renouveler ou ajouter un établissement.</p>
+        <div id="accessCtl"></div>
+      </div>
+
+      <div class="drawer-mask" id="drawerMask" onclick="toggleDrawer(false)"></div>
+      <aside class="drawer" id="drawer">
+        <h5>Réglages</h5>
+        <p class="dr-sub">Détails de l'établissement & préférences</p>
+        <div class="dr-item active" onclick="drawerNav(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V8l7-4 7 4v13"/></svg>
+          <span>Détails de l'établissement</span>
+        </div>
+        <div class="dr-item" onclick="drawerNav(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          <span>Équipes & accès</span>
+        </div>
+        <div class="dr-item" onclick="drawerNav(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/></svg>
+          <span>Données & RGPD</span>
+        </div>
+        <div class="dr-item" onclick="drawerNav(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          <span>Abonnement</span>
+        </div>
+
+        <div style="margin-top:22px;">
+          <div class="set-field">
+            <label>Établissement</label>
+            <div class="val">Courtyard Paris <span class="edit">Modifier</span></div>
+          </div>
+          <div class="set-field">
+            <label>Salle</label>
+            <div class="val">Petit-déjeuner — RDC <span class="edit">Modifier</span></div>
+          </div>
+          <div class="set-field">
+            <label>Capacité</label>
+            <div class="val">160 couverts <span class="edit">Modifier</span></div>
+          </div>
+          <div class="set-field">
+            <label>Horaires service</label>
+            <div class="val">06:30 — 10:30 <span class="edit">Modifier</span></div>
+          </div>
+          <div class="set-field">
+            <label>Code Restaurant</label>
+            <div class="val" style="color:var(--gold-l); font-family:var(--serif2); letter-spacing:3px; font-weight:700;">RST-7421 <span class="edit">Renouveler</span></div>
+          </div>
+          <div class="set-field">
+            <label>Code Réception</label>
+            <div class="val" style="color:var(--gold-l); font-family:var(--serif2); letter-spacing:3px; font-weight:700;">RCP-3098 <span class="edit">Renouveler</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= RESTAURANT ================= -->
+  <section class="view" id="v-restaurant">
+    <div class="topbar">
+      <button class="back" id="restBack" onclick="restBackBtn()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        <span id="restBackLbl">Accueil</span>
+      </button>
+      <div class="mark">IMARKETIN<span>.</span></div>
+      <div class="roletag">🍳 Restaurant</div>
+    </div>
+
+    <div class="resto-page">
+      <div id="rest-scr1">
+        <div class="rest-start">
+          <p class="greet">Bonjour, équipe Restaurant</p>
+          <h2 class="rest-h">Service du matin</h2>
+          <p class="rest-date">Lundi 22 juin · 07:42</p>
+
+          <div class="sumcards">
+            <div class="card sumcard"><span class="si">🍳</span><div class="sval">142</div><div class="slab">Couverts attendus</div></div>
+            <div class="card sumcard"><span class="si">⭐</span><div class="sval">12</div><div class="slab">VIP</div></div>
+            <div class="card sumcard"><span class="si">🛏️</span><div class="sval">96</div><div class="slab">Chambres</div></div>
+            <div class="card sumcard"><span class="si">🚫</span><div class="sval">7</div><div class="slab">No-post</div></div>
+          </div>
+
+          <div class="start-card dark-surface">
+            <p class="hero-eyebrow">Tout est prêt</p>
+            <h3 class="start-card-h">Lancez le pointage du petit-déjeuner</h3>
+            <p class="start-card-p">142 couverts attendus · 12 VIP signalés · 7 no-post à surveiller</p>
+            <button class="start-btn" onclick="startService()">
+              <span class="ring"></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Démarrer le service
+            </button>
+            <div>
+              <span class="src-from">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Service préparé depuis l'envoi de la Réception · 4 fichiers
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="rest-scr2" style="display:none;">
+        <div class="page-head" style="margin:14px 0 18px;">
+          <div>
+            <h2 class="page-title" style="font-size:26px;">Service en cours</h2>
+            <p class="page-sub">Pointage des petits-déjeuners · Salle RDC</p>
+          </div>
+          <div class="subnav">
+            <button class="on" onclick="restSub(this,'checkin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Pointage</button>
+            <button onclick="restSub(this,'contacts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Contacts</button>
+            <button onclick="restSub(this,'hist')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</button>
+            <button onclick="restSub(this,'rep')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg>Rapport</button>
+          </div>
+        </div>
+
+        <div class="statbar">
+          <div class="stat in"><div class="stv" id="statIn">38</div><div class="stl">Entrés</div></div>
+          <div class="stat rest"><div class="stv" id="statRest">104</div><div class="stl">Restants</div></div>
+          <div class="stat vip"><div class="stv" id="statVip">5/12</div><div class="stl">VIP entrés</div></div>
+        </div>
+
+        <div class="restsub on" id="sub-checkin">
+          <div class="checkin-grid">
+            <div class="ci-keypad">
+              <div class="searchbar" style="margin-bottom:14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input type="text" placeholder="Numéro de chambre ou nom…" id="restSearch" oninput="searchRoom(this.value)">
+              </div>
+              <div class="kp-display">
+                <span class="num" id="kpNum"></span>
+                <span class="ph" id="kpPh">— — —</span>
+              </div>
+              <div class="keypad" id="keypad"></div>
+            </div>
+
+            <div class="ci-result" id="roomPanel">
+              <div class="card rr-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <p style="margin:0; font-weight:700; color:var(--ink);">Recherchez une chambre</p>
+                <p style="margin:4px 0 0; font-size:13px;">Tapez un numéro ou touchez une chambre dans la liste</p>
+              </div>
+            </div>
+
+            <div class="ci-rooms">
+              <div class="rooms-head">
+                <span>Chambres du jour</span>
+                <span class="rooms-count" id="roomsCount"></span>
+              </div>
+              <div class="rooms-list" id="roomsList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="restsub" id="sub-contacts">
+          <div class="searchbar" style="margin-bottom:14px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" placeholder="Rechercher un client…" id="restContactSearch" oninput="filterRestContacts()">
+          </div>
+          <div class="card" style="padding:4px 0;" id="restContactList"></div>
+        </div>
+
+        <div class="restsub" id="sub-hist">
+          <div class="card" style="padding:4px 0;" id="restHist"></div>
+        </div>
+
+        <div class="restsub" id="sub-rep">
+          <div class="rep-kpis">
+            <div class="card rep-k"><div class="rv">38</div><div class="rl">Servis</div></div>
+            <div class="card rep-k"><div class="rv">5</div><div class="rl">VIP servis</div></div>
+            <div class="card rep-k"><div class="rv">8:15</div><div class="rl">Pic d'affluence</div></div>
+            <div class="card rep-k"><div class="rv">3</div><div class="rl">Walk-in</div></div>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="section-label" style="margin:6px 0 12px;">Synthèse en direct</div>
+            <p style="font-size:13.5px; color:var(--taupe); line-height:1.7; margin:0;">
+              Service à <b style="color:var(--ink);">27%</b> de progression. Rythme régulier, pic anticipé vers <b style="color:var(--ink);">8h15</b>.
+              <b style="color:var(--ink);">7 VIP</b> n'ont pas encore été servis. Aucun no-post détecté en salle pour l'instant.
+              Le rapport complet sera transmis à la Direction à la clôture du service.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const AV = ['#A66914','#8A5A12','#C18A2E','#705012','#DD9C28','#9A6E1C','#B07820','#5E440F'];
+function initials(n){return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();}
+function avColor(n){let s=0;for(const c of n)s+=c.charCodeAt(0);return AV[s%AV.length];}
+
+const GUESTS = [
+  {room:'412', name:'Antoine Lefebvre', vip:true,  note:'Sans gluten · table fenêtre', hist:'3e séjour', pkg:'Inclus', tag:'Allergie', tags:['Allergie','Préférence']},
+  {room:'305', name:'Camille Moreau',   vip:false, note:'', hist:'1er séjour', pkg:'Inclus'},
+  {room:'118', name:'Jean Dupont',      vip:false, note:'Café noir, sans sucre', hist:'2e séjour', pkg:'Inclus', tag:'Habitude', tags:['Habitude']},
+  {room:'421', name:'Sophie Bernard',   vip:true,  note:'Anniversaire le 22/06 🎂', hist:'Fidèle · 6 séjours', pkg:'Inclus', tag:'Occasion', tags:['Anniversaire','Fidèle']},
+  {room:'207', name:'Lucas Martin',     vip:false, note:'', hist:'1er séjour', pkg:'Sur place'},
+  {room:'330', name:'Émilie Petit',     vip:true,  note:"Lait d'avoine · presse FR/EN", hist:'4e séjour', pkg:'Inclus', tag:'Préférence', tags:['Préférence']},
+  {room:'215', name:'Thomas Rousseau',  vip:false, note:'Arrive tôt (avant 7h)', hist:'2e séjour', pkg:'Inclus', tag:'Habitude', tags:['Habitude']},
+  {room:'502', name:'Marie Laurent',    vip:true,  note:'Allergie aux fruits à coque ⚠', hist:'3e séjour', pkg:'Inclus', tag:'Allergie', tags:['Allergie']},
+  {room:'140', name:'Hugo Garnier',     vip:false, note:'', hist:'1er séjour', pkg:'Sur place'},
+  {room:'318', name:'Léa Fontaine',     vip:false, note:'Végétarienne', hist:'2e séjour', pkg:'Inclus', tag:'Régime', tags:['Régime']},
+  {room:'409', name:'Nicolas Girard',   vip:false, note:'', hist:'1er séjour', pkg:'Inclus'},
+  {room:'226', name:'Chloé Dubois',     vip:true,  note:'Suite · service en chambre · à emporter possible', hist:'Fidèle · 9 séjours', pkg:'Inclus', tag:'VIP', tags:['Fidèle','À emporter']},
+];
+
+const DAYS = [
+  {date:'22 juin', day:'lundi', docs:{clients:true,vip:true,nopost:true,brief:true}, count:142},
+  {date:'21 juin', day:'dimanche', docs:{clients:true,vip:true,nopost:true,brief:true}, count:138},
+  {date:'20 juin', day:'samedi', docs:{clients:true,vip:true,nopost:false,brief:true}, count:156},
+  {date:'19 juin', day:'vendredi', docs:{clients:true,vip:true,nopost:true,brief:false}, count:131},
+  {date:'18 juin', day:'jeudi', docs:{clients:true,vip:false,nopost:true,brief:true}, count:124},
+  {date:'17 juin', day:'mercredi', docs:{clients:true,vip:true,nopost:true,brief:true}, count:119},
+];
+
+const RUSH = [
+  {t:'7:00',v:8},{t:'7:15',v:14},{t:'7:30',v:22},{t:'7:45',v:31},
+  {t:'8:00',v:38},{t:'8:15',v:42},{t:'8:30',v:36},{t:'8:45',v:27},
+  {t:'9:00',v:19},{t:'9:15',v:12},{t:'9:30',v:7},{t:'9:45',v:4}
+];
+
+const HISTORY = [
+  {time:'8:18', name:'Sophie Bernard', room:'421', vip:true},
+  {time:'8:11', name:'Thomas Rousseau', room:'215', vip:false},
+  {time:'8:04', name:'Émilie Petit', room:'330', vip:true},
+  {time:'7:56', name:'Jean Dupont', room:'118', vip:false},
+  {time:'7:49', name:'Lucas Martin', room:'207', vip:false},
+  {time:'7:41', name:'Marie Laurent', room:'502', vip:true},
+];
+
+let entered = 38, vipIn = 5;
+const checkedRooms = new Set();
+let kpVal = '';
+
+function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function openRole(r){show('v-'+r);if(r==='reception')renderReception();if(r==='direction')renderDirection();if(r==='restaurant')resetRestaurant();}
+function goHome(){show('v-picker');}
+
+function renderReception(){rcShow('contacts');renderContacts();renderFolders();renderHandoff();}
+function renderHandoff(){
+  const rows=[
+    {ok:true,  txt:'Restaurant a reçu le résumé', sub:'142 couverts · synchronisé', flag:'Reçu'},
+    {ok:true,  txt:'12 VIP signalés', sub:'allergies & préférences transmises', flag:'Reçu'},
+    {ok:false, txt:'3 no-post à vérifier', sub:'chambres 207, 140, 421', flag:'À voir'},
+    {ok:true,  txt:'Briefing du jour publié', sub:'note de service · équipe', flag:'Reçu'}
+  ];
+  const okSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  const wnSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/></svg>';
+  document.getElementById('handoffRows').innerHTML = rows.map(function(r){
+    return '<div class="ho-row">'+
+      '<div class="ho-check '+(r.ok?'ok':'warn')+'">'+(r.ok?okSvg:wnSvg)+'</div>'+
+      '<div class="ho-txt">'+r.txt+'<small>'+r.sub+'</small></div>'+
+      '<span class="ho-flag '+(r.ok?'ok':'warn')+'">'+r.flag+'</span>'+
+    '</div>';
+  }).join('');
+}
+function rcShow(which){
+  document.getElementById('rc-contacts').style.display = which==='contacts'?'block':'none';
+  document.getElementById('rc-files').style.display = which==='files'?'block':'none';
+  if(which==='files'){renderFolders();document.getElementById('folderGrid').style.display='grid';document.getElementById('folderDetail').style.display='none';document.getElementById('files-crumb').textContent='Fichiers · Dossiers par jour';}
+}
+function doUpload(){
+  const wrap=document.getElementById('upload-state-wrap');
+  wrap.innerHTML='<div class="upload-state us-prog"><svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>Lecture des documents (OCR)…</div>';
+  setTimeout(()=>{wrap.innerHTML='<div class="upload-state us-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Documents du jour téléversés · 4 fichiers · 142 couverts</div>';},1700);
+}
+function contactRowHTML(g){
+  const note = g.note ? '<span class="note-pill">📝 '+g.note+'</span>' : '';
+  const vip = g.vip ? '<span class="vipbadge">VIP</span>' : '';
+  return '<div class="contact">'+
+    '<div class="avatar" style="background:'+avColor(g.name)+'">'+initials(g.name)+'</div>'+
+    '<div class="contact-main"><div class="nm">'+g.name+' '+vip+'</div>'+
+    '<div class="meta">Ch. '+g.room+' · '+g.hist+' · '+g.pkg+'</div></div>'+
+    note+
+    '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>';
+}
+function renderContacts(filter){
+  filter=(filter||'').toLowerCase();
+  const list=GUESTS.filter(g=>g.name.toLowerCase().includes(filter)||g.room.includes(filter));
+  document.getElementById('contactList').innerHTML = list.length?list.map(contactRowHTML).join(''):'<div style="padding:30px;text-align:center;color:var(--taupe)">Aucun résultat</div>';
+}
+function filterContacts(){renderContacts(document.getElementById('contactSearch').value);}
+
+function renderFolders(){
+  const dot=function(on){return on?'on':'';};
+  document.getElementById('folderGrid').innerHTML = DAYS.map(function(d,i){
+    return '<div class="card folder" onclick="openFolder('+i+')">'+
+      '<div class="ficon">🗂️</div>'+
+      '<p class="fdate">'+d.date+'</p>'+
+      '<p class="fday">'+d.day+' · '+d.count+' couverts</p>'+
+      '<div class="fdocs">'+
+        '<span class="doctag '+dot(d.docs.clients)+'">Clients</span>'+
+        '<span class="doctag '+dot(d.docs.vip)+'">VIP</span>'+
+        '<span class="doctag '+dot(d.docs.nopost)+'">No-post</span>'+
+        '<span class="doctag '+dot(d.docs.brief)+'">Briefing</span>'+
+      '</div></div>';
+  }).join('');
+}
+function openFolder(i){
+  const d=DAYS[i];
+  document.getElementById('folderGrid').style.display='none';
+  document.getElementById('files-crumb').innerHTML='<span style="cursor:pointer;color:var(--gold)" onclick="rcShow(\'files\')">Fichiers</span> &nbsp;›&nbsp; '+d.date;
+  const docs=[
+    {k:'clients',i:'👥',n:'Listing clients',s:d.count+' couverts · OCR validé'},
+    {k:'vip',i:'⭐',n:'Liste VIP',s:'12 clients prioritaires'},
+    {k:'nopost',i:'🚫',n:'No-post',s:'7 chambres concernées'},
+    {k:'brief',i:'📋',n:'Briefing du jour',s:'Note de service · équipe'}
+  ];
+  const det=document.getElementById('folderDetail');
+  det.style.display='block';
+  det.innerHTML='<div class="doclist">'+docs.map(function(doc){
+    const present=d.docs[doc.k];
+    const icon = present?'<path d="M9 6l6 6-6 6"/>':'<path d="M18 6L6 18M6 6l12 12"/>';
+    return '<div class="card docrow" style="'+(present?'':'opacity:.45')+'">'+
+      '<div class="di">'+doc.i+'</div>'+
+      '<div style="flex:1"><h5>'+doc.n+'</h5><p>'+(present?doc.s:'Non fourni ce jour')+'</p></div>'+
+      '<svg class="chev" style="color:var(--gold-l)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'+icon+'</svg></div>';
+  }).join('')+'</div>';
+}
+
+function renderDirection(){renderChart();repTab(document.querySelector('#repTabs .rtab.on'),'jour');renderDirNotes();renderAccess();}
+function renderChart(){
+  const max=Math.max.apply(null,RUSH.map(function(r){return r.v;}));
+  document.getElementById('rushChart').innerHTML = RUSH.map(function(r){
+    const h=Math.round(r.v/max*100);
+    const peak=r.v===max;
+    return '<div class="bar '+(peak?'peak':'')+'">'+
+      (peak?'<span class="peakflag">Pic</span>':'')+
+      '<span class="bval">'+r.v+'</span>'+
+      '<div class="col" style="height:0" data-h="'+h+'"></div>'+
+      '<span class="blab">'+r.t+'</span></div>';
+  }).join('');
+  requestAnimationFrame(function(){setTimeout(function(){document.querySelectorAll('#rushChart .col').forEach(function(c){c.style.height=c.dataset.h+'%';});},60);});
+}
+function repTab(btn,which){
+  document.querySelectorAll('#repTabs .rtab').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  const data={
+    jour:{title:'Rapport quotidien · 22 juin', rows:[['Couverts servis','128 / 142'],['Taux de présence','90,2 %'],['No-show','14 (9,8 %)'],['VIP servis','11 / 12'],['Walk-in','5'],['Coût des comps','214 €'],["Pic d'affluence",'8h15 · 42 couv./15min']]},
+    sem:{title:'Rapport hebdomadaire · 16 → 22 juin', rows:[['Couverts servis','912'],['Moy. présence','88,4 %'],['No-show moyen','11,2 %'],['VIP servis','71'],['Walk-in','38'],['Coût comps cumulé','1 486 €'],['Meilleur jour','samedi · 156 couv.']]},
+    mois:{title:'Rapport mensuel · juin', rows:[['Couverts servis','3 740'],['Moy. présence','87,1 %'],['No-show moyen','12,0 %'],['VIP servis','284'],['Walk-in','162'],['Coût comps cumulé','6 210 €'],['Tendance no-show','▼ -1,8 pt vs mai']]}
+  }[which];
+  document.getElementById('repPanel').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">'+
+      '<h4 style="margin:0;font-family:var(--serif);font-weight:600;font-size:18px;color:#F3ECDD">'+data.title+'</h4>'+
+      '<span style="font-size:11px;font-weight:700;color:var(--gold-l);background:rgba(221,156,40,.12);padding:7px 14px;border-radius:52px;border:1px solid rgba(221,156,40,.2);cursor:pointer">⤓ Exporter PDF</span>'+
+    '</div>'+
+    data.rows.map(function(r){return '<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)">'+
+      '<span style="font-size:13.5px;color:#B5AC98">'+r[0]+'</span>'+
+      '<span style="font-size:14px;font-weight:700;color:#F3ECDD">'+r[1]+'</span></div>';}).join('');
+}
+let noteFilter='Tous';
+function renderDirNotes(){
+  const noted=GUESTS.filter(function(g){return g.note;});
+  const cats=['Tous'];
+  noted.forEach(function(g){(g.tags||[]).forEach(function(t){if(cats.indexOf(t)<0)cats.push(t);});});
+  document.getElementById('noteFilters').innerHTML = cats.map(function(c){
+    return '<button class="note-filter '+(c===noteFilter?'on':'')+'" onclick="setNoteFilter(\''+c+'\')">'+c+'</button>';
+  }).join('');
+  const shown=noted.filter(function(g){return noteFilter==='Tous'||(g.tags||[]).indexOf(noteFilter)>=0;});
+  document.getElementById('dirNotes').innerHTML = shown.map(function(g){
+    const tags=(g.tags||[]).map(function(t){return '<span class="dn-tag">'+t+'</span>';}).join('');
+    return '<div class="dnote">'+
+      '<div class="dn-top">'+
+        '<div class="avatar" style="background:'+avColor(g.name)+'">'+initials(g.name)+'</div>'+
+        '<div style="flex:1"><div class="dn-name">'+g.name+' '+(g.vip?'<span class="vipbadge" style="margin-left:4px">VIP</span>':'')+'</div>'+
+        '<div class="dn-room">Ch. '+g.room+' · '+g.hist+'</div></div>'+
+      '</div>'+
+      '<div class="dn-body">« '+g.note+' »</div>'+
+      (tags?'<div class="dn-tags">'+tags+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+function setNoteFilter(c){noteFilter=c;renderDirNotes();
+}
+function renderAccess(){
+  const teams=[
+    {name:'Réception', icon:'🛎️', code:'RCP-3098', desc:'4 membres',
+     perms:[
+       {l:'Téléverser les documents',s:'Listing, VIP, no-post, briefing',on:true},
+       {l:'Voir les contacts & notes',s:'Tous les clients et leur historique',on:true},
+       {l:'Voir les fichiers par jour',s:'Dossiers archivés',on:true},
+       {l:'Pointer les petits-déjeuners',s:'Réservé au restaurant',on:false},
+       {l:'Voir les rapports Direction',s:'KPIs et exports',on:false}
+     ]},
+    {name:'Restaurant', icon:'🍳', code:'RST-7421', desc:'6 membres',
+     perms:[
+       {l:'Démarrer & pointer le service',s:'Check-in du matin',on:true},
+       {l:'Voir les VIP & notes',s:'Allergies, préférences',on:true},
+       {l:"Voir l'historique du service",s:'Pointages du jour',on:true},
+       {l:'Téléverser les documents',s:'Réservé à la réception',on:false},
+       {l:'Modifier les notes clients',s:'Lecture seule par défaut',on:false}
+     ]}
+  ];
+  document.getElementById('accessCtl').innerHTML = teams.map(function(t){
+    return '<div class="acc-team">'+
+      '<div class="acc-team-head">'+
+        '<div class="ti">'+t.icon+'</div>'+
+        '<div><div class="tn">'+t.name+'</div><div class="tc">'+t.desc+'</div></div>'+
+        '<div class="code">'+t.code+'</div>'+
+      '</div>'+
+      '<div class="acc-rows">'+
+        t.perms.map(function(p){return '<div class="acc-row">'+
+          '<div class="arlab">'+p.l+'<div class="arsub">'+p.s+'</div></div>'+
+          '<div class="toggle '+(p.on?'on':'')+'" onclick="this.classList.toggle(\'on\')"></div>'+
+        '</div>';}).join('')+
+      '</div></div>';
+  }).join('');
+}
+function toggleDrawer(open){document.getElementById('drawer').classList.toggle('open',open);document.getElementById('drawerMask').classList.toggle('open',open);}
+function drawerNav(el){document.querySelectorAll('.dr-item').forEach(function(d){d.classList.remove('active');});el.classList.add('active');}
+
+function resetRestaurant(){
+  document.getElementById('rest-scr1').style.display='block';
+  document.getElementById('rest-scr2').style.display='none';
+  document.getElementById('restBackLbl').textContent='Accueil';
+  buildKeypad();renderRestContacts();renderRestHist();updateStats();
+}
+function restBackBtn(){
+  const onService=document.getElementById('rest-scr2').style.display!=='none';
+  if(onService){
+    document.getElementById('rest-scr2').style.display='none';
+    document.getElementById('rest-scr1').style.display='block';
+    document.getElementById('restBackLbl').textContent='Accueil';
+    window.scrollTo(0,0);
+  }else goHome();
+}
+function startService(){
+  document.getElementById('rest-scr1').style.display='none';
+  document.getElementById('rest-scr2').style.display='block';
+  document.getElementById('restBackLbl').textContent='Service';
+  renderRooms();
+  window.scrollTo(0,0);
+}
+function renderRooms(){
+  const sorted=GUESTS.slice().sort(function(a,b){
+    const da=checkedRooms.has(a.room), db=checkedRooms.has(b.room);
+    if(da!==db)return da?1:-1;
+    return a.room.localeCompare(b.room);
+  });
+  const remaining=GUESTS.length-checkedRooms.size;
+  document.getElementById('roomsCount').textContent=remaining+' à pointer';
+  document.getElementById('roomsList').innerHTML = sorted.map(function(g){
+    const done=checkedRooms.has(g.room);
+    const safeName=g.name.replace(/'/g,"\\'");
+    const vip=g.vip?'<span class="room-vip">⭐</span>':'';
+    const right=done
+      ? '<span class="room-done-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>'
+      : '<svg class="chev" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+    return '<div class="room-item'+(done?' done':'')+'" onclick="pickRoom(\''+g.room+'\')">'+
+      '<div class="room-no">'+g.room+'</div>'+
+      '<div class="room-mid"><div class="rn">'+g.name+' '+vip+'</div>'+
+      '<div class="rsub">'+(g.note||g.hist)+'</div></div>'+
+      right+
+    '</div>';
+  }).join('');
+}
+function pickRoom(room){
+  kpVal=room;
+  document.getElementById('kpNum').textContent=kpVal;
+  document.getElementById('kpPh').style.display='none';
+  document.getElementById('restSearch').value=room;
+  searchRoom(room);
+}
+function restSub(btn,which){
+  document.querySelectorAll('#rest-scr2 .subnav button').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');
+  document.querySelectorAll('.restsub').forEach(function(s){s.classList.remove('on');});
+  document.getElementById('sub-'+which).classList.add('on');
+}
+function updateStats(){
+  document.getElementById('statIn').textContent=entered;
+  document.getElementById('statRest').textContent=142-entered;
+  document.getElementById('statVip').textContent=vipIn+'/12';
+}
+function buildKeypad(){
+  const keys=['1','2','3','4','5','6','7','8','9','clr','0','del'];
+  document.getElementById('keypad').innerHTML = keys.map(function(k){
+    if(k==='clr')return '<button class="key act" onclick="kpClear()">C</button>';
+    if(k==='del')return '<button class="key del" onclick="kpDel()">⌫</button>';
+    return '<button class="key" onclick="kpPress(\''+k+'\')">'+k+'</button>';
+  }).join('');
+}
+function kpRender(){
+  document.getElementById('kpNum').textContent=kpVal;
+  document.getElementById('kpPh').style.display=kpVal?'none':'inline';
+  document.getElementById('restSearch').value=kpVal;
+  if(kpVal.length>=3) searchRoom(kpVal);
+}
+function kpPress(d){if(kpVal.length<3){kpVal+=d;kpRender();}}
+function kpDel(){kpVal=kpVal.slice(0,-1);kpRender();if(!kpVal)clearRoomPanel();}
+function kpClear(){kpVal='';kpRender();clearRoomPanel();}
+function clearRoomPanel(){
+  document.getElementById('roomPanel').innerHTML='<div class="card rr-empty">'+
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'+
+    '<p style="margin:0; font-weight:700; color:var(--ink);">Recherchez une chambre</p>'+
+    '<p style="margin:4px 0 0; font-size:13px;">Tapez un numéro ou touchez une chambre dans la liste</p></div>';
+}
+function searchRoom(q){
+  q=(q||'').trim().toLowerCase();
+  if(!q){clearRoomPanel();return;}
+  if(/^\d+$/.test(q)){kpVal=q.slice(0,3);document.getElementById('kpNum').textContent=kpVal;document.getElementById('kpPh').style.display=kpVal?'none':'inline';}
+  const g=GUESTS.find(function(x){return x.room===q||x.name.toLowerCase().includes(q);});
+  const panel=document.getElementById('roomPanel');
+  if(!g){
+    panel.innerHTML='<div class="card rr-empty">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>'+
+      '<p style="margin:0; font-weight:700; color:var(--ink);">Chambre introuvable</p>'+
+      '<p style="margin:4px 0 0; font-size:13px;">« '+q+' » n\'est pas sur le listing du jour</p></div>';
+    return;
+  }
+  const done=checkedRooms.has(g.room);
+  const tags=[];
+  if(g.vip)tags.push('<span class="vipbadge">⭐ VIP</span>');
+  if(g.tag)tags.push('<span class="note-pill">'+g.tag+'</span>');
+  if(g.pkg==='Sur place')tags.push('<span class="note-pill" style="color:#C0563C;background:rgba(192,86,60,.1);border-color:rgba(192,86,60,.2)">Sur place</span>');
+  if(done){
+    panel.innerHTML='<div class="card rr-card roomresult">'+
+      '<div class="check-anim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>'+
+      '<div class="rr-room">Chambre '+g.room+'</div>'+
+      '<div class="rr-name">'+g.name+'</div>'+
+      '<p style="color:#1F8E54;font-weight:700;font-size:14px;margin:4px 0 0">Déjà pointé · petit-déjeuner servi</p></div>';
+    return;
+  }
+  const safeName=g.name.replace(/'/g,"\\'");
+  panel.innerHTML='<div class="card rr-card roomresult">'+
+    '<div class="rr-room">Chambre '+g.room+'</div>'+
+    '<div class="rr-name">'+g.name+'</div>'+
+    '<div class="rr-tags">'+tags.join('')+'</div>'+
+    (g.note?'<p style="font-style:italic;font-family:var(--serif2);font-size:16px;color:var(--gold);margin:0 0 6px">« '+g.note+' »</p>':'')+
+    '<p style="font-size:12.5px;color:var(--taupe);margin:0 0 16px">'+g.hist+' · Forfait '+g.pkg+'</p>'+
+    '<button class="pill btn-gold rr-confirm" onclick="confirmCheckin(\''+g.room+'\',\''+safeName+'\','+g.vip+')">✓ Pointer le petit-déjeuner</button>'+
+  '</div>';
+}
+function confirmCheckin(room,name,vip){
+  if(checkedRooms.has(room))return;
+  checkedRooms.add(room);
+  entered++; if(vip)vipIn++;
+  updateStats();
+  HISTORY.unshift({time:nowTime(),name:name,room:room,vip:vip});
+  renderRestHist();
+  renderRooms();
+  renderRestContacts(document.getElementById('restContactSearch').value);
+  const panel=document.getElementById('roomPanel');
+  panel.innerHTML='<div class="card rr-card roomresult">'+
+    '<div class="check-anim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>'+
+    '<div class="rr-room">Chambre '+room+'</div>'+
+    '<div class="rr-name">'+name+'</div>'+
+    '<p style="color:#1F8E54;font-weight:700;font-size:15px;margin:6px 0 0">Petit-déjeuner pointé ✓</p>'+
+    '<p style="font-size:12.5px;color:var(--taupe);margin:6px 0 0">'+entered+' entrés · '+(142-entered)+' restants</p></div>';
+  setTimeout(function(){kpClear();document.getElementById('restSearch').value='';},1300);
+}
+function nowTime(){const d=new Date();return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');}
+
+function renderRestContacts(filter){
+  filter=(filter||'').toLowerCase();
+  const list=GUESTS.filter(function(g){return g.name.toLowerCase().includes(filter)||g.room.includes(filter);});
+  document.getElementById('restContactList').innerHTML = list.map(function(g){
+    const done=checkedRooms.has(g.room);
+    return '<div class="contact">'+
+      '<div class="avatar" style="background:'+avColor(g.name)+'">'+initials(g.name)+'</div>'+
+      '<div class="contact-main"><div class="nm">'+g.name+' '+(g.vip?'<span class="vipbadge">VIP</span>':'')+'</div>'+
+      '<div class="meta">Ch. '+g.room+' · '+(g.note||g.hist)+'</div></div>'+
+      (done?'<span class="hist-badge">Servi ✓</span>':'<span class="note-pill">En attente</span>')+
+    '</div>';
+  }).join('');
+}
+function filterRestContacts(){renderRestContacts(document.getElementById('restContactSearch').value);}
+
+function renderRestHist(){
+  document.getElementById('restHist').innerHTML = HISTORY.slice(0,12).map(function(h){
+    return '<div class="hist-row">'+
+      '<div class="hist-time">'+h.time+'</div>'+
+      '<div class="avatar" style="width:40px;height:40px;font-size:13px;background:'+avColor(h.name)+'">'+initials(h.name)+'</div>'+
+      '<div class="hist-main"><div class="hn">'+h.name+' '+(h.vip?'<span class="vipbadge" style="margin-left:3px">VIP</span>':'')+'</div><div class="hr">Chambre '+h.room+'</div></div>'+
+      '<span class="hist-badge">Servi ✓</span></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>
