@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imarketin — Restaurant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="imarketin-ui.css" rel="stylesheet">
+<style>
+  html,body { margin:0; min-height:100%; }
+  .app { max-width:920px; margin:0 auto; min-height:100vh; position:relative; }
+  .screen { display:none; animation:im-screen-in .5s var(--im-ease) both; }
+  .screen.is-active { display:block; }
+
+  /* ---------- SUMMARY (morning briefing) ---------- */
+  .sum { padding:34px 30px 40px; min-height:100vh; display:flex; flex-direction:column; }
+  .sum-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:auto; }
+  .sum-top .im-mark { font-size:17px; letter-spacing:3.5px; }
+  .sum-hero { margin:48px 0 30px; }
+  .sum-hero .im-display { margin-top:10px; }
+  .sum-hero .im-lead { margin-top:14px; }
+  .sum-brief { font-size:16px; color:var(--im-ink); margin:20px 0 0; line-height:1.6; max-width:420px; }
+  .sum-brief b { color:var(--im-gold); }
+  .sum-metrics { margin:30px 0 36px; }
+  .sum-cta { display:flex; flex-direction:column; align-items:flex-start; gap:14px; }
+  .sum-start { padding:22px 64px; font-size:19px; }
+  .sum-reassure { font-size:13px; color:var(--im-taupe); display:flex; align-items:center; gap:8px; }
+  .sum-reassure .im-dot-live { background:var(--im-gold); }
+
+  /* ---------- APP shell ---------- */
+  .topbar { position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:14px; padding:16px 24px;
+            background:rgba(251,248,242,.82); backdrop-filter:blur(18px); border-bottom:1px solid var(--im-hairline); }
+  .iconbtn { width:42px; height:42px; border-radius:50%; border:1px solid var(--im-hairline); background:var(--im-white);
+             display:grid; place-items:center; cursor:pointer; color:var(--im-ink); box-shadow:var(--im-sh-soft); flex:0 0 auto;
+             transition:transform var(--im-fast) var(--im-ease), background var(--im-fast) var(--im-ease); }
+  .iconbtn:active { transform:scale(.94); }
+  .iconbtn svg { width:20px; height:20px; }
+  .topbar .im-mark { font-size:15px; letter-spacing:3px; }
+  .topbar .spacer { flex:1; }
+  .tabbar { position:sticky; top:75px; z-index:39; display:flex; gap:6px; padding:14px 24px 10px;
+            background:rgba(251,248,242,.82); backdrop-filter:blur(18px); }
+  .tab { flex:1; text-align:center; font-family:var(--im-sans); font-weight:700; font-size:15px; color:var(--im-taupe);
+         padding:12px 8px; border-radius:var(--im-r-pill); cursor:pointer; border:1px solid transparent;
+         transition:all var(--im-fast) var(--im-ease); }
+  .tab.is-on { color:var(--im-gold); background:var(--im-white); border-color:var(--im-gold-tint-2); box-shadow:var(--im-sh-soft); }
+  .pane { display:none; padding:22px 24px 60px; }
+  .pane.is-on { display:block; animation:im-screen-in .4s var(--im-ease) both; }
+
+  /* ---------- POINTAGE ---------- */
+  .live { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+  .live-card { background:var(--im-white); border:1px solid var(--im-hairline); border-radius:var(--im-r-lg);
+               padding:20px 22px; box-shadow:var(--im-sh-soft); }
+  .live-card.is-in { background:linear-gradient(135deg,#fff,var(--im-gold-tint)); border-color:var(--im-gold-tint-2); }
+  .live-num { font-family:var(--im-serif); font-weight:600; font-size:42px; line-height:1; color:var(--im-ink); }
+  .live-card.is-in .live-num { color:var(--im-gold); }
+  .live-lab { font-size:12.5px; color:var(--im-taupe); margin-top:8px; text-transform:uppercase; letter-spacing:.6px; }
+  .progress { height:6px; border-radius:6px; background:var(--im-cream); overflow:hidden; margin:4px 0 22px; }
+  .progress > i { display:block; height:100%; width:0%; border-radius:6px;
+                  background:linear-gradient(90deg,var(--im-gold-light),var(--im-gold)); transition:width .6s var(--im-ease); }
+  .roomlist { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  .room { display:flex; align-items:center; gap:14px; background:var(--im-white); border:1px solid var(--im-hairline);
+          border-radius:var(--im-r-card); padding:15px 18px; box-shadow:var(--im-sh-soft); cursor:pointer;
+          transition:transform var(--im-fast) var(--im-ease), box-shadow var(--im-base) var(--im-ease), opacity var(--im-base); }
+  .room:hover { transform:translateY(-2px); box-shadow:var(--im-sh-lift); }
+  .room.done { opacity:.5; }
+  .room.done:hover { transform:none; }
+  .room-no { font-family:var(--im-serif); font-weight:600; font-size:18px; width:58px; color:var(--im-ink); flex:0 0 auto; }
+  .room-mid { flex:1; min-width:0; }
+  .room-name { font-weight:700; font-size:15.5px; color:var(--im-ink); }
+  .room-meta { font-size:12.5px; color:var(--im-taupe); margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .chip { font-size:11px; font-weight:800; padding:3px 9px; border-radius:20px; letter-spacing:.4px; }
+  .chip-vip   { color:var(--im-gold); background:var(--im-gold-tint); border:1px solid var(--im-gold-tint-2); }
+  .chip-pay   { color:#fff; background:var(--im-alert); }
+  .chip-inc   { color:var(--im-taupe); background:var(--im-cream); }
+  .room-go { width:26px; height:26px; border-radius:50%; background:var(--im-cream); display:grid; place-items:center; color:var(--im-taupe); flex:0 0 auto; }
+  .room.done .room-go { background:var(--im-gold-tint); color:var(--im-gold); }
+
+  /* ---------- CONTACTS ---------- */
+  .contact { display:flex; align-items:center; gap:14px; background:var(--im-white); border:1px solid var(--im-hairline);
+             border-radius:var(--im-r-card); padding:14px 18px; box-shadow:var(--im-sh-soft); cursor:pointer; margin-bottom:10px;
+             transition:transform var(--im-fast) var(--im-ease), box-shadow var(--im-base) var(--im-ease); }
+  .contact:hover { transform:translateY(-2px); box-shadow:var(--im-sh-lift); }
+  .avatar { width:44px; height:44px; border-radius:50%; background:var(--im-gold-tint); color:var(--im-gold);
+            display:grid; place-items:center; font-family:var(--im-serif); font-weight:600; font-size:18px; flex:0 0 auto; }
+  /* contact detail (Notion-style) */
+  .detail { padding:8px 4px 60px; }
+  .detail-head { display:flex; align-items:center; gap:16px; margin:6px 0 24px; }
+  .detail-head .avatar { width:64px; height:64px; font-size:26px; }
+  .detail-name { font-family:var(--im-serif); font-weight:600; font-size:28px; color:var(--im-ink); }
+  .detail-sub { font-size:14px; color:var(--im-taupe); margin-top:4px; }
+  .props { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--im-hairline);
+           border:1px solid var(--im-hairline); border-radius:var(--im-r-card); overflow:hidden; margin-bottom:22px; }
+  .prop { background:var(--im-white); padding:15px 18px; }
+  .prop-k { font-size:11.5px; color:var(--im-taupe); text-transform:uppercase; letter-spacing:.6px; }
+  .prop-v { font-size:15px; font-weight:700; color:var(--im-ink); margin-top:5px; }
+  .prop-v.gold { color:var(--im-gold); }
+  .block-h { font-family:var(--im-serif); font-weight:600; font-size:18px; color:var(--im-ink); margin:26px 0 12px; }
+  .note { background:var(--im-gold-tint); border:1px solid var(--im-gold-tint-2); border-radius:var(--im-r-card);
+          padding:16px 18px; font-size:14px; color:var(--im-ink); line-height:1.55; }
+  .note-meta { font-size:12px; color:var(--im-taupe); margin-top:10px; }
+  .history { position:relative; margin-left:6px; padding-left:22px; border-left:2px solid var(--im-hairline); }
+  .hrow { position:relative; padding:0 0 18px; }
+  .hrow::before { content:""; position:absolute; left:-29px; top:3px; width:11px; height:11px; border-radius:50%;
+                  background:var(--im-gold-light); box-shadow:0 0 0 4px var(--im-bg); }
+  .hrow-date { font-size:13px; font-weight:700; color:var(--im-ink); }
+  .hrow-txt { font-size:13px; color:var(--im-taupe); margin-top:3px; }
+
+  /* ---------- JOURNÉES ---------- */
+  .day { background:var(--im-white); border:1px solid var(--im-hairline); border-radius:var(--im-r-lg);
+         box-shadow:var(--im-sh-soft); padding:22px 24px; margin-bottom:16px; cursor:pointer;
+         transition:transform var(--im-fast) var(--im-ease), box-shadow var(--im-base) var(--im-ease); }
+  .day:hover { transform:translateY(-3px); box-shadow:var(--im-sh-lift); }
+  .day-top { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  .day-date { font-family:var(--im-serif); font-weight:600; font-size:20px; color:var(--im-ink); }
+  .day-state { font-size:12px; font-weight:700; color:var(--im-gold); display:flex; align-items:center; gap:6px; }
+  .day-state.open { color:var(--im-taupe); }
+  .day-mini { display:flex; gap:24px; margin-top:14px; }
+  .day-mini > div { } .day-mini .m-num { font-family:var(--im-serif); font-weight:600; font-size:22px; color:var(--im-ink); }
+  .day-mini .m-num.gold { color:var(--im-gold); } .day-mini .m-lab { font-size:11px; color:var(--im-taupe); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
+  .day-docs { display:flex; gap:8px; margin-top:16px; }
+  .doc-thumb { width:46px; height:58px; border-radius:8px; background:var(--im-cream); border:1px solid var(--im-hairline);
+               display:grid; place-items:center; color:var(--im-taupe); font-size:18px; }
+  .day-docs .more { align-self:center; font-size:12px; color:var(--im-taupe); }
+
+  /* upload fallback */
+  .upload-fb { text-align:center; padding:38px 26px; border-radius:var(--im-r-lg);
+               background:var(--im-gold-tint); border:2px dashed var(--im-gold-light); cursor:pointer; }
+  .upload-fb .ico { width:64px; height:64px; border-radius:18px; margin:0 auto 16px; display:grid; place-items:center;
+                    background:linear-gradient(135deg,var(--im-gold-light),var(--im-gold)); color:#fff; box-shadow:var(--im-sh-gold); }
+  .upload-fb h3 { font-family:var(--im-serif); font-weight:600; font-size:20px; margin:0 0 6px; color:var(--im-ink); }
+  .upload-fb p { font-size:13.5px; color:var(--im-taupe); margin:0; }
+
+  .sec-h { display:flex; align-items:center; justify-content:space-between; margin:8px 2px 14px; }
+  .sec-h h2 { font-family:var(--im-serif); font-weight:600; font-size:20px; color:var(--im-ink); margin:0; }
+  .sec-h .sub { font-size:13px; color:var(--im-taupe); }
+
+  /* journée detail */
+  .jd-report { background:var(--im-white); border:1px solid var(--im-hairline); border-radius:var(--im-r-lg);
+               box-shadow:var(--im-sh-soft); padding:22px 24px; margin-bottom:20px; }
+  .docs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:14px; }
+  .doc-card { background:var(--im-white); border:1px solid var(--im-hairline); border-radius:var(--im-r-card);
+              box-shadow:var(--im-sh-soft); overflow:hidden; cursor:pointer; transition:transform var(--im-fast) var(--im-ease); }
+  .doc-card:hover { transform:translateY(-3px); box-shadow:var(--im-sh-lift); }
+  .doc-page { aspect-ratio:3/4; background:var(--im-cream); display:grid; place-items:center; color:var(--im-taupe); font-size:30px; }
+  .doc-card .cap { font-size:12px; color:var(--im-ink); font-weight:700; padding:10px 12px; }
+
+  /* ---------- bottom sheet (check-in) ---------- */
+  .sheet-wrap { position:fixed; inset:0; z-index:120; display:none; }
+  .sheet-wrap.is-open { display:block; }
+  .sheet-bg { position:absolute; inset:0; background:rgba(26,23,20,.32); backdrop-filter:blur(3px); opacity:0; transition:opacity .3s; }
+  .sheet-wrap.is-open .sheet-bg { opacity:1; }
+  .sheet { position:absolute; left:50%; bottom:0; transform:translate(-50%,100%); width:min(560px,100%);
+           background:var(--im-bg); border-radius:24px 24px 0 0; padding:14px 26px 34px; box-shadow:0 -20px 60px rgba(26,23,20,.18);
+           transition:transform .42s var(--im-ease); }
+  .sheet-wrap.is-open .sheet { transform:translate(-50%,0); }
+  .grab { width:42px; height:5px; border-radius:5px; background:var(--im-hairline); margin:0 auto 20px; }
+  .sheet-room { font-family:var(--im-serif); font-weight:600; font-size:15px; color:var(--im-gold); letter-spacing:.5px; }
+  .sheet-name { font-family:var(--im-serif); font-weight:600; font-size:30px; color:var(--im-ink); margin:4px 0 18px; }
+  .sheet-actions { margin-top:22px; display:flex; flex-direction:column; gap:10px; }
+  .sheet-done { text-align:center; padding:18px 0 4px; }
+
+  /* success overlay reused via im-success */
+  .succ-title { font-family:var(--im-serif); font-weight:600; font-size:26px; color:var(--im-ink); margin:8px 0 6px; }
+  .succ-sub { font-size:14px; color:var(--im-taupe); }
+
+  @media(max-width:560px){
+    .props{ grid-template-columns:1fr; } .day-mini{ gap:18px; } .sum-start{ padding:20px 0; width:100%; }
+  }
+</style>
+</head>
+<body class="im im-bg">
+<div class="app">
+
+  <!-- =================== SUMMARY · morning briefing =================== -->
+  <section class="screen is-active" id="s-summary">
+    <div class="sum">
+      <div class="sum-top">
+        <span class="im-mark">IMARKETIN<span class="dot">.</span></span>
+        <span class="im-pill" style="color:var(--im-taupe);background:var(--im-white);border:1px solid var(--im-hairline)">
+          <span class="im-dot-live"></span>&nbsp;Synchronisé
+        </span>
+      </div>
+
+      <div class="sum-hero">
+        <p class="im-eyebrow">Courtyard · Petit-déjeuner</p>
+        <h1 class="im-display">Bonjour,<br>équipe Restaurant</h1>
+        <p class="im-lead">Lundi 22 juin · 6:55</p>
+        <p class="sum-brief">Tout est prêt pour le service. <b>142 couverts</b> attendus ce matin, dont <b>12 VIP</b>.</p>
+      </div>
+
+      <div class="im-metrics sum-metrics">
+        <div class="im-metric"><div class="im-metric__num">142</div><div class="im-metric__lab">Total</div></div>
+        <div class="im-metric"><div class="im-metric__num is-gold">12</div><div class="im-metric__lab">VIP</div></div>
+        <div class="im-metric"><div class="im-metric__num">8</div><div class="im-metric__lab">Comp</div></div>
+        <div class="im-metric"><div class="im-metric__num">5</div><div class="im-metric__lab">Hors liste</div></div>
+        <div class="im-metric"><div class="im-metric__num">7</div><div class="im-metric__lab">No-post</div></div>
+      </div>
+
+      <div class="sum-cta">
+        <button class="im-btn im-btn--primary sum-start" onclick="enterApp()">Commencer la journée</button>
+        <p class="sum-reassure"><span class="im-dot-live"></span> Résumé reçu de la Réception · synchronisé</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== APP · pointage / contacts / journées =================== -->
+  <section class="screen" id="s-app">
+    <div class="topbar">
+      <button class="iconbtn" onclick="backToSummary()" aria-label="Retour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="im-mark">IMARKETIN<span class="dot">.</span></span>
+      <span class="spacer"></span>
+      <span class="im-pill im-pill--role">Restaurant</span>
+    </div>
+    <div class="tabbar">
+      <div class="tab is-on" data-tab="pointage" onclick="showTab('pointage')">Pointage</div>
+      <div class="tab" data-tab="contacts" onclick="showTab('contacts')">Contacts</div>
+      <div class="tab" data-tab="journees" onclick="showTab('journees')">Journées</div>
+    </div>
+
+    <!-- POINTAGE -->
+    <div class="pane is-on" id="pane-pointage">
+      <div class="live">
+        <div class="live-card is-in">
+          <div class="live-num" id="numIn">0</div>
+          <div class="live-lab">Entrés</div>
+        </div>
+        <div class="live-card">
+          <div class="live-num" id="numLeft">142</div>
+          <div class="live-lab">Restants</div>
+        </div>
+      </div>
+      <div class="progress"><i id="bar"></i></div>
+      <input class="im-field" id="searchRooms" placeholder="Rechercher une chambre ou un nom…" oninput="renderRooms()">
+      <div class="roomlist" id="roomlist"></div>
+    </div>
+
+    <!-- CONTACTS -->
+    <div class="pane" id="pane-contacts">
+      <input class="im-field" id="searchContacts" placeholder="Rechercher un client…" oninput="renderContacts()" style="margin-bottom:18px">
+      <div id="contactlist"></div>
+    </div>
+
+    <!-- JOURNÉES -->
+    <div class="pane" id="pane-journees">
+      <div class="sec-h"><h2>Aujourd'hui</h2><span class="sub">Lundi 22 juin</span></div>
+      <div id="todayBlock"></div>
+
+      <div class="sec-h" style="margin-top:30px"><h2>Journées passées</h2><span class="sub">Rapport + documents</span></div>
+      <div id="pastDays"></div>
+    </div>
+  </section>
+
+  <!-- =================== CONTACT DETAIL =================== -->
+  <section class="screen" id="s-contact">
+    <div class="topbar">
+      <button class="iconbtn" onclick="showScreen('s-app')" aria-label="Retour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="im-mark">IMARKETIN<span class="dot">.</span></span>
+      <span class="spacer"></span>
+      <span class="im-pill im-pill--role">Contact</span>
+    </div>
+    <div class="pane is-on"><div class="detail" id="contactDetail"></div></div>
+  </section>
+
+  <!-- =================== JOURNÉE DETAIL (report + docs) =================== -->
+  <section class="screen" id="s-journee">
+    <div class="topbar">
+      <button class="iconbtn" onclick="showTabScreen('journees')" aria-label="Retour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="im-mark">IMARKETIN<span class="dot">.</span></span>
+      <span class="spacer"></span>
+      <span class="im-pill im-pill--role">Journée</span>
+    </div>
+    <div class="pane is-on"><div class="detail" id="journeeDetail"></div></div>
+  </section>
+
+  <!-- =================== CHECK-IN SHEET =================== -->
+  <div class="sheet-wrap" id="sheet">
+    <div class="sheet-bg" onclick="closeSheet()"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+
+  <!-- =================== SUCCESS OVERLAY =================== -->
+  <div class="im-success" id="succ" style="display:none">
+    <div class="im-badge-round"><svg class="im-check" id="succCheck" viewBox="0 0 36 36"><circle class="c" cx="18" cy="18" r="15"/><path class="t" d="M11 18.5l4.5 4.5L25 13"/></svg></div>
+    <div class="succ-title" id="succTitle">Entrée pointée</div>
+    <div class="succ-sub" id="succSub"></div>
+  </div>
+
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+var TOTAL = 142;
+var entered = 0;
+
+// pkg: 'inc' included · 'grp' group · 'comp' offered · 'none' => must pay (hors liste / no package)
+var rooms = [
+  { room:'204', name:'Martin Dupont',   pers:1, vip:true,  pkg:'inc'  },
+  { room:'118', name:'James Wilson',     pers:1, vip:false, pkg:'inc'  },
+  { room:'225', name:'Famille Garcia',   pers:4, vip:false, pkg:'grp'  },
+  { room:'312', name:'Sarah Lemoine',    pers:1, vip:false, pkg:'none' },
+  { room:'—',   name:'Walk-in · 2 pers.',pers:2, vip:false, pkg:'none', walkin:true },
+  { room:'410', name:'Chen Wei',         pers:1, vip:true,  pkg:'comp' },
+  { room:'127', name:'Léa Moreau',       pers:1, vip:false, pkg:'inc'  },
+  { room:'333', name:'Robert King',      pers:1, vip:false, pkg:'none' },
+  { room:'209', name:'Amélie Bernard',   pers:2, vip:false, pkg:'inc'  },
+];
+
+var contacts = [
+  { name:'Martin Dupont', room:'204', pkg:'Petit-déj. inclus', vip:true,  visits:3,
+    note:'Allergie aux fruits à coque. Table près de la fenêtre si possible.', noteMeta:'Réception · 21 juin',
+    history:[ {d:'22 juin 2026', t:'Arrivée · 3 nuits · VIP'}, {d:'14 mars 2026', t:'Séjour 2 nuits · petit-déj. inclus'}, {d:'02 nov. 2025', t:'Première visite'} ] },
+  { name:'Sarah Lemoine', room:'312', pkg:'Hors liste — à encaisser', vip:false, visits:1,
+    note:'Ajoutée à la liste ce matin. Petit-déjeuner non inclus dans la réservation.', noteMeta:'Réception · 22 juin',
+    history:[ {d:'22 juin 2026', t:'Arrivée · hors liste'} ] },
+  { name:'Chen Wei', room:'410', pkg:'Comp · offert direction', vip:true, visits:5,
+    note:'Client fidèle. Café noir, sans sucre. Aime discuter en mandarin.', noteMeta:'Direction · 20 juin',
+    history:[ {d:'22 juin 2026', t:'Arrivée · VIP · comp'}, {d:'18 mai 2026', t:'Séjour 4 nuits'}, {d:'09 fév. 2026', t:'Séjour 2 nuits'} ] },
+  { name:'James Wilson', room:'118', pkg:'Petit-déj. inclus', vip:false, visits:2,
+    note:'', noteMeta:'',
+    history:[ {d:'22 juin 2026', t:'Arrivée · 2 nuits'}, {d:'30 avr. 2026', t:'Séjour 1 nuit'} ] },
+  { name:'Famille Garcia', room:'225', pkg:'Groupe · 4 couverts', vip:false, visits:1,
+    note:'Groupe familial — 2 adultes, 2 enfants.', noteMeta:'Réception · 22 juin',
+    history:[ {d:'22 juin 2026', t:'Arrivée · groupe de 4'} ] },
+];
+
+var pastDays = [
+  { date:'Dimanche 21 juin', total:138, vip:9, comp:6, docs:5 },
+  { date:'Samedi 20 juin',   total:151, vip:14, comp:7, docs:6 },
+  { date:'Vendredi 19 juin', total:129, vip:8, comp:5, docs:4 },
+];
+
+/* ---------------- NAV ---------------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('is-active'); });
+  document.getElementById(id).classList.add('is-active');
+  window.scrollTo(0,0);
+}
+function enterApp(){ showScreen('s-app'); showTab('pointage'); }
+function backToSummary(){ showScreen('s-summary'); }
+function showTabScreen(tab){ showScreen('s-app'); showTab(tab); }
+
+function showTab(tab){
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('is-on', t.dataset.tab===tab); });
+  // scope to the app screen — detail screens (contact/journée) own always-on panes
+  document.querySelectorAll('#s-app .pane').forEach(function(p){ p.classList.remove('is-on'); });
+  document.getElementById('pane-'+tab).classList.add('is-on');
+  if(tab==='pointage') renderRooms();
+  if(tab==='contacts') renderContacts();
+  if(tab==='journees') renderJournees();
+  window.scrollTo(0,0);
+}
+
+/* ---------------- POINTAGE ---------------- */
+function pkgChip(r){
+  if(r.pkg==='none') return '<span class="chip chip-pay">À encaisser</span>';
+  if(r.pkg==='comp') return '<span class="chip chip-inc">Comp</span>';
+  if(r.pkg==='grp')  return '<span class="chip chip-inc">Groupe</span>';
+  return '<span class="chip chip-inc">Inclus</span>';
+}
+function renderRooms(){
+  var q = (document.getElementById('searchRooms').value||'').toLowerCase();
+  var html = rooms.filter(function(r){
+    return !q || r.name.toLowerCase().indexOf(q)>-1 || r.room.indexOf(q)>-1;
+  }).map(function(r,i){
+    var idx = rooms.indexOf(r);
+    return '<div class="room '+(r.done?'done':'')+'" onclick="openSheet('+idx+')">'
+      + '<div class="room-no">'+ (r.room==='—'?'<span style="color:var(--im-taupe)">WI</span>':'Ch.&nbsp;'+r.room) +'</div>'
+      + '<div class="room-mid"><div class="room-name">'+r.name+'</div>'
+      + '<div class="room-meta">'+ (r.vip?'<span class="chip chip-vip">★ VIP</span>':'') + pkgChip(r)
+      + (r.pers>1?'<span>'+r.pers+' couverts</span>':'') +'</div></div>'
+      + '<div class="room-go">'+ (r.done
+          ? '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 7"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>') +'</div>'
+      + '</div>';
+  }).join('');
+  document.getElementById('roomlist').innerHTML = html || '<p style="color:var(--im-taupe);text-align:center;padding:30px">Aucun résultat.</p>';
+}
+function updateLive(){
+  document.getElementById('numIn').textContent = entered;
+  document.getElementById('numLeft').textContent = TOTAL - entered;
+  document.getElementById('bar').style.width = Math.min(100, Math.round(entered/TOTAL*100)) + '%';
+}
+
+/* ---------------- CHECK-IN SHEET ---------------- */
+var curRoom = null;
+function openSheet(idx){
+  curRoom = idx; var r = rooms[idx];
+  var banner = r.pkg==='none'
+    ? '<div class="im-banner im-banner--alert"><span class="im-banner__ico">⚠</span><div><div class="im-banner__title">Petit-déjeuner NON inclus</div><div class="im-banner__sub">À encaisser — chambre · carte · espèces</div></div></div>'
+    : (r.vip ? '<div class="im-banner im-banner--vip"><span class="im-banner__ico">★</span><div><div class="im-banner__title">VIP</div><div class="im-banner__sub">Accueil prioritaire · petit-déjeuner inclus</div></div></div>'
+             : '<div class="im-banner" style="background:var(--im-gold-tint);border:1px solid var(--im-gold-tint-2)"><span class="im-banner__ico" style="background:var(--im-gold);color:#fff">✓</span><div><div class="im-banner__title" style="color:var(--im-gold)">Petit-déjeuner inclus</div><div class="im-banner__sub" style="color:var(--im-taupe)">Rien à encaisser</div></div></div>');
+  document.getElementById('sheetBody').innerHTML =
+      '<div class="sheet-room">'+ (r.room==='—'?'Walk-in':'Chambre '+r.room) +(r.pers>1?' · '+r.pers+' couverts':'')+'</div>'
+    + '<div class="sheet-name">'+r.name+'</div>'
+    + banner
+    + (r.done
+        ? '<div class="sheet-done"><p style="color:var(--im-gold);font-weight:800">✓ Déjà pointé</p></div>'
+        : '<div class="sheet-actions"><button class="im-btn im-btn--primary im-btn--big im-btn--block" onclick="confirmCheckin()">Pointer l\'entrée</button>'
+          + '<button class="im-btn im-btn--ghost im-btn--block" onclick="closeSheet()">Annuler</button></div>');
+  document.getElementById('sheet').classList.add('is-open');
+}
+function closeSheet(){ document.getElementById('sheet').classList.remove('is-open'); }
+function confirmCheckin(){
+  var r = rooms[curRoom];
+  if(!r.done){ r.done = true; entered += r.pers; updateLive(); }
+  closeSheet();
+  renderRooms();
+  flashSuccess('Entrée pointée', r.name + (r.pkg==='none' ? ' · à encaisser au comptoir' : ''));
+}
+function flashSuccess(title, sub){
+  document.getElementById('succTitle').textContent = title;
+  document.getElementById('succSub').textContent = sub || '';
+  var ov = document.getElementById('succ'); ov.style.display='flex';
+  var c = document.getElementById('succCheck'); c.classList.remove('is-draw'); void c.offsetWidth; c.classList.add('is-draw');
+  setTimeout(function(){ ov.style.display='none'; }, 1500);
+}
+
+/* ---------------- CONTACTS ---------------- */
+function initials(n){ var p=n.split(' '); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
+function renderContacts(){
+  var q = (document.getElementById('searchContacts').value||'').toLowerCase();
+  document.getElementById('contactlist').innerHTML = contacts.filter(function(c){
+    return !q || c.name.toLowerCase().indexOf(q)>-1 || c.room.indexOf(q)>-1;
+  }).map(function(c){
+    var idx = contacts.indexOf(c);
+    return '<div class="contact" onclick="openContact('+idx+')">'
+      + '<div class="avatar">'+initials(c.name)+'</div>'
+      + '<div style="flex:1;min-width:0"><div class="room-name">'+c.name
+      + (c.vip?' <span class="chip chip-vip">★ VIP</span>':'')+'</div>'
+      + '<div class="room-meta">Ch. '+c.room+' · '+c.pkg+'</div></div>'
+      + '<div class="room-go"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>'
+      + '</div>';
+  }).join('');
+}
+function openContact(idx){
+  var c = contacts[idx];
+  var noteHtml = c.note ? '<div class="block-h">Note</div><div class="note">'+c.note+'<div class="note-meta">'+c.noteMeta+'</div></div>' : '';
+  document.getElementById('contactDetail').innerHTML =
+      '<div class="detail-head"><div class="avatar">'+initials(c.name)+'</div>'
+    + '<div><div class="detail-name">'+c.name+'</div><div class="detail-sub">'+ (c.vip?'★ VIP · ':'') +'Chambre '+c.room+'</div></div></div>'
+    + '<div class="props">'
+    + '<div class="prop"><div class="prop-k">Forfait</div><div class="prop-v '+(c.pkg.indexOf('encaisser')>-1?'':'gold')+'">'+c.pkg+'</div></div>'
+    + '<div class="prop"><div class="prop-k">Visites</div><div class="prop-v">'+c.visits+'</div></div>'
+    + '<div class="prop"><div class="prop-k">Chambre</div><div class="prop-v">'+c.room+'</div></div>'
+    + '<div class="prop"><div class="prop-k">Statut</div><div class="prop-v '+(c.vip?'gold':'')+'">'+(c.vip?'VIP':'Standard')+'</div></div>'
+    + '</div>'
+    + noteHtml
+    + '<div class="block-h">Historique des visites</div><div class="history">'
+    + c.history.map(function(h){ return '<div class="hrow"><div class="hrow-date">'+h.d+'</div><div class="hrow-txt">'+h.t+'</div></div>'; }).join('')
+    + '</div>';
+  showScreen('s-contact');
+}
+
+/* ---------------- JOURNÉES ---------------- */
+var todayHasDocs = true; // toggle to false to preview the upload fallback
+function renderJournees(){
+  // today
+  if(todayHasDocs){
+    document.getElementById('todayBlock').innerHTML =
+      '<div class="day" onclick="openJournee(\'today\')">'
+      + '<div class="day-top"><div class="day-date">Lundi 22 juin</div><div class="day-state"><span class="im-dot-live"></span> En cours · reçu de la Réception</div></div>'
+      + '<div class="day-mini"><div><div class="m-num">142</div><div class="m-lab">Total</div></div>'
+      + '<div><div class="m-num gold">12</div><div class="m-lab">VIP</div></div>'
+      + '<div><div class="m-num">8</div><div class="m-lab">Comp</div></div>'
+      + '<div><div class="m-num" id="dayEntered">'+entered+'</div><div class="m-lab">Entrés</div></div></div>'
+      + '<div class="day-docs"><div class="doc-thumb">📄</div><div class="doc-thumb">📄</div><div class="doc-thumb">📄</div><div class="doc-thumb">📄</div><span class="more">+2 pages</span></div>'
+      + '</div>';
+  } else {
+    document.getElementById('todayBlock').innerHTML =
+      '<div class="upload-fb im-breathe" onclick="flashSuccess(\'Documents téléversés\',\'En cours de traitement par l\\\'IA\')">'
+      + '<div class="ico"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg></div>'
+      + '<h3>Aucun document reçu</h3><p>Téléverser le rapport du matin — mêmes options que la Réception.</p></div>';
+  }
+  // past
+  document.getElementById('pastDays').innerHTML = pastDays.map(function(d,i){
+    return '<div class="day" onclick="openJournee('+i+')">'
+      + '<div class="day-top"><div class="day-date">'+d.date+'</div><div class="day-state"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 7"/></svg> Clôturée</div></div>'
+      + '<div class="day-mini"><div><div class="m-num">'+d.total+'</div><div class="m-lab">Total</div></div>'
+      + '<div><div class="m-num gold">'+d.vip+'</div><div class="m-lab">VIP</div></div>'
+      + '<div><div class="m-num">'+d.comp+'</div><div class="m-lab">Comp</div></div></div>'
+      + '<div class="day-docs">'+ Array(Math.min(d.docs,4)).fill('<div class="doc-thumb">📄</div>').join('') + (d.docs>4?'<span class="more">+'+(d.docs-4)+'</span>':'') +'</div>'
+      + '</div>';
+  }).join('');
+}
+function openJournee(which){
+  var d = which==='today'
+    ? { date:'Lundi 22 juin', total:142, vip:12, comp:5, hors:5, nopost:7, docs:6, open:true }
+    : Object.assign({ hors:4, nopost:6 }, pastDays[which]);
+  document.getElementById('journeeDetail').innerHTML =
+      '<div style="display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 18px">'
+      + '<div class="detail-name">'+d.date+'</div>'
+      + '<div class="day-state '+(d.open?'open':'')+'">'+(d.open?'En cours':'✓ Clôturée')+'</div></div>'
+    + '<div class="block-h" style="margin-top:0">Rapport du jour</div>'
+    + '<div class="jd-report"><div class="im-metrics">'
+      + '<div class="im-metric"><div class="im-metric__num">'+d.total+'</div><div class="im-metric__lab">Total</div></div>'
+      + '<div class="im-metric"><div class="im-metric__num is-gold">'+d.vip+'</div><div class="im-metric__lab">VIP</div></div>'
+      + '<div class="im-metric"><div class="im-metric__num">'+d.comp+'</div><div class="im-metric__lab">Comp</div></div>'
+      + '<div class="im-metric"><div class="im-metric__num">'+d.hors+'</div><div class="im-metric__lab">Hors liste</div></div>'
+      + '<div class="im-metric"><div class="im-metric__num">'+d.nopost+'</div><div class="im-metric__lab">No-post</div></div>'
+      + '</div></div>'
+    + '<div class="block-h">Documents du jour</div>'
+    + '<div class="docs-grid">'
+      + Array(d.docs).fill(0).map(function(_,i){ return '<div class="doc-card"><div class="doc-page">📄</div><div class="cap">Page '+(i+1)+'</div></div>'; }).join('')
+      + '</div>'
+    + (d.open ? '<div style="margin-top:26px"><button class="im-btn im-btn--primary im-btn--big im-btn--block" onclick="flashSuccess(\'Journée clôturée\',\'Rapport + documents archivés\')">Clôturer la journée</button></div>' : '');
+  showScreen('s-journee');
+}
+
+/* ---------------- INIT ---------------- */
+updateLive();
+renderRooms();
+</script>
+</body>
+</html>
