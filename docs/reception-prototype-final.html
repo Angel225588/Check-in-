@@ -135,12 +135,14 @@
   }
   .home-tiles{
     display:grid;
-    grid-template-columns:repeat(3,1fr);
+    grid-template-columns:1fr 1.25fr 1fr;
+    align-items:center;
     gap:18px;
     margin-top:8px;
-    max-width:880px;
+    max-width:900px;
     margin-left:auto;margin-right:auto;
   }
+  @media(max-width:760px){.home-tiles{grid-template-columns:1fr;}}
   .tile{
     background:var(--white);
     border:1px solid var(--hairline);
@@ -161,7 +163,17 @@
     margin-bottom:auto;
   }
   .tile-icon svg{width:26px;height:26px;}
-  .tile.primary .tile-icon{background:var(--gold);color:var(--white);}
+  .tile.primary{
+    background:linear-gradient(135deg,var(--gold-light,#DD9C28),var(--gold));
+    border-color:transparent;
+    box-shadow:0 16px 42px rgba(166,105,20,.34);
+    min-height:212px;
+    padding:34px 28px 30px;
+  }
+  .tile.primary:hover{box-shadow:0 22px 54px rgba(166,105,20,.42);border-color:transparent;}
+  .tile.primary .tile-icon{background:rgba(255,255,255,.20);color:#fff;width:60px;height:60px;}
+  .tile.primary h3{color:#fff;font-size:24px;}
+  .tile.primary p{color:rgba(255,255,255,.88);}
   .tile:not(.primary) .tile-icon{background:var(--gold-tint);color:var(--gold);}
   .tile h3{
     font-family:'Playfair Display',Georgia,serif;
@@ -716,20 +728,20 @@
     </div>
 
     <div class="home-tiles">
-      <div class="tile primary" onclick="go('upload')">
-        <div class="tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
-        </div>
-        <h3>Téléverser</h3>
-        <p>Les documents du jour</p>
-      </div>
-
       <div class="tile" onclick="go('contacts')">
         <div class="tile-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
         <h3>Contacts</h3>
         <p>Clients &amp; VIP du jour</p>
+      </div>
+
+      <div class="tile primary" onclick="go('upload')">
+        <div class="tile-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
+        </div>
+        <h3>Téléverser</h3>
+        <p>Les documents du jour</p>
       </div>
 
       <div class="tile" onclick="go('files')">
@@ -940,6 +952,7 @@ function resetUpload(){
   document.getElementById('successState').style.display = 'none';
   document.getElementById('transmitBtn').disabled = true;
   document.getElementById('transmitBtn').classList.remove('glow');
+  transmitted = false;
   renderChecklist();
 }
 
@@ -982,23 +995,30 @@ function startUpload(){
         var tb = document.getElementById('transmitBtn');
         tb.disabled = false;
         tb.classList.add('glow');
+        // auto-transmit once everything is uploaded (brief glow, then send)
+        setTimeout(function(){ transmit(); }, 1300);
       }
     }, 1100 + i*620);
   });
 }
 
+var transmitted = false;
+var todayProcessing = false;
 function transmit(){
+  if(transmitted) return;
+  transmitted = true;
+  todayProcessing = true; // today's docs now show "en traitement" in Fichiers
   var ss = document.getElementById('successState');
   ss.style.display = 'flex';
   var chk = document.getElementById('successCheck');
   chk.classList.remove('draw');
   void chk.offsetWidth;
   chk.classList.add('draw');
-  // only the success message, then auto-return to the Réception home
+  // only the success message (~3s), then auto-return to the Réception home
   setTimeout(function(){
     ss.style.display = 'none';
     go('home');
-  }, 2300);
+  }, 3000);
 }
 
 /* ============ CONTACTS DATA ============ */
@@ -1269,7 +1289,7 @@ function renderFiles(){
       return '<div class="folder" onclick="openDay(\''+d.id+'\')">' +
         ico +
         '<div class="folder-main"><div class="folder-day">'+d.label+'</div><div class="folder-meta">'+d.meta+'</div></div>' +
-        (d.current?'<span class="folder-badge">Aujourd\'hui</span>':'') +
+        (d.current?'<span class="folder-badge">'+(todayProcessing?'En traitement':'Aujourd\'hui')+'</span>':'') +
         '<div class="folder-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>' +
       '</div>';
     } else {
@@ -1298,16 +1318,22 @@ var dayDocsData = [
 function openDay(id){
   var d = days.find(function(x){ return x.id === id; });
   if(!d) return;
+  var processing = d.current && todayProcessing;
   document.getElementById('dayTitle').textContent = d.label;
-  document.getElementById('daySub').textContent = 'Documents transmis au restaurant · ' + d.meta;
+  document.getElementById('daySub').textContent = processing
+    ? 'Transmis · en cours de traitement par l\'IA pour le restaurant'
+    : 'Documents transmis au restaurant · ' + d.meta;
 
   var list = (d.id === 'd4' || d.id === 'd7') ? dayDocsData.slice(0,3) : dayDocsData;
 
   document.getElementById('dayDocs').innerHTML = list.map(function(doc){
+    var right = processing
+      ? '<div class="dd-status" style="display:flex;align-items:center;gap:8px"><div class="spinner" style="width:18px;height:18px"></div><span class="status-tag">En traitement</span></div>'
+      : '<div class="dd-download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>';
     return '<div class="day-doc">' +
       '<div class="dd-ico">'+docIconSvg(doc.icon)+'</div>' +
       '<div class="dd-main"><div class="dd-name">'+doc.name+'</div><div class="dd-meta">'+doc.meta+'</div></div>' +
-      '<div class="dd-download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>' +
+      right +
     '</div>';
   }).join('');
   go('day');
