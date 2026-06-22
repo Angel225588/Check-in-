@@ -330,6 +330,25 @@ export default function CheckInPage({
           {roomEvents.length > 0 && (
             <RoomEventBadges events={roomEvents} variant="stack" showReason />
           )}
+
+          {/* Petit-déjeuner NON inclus — loud, unmissable banner so reception
+              always collects payment for off-list / no-package guests (revenue
+              leak fix). Same condition as the payment selector below. */}
+          {needsPaymentChoice(client) && (
+            <div className="flex items-center gap-3 px-4 py-3 mb-3 rounded-[14px] bg-gradient-to-r from-[#C0392B] via-[#D9533B] to-[#C0392B] text-white shadow-[0_4px_20px_-4px] shadow-red-500/50">
+              <span className="grid place-items-center size-9 rounded-full bg-white/20 backdrop-blur-sm shrink-0">
+                <svg className="size-5 text-white drop-shadow" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zM11 10h2v5h-2v-5zm0 6h2v2h-2v-2z"/></svg>
+              </span>
+              <div className="flex-1 min-w-0">
+                <span className="text-[13px] font-black tracking-[0.08em] uppercase drop-shadow-sm">
+                  Petit-déjeuner NON inclus
+                </span>
+                <p className="text-[11px] text-white/90 mt-0.5 leading-relaxed">
+                  À encaisser — choisir le mode de paiement ci-dessous
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
