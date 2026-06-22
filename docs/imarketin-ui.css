@@ -1,0 +1,148 @@
+/* ============================================================
+   IMARKETIN — Design System (imarketin-ui.css)
+   The shared language for every screen: tokens + components + motion.
+   Principles: whitespace-first · premium-calm · Apple-fast · big tap targets ·
+   "a child could use it" · meaningful micro-animations.
+   Mirrors the app brand tokens (gold #A66914). Single source of truth.
+   ============================================================ */
+
+/* ---------------- TOKENS ---------------- */
+:root {
+  /* color */
+  --im-gold:        #A66914;
+  --im-gold-light:  #DD9C28;
+  --im-ink:         #1A1714;
+  --im-cream:       #F5F0E8;
+  --im-bg:          #FBF8F2;
+  --im-taupe:       #8A7E6E;
+  --im-hairline:    #E2D9C9;
+  --im-dark:        #16130F;
+  --im-white:       #FFFFFF;
+  --im-gold-tint:   #FBF4E7;
+  --im-gold-tint-2: #F6E9CF;
+  --im-alert:       #C0392B;   /* single restrained warning tone (must-pay) */
+  --im-alert-2:     #D9533B;
+
+  /* type */
+  --im-serif:  'Playfair Display', Georgia, serif;
+  --im-serif2: 'Cormorant Garamond', Georgia, serif;
+  --im-sans:   'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* shape */
+  --im-r-card: 14px;
+  --im-r-lg:   20px;
+  --im-r-pill: 52px;
+
+  /* elevation */
+  --im-sh-soft: 0 1px 2px rgba(26,23,20,.04), 0 8px 30px rgba(26,23,20,.06);
+  --im-sh-lift: 0 2px 6px rgba(26,23,20,.06), 0 18px 50px rgba(26,23,20,.10);
+  --im-sh-gold: 0 12px 30px rgba(166,105,20,.34);
+
+  /* motion — one easing curve everywhere (Apple-like) */
+  --im-ease: cubic-bezier(.22,1,.36,1);
+  --im-fast: .2s;
+  --im-base: .35s;
+}
+
+/* ---------------- BASE / TYPE ---------------- */
+.im-bg { background:
+  radial-gradient(1200px 600px at 80% -10%, rgba(221,156,40,.08), transparent 60%),
+  radial-gradient(900px 500px at -10% 110%, rgba(166,105,20,.06), transparent 55%),
+  var(--im-bg); }
+.im, .im * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+.im { font-family:var(--im-sans); color:var(--im-ink); -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+
+.im-display { font-family:var(--im-serif);  font-weight:600; font-size:clamp(30px,5vw,44px); line-height:1.05; margin:0; color:var(--im-ink); }
+.im-title   { font-family:var(--im-serif2); font-weight:600; font-size:30px; margin:0; color:var(--im-ink); }
+.im-eyebrow { font-size:12px; letter-spacing:2.5px; text-transform:uppercase; color:var(--im-gold); font-weight:700; margin:0; }
+.im-sub     { font-size:14px; color:var(--im-taupe); margin:0; }
+.im-lead    { font-family:var(--im-serif2); font-style:italic; font-size:20px; color:var(--im-taupe); margin:0; }
+.im-mark    { font-family:var(--im-serif); font-weight:700; letter-spacing:5px; color:var(--im-ink); }
+.im-mark .dot { color:var(--im-gold); }
+
+/* ---------------- BUTTONS (big, calm, springy) ---------------- */
+.im-btn {
+  font-family:var(--im-sans); font-weight:700; font-size:16px; letter-spacing:.2px;
+  border:1px solid transparent; border-radius:var(--im-pill, var(--im-r-pill));
+  padding:16px 30px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  transition:transform var(--im-fast) var(--im-ease), box-shadow var(--im-base) var(--im-ease), background var(--im-fast) var(--im-ease);
+}
+.im-btn:active { transform:scale(.97); }
+.im-btn--primary { background:linear-gradient(135deg,var(--im-gold-light),var(--im-gold)); color:#fff; box-shadow:0 10px 28px rgba(166,105,20,.3); }
+.im-btn--primary:hover { box-shadow:0 16px 40px rgba(166,105,20,.42); }
+.im-btn--big { padding:20px 56px; font-size:18px; }
+.im-btn--ghost { background:var(--im-white); color:var(--im-gold); border-color:var(--im-gold-tint-2); box-shadow:var(--im-sh-soft); }
+.im-btn--ghost:hover { background:var(--im-gold-tint); }
+.im-btn--block { width:100%; }
+.im-btn--glow { animation:im-glow 1.6s ease-in-out infinite; }
+@keyframes im-glow {
+  0%,100% { box-shadow:0 8px 24px rgba(166,105,20,.22); }
+  50%     { box-shadow:0 10px 36px rgba(221,156,40,.55), 0 0 0 4px rgba(221,156,40,.18); }
+}
+
+/* ---------------- CARDS & TILES ---------------- */
+.im-card { background:var(--im-white); border:1px solid var(--im-hairline); border-radius:var(--im-r-card); box-shadow:var(--im-sh-soft); padding:24px; }
+.im-tile {
+  background:var(--im-white); border:1px solid var(--im-hairline); border-radius:var(--im-r-card);
+  box-shadow:var(--im-sh-soft); padding:30px 26px 28px; min-height:186px; cursor:pointer;
+  display:flex; flex-direction:column; text-align:left;
+  transition:transform var(--im-base) var(--im-ease), box-shadow var(--im-base) var(--im-ease), border-color var(--im-base) var(--im-ease);
+}
+.im-tile:hover { transform:translateY(-4px); box-shadow:var(--im-sh-lift); border-color:var(--im-gold-tint-2); }
+.im-tile h3 { font-family:var(--im-serif); font-weight:600; font-size:21px; margin:24px 0 6px; color:var(--im-ink); }
+.im-tile p  { font-size:13.5px; color:var(--im-taupe); margin:0; line-height:1.45; }
+.im-tile__icon { width:54px; height:54px; border-radius:15px; display:flex; align-items:center; justify-content:center; margin-bottom:auto; background:var(--im-gold-tint); color:var(--im-gold); }
+.im-tile--hero { background:linear-gradient(135deg,var(--im-gold-light),var(--im-gold)); border-color:transparent; box-shadow:var(--im-sh-gold); min-height:212px; }
+.im-tile--hero h3 { color:#fff; font-size:24px; }
+.im-tile--hero p  { color:rgba(255,255,255,.88); }
+.im-tile--hero .im-tile__icon { background:rgba(255,255,255,.2); color:#fff; width:60px; height:60px; }
+
+/* ---------------- METRIC BOXES ---------------- */
+.im-metric { background:var(--im-white); border:1px solid var(--im-hairline); border-radius:var(--im-r-card); padding:18px 16px; text-align:center; box-shadow:var(--im-sh-soft); }
+.im-metric__num { font-family:var(--im-serif); font-weight:600; font-size:30px; color:var(--im-ink); line-height:1; }
+.im-metric__num.is-gold { color:var(--im-gold); }
+.im-metric__lab { font-size:11.5px; color:var(--im-taupe); margin-top:6px; text-transform:uppercase; letter-spacing:.6px; }
+.im-metrics { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); }
+
+/* ---------------- PILLS & BADGES ---------------- */
+.im-pill { display:inline-flex; align-items:center; gap:7px; border-radius:var(--im-r-pill); padding:7px 15px; font-size:13px; font-weight:700; }
+.im-pill--role { color:var(--im-gold); background:var(--im-gold-tint); border:1px solid var(--im-gold-tint-2); }
+.im-dot-live { width:8px; height:8px; border-radius:50%; background:var(--im-gold-light); box-shadow:0 0 0 4px rgba(221,156,40,.18); }
+
+/* ---------------- BANNERS ---------------- */
+.im-banner { display:flex; align-items:center; gap:12px; padding:14px 18px; border-radius:var(--im-r-card); }
+.im-banner__ico { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 auto; background:rgba(255,255,255,.2); color:#fff; }
+.im-banner__title { font-size:13px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.im-banner__sub { font-size:11px; opacity:.9; margin-top:2px; }
+.im-banner--vip   { background:linear-gradient(90deg,var(--im-gold),var(--im-gold-light),var(--im-gold)); color:#fff; box-shadow:0 4px 20px -4px rgba(166,105,20,.5); }
+.im-banner--alert { background:linear-gradient(90deg,var(--im-alert),var(--im-alert-2),var(--im-alert)); color:#fff; box-shadow:0 4px 20px -4px rgba(192,57,43,.5); }
+
+/* ---------------- INPUTS ---------------- */
+.im-field { width:100%; font-family:var(--im-sans); font-size:16px; color:var(--im-ink); background:var(--im-white); border:1px solid var(--im-hairline); border-radius:16px; padding:16px 18px; box-shadow:var(--im-sh-soft); outline:none; transition:border-color var(--im-fast) var(--im-ease), box-shadow var(--im-fast) var(--im-ease); }
+.im-field:focus { border-color:var(--im-gold-light); box-shadow:0 0 0 4px rgba(221,156,40,.15); }
+.im-field--code { text-align:center; font-size:22px; font-weight:700; letter-spacing:4px; }
+
+/* ---------------- SUCCESS OVERLAY + CHECKMARK ---------------- */
+.im-success { position:fixed; inset:0; z-index:200; background:var(--im-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px; }
+.im-check { width:30px; height:30px; display:block; }
+.im-check .c { stroke:var(--im-gold); stroke-width:2.4; fill:none; stroke-dasharray:76; stroke-dashoffset:76; stroke-linecap:round; }
+.im-check .t { stroke:var(--im-gold); stroke-width:2.8; fill:none; stroke-dasharray:24; stroke-dashoffset:24; stroke-linecap:round; stroke-linejoin:round; }
+.im-check.is-draw .c { animation:im-draw-c .5s var(--im-ease) forwards; }
+.im-check.is-draw .t { animation:im-draw-t .35s var(--im-ease) .35s forwards; }
+@keyframes im-draw-c { to { stroke-dashoffset:0; } }
+@keyframes im-draw-t { to { stroke-dashoffset:0; } }
+.im-badge-round { width:96px; height:96px; border-radius:50%; background:var(--im-gold-tint); display:flex; align-items:center; justify-content:center; margin:0 auto 22px; }
+.im-badge-round .im-check { width:52px; height:52px; }
+
+/* ---------------- MOTION UTILITIES ---------------- */
+.im-breathe { animation:im-breathe 3.4s ease-in-out infinite; }
+@keyframes im-breathe {
+  0%,100% { box-shadow:0 0 0 0 rgba(221,156,40,0); }
+  50%     { box-shadow:0 0 0 6px rgba(221,156,40,.14), 0 14px 34px rgba(166,105,20,.16); }
+}
+.im-screen-in { animation:im-screen-in .5s var(--im-ease) both; }
+@keyframes im-screen-in { from { opacity:0; transform:translateY(10px) scale(.995); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) {
+  .im-breathe, .im-btn--glow, .im-screen-in, .im-check.is-draw .c, .im-check.is-draw .t { animation:none; }
+  .im-check .c, .im-check .t { stroke-dashoffset:0; }
+}
