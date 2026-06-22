@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imarketin — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="imarketin-ui.css" rel="stylesheet">
+<style>
+  body { margin:0; }
+  .wrap { max-width:1100px; margin:0 auto; padding:56px 28px 100px; }
+  .ds-head { text-align:center; margin-bottom:14px; }
+  .ds-section { margin-top:64px; }
+  .ds-section > h2 { font-family:var(--im-serif); font-weight:600; font-size:24px; color:var(--im-ink); margin:0 0 6px; }
+  .ds-section > p.note { font-size:14px; color:var(--im-taupe); margin:0 0 22px; max-width:640px; line-height:1.5; }
+  .row { display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  .swatch { border-radius:12px; height:64px; border:1px solid var(--im-hairline); box-shadow:var(--im-sh-soft); }
+  .swrap { font-size:11px; color:var(--im-taupe); margin-top:7px; letter-spacing:.3px; }
+  .principles { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .principle { background:var(--im-white); border:1px solid var(--im-hairline); border-radius:14px; padding:20px; box-shadow:var(--im-sh-soft); }
+  .principle h4 { font-family:var(--im-serif2); font-weight:600; font-size:19px; margin:0 0 6px; color:var(--im-ink); }
+  .principle p { font-size:13px; color:var(--im-taupe); margin:0; line-height:1.5; }
+  .label { font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--im-taupe); font-weight:700; margin:0 0 12px; }
+  @media(max-width:720px){ .grid3,.principles{grid-template-columns:1fr;} }
+</style>
+</head>
+<body class="im im-bg">
+<div class="wrap">
+
+  <div class="ds-head">
+    <h1 class="im-mark" style="font-size:34px">IMARKETIN<span class="dot">.</span></h1>
+    <p class="im-lead">Design System</p>
+    <p class="im-sub" style="margin-top:8px">Le langage partagé de toutes les interfaces — tokens, composants, mouvement.</p>
+  </div>
+
+  <!-- PRINCIPLES -->
+  <div class="ds-section">
+    <h2>Principes</h2>
+    <p class="note">Ce qui rend chaque écran reconnaissable et facile.</p>
+    <div class="principles">
+      <div class="principle"><h4>Espace d'abord</h4><p>Beaucoup de blanc. Peu d'éléments. Le calme guide l'œil.</p></div>
+      <div class="principle"><h4>Premium &amp; sobre</h4><p>Or unique comme accent, serif élégant, jamais tape-à-l'œil.</p></div>
+      <div class="principle"><h4>Rapide, façon Apple</h4><p>Transitions douces, une seule courbe d'easing, réactions instantanées.</p></div>
+      <div class="principle"><h4>Grandes cibles</h4><p>Boutons larges, faciles au doigt, sur iPad en plein service.</p></div>
+      <div class="principle"><h4>Simple (niveau enfant)</h4><p>Compréhensible en 5 secondes, sans formation, sans stress.</p></div>
+      <div class="principle"><h4>Micro-animations utiles</h4><p>Respiration, coche qui se dessine, lueur — du sens, pas du bruit.</p></div>
+    </div>
+  </div>
+
+  <!-- COLOR -->
+  <div class="ds-section">
+    <h2>Couleurs</h2>
+    <p class="note">Or chaud sur crème. Une seule teinte d'alerte, sobre, réservée à « doit payer ».</p>
+    <div class="grid3">
+      <div><div class="swatch" style="background:#A66914"></div><div class="swrap">--im-gold · #A66914</div></div>
+      <div><div class="swatch" style="background:#DD9C28"></div><div class="swrap">--im-gold-light · #DD9C28</div></div>
+      <div><div class="swatch" style="background:#1A1714"></div><div class="swrap">--im-ink · #1A1714</div></div>
+      <div><div class="swatch" style="background:#F5F0E8"></div><div class="swrap">--im-cream · #F5F0E8</div></div>
+      <div><div class="swatch" style="background:#FBF4E7"></div><div class="swrap">--im-gold-tint · #FBF4E7</div></div>
+      <div><div class="swatch" style="background:#8A7E6E"></div><div class="swrap">--im-taupe · #8A7E6E</div></div>
+      <div><div class="swatch" style="background:#E2D9C9"></div><div class="swrap">--im-hairline · #E2D9C9</div></div>
+      <div><div class="swatch" style="background:#16130F"></div><div class="swrap">--im-dark · #16130F</div></div>
+      <div><div class="swatch" style="background:#C0392B"></div><div class="swrap">--im-alert · #C0392B</div></div>
+    </div>
+  </div>
+
+  <!-- TYPE -->
+  <div class="ds-section">
+    <h2>Typographie</h2>
+    <p class="note">Playfair (titres) · Cormorant italique (accents) · Nunito (interface).</p>
+    <h1 class="im-display">Une matinée sereine</h1>
+    <p class="im-title" style="margin-top:14px">Service du matin</p>
+    <p class="im-lead" style="margin-top:10px">L'intelligence du service, au quotidien</p>
+    <p class="im-eyebrow" style="margin-top:14px">Courtyard · Petit-déjeuner</p>
+    <p class="im-sub" style="margin-top:8px">Texte secondaire · Nunito 14px taupe.</p>
+  </div>
+
+  <!-- BUTTONS -->
+  <div class="ds-section">
+    <h2>Boutons</h2>
+    <p class="note">Grands, en pilule, springy au tap. L'action principale est en or.</p>
+    <div class="row">
+      <button class="im-btn im-btn--primary">Action principale</button>
+      <button class="im-btn im-btn--primary im-btn--big">Commencer la journée</button>
+      <button class="im-btn im-btn--ghost">Action secondaire</button>
+      <button class="im-btn im-btn--primary im-btn--glow">Prête · lueur</button>
+    </div>
+  </div>
+
+  <!-- TILES -->
+  <div class="ds-section">
+    <h2>Tuiles</h2>
+    <p class="note">Grandes entrées calmes. La tuile « hero » (or) marque l'action centrale.</p>
+    <div class="grid3">
+      <div class="im-tile"><div class="im-tile__icon">🛎️</div><h3>Contacts</h3><p>Clients &amp; VIP du jour</p></div>
+      <div class="im-tile im-tile--hero"><div class="im-tile__icon">⬆️</div><h3>Téléverser</h3><p>Les documents du jour</p></div>
+      <div class="im-tile"><div class="im-tile__icon">📁</div><h3>Fichiers</h3><p>Archives par journée</p></div>
+    </div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="ds-section">
+    <h2>Indicateurs</h2>
+    <p class="note">Lecture en un coup d'œil. Chiffre serif, libellé discret.</p>
+    <div class="im-metrics">
+      <div class="im-metric"><div class="im-metric__num">142</div><div class="im-metric__lab">Couverts</div></div>
+      <div class="im-metric"><div class="im-metric__num is-gold">12</div><div class="im-metric__lab">VIP</div></div>
+      <div class="im-metric"><div class="im-metric__num">8</div><div class="im-metric__lab">Comp</div></div>
+      <div class="im-metric"><div class="im-metric__num">5</div><div class="im-metric__lab">Hors liste</div></div>
+      <div class="im-metric"><div class="im-metric__num">7</div><div class="im-metric__lab">No-post</div></div>
+    </div>
+  </div>
+
+  <!-- PILLS -->
+  <div class="ds-section">
+    <h2>Pastilles &amp; états</h2>
+    <div class="row">
+      <span class="im-pill im-pill--role">Réception</span>
+      <span class="im-pill im-pill--role">Restaurant</span>
+      <span class="im-pill" style="color:var(--im-taupe);background:var(--im-cream)"><span class="im-dot-live"></span>&nbsp;Synchronisé</span>
+    </div>
+  </div>
+
+  <!-- BANNERS -->
+  <div class="ds-section">
+    <h2>Bandeaux</h2>
+    <p class="note">VIP (or) pour valoriser. Alerte (rouge sobre) pour « doit payer » — impossible à manquer.</p>
+    <div class="row" style="flex-direction:column;align-items:stretch;gap:14px;max-width:520px">
+      <div class="im-banner im-banner--vip">
+        <span class="im-banner__ico">★</span>
+        <div><div class="im-banner__title">VIP</div><div class="im-banner__sub">Client VIP — accueil prioritaire</div></div>
+      </div>
+      <div class="im-banner im-banner--alert">
+        <span class="im-banner__ico">⚠</span>
+        <div><div class="im-banner__title">Petit-déjeuner non inclus</div><div class="im-banner__sub">À encaisser — choisir le mode de paiement</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INPUTS -->
+  <div class="ds-section">
+    <h2>Saisie</h2>
+    <p class="note">Champs larges et clairs. Le code d'accès est centré et espacé.</p>
+    <div class="row" style="flex-direction:column;align-items:stretch;gap:14px;max-width:360px">
+      <input class="im-field" placeholder="Rechercher une chambre ou un nom…">
+      <input class="im-field im-field--code" placeholder="ABCD-1234">
+      <button class="im-btn im-btn--primary im-btn--block">Accéder à l'établissement</button>
+    </div>
+  </div>
+
+  <!-- MOTION -->
+  <div class="ds-section">
+    <h2>Mouvement</h2>
+    <p class="note">La coche « terminé » (réutilisée partout : check-in, transmission), la respiration de la zone d'upload, la lueur du bouton prêt.</p>
+    <div class="row" style="gap:36px;align-items:flex-start">
+      <div style="text-align:center">
+        <div class="im-badge-round">
+          <svg class="im-check is-draw" id="chk" viewBox="0 0 36 36"><circle class="c" cx="18" cy="18" r="15"/><path class="t" d="M11 18.5l4.5 4.5L25 13"/></svg>
+        </div>
+        <p class="label">Coche « terminé »</p>
+      </div>
+      <div style="text-align:center">
+        <div class="im-card im-breathe" style="width:170px;height:96px;display:grid;place-items:center;background:var(--im-gold-tint);border:2px dashed var(--im-gold-light)">⬆️</div>
+        <p class="label" style="margin-top:12px">Respiration (upload)</p>
+      </div>
+      <div style="text-align:center">
+        <button class="im-btn im-btn--primary im-btn--glow">Prête</button>
+        <p class="label" style="margin-top:12px">Lueur (bouton prêt)</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  // replay the checkmark draw every few seconds so the motion is visible
+  setInterval(function(){
+    var c = document.getElementById('chk');
+    c.classList.remove('is-draw'); void c.offsetWidth; c.classList.add('is-draw');
+  }, 2600);
+</script>
+</body>
+</html>
