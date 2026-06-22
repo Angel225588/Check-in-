@@ -195,6 +195,12 @@ const translations = {
   "report.avgTime": { fr: "Heure moy.", en: "Avg time" },
   "report.extras": { fr: "Extras (écarts réception)", en: "Extras (reception discrepancies)" },
   "report.extrasDesc": { fr: "Plus de personnes que prévu", en: "More people than expected" },
+  "report.reconcileTitle": { fr: "Rapprochement doc Opera", en: "Opera doc reconciliation" },
+  "report.reconcileDesc": { fr: "Comparez « Liste PDJ » au total du document Opera/PMS", en: "Compare “Breakfast list” to the Opera/PMS doc total" },
+  "report.reconcileList": { fr: "Liste PDJ", en: "Breakfast list" },
+  "report.reconcileOffList": { fr: "Hors-liste", en: "Off-list" },
+  "report.reconcileTotal": { fr: "Total app", en: "App total" },
+  "report.reconcileChildrenNote": { fr: "enfants inclus dans le total, exclus des COMP", en: "children included in total, excluded from COMP" },
 
   // Scanner
   "scanner.holdStill": { fr: "Ne bougez pas...", en: "Hold still..." },

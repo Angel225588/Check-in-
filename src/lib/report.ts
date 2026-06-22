@@ -23,12 +23,15 @@ export interface SourceBreakdown {
   // Breakfast list = clients on the daily PDJ list
   listRooms: number;
   listEntered: number;
+  listGuests: number; // expected guests (adults+children) on the PDJ list — reconciles with the Opera/PMS doc total
   // VIP list only = VIPs not on PDJ list (took breakfast as walk-in)
   vipListOnlyRooms: number;
   vipListOnlyEntered: number;
+  vipListOnlyGuests: number; // expected guests added off-list
   // Walk-in = added live (not on either list)
   walkInRooms: number;
   walkInEntered: number;
+  walkInGuests: number; // expected guests added live
   // Payment mode totals across walk-ins + list-only VIPs.
   // 5 canonical modes: room (Chambre, default), points, cash, card (Carte B), supervisor.
   // Plus compliment when the package code marks it as offered.
@@ -45,7 +48,15 @@ export interface SourceBreakdown {
 export interface DayReport {
   date: string;
   totalRooms: number;
-  totalGuests: number;
+  totalGuests: number; // grand total expected = list + off-list (adults + children)
+  totalAdults: number; // adults across all rooms
+  totalChildren: number; // children across all rooms (counted once; excluded from COMP)
+  // Reconciliation split: the Opera/PMS daily doc only lists the printed
+  // breakfast list. Off-list (hors-liste) guests are added in-app, so the
+  // grand total can't be matched against the doc directly — these two fields
+  // make the gap explicit. totalGuests === totalListGuests + totalOffListGuests.
+  totalListGuests: number; // expected guests on the breakfast list (== doc total)
+  totalOffListGuests: number; // expected guests added off-list (list_only + walk_in)
   totalEntered: number;
   totalRemaining: number;
   totalExtras: number; // total extra people beyond expected
@@ -83,10 +94,13 @@ function buildSourceBreakdown(
   const breakdown: SourceBreakdown = {
     listRooms: 0,
     listEntered: 0,
+    listGuests: 0,
     vipListOnlyRooms: 0,
     vipListOnlyEntered: 0,
+    vipListOnlyGuests: 0,
     walkInRooms: 0,
     walkInEntered: 0,
+    walkInGuests: 0,
     byPayment: {
       room: 0,
       points: 0,
@@ -105,12 +119,15 @@ function buildSourceBreakdown(
     if (source === "breakfast_list") {
       breakdown.listRooms++;
       breakdown.listEntered += room.entered;
+      breakdown.listGuests += room.totalGuests;
     } else if (source === "list_only") {
       breakdown.vipListOnlyRooms++;
       breakdown.vipListOnlyEntered += room.entered;
+      breakdown.vipListOnlyGuests += room.totalGuests;
     } else if (source === "walk_in") {
       breakdown.walkInRooms++;
       breakdown.walkInEntered += room.entered;
+      breakdown.walkInGuests += room.totalGuests;
     }
 
     // Payment breakdown — only count off-list (list_only + walk_in) since
@@ -164,8 +181,23 @@ export function generateDayReport(
   });
 
   const totalGuests = rooms.reduce((s, r) => s + r.totalGuests, 0);
+  const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
+  // children = totalGuests - adults (room.totalGuests is adults + children).
+  // Counted exactly once here and never folded into COMP (which is adults-only).
+  const totalChildren = totalGuests - totalAdults;
   const totalEntered = rooms.reduce((s, r) => s + r.entered, 0);
   const totalExtras = rooms.reduce((s, r) => s + r.extras, 0);
+
+  // Reconciliation split — breakfast list (the Opera/PMS doc) vs off-list
+  // additions. Undefined vipSource is treated as on-list (legacy data).
+  const totalOffListGuests = rooms.reduce(
+    (s, r) =>
+      r.vipSource === "list_only" || r.vipSource === "walk_in"
+        ? s + r.totalGuests
+        : s,
+    0
+  );
+  const totalListGuests = totalGuests - totalOffListGuests;
 
   const compRooms = new Set(rooms.filter((r) => r.isComp).map((r) => r.roomNumber));
   const compPersons = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.adults, 0);
@@ -176,6 +208,10 @@ export function generateDayReport(
     date: new Date().toISOString().split("T")[0],
     totalRooms: rooms.length,
     totalGuests,
+    totalAdults,
+    totalChildren,
+    totalListGuests,
+    totalOffListGuests,
     totalEntered,
     totalRemaining: totalGuests - totalEntered,
     totalExtras,
