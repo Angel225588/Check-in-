@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
+import { Analytics } from '@vercel/analytics/next';
 
 
 export const metadata: Metadata = {
