@@ -36,9 +36,33 @@ Rules:
 
 import { sanitizeAndValidateClient } from "@/lib/validate";
 import { safeLogError } from "@/lib/log-safe";
+import { parseMistralMarkdown } from "@/lib/mistral-parser";
+import type { Client } from "@/lib/types";
 
 function validateClient(obj: Record<string, unknown>): boolean {
   return sanitizeAndValidateClient(obj);
+}
+
+// Mistral OCR 4 (EU) — returns structured markdown tables; we parse them to Client[].
+async function callMistralOcr(
+  apiKey: string,
+  base64: string,
+  mimeType: string
+): Promise<Client[]> {
+  const dataUrl = `data:${mimeType};base64,${base64}`;
+  const document =
+    mimeType === "application/pdf"
+      ? { type: "document_url", document_url: dataUrl }
+      : { type: "image_url", image_url: dataUrl };
+  const r = await fetch("https://api.mistral.ai/v1/ocr", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "mistral-ocr-latest", document, include_image_base64: false }),
+  });
+  if (!r.ok) throw new Error(`Mistral OCR HTTP ${r.status}`);
+  const j = await r.json();
+  const md = (j.pages || []).map((p: { markdown?: string }) => p.markdown || "").join("\n");
+  return parseMistralMarkdown(md);
 }
 
 async function callGemini(
@@ -69,10 +93,12 @@ async function callGemini(
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
+  const mistralKey = process.env.MISTRAL_API_KEY;
+  const hasGemini = !!apiKey && apiKey !== "your_gemini_api_key_here";
 
-  if (!apiKey || apiKey === "your_gemini_api_key_here") {
+  if (!mistralKey && !hasGemini) {
     return NextResponse.json(
-      { error: "GEMINI_API_KEY not configured" },
+      { error: "No OCR provider configured (set MISTRAL_API_KEY or GEMINI_API_KEY)" },
       { status: 500 }
     );
   }
@@ -125,13 +151,37 @@ export async function POST(request: NextRequest) {
     }
     const base64 = Buffer.from(bytes).toString("base64");
 
+    // Prefer Mistral OCR (EU/sovereign) when configured; fall back to Gemini on any
+    // failure or empty result so the upload flow can never break.
+    if (mistralKey) {
+      try {
+        const parsed = await callMistralOcr(mistralKey, base64, mimeType);
+        const valid = parsed.filter((c) =>
+          validateClient(c as unknown as Record<string, unknown>)
+        );
+        if (valid.length > 0) {
+          return NextResponse.json({ clients: valid, engine: "mistral" });
+        }
+      } catch (e) {
+        console.error(safeLogError("Mistral OCR failed; falling back to Gemini", e));
+      }
+    }
+
+    if (!hasGemini) {
+      return NextResponse.json(
+        { error: "OCR could not read the document. Try a clearer photo or paste manually." },
+        { status: 502 }
+      );
+    }
+    const geminiApiKey = apiKey as string;
+
     // Call Gemini with one retry on rate limit
-    let response = await callGemini(apiKey, base64, mimeType);
+    let response = await callGemini(geminiApiKey, base64, mimeType);
 
     if (response.status === 429) {
       // Wait and retry once
       await new Promise((r) => setTimeout(r, 3000));
-      response = await callGemini(apiKey, base64, mimeType);
+      response = await callGemini(geminiApiKey, base64, mimeType);
     }
 
     if (!response.ok) {
