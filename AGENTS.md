@@ -54,6 +54,37 @@ Gate fails → say **"blocked on gate X"**, never "done with caveats."
 
 ---
 
+## Engineering Rules & Quality Hooks (enforced, not remembered)
+Talent without enforced guardrails drifts. The rules we repeat every turn are now **machine-enforced** via hooks in `.claude/hooks/` (registered in `.claude/settings.json`). Hooks **fail-open** (a hook bug never blocks legit work) and are unit-tested with sample inputs before commit.
+
+| Rule (CLAUDE.md) | Enforcement | Hook / gate |
+|---|---|---|
+| Secrets never in code | **DENY** the write on hardcoded key/JWT/pepper literals | `secret-guard.mjs` (PreToolUse: Edit/Write/MultiEdit) |
+| Nothing to prod without sign-off | **ASK** to confirm on commit/push to `main` | `git-guard.mjs` (PreToolUse: Bash) |
+| No history rewrites | **DENY** `git push --force` | `git-guard.mjs` |
+| Never leave work local-only | Reminder fed to Claude on unpushed commits | `push-reminder.mjs` (PostToolUse: Bash) |
+| Failing-test-first · tests green before done | process gate (DoD) | `npx vitest run` before "done" |
+| Round-trip-or-fail on external state | `verifyAfterWrite()` + PoD | code + review |
+| Playwright-verify UI before done | Claude inspects the screenshot itself | review gate |
+| Doc-first for non-trivial work | Think → Map → Build → Verify | `docs/sprints/` |
+
+**Adding a rule we keep repeating →** write a hook for it (or a DoD gate), test it, register it. That's how the bar holds as we scale agents.
+
+**Standing best-practices (the "every time" list):** one job per screen, design from the satisfying moment · small reviewed diffs that match surrounding code · **EU region asserted before any live Supabase write** · **PII encrypted (Level A) before it lands in Supabase** · every external mutation round-trips · push after every commit.
+
+## Code-Integration Test (expert-team harness) — to build (task 10)
+Goal: **prove the code integration works automatically**, end-to-end, so Angel can test it and agents can re-run it as a gate.
+
+What it exercises (each step is a hard assert):
+1. **Auth:** POST a known access code → `auth-location` → a scoped session with the right `location_id` claim.
+2. **Write:** create a client/check-in through the app path.
+3. **Round-trip:** read it back from Supabase live → assert it landed (`verifyAfterWrite`).
+4. **Owner-blind:** assert the stored `name`/notes columns are **ciphertext** (Level-A encryption), and name-search still resolves via the blind index.
+5. **Cross-device:** a second session pulls and sees the same row in real time.
+6. **Isolation:** a wrong/foreign code reads **nothing** (RLS deny-by-default holds).
+
+Gates: Playwright drives the UI; round-trip asserts the data; `advisors(security)=0`. Run by a scheduled agent, reviewed by Claude, never auto-deployed. **No prod cutover until this harness is green on preview** (ties to the S1+encryption+sync bundle).
+
 ## References
 - **Security plan + maturity ladder:** `docs/security/security-posture-and-roadmap.md`
 - **Design system:** `docs/imarketin-ui.css` + `docs/design-system.html`
