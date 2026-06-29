@@ -112,6 +112,12 @@ Each rung has a **verification gate**. We do not claim a level until its proof e
 ## 8. Roadmap — ordered sprints (one thing at a time)
 Each sprint = a rung. DoD = its verification gate. No sprint "done" without attached proof.
 
+**S0 · Quick wins — ship now, low risk (helps tomorrow without a risky cutover)**
+- **Delete the raw report photo/text right after OCR extraction** — keep only the clean structured data, **compressed**. This (a) removes the single highest-value PII asset from storage, (b) **fixes the localStorage "storage-full" problem at its root** (the raw images are what fill it), (c) needs no Supabase cutover → safe for tomorrow's live service on localStorage.
+- *Proof:* after upload, raw image/text is absent from storage (live read) · clean data still renders report + search · storage footprint drops (before/after).
+
+**Sequencing note (the sync, done safely):** turning on Supabase sync means **real guest names land in Supabase**. Per the locked owner-blind promise, **Level-A PII encryption is a prerequisite, not a follow-up** — so S1 + encryption + sync ship **together**, validated, before any prod flip. The cutover runs in **mirror mode** (localStorage stays authoritative/offline safety net; Supabase mirrors + serves the real-time cross-device read), so live service never depends on an unproven cutover. No blind pre-service flip.
+
 **S1 · Contain the bleeding → L0**
 - **Finding (2026-06-29 inventory):** the access-code `pepper` is read from the edge-function env, **but falls back to the `app_config` DB table** (`auth-location` + `admin-provision`). A pepper sitting in the DB defeats the "useless if DB leaks" guarantee.
 - Fix: set `LOCATION_CODE_PEPPER` as an **Edge Function secret only** (preserve the current value into it so existing code hashes stay valid), **remove the `app_config` pepper read/auto-insert** from both functions, redeploy. Rotate the **bootstrap token** (new sha256). Confirm `.env.local` is gitignored + secret-scan the tree.
@@ -149,3 +155,7 @@ Detect (audit + alerts) → Contain (rotate codes/keys, isolate) → Assess (wha
 4. ✅ **Encryption / owner-blindness** — **Level A now** (app-layer PII encryption, key outside Supabase → owner sees ciphertext). At-rest encryption alone does **not** hide data from the project owner — that's why Level A is required.
 5. ⏳ **Phase 2 self-host (Mistral container)** — staged; flip when a buyer demands full sovereignty.
 6. ⏳ **Level B zero-knowledge** (key derived from access code; even the app/owner can't read server-side) — deferred: it would disable the server-side manager dashboard + complicate OCR. Revisit only if a buyer's security team requires it.
+7. ✅ **Raw-doc minimization** — delete the source photo/text after OCR, keep only clean compressed data (S0). Also fixes the storage-full problem.
+8. ✅ **Auto-delete after ~3 months** — confirmed (= the 90-day retention job, S4).
+9. ✅ **Access rule** — a device sees a location's data **only if its access code resolves to that same `location_id`** (RLS deny-by-default — already built). Same code = same data; different/none = nothing.
+10. ⏳ **Publish security/privacy on the website** — public privacy + security page (RGPD: residency, encryption, retention, rights). Drafted in S4/S5, linked from the app.
