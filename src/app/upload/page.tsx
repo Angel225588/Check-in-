@@ -10,6 +10,8 @@ import {
 import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
+import { exchangeCode, cachedLocation, type LocationSession } from "@/lib/sync/session";
+import { SUPABASE_URL } from "@/lib/sync/config";
 import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
 import { recordSessionGuests } from "@/lib/guests";
@@ -278,6 +280,77 @@ function getGreeting(t: (key: TranslationKey) => string): string {
   return t("home.greeting.evening");
 }
 
+// Sync settings — connect this device to the secure cloud (EU, encrypted) with a location code.
+function SyncDrawer({ onClose }: { onClose: () => void }) {
+  const [code, setCode] = useState("");
+  const [loc, setLoc] = useState<LocationSession | null>(() => cachedLocation());
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function connect() {
+    const c = code.trim();
+    if (!c) return;
+    if (!SUPABASE_URL) { setErr("Synchronisation non configurée sur ce serveur."); return; }
+    setBusy(true);
+    setErr("");
+    try {
+      const s = await exchangeCode(c);
+      setLoc(s);
+      setCode("");
+    } catch (e) {
+      setErr((e as Error).message === "invalid_code" ? "Code invalide." : "Connexion impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-md glass-liquid rounded-t-[28px] sm:rounded-[28px] p-6 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-dark">Synchronisation</h2>
+          <button onClick={onClose} aria-label="Fermer" className="p-2 glass-liquid rounded-full active:scale-95 transition-transform text-muted">✕</button>
+        </div>
+        {loc ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-green-500/10">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+              <div>
+                <div className="font-bold text-dark">Connecté</div>
+                <div className="text-sm text-muted">{loc.locationName} · {loc.role}</div>
+              </div>
+            </div>
+            <p className="text-xs text-muted leading-relaxed">
+              Cet appareil est relié au cloud sécurisé (UE, chiffré de bout en bout). Les données se synchronisent entre les appareils du même établissement.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted">Entre le code de synchronisation de l&apos;établissement pour relier cet appareil au cloud sécurisé.</p>
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") connect(); }}
+              placeholder="CODE-XXXX-XXXX"
+              autoCapitalize="characters"
+              className="w-full px-4 py-3 rounded-2xl glass-liquid text-dark text-center tracking-[0.2em] font-bold uppercase"
+            />
+            {err && <p className="text-sm text-red-600">{err}</p>}
+            <button
+              onClick={connect}
+              disabled={busy}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-95 transition-all disabled:opacity-50"
+            >
+              {busy ? "Connexion…" : "Connecter"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const { t } = useApp();
@@ -303,6 +376,7 @@ export default function UploadPage() {
   const [showManual, setShowManual] = useState(false);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [viewingSession, setViewingSession] = useState<SessionRecord | null>(null);
 
   // Check for active session
@@ -630,14 +704,27 @@ export default function UploadPage() {
                 MARRIOTT
               </span>
             </div>
-            <button
-              onClick={() => setHistoryOpen(true)}
-              className="p-2 glass-liquid rounded-full active:scale-95 transition-transform"
-            >
-              <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSyncOpen(true)}
+                aria-label="Synchronisation"
+                className="p-2 glass-liquid rounded-full active:scale-95 transition-transform"
+              >
+                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setHistoryOpen(true)}
+                aria-label="Historique"
+                className="p-2 glass-liquid rounded-full active:scale-95 transition-transform"
+              >
+                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Greeting */}
@@ -779,6 +866,9 @@ export default function UploadPage() {
           className="hidden"
         />
         <div className="hidden">{captureElements}</div>
+
+        {/* Sync settings */}
+        {syncOpen && <SyncDrawer onClose={() => setSyncOpen(false)} />}
 
         {/* History Drawers */}
         <HistoryDrawer
