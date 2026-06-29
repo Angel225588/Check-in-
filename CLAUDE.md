@@ -88,6 +88,6 @@ Any code that mutates external state MUST: (1) `write()` the mutation, (2) `read
 ## CEO Decision Queue (answer the top one — context · reco · default)
 Ordered by what's blocking progress. Angel answers #1; Claude executes and re-tops the queue. Full rationale: `docs/security/security-posture-and-roadmap.md`.
 
-**Resolved 2026-06-29:** P0 = **S1+S2 this week** ✅ · retention **90d** ✅ · OCR **Mistral, from tomorrow** ✅ · encryption **Level A** (app-layer PII encryption, key outside Supabase → owner sees ciphertext) ✅ · self-host + Level-B zero-knowledge **deferred** ⏳.
+**Resolved 2026-06-29:** P0 = **S1+S2 this week** ✅ · retention **90d** ✅ · OCR **Mistral, from tomorrow** ✅ · encryption = **zero-knowledge** (key derived from access code, never on server → *we cannot read the hotel's data*; dashboard on non-PII counts; lost-code = lost-data accepted) ✅ · **S0 auto-purge** (delete old OCR text daily; photos already never stored) ✅ · self-host **deferred** ⏳.
 
-**Active execution:** S1 (pepper → edge-secret-only, remove DB fallback, rotate bootstrap) → S2 (cutover + Level-A encryption + simple code-change UI). No open decision blocking; next surfaces after S1/S2 proof.
+**Active execution:** **S0** (auto-purge stale `rawUploadText` → frees storage for tomorrow, safe/localStorage-only) → S1 (pepper → edge-secret-only) → zero-knowledge encryption → wire sync on **preview** → integration harness green → flip live. Everything proven on preview before prod. Safe path, no rush.

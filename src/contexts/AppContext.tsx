@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Lang, TranslationKey, t as translate } from "@/lib/i18n";
-import { autoCloseStale } from "@/lib/storage";
+import { autoCloseStale, purgeStaleRawText } from "@/lib/storage";
 
 interface AppContextValue {
   lang: Lang;
@@ -32,6 +32,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Auto-close any sessions from previous days that were never closed
     try { autoCloseStale(); } catch (e) { console.error("autoCloseStale failed:", e); }
+    // S0 storage hygiene: free old OCR text so localStorage never fills (photos are never stored)
+    try {
+      const freed = purgeStaleRawText();
+      if (freed > 0) console.info(`purgeStaleRawText: freed ${freed} chars of stale OCR text`);
+    } catch (e) { console.error("purgeStaleRawText failed:", e); }
   }, []);
 
   useEffect(() => {

@@ -391,6 +391,35 @@ export function autoCloseStale(): number {
 }
 
 /**
+ * S0 — proactive storage hygiene. Clears the raw OCR text (`rawUploadText`)
+ * from all CLOSED sessions in history; it's only needed to re-parse the OPEN
+ * day, never a past one. Photos are never persisted, so this raw text is the
+ * only thing that grows storage over time. Returns the chars freed.
+ * Safe, idempotent, best-effort (swallows quota errors). Call on app load.
+ */
+export function purgeStaleRawText(): number {
+  if (typeof window === "undefined") return 0;
+  const history = getSessionHistory();
+  let freed = 0;
+  let changed = false;
+  for (const s of history) {
+    if (s.rawUploadText) {
+      freed += s.rawUploadText.length;
+      s.rawUploadText = "";
+      changed = true;
+    }
+  }
+  if (changed) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {
+      // best-effort: leave history intact on quota error
+    }
+  }
+  return freed;
+}
+
+/**
  * Merge two session records for the same date.
  * Combines clients (dedup by room+name) and check-ins (dedup by id).
  */
