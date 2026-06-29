@@ -71,7 +71,7 @@
 
     <div class="hint">
       🔁 <b>Test multi-navigateur :</b> ouvre cette même page dans un autre navigateur (ou ton téléphone) avec le <b>même code</b>. Ajoute un client ici → il apparaît là-bas en ~3 s.<br><br>
-      🗄️ <b>Vérifie dans Supabase :</b> Table Editor → table <b>clients</b> → tu vois les lignes apparaître (chiffrement zéro-knowledge pas encore branché — les noms sont en clair pour ce test).
+      🔒 <b>Chiffrement zéro-knowledge ACTIF :</b> regarde dans Supabase → Table Editor → <b>clients</b> : les colonnes <b>name</b> et <b>room_number</b> sont du charabia (<code>v1:…</code>), illisibles. L'app les déchiffre <b>uniquement ici</b>, avec ta clé dérivée du code. Sur le serveur, <b>personne ne peut les lire</b> — même pas nous.
     </div>
   </section>
 
@@ -80,9 +80,31 @@
 <script>
   const SUPA = "https://qimhmwkmkbqxsvtayldn.supabase.co";
   const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpbWhtd2tta2JxeHN2dGF5bGRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3OTkzNDUsImV4cCI6MjA5NzM3NTM0NX0.I56UA2pAERLaoflWK5Qf-LUkd-ONY8-t_TQzdeL-rFQ";
-  let session = null, poll = null;
+  let session = null, poll = null, dek = null;
 
   const $ = (id) => document.getElementById(id);
+
+  // ---- zero-knowledge field crypto: key derived from the access code, never sent to the server ----
+  const ENC = new TextEncoder(), DEC = new TextDecoder();
+  const b64e = (u) => { let s = ""; for (const b of u) s += String.fromCharCode(b); return btoa(s); };
+  const b64d = (s) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+  const cat = (a, b) => { const o = new Uint8Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; };
+  async function deriveDek(code, salt) {
+    const base = await crypto.subtle.importKey("raw", ENC.encode(code.trim()), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: cat(ENC.encode(salt), ENC.encode("imk-dek-v1")), iterations: 210000, hash: "SHA-256" },
+      base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  async function encField(txt) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, dek, ENC.encode(txt)));
+    return "v1:" + b64e(cat(iv, ct));
+  }
+  async function decField(p) {
+    if (typeof p !== "string" || !p.startsWith("v1:")) return p; // legacy plaintext
+    try { const raw = b64d(p.slice(3)); return DEC.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: raw.slice(0, 12) }, dek, raw.slice(12))); }
+    catch { return "🔒 (chiffré)"; }
+  }
 
   async function login() {
     const code = $("code").value.trim();
@@ -97,6 +119,7 @@
       const j = await r.json();
       if (!r.ok || !j.access_token) { $("loginErr").textContent = "Code invalide (" + r.status + ")."; return; }
       session = j;
+      dek = await deriveDek(code, j.location_id); // key from the code — never leaves this device
       $("locName").textContent = j.location_name || "Établissement";
       $("login").hidden = true; $("work").hidden = false;
       refresh(); poll = setInterval(refresh, 3000);
@@ -104,7 +127,7 @@
   }
 
   function logout() {
-    clearInterval(poll); session = null;
+    clearInterval(poll); session = null; dek = null;
     $("work").hidden = true; $("login").hidden = false; $("list").innerHTML = "";
   }
 
@@ -113,15 +136,17 @@
     const room = $("room").value.trim() || "—";
     const name = $("name").value.trim();
     if (!name) { $("name").focus(); return; }
-    $("statusText").textContent = "Envoi…";
+    $("statusText").textContent = "Chiffrement + envoi…";
     try {
+      // encrypt the PII on-device before it ever leaves the browser
+      const body = { location_id: session.location_id, room_number: await encField(room), name: await encField(name) };
       const r = await fetch(`${SUPA}/rest/v1/clients`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json", apikey: ANON,
           Authorization: `Bearer ${session.access_token}`, Prefer: "return=minimal",
         },
-        body: JSON.stringify({ location_id: session.location_id, room_number: room, name }),
+        body: JSON.stringify(body),
       });
       if (!r.ok) { $("statusText").textContent = "Erreur écriture (" + r.status + ")"; return; }
       $("room").value = ""; $("name").value = ""; $("name").focus();
@@ -137,12 +162,14 @@
       });
       if (!r.ok) { $("statusText").textContent = "Lecture refusée (" + r.status + ")"; return; }
       const rows = await r.json();
-      $("statusText").textContent = `En direct · ${rows.length} client(s) · maj ${new Date().toLocaleTimeString("fr-FR")}`;
-      $("list").innerHTML = rows.map((c) =>
-        `<div class="guest"><div class="no">${c.room_number === "—" ? "WI" : "Ch. " + c.room_number}</div>` +
-        `<div class="nm">${escapeHtml(c.name)}</div>` +
-        `<div class="t">${new Date(c.created_at).toLocaleTimeString("fr-FR")}</div></div>`
-      ).join("") || `<p style="text-align:center;color:var(--im-taupe);padding:24px">Aucun client. Ajoute-en un ☝️</p>`;
+      const items = await Promise.all(rows.map(async (c) => {
+        const nm = await decField(c.name), rm = await decField(c.room_number); // decrypt only here, on-device
+        return `<div class="guest"><div class="no">${rm === "—" ? "WI" : "Ch. " + escapeHtml(rm)}</div>` +
+          `<div class="nm">${escapeHtml(nm)}</div>` +
+          `<div class="t">${new Date(c.created_at).toLocaleTimeString("fr-FR")}</div></div>`;
+      }));
+      $("statusText").textContent = `En direct · ${rows.length} client(s) · déchiffrés ici · maj ${new Date().toLocaleTimeString("fr-FR")}`;
+      $("list").innerHTML = items.join("") || `<p style="text-align:center;color:var(--im-taupe);padding:24px">Aucun client. Ajoute-en un ☝️</p>`;
     } catch (e) { $("statusText").textContent = "Erreur réseau"; }
   }
 

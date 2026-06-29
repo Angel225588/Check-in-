@@ -47,6 +47,15 @@ Angel supplied a 7-day Mistral test key (env only, never committed). `scripts/te
 - **Real `R118 Package Forecast`** (actual Opera format, messy compound FR names) → clean table incl. the **package codes that drive breakfast logic** (BKF INC/GRP/COMP, UPSPDJ). ~2 minor l/I glyph quirks.
 Verdict: **Mistral OCR 4 (EU) is a strong replacement for Google Gemini** — structured tables map straight to our parser, and it's the sovereign/EU story. Next: wire `MISTRAL_API_KEY` into the app's OCR route (Angel setting it on Vercel), adapt the parser to consume markdown tables, drop Google.
 
+### Scope decision (Angel, late 2026-06-29) — minimal-change rollout
+- **The live hotel app UI/UX does NOT change.** No new screens to prod yet.
+- **Only addition:** a small **home/3D icon (top) to enter a sync code** → connects the device to Supabase sync.
+- **One screen live first: the existing restaurant / check-in screen.** The new Réception + Direction spaces stay **preview-only** until tested.
+- Rationale: don't disrupt what works; prove sync + zero-knowledge encryption under the current UI, expand later.
+
+### Zero-knowledge encryption — proven live in the browser
+`public/sync-test.html` upgraded: PII encrypted on-device (key derived from the access code) before write. Verified end-to-end against the live project: stored `name` = `v1:+GGwsbJXt5…` (ciphertext), **no plaintext leak**, decrypts back to the real name only on-device. Opening Supabase shows gibberish — owner-blind, as designed.
+
 ### Tomorrow (P1 — Angel tests code + sync)
 1. Wire `field-crypto` into the sync mapper → guest name/notes encrypted before they ever reach Supabase (the round-trip then shows **ciphertext** in the dashboard).
 2. Minimal **code-entry test page** on preview (enter code → add guest → see it sync) so Angel taps it on his phone with a demo code.
