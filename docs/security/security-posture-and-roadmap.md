@@ -113,8 +113,9 @@ Each rung has a **verification gate**. We do not claim a level until its proof e
 Each sprint = a rung. DoD = its verification gate. No sprint "done" without attached proof.
 
 **S0 · Quick wins — ship now, low risk (helps tomorrow without a risky cutover)**
-- **Delete the raw report photo/text right after OCR extraction** — keep only the clean structured data, **compressed**. This (a) removes the single highest-value PII asset from storage, (b) **fixes the localStorage "storage-full" problem at its root** (the raw images are what fill it), (c) needs no Supabase cutover → safe for tomorrow's live service on localStorage.
-- *Proof:* after upload, raw image/text is absent from storage (live read) · clean data still renders report + search · storage footprint drops (before/after).
+- **Confirmed (code inventory):** report **photos are NOT persisted** — they go to OCR in memory and are dropped. The only stored raw data is `rawUploadText` (the OCR'd text), which is what fills localStorage over time.
+- **Automatic daily purge:** on app load / day-close, **strip `rawUploadText` from all past (closed) sessions** (keep it only for the open day, where re-parsing may still need it). Today the trim only happens under quota pressure — make it **proactive every load/day** so storage is freed before it ever fills. Prune history bodies beyond the retention window; keep the small clean data for the history view.
+- *Proof (TDD):* failing test → after `closeDay()` + reload, past sessions' `rawUploadText` is empty (live read) · clean data still renders report + search + history · localStorage footprint drops measurably before/after.
 
 **Sequencing note (the sync, done safely):** turning on Supabase sync means **real guest names land in Supabase**. Per the locked owner-blind promise, **Level-A PII encryption is a prerequisite, not a follow-up** — so S1 + encryption + sync ship **together**, validated, before any prod flip. The cutover runs in **mirror mode** (localStorage stays authoritative/offline safety net; Supabase mirrors + serves the real-time cross-device read), so live service never depends on an unproven cutover. No blind pre-service flip.
 
@@ -125,7 +126,10 @@ Each sprint = a rung. DoD = its verification gate. No sprint "done" without atta
 
 **S2 · Cutover off localStorage → L1** *(biggest value + biggest risk killer)*
 - Turn on sync at Courtyard · dual-run 48h · divergence detector = 0 · localStorage demoted to offline buffer.
-- **Owner-blind PII encryption (Level A):** encrypt sensitive fields (guest name, allergy/dietary notes) at the **application layer** with a key held **outside Supabase** (Vercel/KMS). Result: opening the Supabase dashboard shows **ciphertext, not names** — the owner cannot casually read guest data. Search preserved via a **blind index** (HMAC of normalized name/room). The running app decrypts in-memory only to show authorized staff + power the dashboard.
+- **Zero-knowledge PII encryption (upgraded per Angel 2026-06-29 — "it's the company's data, not ours; we must not be able to read it"):** guest name + allergy/dietary notes are encrypted **client-side** with a key **derived from the location access code** (KDF + per-location salt). The key lives only in the device session, **never sent to the server** → Supabase (and we, the owner) store **only ciphertext we cannot decrypt.** Every device that knows the code derives the same key → real-time cross-device still works. Search preserved via a **blind index** (HMAC computed on-device). OCR runs on the uploading device (which has the code) → it encrypts before syncing; the server never sees plaintext names.
+  - **Dashboard:** runs on **non-PII aggregates** (counts: covers/VIP/comp/etc.) stored in clear — no guest names needed server-side. A manager *device* (has the code) decrypts names/notes locally when viewing a profile.
+  - **Honest tradeoffs (accepted):** no server-side analytics on names (don't need it); **lost code = unrecoverable data** (that *is* the security property — manager safeguards the code; optional hotel-held recovery key later); changing the code requires a re-key pass on a device holding old+new (rare).
+  - *Fallback:* if a tradeoff bites in build, drop to **Level A** (app holds the key, dashboard shows ciphertext) — still owner-blind on the dashboard, but the running app could decrypt. Zero-knowledge is the target.
 - **Simple code-change UI (pilot, no admin):** on Home, tap the code/home icon → "Modifier le code" → enter new code. If data exists on **both** the device and the target code's location → **merge (default)**, option "garder une seule". Manager-only rotation comes later.
 - *Proof:* `advisors(security)=0` · cross-tenant isolation test · 48h divergence-0 · region asserted before write · **PII columns unreadable in the Supabase dashboard (ciphertext)** · name-search still works via blind index · code-change merge round-trips.
 
@@ -152,9 +156,8 @@ Detect (audit + alerts) → Contain (rotate codes/keys, isolate) → Assess (wha
 1. ✅ **Pilot data** — confirmed real data → **S1+S2 are P0 this week.**
 2. ✅ **Retention** — **90 days**, then auto-delete/anonymize (operational + billing-dispute window).
 3. ✅ **OCR** — **Mistral OCR 4 (EU)**, switch **from tomorrow** onward.
-4. ✅ **Encryption / owner-blindness** — **Level A now** (app-layer PII encryption, key outside Supabase → owner sees ciphertext). At-rest encryption alone does **not** hide data from the project owner — that's why Level A is required.
+4. ✅ **Encryption / owner-blindness** — **Zero-knowledge** for guest PII (key derived from the access code, never on the server → *we cannot read the hotel's data*). Dashboard runs on non-PII counts. Level A is the fallback only if a tradeoff bites. At-rest encryption alone does **not** hide data from the owner — that's why client-side zero-knowledge is required.
 5. ⏳ **Phase 2 self-host (Mistral container)** — staged; flip when a buyer demands full sovereignty.
-6. ⏳ **Level B zero-knowledge** (key derived from access code; even the app/owner can't read server-side) — deferred: it would disable the server-side manager dashboard + complicate OCR. Revisit only if a buyer's security team requires it.
 7. ✅ **Raw-doc minimization** — delete the source photo/text after OCR, keep only clean compressed data (S0). Also fixes the storage-full problem.
 8. ✅ **Auto-delete after ~3 months** — confirmed (= the 90-day retention job, S4).
 9. ✅ **Access rule** — a device sees a location's data **only if its access code resolves to that same `location_id`** (RLS deny-by-default — already built). Same code = same data; different/none = nothing.
