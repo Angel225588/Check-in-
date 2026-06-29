@@ -41,6 +41,12 @@ Restored the paused free-tier project; ran `scripts/test-code-sync.mjs` against 
 
 Harness reads secrets from ENV (never hardcoded). Proves the **auth + sync + tenant-isolation plumbing**. NOTE: this path stores `name` in plaintext today — the zero-knowledge crypto lib is built but **not yet wired into the sync mapper** (tomorrow). Fine for demo/test data; real PII gets encryption first.
 
+### Mistral OCR — validated (live, real report)
+Angel supplied a 7-day Mistral test key (env only, never committed). `scripts/test-mistral-ocr.mjs` (key from ENV) ran against:
+- **Synthetic Courtyard daily arrival report** → perfect structured markdown table (40 rooms, all fields + totals), 2 pages / 4.3s.
+- **Real `R118 Package Forecast`** (actual Opera format, messy compound FR names) → clean table incl. the **package codes that drive breakfast logic** (BKF INC/GRP/COMP, UPSPDJ). ~2 minor l/I glyph quirks.
+Verdict: **Mistral OCR 4 (EU) is a strong replacement for Google Gemini** — structured tables map straight to our parser, and it's the sovereign/EU story. Next: wire `MISTRAL_API_KEY` into the app's OCR route (Angel setting it on Vercel), adapt the parser to consume markdown tables, drop Google.
+
 ### Tomorrow (P1 — Angel tests code + sync)
 1. Wire `field-crypto` into the sync mapper → guest name/notes encrypted before they ever reach Supabase (the round-trip then shows **ciphertext** in the dashboard).
 2. Minimal **code-entry test page** on preview (enter code → add guest → see it sync) so Angel taps it on his phone with a demo code.
