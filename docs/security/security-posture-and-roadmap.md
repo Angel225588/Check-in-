@@ -113,12 +113,15 @@ Each rung has a **verification gate**. We do not claim a level until its proof e
 Each sprint = a rung. DoD = its verification gate. No sprint "done" without attached proof.
 
 **S1 · Contain the bleeding → L0**
-- Inventory data (this doc §1) · move pepper + keys out of code into Supabase/Vercel secrets · rotate the bootstrap token · secret-scan the repo.
-- *Proof:* secret-scan clean · `auth-location` works with vaulted pepper (round-trip).
+- **Finding (2026-06-29 inventory):** the access-code `pepper` is read from the edge-function env, **but falls back to the `app_config` DB table** (`auth-location` + `admin-provision`). A pepper sitting in the DB defeats the "useless if DB leaks" guarantee.
+- Fix: set `LOCATION_CODE_PEPPER` as an **Edge Function secret only** (preserve the current value into it so existing code hashes stay valid), **remove the `app_config` pepper read/auto-insert** from both functions, redeploy. Rotate the **bootstrap token** (new sha256). Confirm `.env.local` is gitignored + secret-scan the tree.
+- *Proof:* pepper absent from `app_config` (live read) · `auth-location` still authenticates a known code with the vaulted pepper (round-trip) · secret-scan clean · new bootstrap token rejected-old/accepts-new.
 
 **S2 · Cutover off localStorage → L1** *(biggest value + biggest risk killer)*
 - Turn on sync at Courtyard · dual-run 48h · divergence detector = 0 · localStorage demoted to offline buffer.
-- *Proof:* `advisors(security)=0` · cross-tenant isolation test · 48h divergence-0 · region asserted before write.
+- **Owner-blind PII encryption (Level A):** encrypt sensitive fields (guest name, allergy/dietary notes) at the **application layer** with a key held **outside Supabase** (Vercel/KMS). Result: opening the Supabase dashboard shows **ciphertext, not names** — the owner cannot casually read guest data. Search preserved via a **blind index** (HMAC of normalized name/room). The running app decrypts in-memory only to show authorized staff + power the dashboard.
+- **Simple code-change UI (pilot, no admin):** on Home, tap the code/home icon → "Modifier le code" → enter new code. If data exists on **both** the device and the target code's location → **merge (default)**, option "garder une seule". Manager-only rotation comes later.
+- *Proof:* `advisors(security)=0` · cross-tenant isolation test · 48h divergence-0 · region asserted before write · **PII columns unreadable in the Supabase dashboard (ciphertext)** · name-search still works via blind index · code-change merge round-trips.
 
 **S3 · Sovereign OCR (Mistral) → L2**
 - Swap Gemini → Mistral OCR 4 (EU API) · DPA · remove Google · validate against malicious-image (prompt-injection) cases.
@@ -139,7 +142,10 @@ Detect (audit + alerts) → Contain (rotate codes/keys, isolate) → Assess (wha
 
 ---
 
-## 10. Open decisions for Angel
-1. **Retention window** — 30 / 60 / **90** days before delete-or-anonymize? (recommend 90, documented justification: operational + billing-dispute window.)
-2. **Phase 2 self-host timing** — wait for Marriott to demand it, or pre-empt as a sales asset?
-3. **Pilot data** — confirmed real data → S1+S2 are now P0, this week.
+## 10. Decisions — status
+1. ✅ **Pilot data** — confirmed real data → **S1+S2 are P0 this week.**
+2. ✅ **Retention** — **90 days**, then auto-delete/anonymize (operational + billing-dispute window).
+3. ✅ **OCR** — **Mistral OCR 4 (EU)**, switch **from tomorrow** onward.
+4. ✅ **Encryption / owner-blindness** — **Level A now** (app-layer PII encryption, key outside Supabase → owner sees ciphertext). At-rest encryption alone does **not** hide data from the project owner — that's why Level A is required.
+5. ⏳ **Phase 2 self-host (Mistral container)** — staged; flip when a buyer demands full sovereignty.
+6. ⏳ **Level B zero-knowledge** (key derived from access code; even the app/owner can't read server-side) — deferred: it would disable the server-side manager dashboard + complicate OCR. Revisit only if a buyer's security team requires it.

@@ -88,9 +88,6 @@ Any code that mutates external state MUST: (1) `write()` the mutation, (2) `read
 ## CEO Decision Queue (answer the top one — context · reco · default)
 Ordered by what's blocking progress. Angel answers #1; Claude executes and re-tops the queue. Full rationale: `docs/security/security-posture-and-roadmap.md`.
 
-| # | Decision | Context | Claude's reco | Default if silent |
-|---|---|---|---|---|
-| 1 | **This week's P0** | Real guest data is live on localStorage across browsers = biggest risk + no central view | **S1 (secrets out of code) + S2 (cutover → Supabase EU at Courtyard)** | proceed S1+S2 |
-| 2 | **Guest-data retention** | RGPD storage-limitation needs a documented window | **90 days, then auto-delete/anonymize** | 90 days |
-| 3 | **OCR engine** | Today sends the guest-list photo to Google (US) = top exposure | **Switch to Mistral OCR 4 (EU)** | switch to Mistral |
-| 4 | **Self-host timing** | On-prem container = "data never leaves the building" sales asset | **Mistral EU API now; self-host when a buyer demands it** | staged (API now) |
+**Resolved 2026-06-29:** P0 = **S1+S2 this week** ✅ · retention **90d** ✅ · OCR **Mistral, from tomorrow** ✅ · encryption **Level A** (app-layer PII encryption, key outside Supabase → owner sees ciphertext) ✅ · self-host + Level-B zero-knowledge **deferred** ⏳.
+
+**Active execution:** S1 (pepper → edge-secret-only, remove DB fallback, rotate bootstrap) → S2 (cutover + Level-A encryption + simple code-change UI). No open decision blocking; next surfaces after S1/S2 proof.
