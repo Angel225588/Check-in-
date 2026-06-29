@@ -28,10 +28,24 @@ Confirmed **photos are never persisted**; `rawUploadText` was the only storage h
 ### Security website page (plain French) — DRAFT, preview only
 `public/securite.html` — "Vos données protégées au niveau d'une banque." **Publishes claim-by-claim ONLY as each becomes literally true** (today only "no photos stored" is fully live; the rest gates on S1→cutover). Publishing untrue security claims is itself a liability.
 
-### Next
-- S1: pepper → edge-secret-only (remove `app_config` fallback) + rotate bootstrap token.
-- Zero-knowledge crypto lib (key-from-code, encrypt/decrypt, blind index) — TDD.
-- Wire sync in mirror mode on preview → integration harness green → flip live (no blind prod flip).
+### Shipped this session (preview branch)
+- **S0 auto-purge** ✅ · **quality hooks** ✅ · **zero-knowledge crypto lib** (`src/lib/crypto/field-crypto.ts`, 5 tests) ✅.
+
+### CODE + SYNC — proven GREEN (live, round-trip)
+Restored the paused free-tier project; ran `scripts/test-code-sync.mjs` against the **live** Supabase project (eu-west-3). All checks pass:
+1. **Code → session** — `DEMO-STAFF-1234` → scoped session for "Courtyard Demo", role=staff ✅
+2. **Wrong code → 401** ✅
+3. **Write → round-trip read matches** (inserted a client, read it back) ✅
+4. **Isolation** — the other location (`Demo Two`) sees **0 rows** (RLS holds) ✅
+5. **Anon reads nothing** (deny-by-default) ✅
+
+Harness reads secrets from ENV (never hardcoded). Proves the **auth + sync + tenant-isolation plumbing**. NOTE: this path stores `name` in plaintext today — the zero-knowledge crypto lib is built but **not yet wired into the sync mapper** (tomorrow). Fine for demo/test data; real PII gets encryption first.
+
+### Tomorrow (P1 — Angel tests code + sync)
+1. Wire `field-crypto` into the sync mapper → guest name/notes encrypted before they ever reach Supabase (the round-trip then shows **ciphertext** in the dashboard).
+2. Minimal **code-entry test page** on preview (enter code → add guest → see it sync) so Angel taps it on his phone with a demo code.
+3. Re-run the harness green (now with encryption asserted).
+4. **No prod flip** — preview + demo data only. localStorage stays authoritative → **zero data-loss risk**.
 
 ---
 
