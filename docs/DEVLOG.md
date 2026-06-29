@@ -4,6 +4,37 @@ Reverse-chronological log of substantive work. Each entry: what shipped, proof, 
 
 ---
 
+## 2026-06-29 — Security-first pivot: zero-knowledge, quality hooks, S0 storage fix
+
+### Operating model — Claude = Director of Development
+Angel (CEO) delegated dev/security/design execution + the prod gate to Claude; CEO sets priorities + gives prod-launch timing. Codified in `CLAUDE.md` + new `AGENTS.md`. Cadence: one decision at a time (context · reco · default), tracked in the CLAUDE.md **CEO Decision Queue**.
+
+### Security posture + central-bank maturity roadmap
+New doc `docs/security/security-posture-and-roadmap.md`: data map, threat model, **L0–L5 maturity ladder** with per-rung verification gates, RGPD/CNIL checklist, sub-processor register. Operating order locked: **Security → situations → user → hook → design.**
+
+### Decisions (locked 2026-06-29)
+- **Encryption = zero-knowledge** — key derived from the access code, never on the server → *we cannot read the hotel's guest data*. Dashboard runs on non-PII counts. Lost-code = lost-data (accepted security property).
+- **OCR** — drop Google Gemini → **Mistral OCR 4** (French, EU; self-host container in Phase 2), from tomorrow.
+- **Retention** — 90 days, then auto-delete/anonymize.
+- **Access** — same location code = same data (RLS deny-by-default).
+
+### Quality hooks (enforced, not remembered) — `.claude/hooks/`
+`secret-guard` (DENY hardcoded secrets/JWT/pepper in code) · `git-guard` (ASK on commit/push to `main`, DENY force-push) · `push-reminder` (nudge unpushed commits). Fail-open, unit-tested. Rule→enforcement map in `AGENTS.md`.
+
+### S0 — storage auto-purge → SHIPPED (preview)
+Confirmed **photos are never persisted**; `rawUploadText` was the only storage hog. `purgeStaleRawText()` clears OCR text from closed sessions on load.
+- **Proof:** TDD `src/__tests__/storage-purge.test.ts` (3 tests, failing-first proven) · full suite **255 green** · `tsc` clean. localStorage-only, idempotent.
+
+### Security website page (plain French) — DRAFT, preview only
+`public/securite.html` — "Vos données protégées au niveau d'une banque." **Publishes claim-by-claim ONLY as each becomes literally true** (today only "no photos stored" is fully live; the rest gates on S1→cutover). Publishing untrue security claims is itself a liability.
+
+### Next
+- S1: pepper → edge-secret-only (remove `app_config` fallback) + rotate bootstrap token.
+- Zero-knowledge crypto lib (key-from-code, encrypt/decrypt, blind index) — TDD.
+- Wire sync in mirror mode on preview → integration harness green → flip live (no blind prod flip).
+
+---
+
 ## 2026-06-18 — Supabase migration (security foundation) + landing online
 
 ### Landing page → LIVE
