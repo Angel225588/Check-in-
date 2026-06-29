@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imarketin — Test Sync</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="imarketin-ui.css" rel="stylesheet">
+<style>
+  body { margin:0; }
+  .wrap { max-width:560px; margin:0 auto; padding:32px 22px 80px; }
+  .head { text-align:center; margin-bottom:22px; }
+  .row { display:flex; gap:10px; }
+  .row .im-field { flex:1; }
+  .guest { display:flex; align-items:center; gap:12px; background:var(--im-white); border:1px solid var(--im-hairline);
+           border-radius:14px; padding:13px 16px; box-shadow:var(--im-sh-soft); margin-bottom:9px; animation:im-screen-in .35s var(--im-ease) both; }
+  .guest .no { font-family:var(--im-serif); font-weight:600; font-size:16px; color:var(--im-gold); width:64px; }
+  .guest .nm { font-weight:700; font-size:15px; color:var(--im-ink); flex:1; }
+  .guest .t { font-size:11px; color:var(--im-taupe); }
+  .status { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--im-taupe); justify-content:center; margin:14px 0; }
+  .hint { background:var(--im-gold-tint); border:1px solid var(--im-gold-tint-2); border-radius:14px; padding:14px 16px;
+          font-size:13px; color:var(--im-ink); line-height:1.55; margin-top:22px; }
+  .hint b { color:var(--im-gold); }
+  .loc { text-align:center; }
+  .err { color:var(--im-alert); font-size:13px; text-align:center; margin-top:8px; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .codes { font-size:12px; color:var(--im-taupe); text-align:center; margin-top:14px; line-height:1.7; }
+  .ghost-sm { font-size:13px; padding:9px 16px; }
+</style>
+</head>
+<body class="im im-bg">
+<div class="wrap">
+
+  <!-- LOGIN -->
+  <section id="login">
+    <div class="head">
+      <h1 class="im-mark" style="font-size:20px">IMARKETIN<span class="dot">.</span></h1>
+      <p class="im-lead" style="font-size:18px;margin-top:6px">Test de synchronisation</p>
+      <p class="im-sub" style="margin-top:6px">Entre un code d'accès démo pour commencer.</p>
+    </div>
+    <input class="im-field im-field--code" id="code" placeholder="DEMO-STAFF-1234" autocomplete="off" autocapitalize="characters">
+    <button class="im-btn im-btn--primary im-btn--block" style="margin-top:12px" onclick="login()">Se connecter</button>
+    <p class="err" id="loginErr"></p>
+    <div class="codes">
+      Codes démo :<br>
+      <b>DEMO-STAFF-1234</b> (Courtyard Demo) · <b>TWO-STAFF-5555</b> (Demo Two)
+    </div>
+  </section>
+
+  <!-- WORKSPACE -->
+  <section id="work" hidden>
+    <div class="topbar">
+      <div>
+        <div class="im-eyebrow">Connecté · synchronisé</div>
+        <div class="im-title" id="locName" style="font-size:22px"></div>
+      </div>
+      <button class="im-btn im-btn--ghost ghost-sm" onclick="logout()">Quitter</button>
+    </div>
+
+    <div class="row">
+      <input class="im-field" id="room" placeholder="Chambre (ex: 204)" style="max-width:140px" inputmode="numeric">
+      <input class="im-field" id="name" placeholder="Nom du client">
+    </div>
+    <button class="im-btn im-btn--primary im-btn--block" style="margin-top:10px" onclick="addGuest()">Ajouter &amp; synchroniser</button>
+
+    <div class="status"><span class="im-dot-live"></span> <span id="statusText">En direct — actualisation toutes les 3 s</span></div>
+
+    <div id="list"></div>
+
+    <div class="hint">
+      🔁 <b>Test multi-navigateur :</b> ouvre cette même page dans un autre navigateur (ou ton téléphone) avec le <b>même code</b>. Ajoute un client ici → il apparaît là-bas en ~3 s.<br><br>
+      🗄️ <b>Vérifie dans Supabase :</b> Table Editor → table <b>clients</b> → tu vois les lignes apparaître (chiffrement zéro-knowledge pas encore branché — les noms sont en clair pour ce test).
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const SUPA = "https://qimhmwkmkbqxsvtayldn.supabase.co";
+  const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpbWhtd2tta2JxeHN2dGF5bGRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3OTkzNDUsImV4cCI6MjA5NzM3NTM0NX0.I56UA2pAERLaoflWK5Qf-LUkd-ONY8-t_TQzdeL-rFQ";
+  let session = null, poll = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  async function login() {
+    const code = $("code").value.trim();
+    $("loginErr").textContent = "";
+    if (!code) { $("loginErr").textContent = "Entre un code."; return; }
+    try {
+      const r = await fetch(`${SUPA}/functions/v1/auth-location`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: ANON, Authorization: `Bearer ${ANON}` },
+        body: JSON.stringify({ code }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.access_token) { $("loginErr").textContent = "Code invalide (" + r.status + ")."; return; }
+      session = j;
+      $("locName").textContent = j.location_name || "Établissement";
+      $("login").hidden = true; $("work").hidden = false;
+      refresh(); poll = setInterval(refresh, 3000);
+    } catch (e) { $("loginErr").textContent = "Erreur réseau."; }
+  }
+
+  function logout() {
+    clearInterval(poll); session = null;
+    $("work").hidden = true; $("login").hidden = false; $("list").innerHTML = "";
+  }
+
+  async function addGuest() {
+    if (!session) return;
+    const room = $("room").value.trim() || "—";
+    const name = $("name").value.trim();
+    if (!name) { $("name").focus(); return; }
+    $("statusText").textContent = "Envoi…";
+    try {
+      const r = await fetch(`${SUPA}/rest/v1/clients`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json", apikey: ANON,
+          Authorization: `Bearer ${session.access_token}`, Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ location_id: session.location_id, room_number: room, name }),
+      });
+      if (!r.ok) { $("statusText").textContent = "Erreur écriture (" + r.status + ")"; return; }
+      $("room").value = ""; $("name").value = ""; $("name").focus();
+      refresh();
+    } catch (e) { $("statusText").textContent = "Erreur réseau"; }
+  }
+
+  async function refresh() {
+    if (!session) return;
+    try {
+      const r = await fetch(`${SUPA}/rest/v1/clients?select=id,room_number,name,created_at&deleted_at=is.null&order=created_at.desc&limit=100`, {
+        headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!r.ok) { $("statusText").textContent = "Lecture refusée (" + r.status + ")"; return; }
+      const rows = await r.json();
+      $("statusText").textContent = `En direct · ${rows.length} client(s) · maj ${new Date().toLocaleTimeString("fr-FR")}`;
+      $("list").innerHTML = rows.map((c) =>
+        `<div class="guest"><div class="no">${c.room_number === "—" ? "WI" : "Ch. " + c.room_number}</div>` +
+        `<div class="nm">${escapeHtml(c.name)}</div>` +
+        `<div class="t">${new Date(c.created_at).toLocaleTimeString("fr-FR")}</div></div>`
+      ).join("") || `<p style="text-align:center;color:var(--im-taupe);padding:24px">Aucun client. Ajoute-en un ☝️</p>`;
+    } catch (e) { $("statusText").textContent = "Erreur réseau"; }
+  }
+
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  $("code").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+  $("name").addEventListener("keydown", (e) => { if (e.key === "Enter") addGuest(); });
+</script>
+</body>
+</html>
