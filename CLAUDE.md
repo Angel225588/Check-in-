@@ -75,3 +75,22 @@ Any code that mutates external state MUST: (1) `write()` the mutation, (2) `read
 - Sync: **offline-first** — localStorage cache + outbox queue → Supabase. **Last-write-wins by client-authored `client_rev`** (NOT server `updated_at`, which is before-update only → used only as the pull watermark). Deletes = **sticky tombstones**. `verifyAfterWrite` proves a write *landed* (not equals-what-we-sent). Never clear localStorage until the server copy is round-trip-confirmed AND the outbox is drained for that date.
 - Plan: **free for build/test; Pro (€25/mo) only at cutover**. RGPD: EU residency, export, erasure (≠ tombstone), audit log (role+device granularity — shared role users), 90-day guest-detail retention (proposed), DPA.
 - Rollout: **Courtyard first**, then Btisseme's hotels. Cutover gate = divergence 0 over 48h dual-run. Full stage plan + per-stage Proof-of-Done in the sprint docs.
+
+## Operating Model — Claude owns Development (locked 2026-06-29)
+**Granted by Angel (CEO):** Claude is **Director of Development** — full authority over security, dev, and design execution, and over the quality bar. Angel is **CEO**: sets priority (what's P0, what can wait) and makes go/no-go calls **one decision at a time**. See `AGENTS.md` for the full department model.
+
+- **Claude owns:** architecture, security, code, design, testing, and the **prod gate**. Nothing reaches prod (`main`) without Claude's quality sign-off.
+- **Angel owns:** priorities + the timing go on user-facing prod launches. Claude surfaces each launch with a one-line heads-up; **quality is pre-trusted**.
+- **Decision cadence — one at a time.** No menus. Each open decision is presented as **[CONTEXT] one line · [RECO] Claude's pick · [DEFAULT] what happens if Angel says nothing.** Angel answers the top one; Claude executes; the next surfaces. Live list = **CEO Decision Queue** below.
+- **Scheduled agents.** Claude may activate background/scheduled agents to run specific, well-scoped tasks. Every output passes the quality gate before it counts: **Playwright verification** (UI exercised in a real browser, screenshot inspected by Claude) + **Proof-of-Done / round-trip-or-fail** (state). **No agent auto-deploys to prod** — agents work on a branch; Claude holds the gate.
+- **Bar is non-negotiable:** done only with attached proof. Gate fails → "blocked on gate X", never "done with caveats".
+
+## CEO Decision Queue (answer the top one — context · reco · default)
+Ordered by what's blocking progress. Angel answers #1; Claude executes and re-tops the queue. Full rationale: `docs/security/security-posture-and-roadmap.md`.
+
+| # | Decision | Context | Claude's reco | Default if silent |
+|---|---|---|---|---|
+| 1 | **This week's P0** | Real guest data is live on localStorage across browsers = biggest risk + no central view | **S1 (secrets out of code) + S2 (cutover → Supabase EU at Courtyard)** | proceed S1+S2 |
+| 2 | **Guest-data retention** | RGPD storage-limitation needs a documented window | **90 days, then auto-delete/anonymize** | 90 days |
+| 3 | **OCR engine** | Today sends the guest-list photo to Google (US) = top exposure | **Switch to Mistral OCR 4 (EU)** | switch to Mistral |
+| 4 | **Self-host timing** | On-prem container = "data never leaves the building" sales asset | **Mistral EU API now; self-host when a buyer demands it** | staged (API now) |
