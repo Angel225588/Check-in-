@@ -167,6 +167,7 @@ export function removeCheckIn(id: string): boolean {
   const idx = data.checkIns.findIndex((c) => c.id === id);
   if (idx === -1) return false;
   const [rec] = data.checkIns.splice(idx, 1);
+  addCheckInTombstone(id); // Sync v2: a concurrent server pull must not resurrect it
   saveTodayData(data);
   if (SYNC_ENABLED) {
     stampCheckin(rec);
@@ -179,6 +180,73 @@ export function getCheckInsForRoom(roomNumber: string): CheckInRecord[] {
   const data = getTodayData();
   if (!data) return [];
   return data.checkIns.filter((c) => c.roomNumber === roomNumber);
+}
+
+// --- Cross-device check-in reconcile (Sync v2) ---
+// Check-in records are immutable once created; the only mutation is undo. So the
+// reconcile is purely additive (add records other devices created) + tombstone-
+// driven removal (a record undone on any device disappears everywhere). No LWW.
+
+const CHECKIN_TOMBSTONE_KEY = "imk_checkin_tombstones";
+
+/** Ids this device has undone — kept so a pull that still sees them live can't resurrect them. */
+export function checkInTombstones(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(CHECKIN_TOMBSTONE_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeCheckInTombstones(set: Set<string>): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CHECKIN_TOMBSTONE_KEY, JSON.stringify([...set]));
+  } catch {
+    /* best-effort: a missed tombstone only risks a transient re-appear, healed next pull */
+  }
+}
+
+export function addCheckInTombstone(id: string): void {
+  const set = checkInTombstones();
+  set.add(id);
+  writeCheckInTombstones(set);
+}
+
+export function clearCheckInTombstones(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(CHECKIN_TOMBSTONE_KEY);
+}
+
+/**
+ * Reconcile server check-ins into today's local session (Sync v2).
+ * - Adds any live server record not present locally → device B sees device A's check-in,
+ *   so its remaining/allDone reflects reality and the existing guard blocks a duplicate.
+ * - Removes any record the server tombstoned → undo propagates across devices.
+ * - Never resurrects a record THIS device just undid (local tombstone wins until its own
+ *   tombstone push lands). Pass already-decrypted records; this layer stays crypto-free.
+ */
+export function applyServerCheckins(live: CheckInRecord[], deletedIds: string[]): void {
+  const data = getTodayData();
+  if (!data) return;
+  const tombstones = checkInTombstones();
+  const byId = new Map<string, CheckInRecord>();
+  for (const ci of data.checkIns) byId.set(ci.id, ci);
+
+  const deleted = new Set(deletedIds);
+  for (const id of deleted) {
+    byId.delete(id);
+    tombstones.add(id); // remember it so a later live pull can't bring it back
+  }
+  for (const rec of live) {
+    if (tombstones.has(rec.id) || deleted.has(rec.id)) continue;
+    if (!byId.has(rec.id)) byId.set(rec.id, rec);
+  }
+
+  saveTodayData({ ...data, checkIns: Array.from(byId.values()) });
+  writeCheckInTombstones(tombstones);
 }
 
 export function clearDayData(date: string): void {
@@ -293,6 +361,7 @@ export function closeDay(): SessionRecord | null {
     // When sync is on, keep the day until its outbox is drained (never lose unsynced writes).
     if (!(SYNC_ENABLED && hasPendingForDate(data.date))) {
       clearDayData(data.date);
+      clearCheckInTombstones(); // day is done — tombstone set no longer needed
     }
   }
 

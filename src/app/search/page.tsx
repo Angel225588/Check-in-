@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useDailyData } from "@/hooks/useDailyData";
+import { useLiveSync } from "@/hooks/useLiveSync";
 import { useSearch } from "@/hooks/useSearch";
 import { useApp } from "@/contexts/AppContext";
 import { addClient, mergeVipIntoSession } from "@/lib/storage";
@@ -93,11 +94,9 @@ export default function SearchPage() {
     if (filter) clear();
   };
 
-  useEffect(() => {
-    const onFocus = () => refresh();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refresh]);
+  // Sync v2: live reconcile of check-ins (poll + Realtime) and roster, so this
+  // device always reflects what other postes did. refresh() re-reads localStorage.
+  useLiveSync(refresh);
 
   // Show merge banner from upload redirect
   useEffect(() => {

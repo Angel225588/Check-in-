@@ -5,7 +5,8 @@ import type { Client } from "../types";
 import { getSupabase } from "../supabase";
 import { cachedLocation } from "./session";
 import { getTodayData, saveClientsMerged } from "../storage";
-import { deriveLocationKeys, encryptField, decryptField, blindIndex } from "../crypto/field-crypto";
+import { encryptField, decryptField, blindIndex } from "../crypto/field-crypto";
+import { locationKeys } from "./keys";
 
 const SYNC_CODE_KEY = "imk_sync_code";
 
@@ -48,7 +49,7 @@ export async function syncDayToSupabase(code: string): Promise<PushResult> {
   if (clients.length === 0) return { pushed: 0 };
 
   // Salt = base64(location_id): non-secret, stable, shared by every device with the code.
-  const { dek, indexKey } = await deriveLocationKeys(code, btoa(loc.locationId));
+  const { dek, indexKey } = await locationKeys(code);
 
   const rows = await Promise.all(
     clients.map(async (c) => ({
@@ -101,7 +102,7 @@ export async function autoSyncIfConnected(): Promise<void> {
 export async function pullDayFromSupabase(code: string): Promise<PullResult> {
   const loc = cachedLocation();
   if (!loc) throw new Error("not_connected");
-  const { dek } = await deriveLocationKeys(code, btoa(loc.locationId));
+  const { dek } = await locationKeys(code);
 
   const { data, error } = await getSupabase().from("clients").select("*").is("deleted_at", null);
   if (error) throw new Error(error.message);

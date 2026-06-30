@@ -9,7 +9,8 @@ interface ClientHistoryProps {
   roomNumber: string;
   clientName: string;
   todayCheckIns: CheckInRecord[];
-  onUndo?: () => void;
+  /** Receives the removed check-in id so the caller can sync a tombstone (Sync v2). */
+  onUndo?: (removedId: string) => void;
 }
 
 export default function ClientHistory({ roomNumber, clientName, todayCheckIns, onUndo }: ClientHistoryProps) {
@@ -23,9 +24,10 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
 
   const handleUndo = () => {
     if (!confirmUndo) return;
-    removeCheckIn(confirmUndo.id);
+    const removedId = confirmUndo.id;
+    removeCheckIn(removedId);
     setConfirmUndo(null);
-    onUndo?.();
+    onUndo?.(removedId);
   };
 
   const pastDates = history.slice(0, 3);

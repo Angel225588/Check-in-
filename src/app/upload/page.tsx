@@ -12,6 +12,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
 import { exchangeCode, cachedLocation, type LocationSession } from "@/lib/sync/session";
 import { syncDayToSupabase, pullDayFromSupabase, storeSyncCode, autoSyncIfConnected } from "@/lib/sync/push-day";
+import { syncCheckinsToSupabase, pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
 import { SUPABASE_URL, DEFAULT_SYNC_CODE } from "@/lib/sync/config";
 import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
@@ -303,6 +304,7 @@ function SyncDrawer({ onClose }: { onClose: () => void }) {
       // Pull the session already in the cloud (decrypted on-device) so you see it here.
       try {
         const { pulled } = await pullDayFromSupabase(c);
+        await pullCheckinsFromSupabase(c); // Sync v2: also reconcile who's already checked in
         if (pulled > 0) {
           setNote(`Session récupérée · ${pulled} client(s) — ouverture…`);
           setTimeout(() => window.location.assign("/search"), 800);
@@ -331,6 +333,7 @@ function SyncDrawer({ onClose }: { onClose: () => void }) {
     setBusy(true); setErr(""); setNote("");
     try {
       const { pushed } = await syncDayToSupabase(c);
+      await syncCheckinsToSupabase(c); // Sync v2: push check-in state too
       setNote(pushed > 0 ? `${pushed} client(s) synchronisé(s) ✓` : "Aucun client chargé à synchroniser.");
     } catch (e) {
       setNote("Envoi échoué : " + (e as Error).message);

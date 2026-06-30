@@ -11,7 +11,12 @@ import {
   getSettings,
   getSessionHistory,
 } from "@/lib/storage";
-import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
+import {
+  autoSyncCheckinsIfConnected,
+  autoTombstoneIfConnected,
+  autoPullCheckinsIfConnected,
+} from "@/lib/sync/push-checkins";
+import { getRemainingForRoom, isComp, needsPaymentChoice, formatTime } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import ClientHistory from "@/components/ClientHistory";
@@ -96,14 +101,28 @@ export default function CheckInPage({
     }
 
     // Load today's check-ins for this client
-    const normName = found.name.trim().toLowerCase().replace(/\s+/g, " ");
-    setTodayCheckIns(
-      data.checkIns.filter(
+    const fc = found;
+    const normName = fc.name.trim().toLowerCase().replace(/\s+/g, " ");
+    const ownCheckIns = (d: typeof data) =>
+      d.checkIns.filter(
         (ci) =>
-          ci.roomNumber === found.roomNumber &&
+          ci.roomNumber === fc.roomNumber &&
           ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
-      )
-    );
+      );
+    setTodayCheckIns(ownCheckIns(data));
+
+    // Sync v2: pull other devices' check-ins BEFORE the receptionist can act, so
+    // `remaining`/`allDone` reflects reality. This is what stops the duplicate —
+    // if another poste already checked this guest in, the button is disabled here too.
+    autoPullCheckinsIfConnected().then((changed) => {
+      if (changed < 0) return;
+      const fresh = getTodayData();
+      if (!fresh) return;
+      const rem2 = getRemainingForRoom(fc, fresh.checkIns);
+      setRemaining(rem2);
+      setCount(Math.max(1, rem2));
+      setTodayCheckIns(ownCheckIns(fresh));
+    });
   }, [roomNumber, router, searchParams]);
 
   // Hooks must run unconditionally, BEFORE any early return.
@@ -184,6 +203,14 @@ export default function CheckInPage({
   const entered = total - remaining;
   const progressPercent = total > 0 ? (entered / total) * 100 : 0;
 
+  // Sync v2: surface that this guest was already checked in (possibly on another
+  // poste) so reception understands WHY the button is locked — no silent duplicate.
+  const firstEntry =
+    todayCheckIns.length > 0
+      ? [...todayCheckIns].sort((a, b) => a.timestamp.localeCompare(b.timestamp))[0]
+      : null;
+  const enteredPeople = todayCheckIns.reduce((s, ci) => s + ci.peopleEntered, 0);
+
   const handleCheckIn = () => {
     if (count <= 0 || allDone || checkInSuccess) return;
     const record: CheckInRecord = {
@@ -195,6 +222,7 @@ export default function CheckInPage({
       ...(paymentAction ? { paymentAction } : {}),
     };
     addCheckIn(record);
+    autoSyncCheckinsIfConnected(); // Sync v2: push so other devices see it (fire-and-forget)
     setCheckInSuccess(true);
     setTimeout(() => router.push("/search"), 800);
   };
@@ -335,6 +363,18 @@ export default function CheckInPage({
 
       {/* Content */}
       <div className="flex-1 flex flex-col px-4 pt-2 pb-4 overflow-hidden">
+        {/* Déjà-pointé banner — appears as soon as any device has checked this guest in */}
+        {firstEntry && (
+          <div className="shrink-0 mb-3 flex items-center gap-2.5 px-3.5 py-2.5 rounded-[14px] bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20">
+            <Clock weight="duotone" size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-[13px] text-dark leading-snug">
+              <span className="font-bold">{t("checkin.alreadyChecked")}</span>{" "}
+              {t("checkin.at")} {formatTime(firstEntry.timestamp)} · {enteredPeople}{" "}
+              {enteredPeople === 1 ? t("undo.person") : t("undo.people")}
+              {todayCheckIns.length > 1 ? ` · ${todayCheckIns.length}×` : ""}
+            </span>
+          </div>
+        )}
         {/* Progress bar */}
         <div className="shrink-0 mb-4">
           <div className="flex justify-between items-baseline mb-1.5">
@@ -480,7 +520,8 @@ export default function CheckInPage({
           roomNumber={client.roomNumber}
           clientName={client.name}
           todayCheckIns={todayCheckIns}
-          onUndo={() => {
+          onUndo={(removedId) => {
+            autoTombstoneIfConnected(removedId); // Sync v2: propagate undo to other devices
             // Refresh data after undo
             const data = getTodayData();
             if (data && client) {

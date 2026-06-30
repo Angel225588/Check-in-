@@ -95,6 +95,8 @@ const translations = {
   "checkin.save": { fr: "Sauvegarder", en: "Save" },
   "checkin.cancel": { fr: "Annuler", en: "Cancel" },
   "checkin.confirmed": { fr: "Enregistré", en: "Checked In" },
+  "checkin.alreadyChecked": { fr: "Déjà pointé", en: "Already checked in" },
+  "checkin.at": { fr: "à", en: "at" },
 
   // History
   "history.title": { fr: "Historique des Check-ins", en: "Check-in History" },
