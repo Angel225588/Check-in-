@@ -5,7 +5,19 @@ import type { Client } from "../types";
 import { getSupabase } from "../supabase";
 import { cachedLocation } from "./session";
 import { getTodayData, saveClientsMerged } from "../storage";
-import { deriveLocationKeys, encryptField, decryptField } from "../crypto/field-crypto";
+import { deriveLocationKeys, encryptField, decryptField, blindIndex } from "../crypto/field-crypto";
+
+const SYNC_CODE_KEY = "imk_sync_code";
+
+/** Keep the access code on-device so sync can encrypt without re-asking. The device
+ *  is the authorized decryptor; the server still can never read the data. */
+export function storeSyncCode(code: string): void {
+  if (typeof window !== "undefined") localStorage.setItem(SYNC_CODE_KEY, code.trim());
+}
+export function storedSyncCode(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(SYNC_CODE_KEY) || "";
+}
 
 export interface PushResult {
   pushed: number;
@@ -36,11 +48,13 @@ export async function syncDayToSupabase(code: string): Promise<PushResult> {
   if (clients.length === 0) return { pushed: 0 };
 
   // Salt = base64(location_id): non-secret, stable, shared by every device with the code.
-  const { dek } = await deriveLocationKeys(code, btoa(loc.locationId));
+  const { dek, indexKey } = await deriveLocationKeys(code, btoa(loc.locationId));
 
   const rows = await Promise.all(
     clients.map(async (c) => ({
       location_id: loc.locationId,
+      // deterministic, non-PII dedup key (blind index of room|name) — drives idempotent upsert
+      client_local_key: await blindIndex(indexKey, `${(c.roomNumber || "").trim()}|${(c.name || "").trim()}`),
       room_number: await encryptField(dek, c.roomNumber || "—"), // PII → ciphertext
       name: await encryptField(dek, c.name || ""), // PII → ciphertext
       vip_notes: c.vipNotes ? await encryptField(dek, c.vipNotes) : "", // PII → ciphertext
@@ -60,9 +74,23 @@ export async function syncDayToSupabase(code: string): Promise<PushResult> {
     }))
   );
 
-  const { error } = await getSupabase().from("clients").insert(rows);
+  // Upsert on (location_id, client_local_key) → re-uploads/auto-sync never duplicate.
+  const { error } = await getSupabase()
+    .from("clients")
+    .upsert(rows, { onConflict: "location_id,client_local_key" });
   if (error) throw new Error(error.message);
   return { pushed: rows.length };
+}
+
+/** Fire-and-forget: push today's clients if this device is connected. Never throws. */
+export async function autoSyncIfConnected(): Promise<void> {
+  try {
+    const code = storedSyncCode();
+    if (!code || !cachedLocation()) return;
+    await syncDayToSupabase(code);
+  } catch (e) {
+    console.error("autoSync failed:", e);
+  }
 }
 
 /**
