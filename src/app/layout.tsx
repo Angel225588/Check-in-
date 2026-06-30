@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
+import AnalyticsSafe from "@/components/AnalyticsSafe";
 
 
 export const metadata: Metadata = {
@@ -45,7 +45,7 @@ export default function RootLayout({
         <AppProvider>
           {children}
         </AppProvider>
-        <Analytics />
+        <AnalyticsSafe />
       </body>
     </html>
   );
