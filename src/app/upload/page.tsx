@@ -1230,11 +1230,6 @@ export default function UploadPage() {
               </button>
             </div>
           </div>
-
-          <h1 className="text-[26px] font-black text-dark leading-tight">
-            {t("processing.title")}
-          </h1>
-          <p className="text-sm text-muted mt-0.5">{t("processing.desc")}</p>
         </div>
 
         {/* Processing content — agent-style narration while OCR runs */}
