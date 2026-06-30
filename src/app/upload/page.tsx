@@ -27,11 +27,19 @@ import SettingsToggle from "@/components/SettingsToggle";
 import AnalyseProgress from "@/components/AnalyseProgress";
 import ImpactScreen from "@/components/ImpactScreen";
 
+/** What the classifier recognised across all uploaded docs in one go. */
+interface DocsSummary {
+  breakfast: number; // rooms on the breakfast/arrival list
+  vip: number;       // VIP rows
+  brief: number;     // morning-brief docs recognised
+  nopost: number;    // no-post (no room charge) docs recognised
+}
+
 interface PdfUploadStatus {
   file: File;
   name: string;
   status: "uploading" | "processing" | "verifying" | "done" | "error";
-  docType?: "clients" | "vip" | "unknown";
+  docType?: "clients" | "vip" | "brief" | "nopost" | "unknown";
   clients: Client[];
   pages?: number;
   rawText?: string;
@@ -411,6 +419,8 @@ export default function UploadPage() {
   // View state: home → processing/pdf-processing (narration) → impact (preview) → /search,
   // or in reception "pick" mode → impact (preview) → sent (transmis) → /reception.
   const [view, setView] = useState<"home" | "processing" | "pdf-processing" | "impact" | "sent">("home");
+  // What the classifier recognised across the uploaded docs (smart multi-doc).
+  const [recognizedDocs, setRecognizedDocs] = useState<DocsSummary | null>(null);
   const [analyseElapsed, setAnalyseElapsed] = useState(0);
   const [procElapsed, setProcElapsed] = useState(0); // live seconds while analysing
   const analyseStartRef = useRef<number | null>(null);
@@ -540,6 +550,7 @@ export default function UploadPage() {
   // Unified handler: auto-routes clients vs VIP based on document type
   const handleUnifiedResult = (clientPages: Client[], vipPages: Client[], rawText: string) => {
     setOcrRawText(rawText);
+    setRecognizedDocs({ breakfast: clientPages.length, vip: vipPages.length, brief: 0, nopost: 0 });
     if (clientPages.length > 0) setBaseClients(clientPages);
     if (vipPages.length > 0) setVipRawClients(vipPages);
     if (clientPages.length > 0 || vipPages.length > 0) enterImpact();
@@ -572,7 +583,7 @@ export default function UploadPage() {
 
       const data = await res.json();
       const clients = Array.isArray(data.clients) ? data.clients as Client[] : [];
-      const docType = (data.type as "clients" | "vip" | "unknown") || "unknown";
+      const docType = (data.type as "clients" | "vip" | "brief" | "nopost" | "unknown") || "unknown";
 
       setPdfUploads((prev) => prev.map((p, i) =>
         i === index ? { ...p, status: "verifying", clients, docType, pages: data.pages, rawText: data.rawText } : p
@@ -643,9 +654,19 @@ export default function UploadPage() {
     const donePdfs = pdfUploads.filter((p) => p.status === "done");
     if (donePdfs.length === 0) return;
 
-    const clientPdfs = donePdfs.filter((p) => p.docType !== "vip").flatMap((p) => p.clients);
+    const clientPdfs = donePdfs.filter((p) => p.docType === "clients" || p.docType === "unknown" || !p.docType).flatMap((p) => p.clients);
     const vipPdfs = donePdfs.filter((p) => p.docType === "vip").flatMap((p) => p.clients);
     const allRaw = donePdfs.map((p) => p.rawText).filter(Boolean).join("\n---\n");
+
+    // Smart multi-doc: tell the user what each uploaded doc was recognised as.
+    const summary: DocsSummary = { breakfast: 0, vip: 0, brief: 0, nopost: 0 };
+    for (const p of donePdfs) {
+      if (p.docType === "vip") summary.vip += p.clients.length;
+      else if (p.docType === "brief") summary.brief += 1;
+      else if (p.docType === "nopost") summary.nopost += 1;
+      else summary.breakfast += p.clients.length;
+    }
+    setRecognizedDocs(summary);
 
     if (clientPdfs.length > 0) setBaseClients(clientPdfs);
     if (vipPdfs.length > 0) setVipRawClients(vipPdfs);
@@ -1205,6 +1226,15 @@ export default function UploadPage() {
   }
 
   // ─── IMPACT VIEW: resume + review + confirm (replaces the old review screen) ───
+  const docChips = recognizedDocs
+    ? ([
+        recognizedDocs.breakfast > 0 ? { label: "Petit-déj", value: recognizedDocs.breakfast } : null,
+        recognizedDocs.vip > 0 ? { label: "VIPs", value: recognizedDocs.vip } : null,
+        recognizedDocs.brief > 0 ? { label: "Briefing" } : null,
+        recognizedDocs.nopost > 0 ? { label: "No-post" } : null,
+      ].filter(Boolean) as { label: string; value?: number }[])
+    : undefined;
+
   if (view === "impact") {
     const impactSummary = computeImpact(parsedClients);
     return (
@@ -1227,6 +1257,7 @@ export default function UploadPage() {
             clients={parsedClients}
             onStart={pickMode ? transmit : confirmAndStart}
             ctaLabel={pickMode ? "Transmettre au restaurant" : undefined}
+            docs={docChips}
           />
         </div>
       </div>
@@ -1246,6 +1277,16 @@ export default function UploadPage() {
           Transmis au restaurant
         </h1>
         <p className="text-muted text-sm mt-2">La journée est en cours d&apos;analyse. Le restaurant la voit déjà.</p>
+        {docChips && docChips.length > 0 && (
+          <div className="flex flex-wrap gap-2 justify-center mt-5">
+            {docChips.map((d) => (
+              <span key={d.label} className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-brand bg-brand/10 border border-brand/20 rounded-full px-3 py-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                {d.label}{typeof d.value === "number" ? ` · ${d.value}` : ""}
+              </span>
+            ))}
+          </div>
+        )}
         <style jsx>{`
           @keyframes popIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
         `}</style>

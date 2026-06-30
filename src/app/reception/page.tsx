@@ -37,7 +37,8 @@ export default function ReceptionHome() {
       title: "Contacts",
       sub: "Clients & VIP du jour",
       primary: false,
-      onClick: () => router.push("/search"),
+      disabled: true, // not ready yet
+      onClick: () => {},
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
@@ -61,7 +62,8 @@ export default function ReceptionHome() {
       title: "Fichiers",
       sub: "Archives par journée",
       primary: false,
-      onClick: () => router.push("/report"),
+      disabled: true, // not ready yet
+      onClick: () => {},
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -103,23 +105,31 @@ export default function ReceptionHome() {
         {TILES.map((t) => (
           <button
             key={t.key}
-            onClick={t.onClick}
-            className={`flex items-center gap-4 rounded-[18px] px-5 py-4 text-left active:scale-[0.98] transition-transform ${
-              t.primary
-                ? "text-white shadow-lg shadow-brand/25 bg-gradient-to-br from-brand to-brand-light"
-                : "glass-liquid text-dark"
+            onClick={t.disabled ? undefined : t.onClick}
+            disabled={t.disabled}
+            aria-disabled={t.disabled}
+            className={`flex items-center gap-4 rounded-[18px] px-5 py-4 text-left transition-transform ${
+              t.disabled
+                ? "glass-liquid text-dark opacity-45 cursor-not-allowed"
+                : t.primary
+                  ? "text-white shadow-lg shadow-brand/25 bg-gradient-to-br from-brand to-brand-light active:scale-[0.98]"
+                  : "glass-liquid text-dark active:scale-[0.98]"
             }`}
           >
-            <span className={`w-12 h-12 rounded-[14px] grid place-items-center shrink-0 ${t.primary ? "bg-white/20 text-white" : "bg-brand/12 text-brand"}`}>
+            <span className={`w-12 h-12 rounded-[14px] grid place-items-center shrink-0 ${t.primary && !t.disabled ? "bg-white/20 text-white" : "bg-brand/12 text-brand"}`}>
               {t.icon}
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-[17px] font-bold">{t.title}</span>
-              <span className={`block text-[12.5px] mt-0.5 ${t.primary ? "text-white/85" : "text-muted"}`}>{t.sub}</span>
+              <span className={`block text-[12.5px] mt-0.5 ${t.primary && !t.disabled ? "text-white/85" : "text-muted"}`}>{t.sub}</span>
             </span>
-            <svg className={`w-5 h-5 ${t.primary ? "text-white/70" : "text-muted/40"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            {t.disabled ? (
+              <span className="text-[10px] font-bold uppercase tracking-wide text-muted bg-black/[0.05] dark:bg-white/10 rounded-full px-2 py-1">Bientôt</span>
+            ) : (
+              <svg className={`w-5 h-5 ${t.primary ? "text-white/70" : "text-muted/40"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
           </button>
         ))}
       </div>

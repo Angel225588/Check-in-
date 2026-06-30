@@ -15,7 +15,7 @@ interface PageStatus {
   preview: string;
   status: "processing" | "done" | "error";
   clients: Client[];
-  docType?: "clients" | "vip" | "unknown";
+  docType?: "clients" | "vip" | "brief" | "nopost" | "unknown";
   rawText?: string;
   error?: string;
 }
@@ -51,7 +51,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
 
     useImperativeHandle(ref, () => ({ openPicker, openFilePicker }), [openPicker, openFilePicker]);
 
-    const processWithGemini = async (file: File, retries = 2): Promise<{ clients: Client[]; docType: "clients" | "vip" | "unknown" } | null> => {
+    const processWithGemini = async (file: File, retries = 2): Promise<{ clients: Client[]; docType: "clients" | "vip" | "brief" | "nopost" | "unknown" } | null> => {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
           const formData = new FormData();
@@ -70,7 +70,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
 
           const data = await res.json();
           const clients = (data.clients || data.vipEntries) as Client[];
-          const docType = (data.type as "clients" | "vip" | "unknown") || "unknown";
+          const docType = (data.type as "clients" | "vip" | "brief" | "nopost" | "unknown") || "unknown";
           return { clients: Array.isArray(clients) ? clients : [], docType };
         } catch (err) {
           if (attempt < retries) {
@@ -118,7 +118,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
       try {
         let clients: Client[];
         let rawText: string | undefined;
-        let docType: "clients" | "vip" | "unknown" = "clients";
+        let docType: "clients" | "vip" | "brief" | "nopost" | "unknown" = "clients";
 
         // CEO process — OCR safety gate:
         // 1. If user toggled "Mode Local OCR" in settings → Tesseract only.
@@ -143,7 +143,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
           clients = result.clients;
           rawText = `[Local OCR — ${clients.length} rooms]\n${result.rawText}`;
         } else {
-          let geminiResult: { clients: Client[]; docType: "clients" | "vip" | "unknown" } | null = null;
+          let geminiResult: { clients: Client[]; docType: "clients" | "vip" | "brief" | "nopost" | "unknown" } | null = null;
           let geminiFailed = false;
           try {
             geminiResult = await processWithGemini(file);
