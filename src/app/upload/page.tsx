@@ -414,6 +414,8 @@ export default function UploadPage() {
   const [procElapsed, setProcElapsed] = useState(0); // live seconds while analysing
   const analyseStartRef = useRef<number | null>(null);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
+  // Reception "Téléverser" → ?pick=1: skip the general home, go straight to choosing a doc.
+  const [pickMode, setPickMode] = useState(false);
   const [pendingAction, setPendingAction] = useState<"scanner" | "gallery" | null>(null);
   const [pdfUploads, setPdfUploads] = useState<PdfUploadStatus[]>([]);
   const [addClientOpen, setAddClientOpen] = useState(false);
@@ -472,6 +474,11 @@ export default function UploadPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       setIsAddMode(params.get("mode") === "add");
+      if (params.get("pick") === "1") {
+        // Reception upload: clean screen + open the chooser immediately (no Bonsoir home).
+        setPickMode(true);
+        setActionSheetOpen(true);
+      }
       const action = params.get("action");
       if (action === "pdf") {
         // Auto-trigger PDF file picker
@@ -799,15 +806,40 @@ export default function UploadPage() {
             </div>
           </div>
 
-          {/* Greeting */}
-          <div className="mt-6 mb-auto">
-            <h1 className="text-[32px] font-black text-dark leading-tight tracking-tight">
-              {getGreeting(t)}
-            </h1>
-            <p className="text-base text-muted mt-1">{t("upload.subtitle2")}</p>
-          </div>
+          {/* Greeting (replaced by a clean upload prompt in reception "pick" mode) */}
+          {pickMode ? (
+            <div className="mt-4 mb-6">
+              <h1 className="text-[28px] text-dark leading-tight" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>
+                Documents du jour
+              </h1>
+              <p className="text-sm text-muted mt-2 leading-relaxed">
+                Déposez le rapport du matin — il sera analysé puis transmis au restaurant.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 mb-auto">
+              <h1 className="text-[32px] font-black text-dark leading-tight tracking-tight">
+                {getGreeting(t)}
+              </h1>
+              <p className="text-base text-muted mt-1">{t("upload.subtitle2")}</p>
+            </div>
+          )}
 
           {/* Main action buttons */}
+          {pickMode ? (
+            <button
+              onClick={() => setActionSheetOpen(true)}
+              className="mt-2 w-full rounded-[20px] border-2 border-dashed border-brand/30 bg-brand/[0.04] px-5 py-12 flex flex-col items-center gap-3 text-center active:scale-[0.98] transition-transform"
+            >
+              <span className="w-14 h-14 rounded-2xl bg-brand/12 grid place-items-center text-brand">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 9l5-5 5 5M12 4v12" />
+                </svg>
+              </span>
+              <span className="text-[17px] font-bold text-dark">Déposer ou téléverser</span>
+              <span className="text-[12.5px] text-muted">PDF ou photos · jusqu&apos;à 20 pages</span>
+            </button>
+          ) : (
           <div className="space-y-3">
             {/* HERO BUTTON — switches between Start Day / Active Session */}
             {activeSession ? (
@@ -924,6 +956,7 @@ export default function UploadPage() {
               </button>
             )}
           </div>
+          )}
         </div>
 
         <SettingsToggle />

@@ -49,7 +49,7 @@ export default function ReceptionHome() {
       title: "Téléverser",
       sub: "Les documents du jour",
       primary: true,
-      onClick: () => router.push("/upload"),
+      onClick: () => router.push("/upload?pick=1"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 9l5-5 5 5" /><path d="M12 4v12" />
@@ -89,7 +89,7 @@ export default function ReceptionHome() {
       {/* Restaurant is waiting — surfaced when a request is pending and nothing's uploaded yet. */}
       {requested && rooms === 0 && (
         <button
-          onClick={() => router.push("/upload")}
+          onClick={() => router.push("/upload?pick=1")}
           className="mb-5 flex items-center gap-3 rounded-[16px] px-4 py-3.5 text-left bg-amber-500/12 border border-amber-500/30 active:scale-[0.99] transition-transform"
         >
           <span className="text-lg">🔔</span>

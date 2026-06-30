@@ -83,7 +83,7 @@ export default function RestaurantHome() {
 
             {/* Not blocked: upload it here, or nudge reception. */}
             <button
-              onClick={() => router.push("/upload")}
+              onClick={() => router.push("/upload?pick=1")}
               className="mt-6 w-full bg-gradient-to-r from-brand to-brand-light text-white py-3.5 rounded-[52px] font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25"
             >
               Téléverser les documents
