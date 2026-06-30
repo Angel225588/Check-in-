@@ -48,12 +48,13 @@ export async function POST(request: NextRequest) {
     }
     const base64 = Buffer.from(bytes).toString("base64");
 
-    const { clients, pages } = await mistralOcr(mistralKey as string, base64, "application/pdf");
-    const valid = clients.filter((c) =>
-      sanitizeAndValidateClient(c as unknown as Record<string, unknown>),
-    );
+    const { type, clients, pages } = await mistralOcr(mistralKey as string, base64, "application/pdf");
+    const valid =
+      type === "vip"
+        ? clients.filter((c) => c.roomNumber && c.name) // VIP rows: room+name is enough
+        : clients.filter((c) => sanitizeAndValidateClient(c as unknown as Record<string, unknown>));
 
-    return NextResponse.json({ type: "clients", pages, clients: valid, engine: "mistral" });
+    return NextResponse.json({ type, pages, clients: valid, engine: "mistral" });
   } catch (err) {
     console.error(safeLogError("OCR PDF (mistral) error:", err));
     return NextResponse.json(

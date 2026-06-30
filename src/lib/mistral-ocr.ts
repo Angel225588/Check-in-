@@ -2,12 +2,15 @@
 // goes to a US service (Google Gemini removed from the reception routes). The
 // /v1/ocr endpoint accepts a PDF (document_url) or image (image_url) directly and
 // returns markdown tables; parseMistralMarkdown turns those into Client[].
-import { parseMistralMarkdown } from "./mistral-parser";
+import { parseMistralMarkdown, parseMistralVip, detectDocType } from "./mistral-parser";
 import type { Client } from "./types";
 
 const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
 
 export interface MistralOcrResult {
+  /** "clients" = breakfast/arrival list · "vip" = VIP guest list. */
+  type: "clients" | "vip";
+  /** Parsed rows. For a VIP doc these are VIP-shaped (level/notes), tagged list_only. */
   clients: Client[];
   pages: number;
   markdown: string;
@@ -45,5 +48,7 @@ export async function mistralOcr(
   const j = await r.json();
   const pages = Array.isArray(j.pages) ? j.pages : [];
   const markdown = pages.map((p: { markdown?: string }) => p.markdown || "").join("\n");
-  return { clients: parseMistralMarkdown(markdown), pages: pages.length, markdown };
+  const type = detectDocType(markdown);
+  const clients = type === "vip" ? parseMistralVip(markdown) : parseMistralMarkdown(markdown);
+  return { type, clients, pages: pages.length, markdown };
 }

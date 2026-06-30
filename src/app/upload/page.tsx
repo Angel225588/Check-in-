@@ -9,7 +9,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
-import { saveClients, saveClientsMerged, getSessionHistory, getTodayData, dropTodayRawText } from "@/lib/storage";
+import { saveClients, saveClientsMerged, getSessionHistory, getTodayData, dropTodayRawText, mergeVipIntoSession } from "@/lib/storage";
 import { exchangeCode, cachedLocation, type LocationSession } from "@/lib/sync/session";
 import { syncDayToSupabase, pullDayFromSupabase, storeSyncCode, autoSyncIfConnected } from "@/lib/sync/push-day";
 import { syncCheckinsToSupabase, pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
@@ -705,29 +705,33 @@ export default function UploadPage() {
   };
 
   // CTA on the impact resume screen: persist the clean roster, sync, and start service.
-  const confirmAndStart = () => {
-    // Tag any client without an explicit vipSource as 'breakfast_list'.
-    // VIP-list-only clients are already tagged inside mergeVipIntoClients.
-    const tagged = parsedClients.map((c) =>
-      c.vipSource ? c : { ...c, vipSource: "breakfast_list" as const }
-    );
-    const result = saveClientsMerged(tagged);
-    // Data minimization: the clean roster is now saved — drop the raw OCR dump.
-    // (Photos are never persisted; this is the only raw PII blob.)
-    dropTodayRawText();
-    // Record guest profiles for returning-guest tracking
-    recordSessionGuests(tagged);
-    // Auto-sync to the cloud if this device is connected (encrypted, fire-and-forget)
+  // Persist the parsed doc into the active session. A breakfast/clients doc merges the
+  // roster; a VIP-only doc maps onto the active session (tag existing rooms VIP, add the
+  // rest to Hors-liste) — so uploading the VIPs separately, later, completes the day.
+  const persistParsed = (): string => {
+    let q = "";
+    if (baseClients.length > 0) {
+      const tagged = parsedClients.map((c) =>
+        c.vipSource ? c : { ...c, vipSource: "breakfast_list" as const }
+      );
+      const result = saveClientsMerged(tagged);
+      recordSessionGuests(tagged);
+      q =
+        result.duplicatesSkipped > 0 || result.existing > 0
+          ? `?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`
+          : "";
+    } else if (vipRawClients.length > 0) {
+      mergeVipIntoSession(vipRawClients); // VIP-only doc → map onto the active session
+    }
+    dropTodayRawText(); // photos never persisted; drop the only raw PII blob
     void autoSyncIfConnected();
-    // A fresh upload re-opens the day across devices (clears any prior "closed" flag)
-    // and dismisses the restaurant's "waiting for report" request.
-    void reopenDayIfClosed();
-    void clearReportRequest();
+    void reopenDayIfClosed(); // a fresh upload re-opens the day across devices
+    void clearReportRequest(); // dismiss the restaurant's "waiting" nudge
+    return q;
+  };
 
-    const q =
-      result.duplicatesSkipped > 0 || result.existing > 0
-        ? `?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`
-        : "";
+  const confirmAndStart = () => {
+    const q = persistParsed();
     router.push(`/search${q}`);
   };
 
@@ -735,15 +739,7 @@ export default function UploadPage() {
   // then return to the 3-tile reception home. Same merge — so uploading again later
   // (VIPs, an updated list) completes the active session instead of replacing it.
   const transmit = () => {
-    const tagged = parsedClients.map((c) =>
-      c.vipSource ? c : { ...c, vipSource: "breakfast_list" as const }
-    );
-    saveClientsMerged(tagged);
-    dropTodayRawText();
-    recordSessionGuests(tagged);
-    void autoSyncIfConnected();
-    void reopenDayIfClosed();
-    void clearReportRequest();
+    persistParsed();
     setView("sent");
     setTimeout(() => router.push("/reception"), 1800);
   };

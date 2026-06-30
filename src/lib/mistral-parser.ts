@@ -49,6 +49,58 @@ function emptyClient(): Client {
   };
 }
 
+/**
+ * Classify a Mistral OCR document from its markdown: a "VIP GUEST LIST" (has a
+ * "VIP Level" column) vs the breakfast/arrival list (does not). Reliable because the
+ * two report layouts are distinct — only the VIP report carries VIP-level columns.
+ */
+export function detectDocType(md: string): "clients" | "vip" {
+  return /vip\s*level/i.test(md) || /vip guest list|guest inhouse vip/i.test(md)
+    ? "vip"
+    : "clients";
+}
+
+type VipField = "roomNumber" | "name" | "vipLevel" | "vipNotes";
+
+function classifyVipHeader(raw: string): VipField | null {
+  const s = raw.toLowerCase().replace(/\s+/g, " ").trim();
+  if (/vip|level/.test(s)) return "vipLevel";
+  if (/note|special|instruct|prefer/.test(s)) return "vipNotes";
+  if (/guest|name/.test(s)) return "name";
+  if (/room/.test(s)) return "roomNumber";
+  return null;
+}
+
+/**
+ * Parse a Mistral "VIP GUEST LIST" markdown table into VIP-shaped Client rows
+ * (roomNumber, name, vipLevel, vipNotes). Tagged `list_only` so an unmatched VIP
+ * lands in Hors-liste; mergeVipIntoClients maps matched ones onto their room.
+ */
+export function parseMistralVip(md: string): Client[] {
+  const out: Client[] = [];
+  let map: (VipField | null)[] | null = null;
+
+  for (const line of md.split("\n")) {
+    if (!line.trim().startsWith("|")) continue;
+    const cells = splitRow(line);
+    if (isSeparator(cells)) continue;
+
+    const isHeader =
+      cells.some((c) => /vip|level/i.test(c)) && cells.some((c) => /name|guest/i.test(c));
+    if (isHeader) { map = cells.map(classifyVipHeader); continue; }
+    if (!map) continue;
+
+    const e = emptyClient();
+    e.isVip = true;
+    e.vipSource = "list_only";
+    map.forEach((field, i) => {
+      if (field) e[field] = (cells[i] ?? "").trim();
+    });
+    if (e.roomNumber && e.name) out.push(e);
+  }
+  return out;
+}
+
 export function parseMistralMarkdown(md: string): Client[] {
   const out: Client[] = [];
   let map: (Field | null)[] | null = null;

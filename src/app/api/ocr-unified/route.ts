@@ -49,12 +49,13 @@ export async function POST(request: NextRequest) {
     }
     const base64 = Buffer.from(bytes).toString("base64");
 
-    const { clients } = await mistralOcr(mistralKey as string, base64, mimeType);
-    const valid = clients.filter((c) =>
-      sanitizeAndValidateClient(c as unknown as Record<string, unknown>),
-    );
+    const { type, clients } = await mistralOcr(mistralKey as string, base64, mimeType);
+    const valid =
+      type === "vip"
+        ? clients.filter((c) => c.roomNumber && c.name)
+        : clients.filter((c) => sanitizeAndValidateClient(c as unknown as Record<string, unknown>));
 
-    return NextResponse.json({ type: "clients", clients: valid, engine: "mistral" });
+    return NextResponse.json({ type, clients: valid, engine: "mistral" });
   } catch (err) {
     console.error(safeLogError("Unified OCR (mistral) error:", err));
     return NextResponse.json(
