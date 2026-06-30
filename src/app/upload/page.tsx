@@ -18,13 +18,11 @@ import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
 import { recordSessionGuests } from "@/lib/guests";
 import { isComp } from "@/lib/utils";
-import { computeImpact, type ImpactSummary } from "@/lib/impact";
+import { computeImpact } from "@/lib/impact";
 import { useApp } from "@/contexts/AppContext";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
-import CsvImporter from "@/components/CsvImporter";
-import DataTable from "@/components/DataTable";
 import SettingsToggle from "@/components/SettingsToggle";
-import AnalyseLoading from "@/components/AnalyseLoading";
+import AnalyseProgress from "@/components/AnalyseProgress";
 import ImpactScreen from "@/components/ImpactScreen";
 
 interface PdfUploadStatus {
@@ -307,7 +305,8 @@ function SyncDrawer({ onClose }: { onClose: () => void }) {
       // Pull the session already in the cloud (decrypted on-device) so you see it here.
       try {
         const { pulled } = await pullDayFromSupabase(c);
-        await pullCheckinsFromSupabase(c); // Sync v2: also reconcile who's already checked in
+        // Reconcile check-ins in the background — must NEVER gate the roster→redirect.
+        void pullCheckinsFromSupabase(c).catch(() => {});
         if (pulled > 0) {
           setNote(`Session récupérée · ${pulled} client(s) — ouverture…`);
           setTimeout(() => window.location.assign("/search"), 800);
@@ -407,11 +406,10 @@ export default function UploadPage() {
   const unifiedCaptureRef = useRef<PhotoCaptureHandle>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  // View state: "home" | "processing" (scanning/uploading) | "pdf-processing" | "review" (after data captured) | "impact" (start-of-day summary)
-  const [view, setView] = useState<"home" | "processing" | "pdf-processing" | "review" | "impact">("home");
-  const [impact, setImpact] = useState<ImpactSummary | null>(null);
+  // View state: home → processing/pdf-processing (narration) → impact (resume + confirm) → /search.
+  const [view, setView] = useState<"home" | "processing" | "pdf-processing" | "impact">("home");
   const [analyseElapsed, setAnalyseElapsed] = useState(0);
-  const [postConfirmQuery, setPostConfirmQuery] = useState("");
+  const [procElapsed, setProcElapsed] = useState(0); // live seconds while analysing
   const analyseStartRef = useRef<number | null>(null);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"scanner" | "gallery" | null>(null);
@@ -426,7 +424,6 @@ export default function UploadPage() {
   const [baseClients, setBaseClients] = useState<Client[]>([]);
   const [vipRawClients, setVipRawClients] = useState<Client[]>([]);
   const [ocrRawText, setOcrRawText] = useState<string>("");
-  const [showManual, setShowManual] = useState(false);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -436,9 +433,6 @@ export default function UploadPage() {
   const [activeSession, setActiveSession] = useState<{ rooms: number } | null>(null);
   const [mergeBanner, setMergeBanner] = useState<MergeResult | null>(null);
   const [tablePage, setTablePage] = useState(0);
-  const [openToggle, setOpenToggle] = useState<"clean" | "raw" | "pdf" | null>("clean");
-  const [validating, setValidating] = useState(false);
-  const [pdfElapsed, setPdfElapsed] = useState(0);
   const ROWS_PER_PAGE = 10;
 
   // Merge clients + VIP whenever either changes (race-proof)
@@ -490,13 +484,14 @@ export default function UploadPage() {
     }
   }, []);
 
-  // Elapsed seconds counter for PDF processing
+  // Live elapsed seconds while analysing (photo + PDF) — feeds the compact narration.
   useEffect(() => {
-    if (view !== "pdf-processing") { setPdfElapsed(0); return; }
-    const allDone = pdfUploads.every((p) => p.status === "done" || p.status === "error");
+    const analysing = view === "processing" || view === "pdf-processing";
+    if (!analysing) { setProcElapsed(0); return; }
+    const allDone = pdfUploads.length > 0 && pdfUploads.every((p) => p.status === "done" || p.status === "error");
     if (allDone) return;
-    setPdfElapsed(0);
-    const timer = setInterval(() => setPdfElapsed((s) => s + 1), 1000);
+    const start = analyseStartRef.current ?? Date.now();
+    const timer = setInterval(() => setProcElapsed((Date.now() - start) / 1000), 250);
     return () => clearInterval(timer);
   }, [view, pdfUploads.every((p) => p.status === "done" || p.status === "error")]);
 
@@ -524,12 +519,12 @@ export default function UploadPage() {
     }
   }, [view]);
 
-  // Transition into review, capturing the machine analysis time (excludes human review).
-  const enterReview = () => {
+  // Transition straight to the impact resume screen, capturing the real analysis time.
+  const enterImpact = () => {
     if (analyseStartRef.current) {
       setAnalyseElapsed((Date.now() - analyseStartRef.current) / 1000);
     }
-    setView("review");
+    setView("impact");
   };
 
   // Unified handler: auto-routes clients vs VIP based on document type
@@ -537,7 +532,7 @@ export default function UploadPage() {
     setOcrRawText(rawText);
     if (clientPages.length > 0) setBaseClients(clientPages);
     if (vipPages.length > 0) setVipRawClients(vipPages);
-    if (clientPages.length > 0 || vipPages.length > 0) enterReview();
+    if (clientPages.length > 0 || vipPages.length > 0) enterImpact();
   };
 
   // Fallback for non-typed processing (Tesseract fallback)
@@ -545,7 +540,7 @@ export default function UploadPage() {
     setOcrRawText(rawText);
     if (clients.length > 0) {
       setBaseClients(clients);
-      enterReview();
+      enterImpact();
     }
   };
 
@@ -645,7 +640,7 @@ export default function UploadPage() {
     if (clientPdfs.length > 0) setBaseClients(clientPdfs);
     if (vipPdfs.length > 0) setVipRawClients(vipPdfs);
     if (allRaw) setOcrRawText(allRaw);
-    enterReview();
+    enterImpact();
   }, [pdfUploads]);
 
   const handlePdfInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -673,11 +668,6 @@ export default function UploadPage() {
     e.target.value = "";
   };
 
-  const handleManualParsed = (clients: Client[]) => {
-    setBaseClients(clients);
-    setShowManual(false);
-    enterReview();
-  };
 
   const handleAddManualClient = () => {
     if (!newRoom.trim() || !newName.trim()) return;
@@ -701,10 +691,11 @@ export default function UploadPage() {
     setNewName("");
     setNewAdults("1");
     setNewChildren("0");
-    setView("review");
+    enterImpact();
   };
 
-  const handleConfirm = () => {
+  // CTA on the impact resume screen: persist the clean roster, sync, and start service.
+  const confirmAndStart = () => {
     // Tag any client without an explicit vipSource as 'breakfast_list'.
     // VIP-list-only clients are already tagged inside mergeVipIntoClients.
     const tagged = parsedClients.map((c) =>
@@ -719,18 +710,11 @@ export default function UploadPage() {
     // Auto-sync to the cloud if this device is connected (encrypted, fire-and-forget)
     void autoSyncIfConnected();
 
-    if (result.duplicatesSkipped > 0 || result.existing > 0) setMergeBanner(result);
-
-    // Build the start-of-day impact from the FULL merged roster (existing + new),
-    // then show the impact screen — "voici la journée" — before service starts.
-    const today = getTodayData();
-    setImpact(computeImpact(today?.clients ?? tagged));
-    setPostConfirmQuery(
+    const q =
       result.duplicatesSkipped > 0 || result.existing > 0
         ? `?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`
-        : "",
-    );
-    setView("impact");
+        : "";
+    router.push(`/search${q}`);
   };
 
   const handleClear = () => {
@@ -1039,25 +1023,6 @@ export default function UploadPage() {
                   </svg>
                 </button>
 
-                {/* Paste CSV */}
-                <button
-                  onClick={() => { setActionSheetOpen(false); setShowManual(true); setView("review"); }}
-                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
-                >
-                  <div className="w-11 h-11 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
-                    <svg className="w-5.5 h-5.5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[15px] font-bold text-dark">{t("home.pasteCsv")}</div>
-                    <div className="text-xs text-muted mt-0.5">{t("home.pasteCsvDesc")}</div>
-                  </div>
-                  <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
                 {/* Add Client manually */}
                 <button
                   onClick={() => { setActionSheetOpen(false); setAddClientOpen(true); }}
@@ -1186,15 +1151,30 @@ export default function UploadPage() {
     );
   }
 
-  // ─── IMPACT VIEW: start-of-day summary after analysis ───
-  if (view === "impact" && impact) {
+  // ─── IMPACT VIEW: resume + review + confirm (replaces the old review screen) ───
+  if (view === "impact") {
+    const impactSummary = computeImpact(parsedClients);
     return (
       <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
-        <ImpactScreen
-          impact={impact}
-          elapsedSec={analyseElapsed}
-          onStart={() => router.push(`/search${postConfirmQuery}`)}
-        />
+        <div className="shrink-0 px-4 pt-3">
+          <button
+            onClick={() => setView("home")}
+            className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
+          >
+            <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="text-sm font-medium text-brand">{t("upload.close")}</span>
+          </button>
+        </div>
+        <div className="flex-1 min-h-0">
+          <ImpactScreen
+            impact={impactSummary}
+            elapsedSec={analyseElapsed}
+            clients={parsedClients}
+            onStart={confirmAndStart}
+          />
+        </div>
       </div>
     );
   }
@@ -1232,13 +1212,15 @@ export default function UploadPage() {
           </div>
         </div>
 
-        {/* Processing content — agent-style narration while OCR runs */}
-        <div className="flex-1 flex flex-col px-2 overflow-hidden">
+        {/* Processing content — compact narration while OCR runs */}
+        <div className="flex-1 flex flex-col px-4 overflow-y-auto">
           {/* PhotoCapture stays mounted (drives the OCR + shows thumbnails) */}
-          <div className="w-full px-4">
+          <div className="w-full">
             {captureElements}
           </div>
-          <AnalyseLoading />
+          <div className="mt-4">
+            <AnalyseProgress stage={1} elapsed={procElapsed} />
+          </div>
         </div>
 
         <SettingsToggle />
@@ -1257,6 +1239,12 @@ export default function UploadPage() {
   if (view === "pdf-processing") {
     const allDone = pdfUploads.every((p) => p.status === "done" || p.status === "error");
     const totalClients = pdfUploads.reduce((s, p) => s + p.clients.length, 0);
+    // Map the real per-file status onto the narration stage (no fake timer).
+    const anyUploading = pdfUploads.some((p) => p.status === "uploading");
+    const anyReading = pdfUploads.some((p) => p.status === "processing" || p.status === "verifying");
+    const pdfStage = anyUploading ? 0 : anyReading ? 1 : allDone ? 4 : 2;
+    const currentPdfName = (pdfUploads.find((p) => p.status === "processing" || p.status === "uploading") || pdfUploads[0])?.name;
+    const erroredPdfs = pdfUploads.filter((p) => p.status === "error");
 
     return (
       <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
@@ -1292,94 +1280,31 @@ export default function UploadPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6 space-y-3">
-          {!allDone && <AnalyseLoading pages={pdfUploads.length} />}
-          {pdfUploads.map((pdf, i) => (
-            <div key={i} className="glass-liquid rounded-[14px] p-4">
-              <div className="flex items-center gap-3">
-                {/* Status icon */}
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  pdf.status === "done" ? "bg-green-500/10" :
-                  pdf.status === "error" ? "bg-red-500/10" :
-                  "bg-brand/10"
-                }`}>
-                  {pdf.status === "done" ? (
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : pdf.status === "error" ? (
-                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-dark truncate">{pdf.name}</div>
-                  <div className="text-xs text-muted">
-                    {pdf.status === "uploading" && "Uploading..."}
-                    {pdf.status === "processing" && t("processing.pdfProcessing")}
-                    {pdf.status === "verifying" && t("processing.verifying")}
-                    {pdf.status === "done" && (
-                      <>
-                        {pdf.clients.length} rooms
-                        {pdf.docType && ` · ${pdf.docType}`}
-                        {pdf.pages && ` · ${pdf.pages} pages`}
-                      </>
-                    )}
-                    {pdf.status === "error" && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-500">{pdf.error}</span>
-                        <button
-                          onClick={() => processPdf(pdf.file, i)}
-                          className="text-brand font-bold text-[11px] underline"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Verification badge */}
-                {pdf.verification && (
-                  <div className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                    pdf.verification.verified
-                      ? "bg-green-500/10 text-green-700"
-                      : "bg-yellow-500/10 text-yellow-700"
-                  }`}>
-                    {pdf.verification.verified ? `${pdf.verification.confidence}%` : `${pdf.verification.missing + pdf.verification.corrections} issues`}
-                  </div>
-                )}
+          {!allDone && (
+            <AnalyseProgress stage={pdfStage} elapsed={procElapsed} fileName={currentPdfName} />
+          )}
+          {/* Surface only failed files (with retry) — keeps the view compact */}
+          {erroredPdfs.map((pdf) => (
+            <div key={pdf.name} className="glass-liquid rounded-[14px] p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-red-500/10 grid place-items-center shrink-0">
+                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </div>
-
-              {/* Verification details */}
-              {pdf.verification && !pdf.verification.verified && (
-                <div className="mt-2 text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-500/5 rounded-lg p-2">
-                  {pdf.verification.summary}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-dark truncate">{pdf.name}</div>
+                <div className="text-xs text-red-500 flex items-center gap-2">
+                  <span className="truncate">{pdf.error}</span>
+                  <button
+                    onClick={() => processPdf(pdf.file, pdfUploads.indexOf(pdf))}
+                    className="text-brand font-bold underline shrink-0"
+                  >
+                    Réessayer
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           ))}
-
-          {/* Overall processing indicator with elapsed counter */}
-          {!allDone && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="relative w-20 h-20">
-                <div className="absolute inset-0 rounded-full border-4 border-brand/15" />
-                <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-lg font-black font-mono text-brand">{pdfElapsed >= 60 ? `${Math.floor(pdfElapsed / 60)}m ${pdfElapsed % 60}s` : `${pdfElapsed}s`}</span>
-                </div>
-              </div>
-              <p className="text-muted text-sm font-medium">
-                {pdfUploads.some((p) => p.status === "verifying")
-                  ? t("processing.verifying")
-                  : t("processing.pdfProcessing")}
-              </p>
-            </div>
-          )}
         </div>
 
         <SettingsToggle />
@@ -1387,396 +1312,6 @@ export default function UploadPage() {
     );
   }
 
-  // ─── REVIEW VIEW: After data is captured ───
-  return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
-      {/* Header */}
-      <div className="shrink-0 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3" />
-        <div className="relative px-4 pt-4 pb-3">
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => setView("home")}
-              className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
-            >
-              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="text-sm font-medium text-brand">{t("upload.close")}</span>
-            </button>
-            <div className="flex items-center gap-2">
-              {/* Add more photos via scanner */}
-              <button
-                onClick={() => unifiedCaptureRef.current?.openPicker()}
-                className="px-3 py-1.5 glass-liquid rounded-full active:scale-95 transition-transform"
-              >
-                <span className="text-sm font-medium text-muted">+ {t("home.camera")}</span>
-              </button>
-              {/* Add more photos via gallery */}
-              <button
-                onClick={() => unifiedCaptureRef.current?.openFilePicker()}
-                className="px-3 py-1.5 glass-liquid-active rounded-full active:scale-95 transition-transform"
-              >
-                <span className="text-sm font-medium text-brand">+ {t("home.gallery")}</span>
-              </button>
-            </div>
-          </div>
-
-          <h1 className="text-[26px] font-black text-dark leading-tight">
-            {t("upload.title")}
-          </h1>
-          <p className="text-sm text-muted mt-0.5">{t("upload.subtitle")}</p>
-        </div>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6 space-y-3">
-        {/* PhotoCapture elements */}
-        {captureElements}
-
-        {/* OCR error fallback */}
-        {ocrRawText && parsedClients.length === 0 && (
-          <div className="bg-brand-50 border border-brand-light/30 rounded-[14px] p-3">
-            <p className="text-brand text-sm font-medium mb-2">
-              {t("upload.noDetect")}
-            </p>
-            <details>
-              <summary className="text-xs text-brand cursor-pointer">{t("upload.showRawOcr")}</summary>
-              <pre className="mt-2 text-xs bg-white/60 p-2 rounded-lg overflow-x-auto whitespace-pre-wrap">
-                {ocrRawText}
-              </pre>
-            </details>
-          </div>
-        )}
-
-        {/* VIP status */}
-        {vipRawClients.length > 0 && (
-          <div className="bg-brand-50 border border-brand-light/30 rounded-[14px] p-3 text-brand text-sm font-medium">
-            {vipCount} VIP(s) tagged
-            {parsedClients.length > baseClients.length
-              ? `, ${parsedClients.length - baseClients.length} new room(s) added`
-              : ""}
-          </div>
-        )}
-
-        {/* Verification summary */}
-        {clientsUploaded && (() => {
-          const totalGuests = parsedClients.reduce((s, c) => s + c.adults + c.children, 0);
-          const uniqueRooms = new Set(parsedClients.map(c => c.roomNumber));
-          const sharedRooms = parsedClients.length - uniqueRooms.size;
-          const noName = parsedClients.filter(c => !c.name || c.name === "Unknown").length;
-          const noPackage = parsedClients.filter(c => !c.packageCode).length;
-          const zeroGuests = parsedClients.filter(c => c.adults + c.children === 0).length;
-          const hasIssues = noName > 0 || zeroGuests > 0;
-
-          return (
-            <div className="glass-liquid rounded-[14px] p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasIssues ? "bg-yellow-500/10" : "bg-green-500/10"}`}>
-                    {hasIssues ? (
-                      <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-dark">{parsedClients.length} {t("upload.rooms")}</span>
-                    {vipCount > 0 && (
-                      <span className="text-xs text-brand ml-2 font-medium">{vipCount} VIP</span>
-                    )}
-                  </div>
-                </div>
-                <button onClick={handleClear} className="text-xs text-error font-medium active:opacity-70">
-                  {t("upload.clear")}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-1.5 text-center">
-                <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">
-                  <div className="text-lg font-bold text-dark">{uniqueRooms.size}</div>
-                  <div className="text-[9px] text-muted uppercase">{t("upload.rooms")}</div>
-                </div>
-                <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">
-                  <div className="text-lg font-bold text-dark">{totalGuests}</div>
-                  <div className="text-[9px] text-muted uppercase">{t("verify.totalGuests")}</div>
-                </div>
-                <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">
-                  <div className="text-lg font-bold text-dark">{sharedRooms}</div>
-                  <div className="text-[9px] text-muted uppercase">{t("verify.sharedRooms")}</div>
-                </div>
-              </div>
-
-              {(noName > 0 || zeroGuests > 0 || noPackage > 0) && (
-                <div className="space-y-1 text-xs">
-                  {noName > 0 && (
-                    <div className="flex items-center gap-1.5 text-yellow-700 dark:text-yellow-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                      {noName} {t("verify.noName")}
-                    </div>
-                  )}
-                  {zeroGuests > 0 && (
-                    <div className="flex items-center gap-1.5 text-error">
-                      <span className="w-1.5 h-1.5 rounded-full bg-error" />
-                      {zeroGuests} {t("verify.zeroGuests")}
-                    </div>
-                  )}
-                  {noPackage > 0 && (
-                    <div className="flex items-center gap-1.5 text-muted">
-                      <span className="w-1.5 h-1.5 rounded-full bg-muted" />
-                      {noPackage} {t("verify.noPackage")}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* Optional validate button */}
-        {clientsUploaded && pdfUploads.length > 0 && (
-          <button
-            onClick={async () => {
-              setValidating(true);
-              // Trigger verification for all done PDFs that haven't been verified
-              for (const pdf of pdfUploads) {
-                if (pdf.status === "done" && !pdf.verification) {
-                  try {
-                    const bytes = await pdf.file.arrayBuffer();
-                    const uint8 = new Uint8Array(bytes);
-                    const chunks: string[] = [];
-                    for (let o = 0; o < uint8.length; o += 8192) {
-                      chunks.push(String.fromCharCode(...uint8.slice(o, o + 8192)));
-                    }
-                    const b64 = btoa(chunks.join(""));
-                    const ctrl = new AbortController();
-                    const tm = setTimeout(() => ctrl.abort(), 30000);
-                    const res = await fetch("/api/verify-extraction", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ pdfBase64: b64, extractedClients: pdf.clients, docType: pdf.docType || "clients" }),
-                      signal: ctrl.signal,
-                    });
-                    clearTimeout(tm);
-                    if (res.ok) {
-                      const d = await res.json();
-                      const idx = pdfUploads.indexOf(pdf);
-                      setPdfUploads((prev) => prev.map((p, i) => i === idx ? { ...p, verification: { verified: d.verified, confidence: d.confidence, missing: d.missing?.length || 0, extra: d.extra?.length || 0, corrections: d.corrections?.length || 0, summary: d.summary || "" } } : p));
-                    }
-                  } catch { /* skip */ }
-                }
-              }
-              setValidating(false);
-            }}
-            disabled={validating}
-            className="glass-liquid rounded-[14px] p-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-all w-full"
-          >
-            {validating ? (
-              <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
-            <span className="text-sm font-bold text-brand">
-              {validating ? t("processing.verifying") : t("upload.validate")}
-            </span>
-            {pdfUploads.some((p) => p.verification) && (
-              <span className="text-xs text-green-600 font-medium ml-1">
-                {pdfUploads.filter((p) => p.verification?.verified).length}/{pdfUploads.length}
-              </span>
-            )}
-          </button>
-        )}
-
-        {/* ── Toggle: Clean Data (default open, paginated) ── */}
-        <div className="glass-liquid rounded-[14px] overflow-hidden">
-          <button
-            onClick={() => setOpenToggle(openToggle === "clean" ? null : "clean")}
-            className="w-full flex items-center justify-between p-3 active:bg-white/50 transition-colors"
-          >
-            <span className="text-sm font-bold text-dark">{t("upload.cleanData")} ({parsedClients.length})</span>
-            <svg className={`w-4 h-4 text-muted transition-transform ${openToggle === "clean" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {openToggle === "clean" && (() => {
-            const totalPages = Math.ceil(parsedClients.length / ROWS_PER_PAGE);
-            const pageClients = parsedClients.slice(tablePage * ROWS_PER_PAGE, (tablePage + 1) * ROWS_PER_PAGE);
-            return (
-              <div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-t border-b border-black/5 dark:border-white/5">
-                        <th className="px-2 py-1.5 text-left text-muted font-medium">{t("table.room")}</th>
-                        <th className="px-2 py-1.5 text-left text-muted font-medium">{t("table.name")}</th>
-                        <th className="px-2 py-1.5 text-center text-muted font-medium">N</th>
-                        <th className="px-2 py-1.5 text-center text-muted font-medium"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pageClients.map((c, i) => {
-                        const comp = isComp(c);
-                        return (
-                          <tr key={i} className={`border-t border-black/5 dark:border-white/5 ${comp ? "bg-green-500/5 dark:bg-green-500/8" : c.isVip ? "bg-brand-50/50" : ""}`}>
-                            <td className="px-2 py-1.5 font-mono font-bold text-dark">
-                              {c.roomNumber}
-                              {c.isVip && <span className="ml-1 text-[9px] bg-gradient-to-r from-brand to-brand-light text-white px-1.5 rounded-full font-bold">VIP</span>}
-                            </td>
-                            <td className={`px-2 py-1.5 truncate max-w-[140px] text-dark ${comp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""}`}>
-                              {c.name}
-                            </td>
-                            <td className="px-2 py-1.5 text-center font-mono font-bold text-dark">{c.adults + c.children}</td>
-                            <td className="px-2 py-1.5 text-center">
-                              {comp && (
-                                <span className="text-[9px] font-bold bg-green-500/10 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full">COMP</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-3 py-2 border-t border-black/5">
-                    <button
-                      onClick={() => setTablePage(Math.max(0, tablePage - 1))}
-                      disabled={tablePage === 0}
-                      className="px-3 py-1 rounded-full glass-liquid text-sm font-medium disabled:opacity-30 active:scale-95"
-                    >
-                      ←
-                    </button>
-                    <span className="text-xs text-muted font-medium">{tablePage + 1} / {totalPages}</span>
-                    <button
-                      onClick={() => setTablePage(Math.min(totalPages - 1, tablePage + 1))}
-                      disabled={tablePage >= totalPages - 1}
-                      className="px-3 py-1 rounded-full glass-liquid text-sm font-medium disabled:opacity-30 active:scale-95"
-                    >
-                      →
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* ── Toggle: Raw Data ── */}
-        {ocrRawText && (
-          <div className="glass-liquid rounded-[14px] overflow-hidden">
-            <button
-              onClick={() => setOpenToggle(openToggle === "raw" ? null : "raw")}
-              className="w-full flex items-center justify-between p-3 active:bg-white/50 transition-colors"
-            >
-              <span className="text-sm font-bold text-dark">{t("upload.rawData")}</span>
-              <svg className={`w-4 h-4 text-muted transition-transform ${openToggle === "raw" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {openToggle === "raw" && (
-              <pre className="px-3 pb-3 text-[10px] overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto text-muted">
-                {ocrRawText}
-              </pre>
-            )}
-          </div>
-        )}
-
-        {/* ── Toggle: PDF Files ── */}
-        {pdfUploads.length > 0 && (
-          <div className="glass-liquid rounded-[14px] overflow-hidden">
-            <button
-              onClick={() => setOpenToggle(openToggle === "pdf" ? null : "pdf")}
-              className="w-full flex items-center justify-between p-3 active:bg-white/50 transition-colors"
-            >
-              <span className="text-sm font-bold text-dark">{t("upload.pdfFiles")} ({pdfUploads.length})</span>
-              <svg className={`w-4 h-4 text-muted transition-transform ${openToggle === "pdf" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {openToggle === "pdf" && (
-              <div className="px-3 pb-3 space-y-2">
-                {pdfUploads.map((pdf, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs bg-white/30 dark:bg-white/5 rounded-lg p-2">
-                    <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span className="font-medium text-dark truncate flex-1">{pdf.name}</span>
-                    <span className="text-muted">{pdf.clients.length} rooms</span>
-                    {pdf.verification?.verified && (
-                      <span className="text-green-600 font-bold">{pdf.verification.confidence}%</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Manual paste */}
-        {showManual && (
-          <div className="glass-liquid rounded-[14px] p-4 animate-[fadeSlideUp_0.2s_ease-out]">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-bold text-dark">{t("upload.pasteReportData")}</span>
-              <button
-                onClick={() => setShowManual(false)}
-                className="text-xs text-muted font-medium active:opacity-70"
-              >
-                {t("upload.close")}
-              </button>
-            </div>
-            <CsvImporter onParsed={handleManualParsed} />
-          </div>
-        )}
-      </div>
-
-      {/* Merge result banner */}
-      {mergeBanner && (
-        <div className="shrink-0 px-4 pt-2">
-          <div className="glass-liquid rounded-[14px] p-3 text-sm animate-[fadeSlideUp_0.3s_ease-out]">
-            <div className="flex items-center gap-2 font-bold text-dark mb-1">
-              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              {t("upload.mergeComplete")}
-            </div>
-            <div className="text-xs text-muted space-y-0.5">
-              <div>+{mergeBanner.added} {t("upload.newRoomsAdded")}</div>
-              {mergeBanner.duplicatesSkipped > 0 && (
-                <div>{mergeBanner.duplicatesSkipped} {t("upload.duplicatesSkipped")}</div>
-              )}
-              <div className="font-medium text-dark">{mergeBanner.merged.length} {t("upload.totalRoomsNow")}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom confirm bar */}
-      {clientsUploaded && !mergeBanner && (
-        <div className="shrink-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#FBF8F3] dark:from-[#0A0A0F] via-[#FBF8F3] dark:via-[#0A0A0F] to-transparent">
-          <button
-            onClick={handleConfirm}
-            className="w-full bg-gradient-to-r from-brand to-brand-light text-white py-4 rounded-[52px] text-xl font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25 dark:glow-brand"
-          >
-            {t("upload.startSession")} ({parsedClients.length} {t("upload.rooms")})
-          </button>
-        </div>
-      )}
-
-      <SettingsToggle />
-
-      <style jsx>{`
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-    </div>
-  );
+  // After analysis the flow goes straight to the impact resume screen — no separate review view.
+  return null;
 }

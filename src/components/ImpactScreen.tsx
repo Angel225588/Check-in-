@@ -1,15 +1,17 @@
 "use client";
 import { useState } from "react";
 import type { ImpactSummary } from "@/lib/impact";
+import type { Client } from "@/lib/types";
 
 /** Tap-to-explain copy — plain French, one job each. */
 const EXPLAIN: Record<string, [string, string]> = {
   total: ["Total couverts", "Tous les petits-déjeuners attendus ce matin — la somme de toutes les catégories."],
   inclus: ["Inclus", "Petit-déjeuner compris dans la réservation. Rien à encaisser."],
   comp: ["Comp (offert)", "Offert par la direction. Gratuit pour le client."],
+  groupe: ["Groupe", "Forfait petit-déjeuner d'un groupe ou d'un tour."],
+  hors: ["Hors liste", "Sans forfait petit-déjeuner. À encaisser au comptoir."],
   vip: ["VIP", "Client prioritaire — accueil soigné, attentions particulières."],
-  hors: ["Hors liste", "Pas sur la liste, ou sans forfait petit-déjeuner. À encaisser au comptoir."],
-  verif: ["À vérifier", "Lignes incomplètes au scan (nom, chambre ou couverts manquants). À contrôler — souvent des enfants non comptés."],
+  rooms: ["Chambres", "Nombre de chambres sur la liste du jour."],
 };
 
 const NOISE =
@@ -26,34 +28,27 @@ function dateLabel(): string {
 export default function ImpactScreen({
   impact,
   elapsedSec,
+  clients,
   onStart,
 }: {
   impact: ImpactSummary;
   elapsedSec: number;
+  clients: Client[];
   onStart: () => void;
 }) {
   const [pop, setPop] = useState<[string, string] | null>(null);
+  const [listOpen, setListOpen] = useState(false);
   const elapsed = elapsedSec > 0 ? elapsedSec.toFixed(1).replace(".", ",") : "—";
 
-  const Box = ({
-    k,
-    n,
-    label,
-    tone,
-  }: {
-    k: string;
-    n: number;
-    label: string;
-    tone?: "gold" | "alert";
-  }) => (
+  const Box = ({ k, n, label, tone }: { k: string; n: number; label: string; tone?: "gold" }) => (
     <button
       onClick={() => setPop(EXPLAIN[k])}
       className="relative glass-liquid rounded-[18px] px-3 py-4 text-center active:scale-[0.96] transition-transform"
     >
       <span className="absolute top-2.5 right-3 text-[11px] font-extrabold text-black/15 dark:text-white/20">i</span>
       <div
-        className={`leading-none ${tone === "gold" ? "text-brand" : tone === "alert" ? "text-red-500" : "text-dark"}`}
-        style={{ fontFamily: "'Instrument Serif', serif", fontSize: 34, fontWeight: 400 }}
+        className={`leading-none ${tone === "gold" ? "text-brand" : "text-dark"}`}
+        style={{ fontFamily: "'Instrument Serif', serif", fontSize: 32, fontWeight: 400 }}
       >
         {n}
       </div>
@@ -62,94 +57,109 @@ export default function ImpactScreen({
   );
 
   return (
-    <div className="flex flex-col flex-1 w-full max-w-md mx-auto px-5 pt-8 pb-6 overflow-y-auto">
-      {/* Top bar */}
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[15px] font-bold tracking-[0.18em] text-dark">
-          IMARKETIN<span className="text-brand">.</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-brand bg-brand/10 border border-brand/20 rounded-full px-3 py-1.5">
-          ⚡ Analysé en {elapsed} s
-        </span>
-      </div>
+    <div className="flex flex-col h-full">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-5 pt-7 pb-4">
+        {/* Top bar */}
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[15px] font-bold tracking-[0.18em] text-dark">
+            IMARKETIN<span className="text-brand">.</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-brand bg-brand/10 border border-brand/20 rounded-full px-3 py-1.5">
+            ⚡ Analysé en {elapsed} s
+          </span>
+        </div>
 
-      {/* Hero */}
-      <div className="mt-6 mb-1">
-        <h1 className="text-[40px] leading-[1.05] text-dark" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>
-          Bonjour l&apos;équipe
-        </h1>
-        <p className="text-muted text-[15px] mt-2">Voici la journée · {dateLabel()}</p>
-      </div>
+        {/* Hero */}
+        <div className="mt-5 mb-1">
+          <h1 className="text-[36px] leading-[1.05] text-dark" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>
+            Bonjour l&apos;équipe
+          </h1>
+          <p className="text-muted text-[15px] mt-2">Voici la journée · {dateLabel()}</p>
+        </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-3 gap-3 mt-6">
-        {/* Big textured-gold TOTAL */}
-        <button
-          onClick={() => setPop(EXPLAIN.total)}
-          className="relative col-span-3 rounded-[20px] overflow-hidden text-white px-4 py-5 active:scale-[0.98] transition-transform"
-          style={{
-            background: "linear-gradient(158deg,#E8B24A 0%,#C8821C 52%,#9E6212 100%)",
-            boxShadow:
-              "0 14px 34px rgba(166,105,20,.42), inset 0 1px 0 rgba(255,255,255,.45), inset 0 -10px 24px rgba(120,72,10,.35)",
-          }}
-        >
-          <span
-            className="absolute inset-0 pointer-events-none"
+        {/* Distribution */}
+        <div className="grid grid-cols-3 gap-3 mt-5">
+          <button
+            onClick={() => setPop(EXPLAIN.total)}
+            className="relative col-span-3 rounded-[20px] overflow-hidden text-white px-4 py-5 active:scale-[0.98] transition-transform"
             style={{
-              background:
-                "radial-gradient(120% 90% at 18% 0%,rgba(255,255,255,.40),transparent 45%),linear-gradient(118deg,transparent 36%,rgba(255,255,255,.22) 47%,transparent 58%)",
+              background: "linear-gradient(158deg,#E8B24A 0%,#C8821C 52%,#9E6212 100%)",
+              boxShadow:
+                "0 14px 34px rgba(166,105,20,.42), inset 0 1px 0 rgba(255,255,255,.45), inset 0 -10px 24px rgba(120,72,10,.35)",
             }}
-          />
-          <span
-            className="absolute inset-0 pointer-events-none"
-            style={{ opacity: 0.16, mixBlendMode: "overlay", backgroundImage: NOISE }}
-          />
-          <span className="absolute top-3 right-3.5 text-[11px] font-extrabold text-white/55">i</span>
-          <div
-            className="relative leading-none"
-            style={{ fontFamily: "'Instrument Serif', serif", fontSize: 48, fontWeight: 400, textShadow: "0 1px 1px rgba(120,72,10,.4)" }}
           >
-            {impact.total}
-          </div>
-          <div className="relative text-white/90 text-[11.5px] mt-2 uppercase tracking-wide">Total couverts</div>
-        </button>
+            <span
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(120% 90% at 18% 0%,rgba(255,255,255,.40),transparent 45%),linear-gradient(118deg,transparent 36%,rgba(255,255,255,.22) 47%,transparent 58%)",
+              }}
+            />
+            <span className="absolute inset-0 pointer-events-none" style={{ opacity: 0.16, mixBlendMode: "overlay", backgroundImage: NOISE }} />
+            <span className="absolute top-3 right-3.5 text-[11px] font-extrabold text-white/55">i</span>
+            <div className="relative leading-none" style={{ fontFamily: "'Instrument Serif', serif", fontSize: 48, fontWeight: 400, textShadow: "0 1px 1px rgba(120,72,10,.4)" }}>
+              {impact.total}
+            </div>
+            <div className="relative text-white/90 text-[11.5px] mt-2 uppercase tracking-wide">Total couverts</div>
+          </button>
 
-        <Box k="inclus" n={impact.inclus} label="Inclus" />
-        <Box k="comp" n={impact.comp} label="Comp" />
-        <Box k="vip" n={impact.vip} label="VIP" tone="gold" />
-        <Box k="hors" n={impact.hors} label="Hors liste" />
-        <Box k="verif" n={impact.aVerifier} label="À vérifier" tone={impact.aVerifier > 0 ? "alert" : undefined} />
-        <div className="glass-liquid rounded-[18px] px-3 py-4 text-center flex flex-col justify-center">
-          <div className="leading-none text-dark" style={{ fontFamily: "'Instrument Serif', serif", fontSize: 34, fontWeight: 400 }}>
-            {impact.rooms}
-          </div>
-          <div className="text-[11px] text-muted mt-1.5 uppercase tracking-wide">Chambres</div>
+          <Box k="inclus" n={impact.inclus} label="Inclus" />
+          <Box k="comp" n={impact.comp} label="Comp" />
+          <Box k="groupe" n={impact.groupe} label="Groupe" />
+          <Box k="hors" n={impact.hors} label="Hors liste" />
+          <Box k="vip" n={impact.vip} label="VIP" tone="gold" />
+          <Box k="rooms" n={impact.rooms} label="Chambres" />
         </div>
+
+        {/* Cleaned-list toggle */}
+        <button
+          onClick={() => setListOpen((v) => !v)}
+          className="mt-4 w-full flex items-center justify-between glass-liquid rounded-[16px] px-4 py-3.5 active:scale-[0.99] transition-transform"
+        >
+          <span className="text-sm font-bold text-dark">Données nettoyées ({clients.length})</span>
+          <svg className={`w-4 h-4 text-muted transition-transform ${listOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {listOpen && (
+          <div className="mt-2 glass rounded-[14px] overflow-hidden max-h-[44vh] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-[#FBF8F3]/95 dark:bg-[#14141A]/95 backdrop-blur">
+                <tr className="text-left text-muted">
+                  <th className="px-3 py-2 font-medium">Chambre</th>
+                  <th className="px-3 py-2 font-medium">Nom</th>
+                  <th className="px-3 py-2 font-medium text-right">N</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clients.map((c, idx) => (
+                  <tr key={`${c.roomNumber}-${idx}`} className="border-t border-black/[0.04] dark:border-white/[0.05]">
+                    <td className="px-3 py-2 font-bold text-dark tabular-nums">{c.roomNumber || "—"}</td>
+                    <td className="px-3 py-2 text-dark truncate max-w-[180px]">{c.name || "—"}</td>
+                    <td className="px-3 py-2 text-right text-dark tabular-nums">{c.adults + c.children}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Future — habit-based prediction */}
+        <p className="text-center text-[15px] text-muted italic mt-6" style={{ fontFamily: "'Instrument Serif', serif" }}>
+          « Affluence prévue vers 8h15 — d&apos;après vos habitués. »
+        </p>
       </div>
 
-      {/* Coherence — honest data-quality flag, only when something needs a look */}
-      {impact.aVerifier > 0 && (
-        <div className="flex items-start gap-3 rounded-[16px] px-4 py-3.5 mt-5 text-[13.5px] leading-relaxed bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300">
-          <span className="text-[18px] leading-tight">⚠️</span>
-          <div>
-            <b>Cohérence à vérifier.</b> {impact.aVerifier} ligne{impact.aVerifier > 1 ? "s" : ""} incomplète
-            {impact.aVerifier > 1 ? "s" : ""} au scan — souvent des <b>enfants non comptés</b>. Vérifiez la dernière page du rapport.
-          </div>
-        </div>
-      )}
-
-      {/* Future — habit-based prediction (static placeholder for now) */}
-      <p className="text-center text-[15px] text-muted italic mt-6" style={{ fontFamily: "'Instrument Serif', serif" }}>
-        « Affluence prévue vers 8h15 — d&apos;après vos habitués. »
-      </p>
-
-      {/* CTA */}
-      <button
-        onClick={onStart}
-        className="mt-7 w-full bg-gradient-to-r from-brand to-brand-light text-white py-4 rounded-[52px] text-lg font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25"
-      >
-        Commencer le service
-      </button>
+      {/* Sticky CTA — always fixed at the bottom */}
+      <div className="shrink-0 px-5 py-4 pb-6 border-t border-black/5 dark:border-white/10 bg-[#FBF8F3]/95 dark:bg-[#0A0A0F]/95 backdrop-blur">
+        <button
+          onClick={onStart}
+          className="w-full bg-gradient-to-r from-brand to-brand-light text-white py-4 rounded-[52px] text-lg font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25"
+        >
+          Démarrer la Session ({impact.rooms} {impact.rooms === 1 ? "chambre" : "chambres"})
+        </button>
+      </div>
 
       {/* Explain popover */}
       {pop && (
