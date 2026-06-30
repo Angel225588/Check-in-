@@ -4,14 +4,17 @@ import { useRouter } from "next/navigation";
 import { getTodayData } from "@/lib/storage";
 import { useLiveSync } from "@/hooks/useLiveSync";
 import { cachedLocation, signOut } from "@/lib/sync/session";
+import { reportRequestedRecently } from "@/lib/sync/report-request";
 import { clearArea } from "@/lib/area";
 
 export default function ReceptionHome() {
   const router = useRouter();
   const [rooms, setRooms] = useState(0);
+  const [requested, setRequested] = useState(false);
 
   const refresh = useCallback(() => {
     setRooms(getTodayData()?.clients.length ?? 0);
+    reportRequestedRecently().then(setRequested).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -74,7 +77,7 @@ export default function ReceptionHome() {
         <button onClick={leave} className="text-xs font-semibold text-muted active:opacity-60">Changer d&apos;espace</button>
       </div>
 
-      <div className="mt-10 mb-9">
+      <div className="mt-10 mb-7">
         <h1 className="text-[32px] leading-[1.12] text-dark" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>
           Une matinée sereine<br />commence ici.
         </h1>
@@ -82,6 +85,19 @@ export default function ReceptionHome() {
           Tout ce dont la réception a besoin, au calme. Trois gestes, rien de plus.
         </p>
       </div>
+
+      {/* Restaurant is waiting — surfaced when a request is pending and nothing's uploaded yet. */}
+      {requested && rooms === 0 && (
+        <button
+          onClick={() => router.push("/upload")}
+          className="mb-5 flex items-center gap-3 rounded-[16px] px-4 py-3.5 text-left bg-amber-500/12 border border-amber-500/30 active:scale-[0.99] transition-transform"
+        >
+          <span className="text-lg">🔔</span>
+          <span className="flex-1 text-[13.5px] text-amber-800 dark:text-amber-300 leading-snug">
+            <b>Le restaurant attend le rapport.</b> Touchez pour téléverser la journée.
+          </span>
+        </button>
+      )}
 
       <div className="flex flex-col gap-3">
         {TILES.map((t) => (

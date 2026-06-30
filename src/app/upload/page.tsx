@@ -14,6 +14,7 @@ import { exchangeCode, cachedLocation, type LocationSession } from "@/lib/sync/s
 import { syncDayToSupabase, pullDayFromSupabase, storeSyncCode, autoSyncIfConnected } from "@/lib/sync/push-day";
 import { syncCheckinsToSupabase, pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
 import { reopenDayIfClosed } from "@/lib/sync/day-close";
+import { clearReportRequest } from "@/lib/sync/report-request";
 import { SUPABASE_URL, DEFAULT_SYNC_CODE } from "@/lib/sync/config";
 import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
@@ -710,8 +711,10 @@ export default function UploadPage() {
     recordSessionGuests(tagged);
     // Auto-sync to the cloud if this device is connected (encrypted, fire-and-forget)
     void autoSyncIfConnected();
-    // A fresh upload re-opens the day across devices (clears any prior "closed" flag).
+    // A fresh upload re-opens the day across devices (clears any prior "closed" flag)
+    // and dismisses the restaurant's "waiting for report" request.
     void reopenDayIfClosed();
+    void clearReportRequest();
 
     const q =
       result.duplicatesSkipped > 0 || result.existing > 0

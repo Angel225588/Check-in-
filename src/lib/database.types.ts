@@ -364,6 +364,7 @@ export type Database = {
         Row: {
           client_rev: number
           closed_at: string | null
+          report_requested_at: string | null
           deleted_at: string | null
           device_id: string | null
           id: string
@@ -378,6 +379,7 @@ export type Database = {
         Insert: {
           client_rev?: number
           closed_at?: string | null
+          report_requested_at?: string | null
           deleted_at?: string | null
           device_id?: string | null
           id?: string
@@ -392,6 +394,7 @@ export type Database = {
         Update: {
           client_rev?: number
           closed_at?: string | null
+          report_requested_at?: string | null
           deleted_at?: string | null
           device_id?: string | null
           id?: string
