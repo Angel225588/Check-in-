@@ -11,8 +11,20 @@ const DEFAULT_SUPABASE_URL = "https://qimhmwkmkbqxsvtayldn.supabase.co";
 const DEFAULT_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpbWhtd2tta2JxeHN2dGF5bGRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3OTkzNDUsImV4cCI6MjA5NzM3NTM0NX0.I56UA2pAERLaoflWK5Qf-LUkd-ONY8-t_TQzdeL-rFQ";
 
-export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+// Honor an env override ONLY if it's actually valid — otherwise use the fixed project
+// value. This survives a stale / blank / trailing-slash NEXT_PUBLIC_SUPABASE_URL on
+// Vercel (the cause of the auth-location HTTP 404).
+function resolveSupabaseUrl(): string {
+  const env = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(env) ? env : DEFAULT_SUPABASE_URL;
+}
+function resolveAnonKey(): string {
+  const env = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
+  return env.startsWith("eyJ") ? env : DEFAULT_SUPABASE_ANON_KEY;
+}
+
+export const SUPABASE_URL = resolveSupabaseUrl();
+export const SUPABASE_ANON_KEY = resolveAnonKey();
 
 /** Optional default location code (pilot convenience) — pre-fills the sync drawer. */
 export const DEFAULT_SYNC_CODE = process.env.NEXT_PUBLIC_DEFAULT_SYNC_CODE || "";
