@@ -30,15 +30,18 @@ export default function ImpactScreen({
   elapsedSec,
   clients,
   onStart,
+  ctaLabel,
 }: {
   impact: ImpactSummary;
   elapsedSec: number;
   clients: Client[];
   onStart: () => void;
+  /** Override the bottom CTA text (e.g. "Commencer le service" for the restaurant home). */
+  ctaLabel?: string;
 }) {
   const [pop, setPop] = useState<[string, string] | null>(null);
   const [listOpen, setListOpen] = useState(false);
-  const elapsed = elapsedSec > 0 ? elapsedSec.toFixed(1).replace(".", ",") : "—";
+  const elapsed = elapsedSec > 0 ? elapsedSec.toFixed(1).replace(".", ",") : "";
 
   const Box = ({ k, n, label, tone }: { k: string; n: number; label: string; tone?: "gold" }) => (
     <button
@@ -65,9 +68,11 @@ export default function ImpactScreen({
           <span className="text-[15px] font-bold tracking-[0.18em] text-dark">
             IMARKETIN<span className="text-brand">.</span>
           </span>
-          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-brand bg-brand/10 border border-brand/20 rounded-full px-3 py-1.5">
-            ⚡ Analysé en {elapsed} s
-          </span>
+          {elapsed && (
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-brand bg-brand/10 border border-brand/20 rounded-full px-3 py-1.5">
+              ⚡ Analysé en {elapsed} s
+            </span>
+          )}
         </div>
 
         {/* Hero */}
@@ -157,7 +162,7 @@ export default function ImpactScreen({
           onClick={onStart}
           className="w-full bg-gradient-to-r from-brand to-brand-light text-white py-4 rounded-[52px] text-lg font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25"
         >
-          Démarrer la Session ({impact.rooms} {impact.rooms === 1 ? "chambre" : "chambres"})
+          {ctaLabel ?? `Démarrer la Session (${impact.rooms} ${impact.rooms === 1 ? "chambre" : "chambres"})`}
         </button>
       </div>
 
