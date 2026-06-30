@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { exchangeCode, cachedLocation } from "@/lib/sync/session";
-import { storeSyncCode, pullDayFromSupabase } from "@/lib/sync/push-day";
+import { storeSyncCode, storedSyncCode, pullDayFromSupabase } from "@/lib/sync/push-day";
 import { pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
 import { SUPABASE_URL, DEFAULT_SYNC_CODE } from "@/lib/sync/config";
-import { Area, AREA_HOME, AREA_LABEL, storeArea, storedArea } from "@/lib/area";
+import { Area, AREA_HOME, AREA_LABEL, storeArea } from "@/lib/area";
 
 const DOORS: { area: Area; desc: string; icon: React.ReactNode }[] = [
   {
@@ -45,11 +45,23 @@ export default function Entry() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  // Already connected + door chosen → skip the entry.
-  useEffect(() => {
-    const a = storedArea();
-    if (a && cachedLocation()) router.replace(AREA_HOME[a]);
-  }, [router]);
+  // Tapping a door: if already connected, enter instantly; otherwise ask for the code.
+  function onDoor(area: Area) {
+    setErr("");
+    if (cachedLocation() && storedSyncCode()) {
+      enterDirect(area);
+    } else {
+      setActive(area);
+    }
+  }
+
+  async function enterDirect(area: Area) {
+    const c = storedSyncCode();
+    storeArea(area);
+    try { await pullDayFromSupabase(c); } catch { /* offline */ }
+    void pullCheckinsFromSupabase(c).catch(() => {});
+    router.replace(AREA_HOME[area]);
+  }
 
   async function enter(area: Area) {
     const c = code.trim();
@@ -97,7 +109,7 @@ export default function Entry() {
         {DOORS.map((d) => (
           <button
             key={d.area}
-            onClick={() => { setActive(d.area); setErr(""); }}
+            onClick={() => onDoor(d.area)}
             className="flex items-center gap-4 glass-liquid rounded-[18px] px-5 py-4 text-left active:scale-[0.98] transition-transform"
           >
             <span className="w-12 h-12 rounded-[14px] grid place-items-center shrink-0 bg-gradient-to-br from-brand/15 to-brand-light/10 text-brand">

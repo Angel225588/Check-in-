@@ -3,6 +3,8 @@ import { useEffect, useRef } from "react";
 import { cachedLocation } from "@/lib/sync/session";
 import { storedSyncCode, pullDayFromSupabase } from "@/lib/sync/push-day";
 import { pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
+import { isDayClosedRemote, closedAck, setClosedAck } from "@/lib/sync/day-close";
+import { getTodayData, closeDay } from "@/lib/storage";
 import { getSupabase } from "@/lib/supabase";
 
 /**
@@ -31,6 +33,13 @@ export function useLiveSync(onChange: () => void, intervalMs = 12000) {
       busy.current = true;
       try {
         await pullCheckinsFromSupabase(code);
+        // Close-session-everywhere: if another device closed today, close here too —
+        // exactly once (ack-guarded), and only if we still have an open day to close.
+        const t = new Date().toISOString().split("T")[0];
+        if (closedAck() !== t && (getTodayData()?.clients.length ?? 0) > 0 && (await isDayClosedRemote())) {
+          closeDay();
+          setClosedAck(t);
+        }
         if (!cancelled) onChangeRef.current();
       } catch {
         /* offline / transient — next tick heals it */

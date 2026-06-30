@@ -8,7 +8,7 @@ export type Area = "reception" | "restaurant" | "direction";
 const AREA_KEY = "imk_area";
 
 export const AREA_HOME: Record<Area, string> = {
-  reception: "/upload",
+  reception: "/reception",
   restaurant: "/restaurant",
   direction: "/dashboard",
 };

@@ -3,6 +3,7 @@ import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Door, User, TrendUp, TrendDown, Minus } from "@phosphor-icons/react/dist/ssr";
 import { getTodayData, closeDay, getSessionHistory, getDataForDate } from "@/lib/storage";
+import { pushDayClosed } from "@/lib/sync/day-close";
 import { generateDayReport, exportReportCSV, DayReport, RoomReport } from "@/lib/report";
 import { formatTime } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
@@ -156,6 +157,8 @@ function ReportPage() {
   };
 
   const handleCloseDay = () => {
+    // Flush + mark the day closed for every device BEFORE clearing locally.
+    void pushDayClosed();
     closeDay();
     router.push("/upload");
   };
