@@ -129,6 +129,19 @@ export function saveRawUploadText(rawText: string): void {
   saveTodayData(data);
 }
 
+/**
+ * Data minimization: drop the raw OCR text for the OPEN day once the clean roster
+ * is saved. The clean structured data + the hotel's own report are the sources of
+ * truth — we don't retain the unstructured guest dump. Photos are never persisted;
+ * this raw text is the only PII blob that would otherwise linger. Safe + idempotent.
+ */
+export function dropTodayRawText(): void {
+  const data = getTodayData();
+  if (!data || !data.rawUploadText) return;
+  data.rawUploadText = "";
+  saveTodayData(data);
+}
+
 export function addClient(client: Client): void {
   const data = getTodayData();
   if (!data) return;

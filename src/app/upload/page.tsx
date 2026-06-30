@@ -9,7 +9,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
-import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
+import { saveClients, saveClientsMerged, getSessionHistory, getTodayData, dropTodayRawText } from "@/lib/storage";
 import { exchangeCode, cachedLocation, type LocationSession } from "@/lib/sync/session";
 import { syncDayToSupabase, pullDayFromSupabase, storeSyncCode, autoSyncIfConnected } from "@/lib/sync/push-day";
 import { syncCheckinsToSupabase, pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
@@ -18,11 +18,14 @@ import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
 import { recordSessionGuests } from "@/lib/guests";
 import { isComp } from "@/lib/utils";
+import { computeImpact, type ImpactSummary } from "@/lib/impact";
 import { useApp } from "@/contexts/AppContext";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import CsvImporter from "@/components/CsvImporter";
 import DataTable from "@/components/DataTable";
 import SettingsToggle from "@/components/SettingsToggle";
+import AnalyseLoading from "@/components/AnalyseLoading";
+import ImpactScreen from "@/components/ImpactScreen";
 
 interface PdfUploadStatus {
   file: File;
@@ -404,8 +407,12 @@ export default function UploadPage() {
   const unifiedCaptureRef = useRef<PhotoCaptureHandle>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  // View state: "home" | "processing" (scanning/uploading) | "pdf-processing" | "review" (after data captured)
-  const [view, setView] = useState<"home" | "processing" | "pdf-processing" | "review">("home");
+  // View state: "home" | "processing" (scanning/uploading) | "pdf-processing" | "review" (after data captured) | "impact" (start-of-day summary)
+  const [view, setView] = useState<"home" | "processing" | "pdf-processing" | "review" | "impact">("home");
+  const [impact, setImpact] = useState<ImpactSummary | null>(null);
+  const [analyseElapsed, setAnalyseElapsed] = useState(0);
+  const [postConfirmQuery, setPostConfirmQuery] = useState("");
+  const analyseStartRef = useRef<number | null>(null);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"scanner" | "gallery" | null>(null);
   const [pdfUploads, setPdfUploads] = useState<PdfUploadStatus[]>([]);
@@ -508,12 +515,29 @@ export default function UploadPage() {
     }
   }, [view, pendingAction]);
 
+  // Stamp when analysis begins so the impact screen can show real "analysé en X s".
+  useEffect(() => {
+    if (view === "processing" || view === "pdf-processing") {
+      if (analyseStartRef.current === null) analyseStartRef.current = Date.now();
+    } else if (view === "home") {
+      analyseStartRef.current = null;
+    }
+  }, [view]);
+
+  // Transition into review, capturing the machine analysis time (excludes human review).
+  const enterReview = () => {
+    if (analyseStartRef.current) {
+      setAnalyseElapsed((Date.now() - analyseStartRef.current) / 1000);
+    }
+    setView("review");
+  };
+
   // Unified handler: auto-routes clients vs VIP based on document type
   const handleUnifiedResult = (clientPages: Client[], vipPages: Client[], rawText: string) => {
     setOcrRawText(rawText);
     if (clientPages.length > 0) setBaseClients(clientPages);
     if (vipPages.length > 0) setVipRawClients(vipPages);
-    if (clientPages.length > 0 || vipPages.length > 0) setView("review");
+    if (clientPages.length > 0 || vipPages.length > 0) enterReview();
   };
 
   // Fallback for non-typed processing (Tesseract fallback)
@@ -521,7 +545,7 @@ export default function UploadPage() {
     setOcrRawText(rawText);
     if (clients.length > 0) {
       setBaseClients(clients);
-      setView("review");
+      enterReview();
     }
   };
 
@@ -621,7 +645,7 @@ export default function UploadPage() {
     if (clientPdfs.length > 0) setBaseClients(clientPdfs);
     if (vipPdfs.length > 0) setVipRawClients(vipPdfs);
     if (allRaw) setOcrRawText(allRaw);
-    setView("review");
+    enterReview();
   }, [pdfUploads]);
 
   const handlePdfInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -652,7 +676,7 @@ export default function UploadPage() {
   const handleManualParsed = (clients: Client[]) => {
     setBaseClients(clients);
     setShowManual(false);
-    setView("review");
+    enterReview();
   };
 
   const handleAddManualClient = () => {
@@ -686,17 +710,27 @@ export default function UploadPage() {
     const tagged = parsedClients.map((c) =>
       c.vipSource ? c : { ...c, vipSource: "breakfast_list" as const }
     );
-    const result = saveClientsMerged(tagged, ocrRawText);
+    const result = saveClientsMerged(tagged);
+    // Data minimization: the clean roster is now saved — drop the raw OCR dump.
+    // (Photos are never persisted; this is the only raw PII blob.)
+    dropTodayRawText();
     // Record guest profiles for returning-guest tracking
     recordSessionGuests(tagged);
     // Auto-sync to the cloud if this device is connected (encrypted, fire-and-forget)
     void autoSyncIfConnected();
-    if (result.duplicatesSkipped > 0 || result.existing > 0) {
-      setMergeBanner(result);
-      router.push(`/search?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`);
-    } else {
-      router.push("/search");
-    }
+
+    if (result.duplicatesSkipped > 0 || result.existing > 0) setMergeBanner(result);
+
+    // Build the start-of-day impact from the FULL merged roster (existing + new),
+    // then show the impact screen — "voici la journée" — before service starts.
+    const today = getTodayData();
+    setImpact(computeImpact(today?.clients ?? tagged));
+    setPostConfirmQuery(
+      result.duplicatesSkipped > 0 || result.existing > 0
+        ? `?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`
+        : "",
+    );
+    setView("impact");
   };
 
   const handleClear = () => {
@@ -1152,6 +1186,19 @@ export default function UploadPage() {
     );
   }
 
+  // ─── IMPACT VIEW: start-of-day summary after analysis ───
+  if (view === "impact" && impact) {
+    return (
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+        <ImpactScreen
+          impact={impact}
+          elapsedSec={analyseElapsed}
+          onStart={() => router.push(`/search${postConfirmQuery}`)}
+        />
+      </div>
+    );
+  }
+
   // ─── PROCESSING VIEW: Scanning & processing pages ───
   if (view === "processing") {
     return (
@@ -1190,26 +1237,13 @@ export default function UploadPage() {
           <p className="text-sm text-muted mt-0.5">{t("processing.desc")}</p>
         </div>
 
-        {/* Processing content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6">
-          {/* PhotoCapture — visible here to show thumbnails & progress */}
-          <div className="w-full mb-6">
+        {/* Processing content — agent-style narration while OCR runs */}
+        <div className="flex-1 flex flex-col px-2 overflow-hidden">
+          {/* PhotoCapture stays mounted (drives the OCR + shows thumbnails) */}
+          <div className="w-full px-4">
             {captureElements}
           </div>
-
-          {/* Animated processing indicator */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative w-20 h-20">
-              <div className="absolute inset-0 rounded-full border-4 border-brand/15" />
-              <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg className="w-8 h-8 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-muted text-sm font-medium animate-pulse">{t("processing.desc")}</p>
-          </div>
+          <AnalyseLoading />
         </div>
 
         <SettingsToggle />
@@ -1263,6 +1297,7 @@ export default function UploadPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6 space-y-3">
+          {!allDone && <AnalyseLoading pages={pdfUploads.length} />}
           {pdfUploads.map((pdf, i) => (
             <div key={i} className="glass-liquid rounded-[14px] p-4">
               <div className="flex items-center gap-3">
