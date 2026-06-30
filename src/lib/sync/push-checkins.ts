@@ -9,7 +9,7 @@ import { getSupabase } from "../supabase";
 import { cachedLocation } from "./session";
 import { getTodayData, applyServerCheckins } from "../storage";
 import { getDeviceId } from "./config";
-import { storedSyncCode } from "./push-day";
+import { storedSyncCode, ensureSession } from "./push-day";
 import { locationKeys } from "./keys";
 import { encryptField, decryptField } from "../crypto/field-crypto";
 
@@ -134,6 +134,7 @@ export async function autoSyncCheckinsIfConnected(): Promise<void> {
   try {
     const code = storedSyncCode();
     if (!code || !cachedLocation()) return;
+    if (!(await ensureSession())) return;
     await syncCheckinsToSupabase(code);
   } catch (e) {
     console.error("autoSyncCheckins failed:", e);
@@ -144,6 +145,7 @@ export async function autoSyncCheckinsIfConnected(): Promise<void> {
 export async function autoTombstoneIfConnected(id: string): Promise<void> {
   try {
     if (!storedSyncCode() || !cachedLocation()) return;
+    if (!(await ensureSession())) return;
     await pushCheckinTombstone(id);
   } catch (e) {
     console.error("autoTombstone failed:", e);

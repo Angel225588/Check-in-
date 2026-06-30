@@ -3,7 +3,7 @@
 // access code (never sent to the server); the rest are non-PII operational fields.
 import type { Client } from "../types";
 import { getSupabase } from "../supabase";
-import { cachedLocation } from "./session";
+import { cachedLocation, exchangeCode, hasSession } from "./session";
 import { getTodayData, saveClientsMerged } from "../storage";
 import { encryptField, decryptField, blindIndex } from "../crypto/field-crypto";
 import { locationKeys } from "./keys";
@@ -18,6 +18,24 @@ export function storeSyncCode(code: string): void {
 export function storedSyncCode(): string {
   if (typeof window === "undefined") return "";
   return localStorage.getItem(SYNC_CODE_KEY) || "";
+}
+
+/**
+ * Ensure a valid Supabase session before any sync/pull. The location cache
+ * (localStorage) can outlive the auth session (token expiry) — when that happens,
+ * writes get rejected by RLS ("new row violates row-level security policy"). We
+ * silently re-exchange the stored code so the device is properly authenticated again.
+ */
+export async function ensureSession(): Promise<boolean> {
+  if (await hasSession()) return true;
+  const code = storedSyncCode();
+  if (!code) return false;
+  try {
+    await exchangeCode(code);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export interface PushResult {
@@ -88,6 +106,7 @@ export async function autoSyncIfConnected(): Promise<void> {
   try {
     const code = storedSyncCode();
     if (!code || !cachedLocation()) return;
+    if (!(await ensureSession())) return; // no valid session → skip (don't RLS-error)
     await syncDayToSupabase(code);
   } catch (e) {
     console.error("autoSync failed:", e);

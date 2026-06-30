@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { exchangeCode, cachedLocation } from "@/lib/sync/session";
-import { storeSyncCode, storedSyncCode, pullDayFromSupabase } from "@/lib/sync/push-day";
+import { storeSyncCode, storedSyncCode, pullDayFromSupabase, ensureSession } from "@/lib/sync/push-day";
 import { pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
 import { SUPABASE_URL, DEFAULT_SYNC_CODE } from "@/lib/sync/config";
 import { Area, AREA_HOME, AREA_LABEL, storeArea } from "@/lib/area";
@@ -57,6 +57,15 @@ export default function Entry() {
 
   async function enterDirect(area: Area) {
     const c = storedSyncCode();
+    setBusy(true);
+    // The cache can outlive the session — re-authenticate with the stored code so
+    // the device is properly logged in (otherwise writes hit RLS). If it fails,
+    // fall back to asking for the code.
+    if (!(await ensureSession())) {
+      setBusy(false);
+      setActive(area);
+      return;
+    }
     storeArea(area);
     try { await pullDayFromSupabase(c); } catch { /* offline */ }
     void pullCheckinsFromSupabase(c).catch(() => {});
