@@ -408,8 +408,9 @@ export default function UploadPage() {
   const unifiedCaptureRef = useRef<PhotoCaptureHandle>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  // View state: home → processing/pdf-processing (narration) → impact (resume + confirm) → /search.
-  const [view, setView] = useState<"home" | "processing" | "pdf-processing" | "impact">("home");
+  // View state: home → processing/pdf-processing (narration) → impact (preview) → /search,
+  // or in reception "pick" mode → impact (preview) → sent (transmis) → /reception.
+  const [view, setView] = useState<"home" | "processing" | "pdf-processing" | "impact" | "sent">("home");
   const [analyseElapsed, setAnalyseElapsed] = useState(0);
   const [procElapsed, setProcElapsed] = useState(0); // live seconds while analysing
   const analyseStartRef = useRef<number | null>(null);
@@ -728,6 +729,23 @@ export default function UploadPage() {
         ? `?merged=${result.added}&skipped=${result.duplicatesSkipped}&total=${result.merged.length}`
         : "";
     router.push(`/search${q}`);
+  };
+
+  // Reception "pick" mode: transmit the doc to the restaurant, show the done screen,
+  // then return to the 3-tile reception home. Same merge — so uploading again later
+  // (VIPs, an updated list) completes the active session instead of replacing it.
+  const transmit = () => {
+    const tagged = parsedClients.map((c) =>
+      c.vipSource ? c : { ...c, vipSource: "breakfast_list" as const }
+    );
+    saveClientsMerged(tagged);
+    dropTodayRawText();
+    recordSessionGuests(tagged);
+    void autoSyncIfConnected();
+    void reopenDayIfClosed();
+    void clearReportRequest();
+    setView("sent");
+    setTimeout(() => router.push("/reception"), 1800);
   };
 
   const handleClear = () => {
@@ -1211,9 +1229,30 @@ export default function UploadPage() {
             impact={impactSummary}
             elapsedSec={analyseElapsed}
             clients={parsedClients}
-            onStart={confirmAndStart}
+            onStart={pickMode ? transmit : confirmAndStart}
+            ctaLabel={pickMode ? "Transmettre au restaurant" : undefined}
           />
         </div>
+      </div>
+    );
+  }
+
+  // ─── SENT VIEW: reception transmitted the doc → back to the 3-tile home ───
+  if (view === "sent") {
+    return (
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto items-center justify-center px-8 text-center bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+        <div className="w-20 h-20 rounded-full bg-green-500 grid place-items-center shadow-2xl shadow-green-500/30 animate-[popIn_0.3s_cubic-bezier(0.175,0.885,0.32,1.4)]">
+          <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h1 className="text-[28px] text-dark mt-6" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>
+          Transmis au restaurant
+        </h1>
+        <p className="text-muted text-sm mt-2">La journée est en cours d&apos;analyse. Le restaurant la voit déjà.</p>
+        <style jsx>{`
+          @keyframes popIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        `}</style>
       </div>
     );
   }
