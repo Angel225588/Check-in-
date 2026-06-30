@@ -2,15 +2,15 @@
 // goes to a US service (Google Gemini removed from the reception routes). The
 // /v1/ocr endpoint accepts a PDF (document_url) or image (image_url) directly and
 // returns markdown tables; parseMistralMarkdown turns those into Client[].
-import { parseMistralMarkdown, parseMistralVip, detectDocType } from "./mistral-parser";
+import { parseMistralMarkdown, parseMistralVip, detectDocType, type DocType } from "./mistral-parser";
 import type { Client } from "./types";
 
 const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
 
 export interface MistralOcrResult {
-  /** "clients" = breakfast/arrival list · "vip" = VIP guest list. */
-  type: "clients" | "vip";
-  /** Parsed rows. For a VIP doc these are VIP-shaped (level/notes), tagged list_only. */
+  /** clients = breakfast roster · vip = VIP list · brief = morning events · nopost = no-room-charge. */
+  type: DocType;
+  /** Parsed roster rows. Populated only for clients/vip; empty for brief/nopost (handled elsewhere). */
   clients: Client[];
   pages: number;
   markdown: string;
@@ -49,6 +49,9 @@ export async function mistralOcr(
   const pages = Array.isArray(j.pages) ? j.pages : [];
   const markdown = pages.map((p: { markdown?: string }) => p.markdown || "").join("\n");
   const type = detectDocType(markdown);
-  const clients = type === "vip" ? parseMistralVip(markdown) : parseMistralMarkdown(markdown);
+  // Only the roster docs are parsed into Client[]; brief/no-post are not mis-parsed
+  // into a broken roster — they're recognised and routed by their own handlers.
+  const clients =
+    type === "vip" ? parseMistralVip(markdown) : type === "clients" ? parseMistralMarkdown(markdown) : [];
   return { type, clients, pages: pages.length, markdown };
 }

@@ -26,6 +26,14 @@ describe("Mistral doc-type detection + VIP parsing", () => {
     expect(detectDocType(CLIENT_MD)).toBe("clients");
   });
 
+  it("detects a morning brief (special events) as brief", () => {
+    expect(detectDocType("# BRIEFING DU MATIN\nEVENEMENTS SPECIAUX\nAnniversaire ch 210")).toBe("brief");
+  });
+
+  it("detects a no-post (no room charge) list as nopost", () => {
+    expect(detectDocType("# NO POST LIST\nRoom charge not allowed for the following rooms")).toBe("nopost");
+  });
+
   it("parses VIP rows with level + notes mapped to rooms", () => {
     const v = parseMistralVip(VIP_MD);
     expect(v).toHaveLength(2);

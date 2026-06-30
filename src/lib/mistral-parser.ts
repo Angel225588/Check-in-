@@ -49,15 +49,24 @@ function emptyClient(): Client {
   };
 }
 
+/** The doc types reception sends: the breakfast roster, the VIP list, the morning
+ *  brief (special events), and the no-post (room-charge-not-allowed) list. */
+export type DocType = "clients" | "vip" | "brief" | "nopost";
+
 /**
- * Classify a Mistral OCR document from its markdown: a "VIP GUEST LIST" (has a
- * "VIP Level" column) vs the breakfast/arrival list (does not). Reliable because the
- * two report layouts are distinct — only the VIP report carries VIP-level columns.
+ * Classify a Mistral OCR document from its markdown. The four report layouts are
+ * distinct, so keyword/column detection is reliable. Order matters: VIP and brief
+ * are checked before the no-post keywords (a VIP note can mention "points exchange").
+ * Anything unrecognised falls back to the breakfast/arrival roster ("clients").
  */
-export function detectDocType(md: string): "clients" | "vip" {
-  return /vip\s*level/i.test(md) || /vip guest list|guest inhouse vip/i.test(md)
-    ? "vip"
-    : "clients";
+export function detectDocType(md: string): DocType {
+  const s = md.toLowerCase();
+  if (/vip\s*level/.test(s) || /vip guest list|guest inhouse vip/.test(s)) return "vip";
+  if (/briefing du matin|[ée]v[ée]nements? sp[ée]ciaux|anniversaire|honeymoon|ambassad/.test(s))
+    return "brief";
+  if (/no.?post|not allowed.*post|room.?post|ne pas facturer|cannot.*charge.*room/.test(s))
+    return "nopost";
+  return "clients";
 }
 
 type VipField = "roomNumber" | "name" | "vipLevel" | "vipNotes";
