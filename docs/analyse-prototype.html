@@ -42,20 +42,44 @@
   .imp-hero{margin:30px 0 8px;}
   .imp-hero .im-lead{margin-top:10px;}
   .imp-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0 0;}
-  .m{background:var(--im-white);border:1px solid var(--im-hairline);border-radius:var(--im-r-card);box-shadow:var(--im-sh-soft);padding:18px 14px;text-align:center;animation:pop .5s var(--im-ease) both;}
+  .m{position:relative;background:var(--im-white);border:1px solid var(--im-hairline);border-radius:var(--im-r-card);box-shadow:var(--im-sh-soft);padding:18px 14px;text-align:center;cursor:pointer;animation:pop .5s var(--im-ease) both;transition:transform var(--im-fast) var(--im-ease);}
+  .m:active{transform:scale(.96);}
   .m .n{font-family:var(--im-serif);font-weight:600;font-size:34px;line-height:1;color:var(--im-ink);}
   .m .n.gold{color:var(--im-gold);} .m .n.alert{color:var(--im-alert);}
   .m .l{font-size:11.5px;color:var(--im-taupe);margin-top:7px;text-transform:uppercase;letter-spacing:.5px;}
-  .m.big{grid-column:span 3;background:linear-gradient(135deg,var(--im-gold-light),var(--im-gold));border:none;box-shadow:var(--im-sh-gold);}
-  .m.big .n{color:#fff;font-size:46px;} .m.big .l{color:rgba(255,255,255,.85);}
+  .m .info{position:absolute;top:9px;right:11px;font-size:11px;color:var(--im-hairline);font-weight:800;}
+
+  /* the big TOTAL box — robust textured gold ("glass / soil") */
+  .m.big{grid-column:span 3;border:none;overflow:hidden;color:#fff;
+    background:linear-gradient(158deg,#E8B24A 0%,#C8821C 52%,#9E6212 100%);
+    box-shadow:0 14px 34px rgba(166,105,20,.42), inset 0 1px 0 rgba(255,255,255,.45), inset 0 -10px 24px rgba(120,72,10,.35);}
+  .m.big::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 18% 0%,rgba(255,255,255,.40),transparent 45%),
+               linear-gradient(118deg,transparent 36%,rgba(255,255,255,.22) 47%,transparent 58%);}
+  .m.big::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .m.big .n{color:#fff;font-size:48px;position:relative;text-shadow:0 1px 1px rgba(120,72,10,.4);}
+  .m.big .l{color:rgba(255,255,255,.9);position:relative;}
+  .m.big .info{color:rgba(255,255,255,.55);}
   @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.96);}to{opacity:1;transform:none;}}
+
   .coherence{display:flex;align-items:flex-start;gap:12px;border-radius:var(--im-r-card);padding:14px 16px;margin-top:18px;font-size:13.5px;line-height:1.5;}
   .coherence.warn{background:#fdf3e7;border:1px solid #f0c98a;color:#7a4e12;}
-  .coherence.ok{background:#eef7ee;border:1px solid #b8dcb8;color:#2f6b32;}
   .coherence .ci{font-size:18px;line-height:1.2;}
   .future{font-family:var(--im-serif2);font-style:italic;font-size:15px;color:var(--im-taupe);text-align:center;margin:24px 0 0;}
   .imp-cta{margin-top:26px;}
   .replay{display:block;margin:14px auto 0;background:none;border:none;color:var(--im-taupe);font-size:12.5px;font-weight:700;cursor:pointer;}
+
+  /* ---------- explain popover ---------- */
+  .pop-wrap{position:fixed;inset:0;z-index:60;display:none;align-items:flex-end;justify-content:center;}
+  .pop-wrap.is-open{display:flex;}
+  .pop-bg{position:absolute;inset:0;background:rgba(26,23,20,.34);backdrop-filter:blur(3px);animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  .pop{position:relative;width:min(440px,100%);background:var(--im-bg);border-radius:24px 24px 0 0;padding:24px 24px 30px;box-shadow:0 -18px 50px rgba(26,23,20,.2);animation:up .35s var(--im-ease);}
+  @keyframes up{from{transform:translateY(100%);}to{transform:none;}}
+  .pop h3{font-family:var(--im-serif);font-weight:600;font-size:22px;margin:0 0 8px;color:var(--im-ink);}
+  .pop p{font-size:15px;color:var(--im-taupe);line-height:1.55;margin:0 0 18px;}
+  .pop .num{font-family:var(--im-serif);font-weight:600;font-size:15px;color:var(--im-gold);}
 </style>
 </head>
 <body class="im im-bg">
@@ -68,7 +92,7 @@
       <h1 class="im-title" style="font-size:26px">Analyse de la journée</h1>
     </div>
     <div class="steps" id="steps"></div>
-    <div class="ana-foot"><span class="im-dot-live"></span> IA française · données chiffrées · UE</div>
+    <div class="ana-foot"><span class="im-dot-live"></span> Données chiffrées · sécurisées</div>
   </section>
 
   <!-- ===== IMPACT ===== -->
@@ -82,14 +106,14 @@
       <p class="im-lead">Voici la journée · lundi 30 juin</p>
     </div>
 
-    <div class="imp-metrics">
-      <div class="m big"><div class="n">250</div><div class="l">Total couverts</div></div>
-      <div class="m"><div class="n">198</div><div class="l">Inclus</div></div>
-      <div class="m"><div class="n">22</div><div class="l">Comp</div></div>
-      <div class="m"><div class="n gold">14</div><div class="l">VIP</div></div>
-      <div class="m"><div class="n">28</div><div class="l">Hors liste</div></div>
-      <div class="m"><div class="n">9</div><div class="l">No-post</div></div>
-      <div class="m"><div class="n alert">2</div><div class="l">À vérifier</div></div>
+    <div class="imp-metrics" id="metrics">
+      <div class="m big" data-k="total"><span class="info">i</span><div class="n">250</div><div class="l">Total couverts</div></div>
+      <div class="m" data-k="inclus"><span class="info">i</span><div class="n">198</div><div class="l">Inclus</div></div>
+      <div class="m" data-k="comp"><span class="info">i</span><div class="n">22</div><div class="l">Comp</div></div>
+      <div class="m" data-k="vip"><span class="info">i</span><div class="n gold">14</div><div class="l">VIP</div></div>
+      <div class="m" data-k="hors"><span class="info">i</span><div class="n">28</div><div class="l">Hors liste</div></div>
+      <div class="m" data-k="nopost"><span class="info">i</span><div class="n">9</div><div class="l">No-post</div></div>
+      <div class="m" data-k="verif"><span class="info">i</span><div class="n alert">2</div><div class="l">À vérifier</div></div>
     </div>
 
     <div class="coherence warn">
@@ -105,17 +129,36 @@
     </div>
   </section>
 
+  <!-- ===== explain popover ===== -->
+  <div class="pop-wrap" id="pop">
+    <div class="pop-bg" onclick="closePop()"></div>
+    <div class="pop">
+      <h3 id="popTitle"></h3>
+      <p id="popText"></p>
+      <button class="im-btn im-btn--primary im-btn--block" onclick="closePop()">Compris</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
+  /* simple words — the actual steps, plainly written */
   const STEPS = [
-    { lab: "Téléversement des documents", sub: "2 pages reçues" },
-    { lab: "Lecture par l'IA française", sub: "Mistral OCR · UE" },
-    { lab: "Compréhension des chambres", sub: "142 lignes lues" },
-    { lab: "Recherche de doublons", sub: "3 entrées fusionnées" },
-    { lab: "Vérification des totaux", sub: "Inclus · Comp · Hors-liste · VIP" },
-    { lab: "Cohérence avec le rapport", sub: "contrôle de la dernière page" },
+    { lab: "Lecture des documents", sub: "2 pages" },
+    { lab: "Analyse du contenu", sub: "142 lignes" },
+    { lab: "Recherche de doublons", sub: "3 fusionnés" },
+    { lab: "Vérification des totaux", sub: "Inclus · Comp · Hors-liste" },
+    { lab: "Contrôle de cohérence", sub: "dernière page" },
   ];
+  const EXPLAIN = {
+    total:  ["Total couverts", "Tous les petits-déjeuners attendus ce matin — la somme de toutes les catégories."],
+    inclus: ["Inclus", "Petit-déjeuner compris dans la réservation. Rien à encaisser."],
+    comp:   ["Comp (offert)", "Offert par la direction. Gratuit pour le client."],
+    vip:    ["VIP", "Client prioritaire — accueil soigné, attentions particulières."],
+    hors:   ["Hors liste", "Pas sur la liste, ou sans forfait petit-déjeuner. À encaisser au comptoir."],
+    nopost: ["No-post", "Ne peut pas être facturé à la chambre (à régler autrement)."],
+    verif:  ["À vérifier", "Écart entre le Total et la somme des catégories. À contrôler — souvent des enfants non comptés."],
+  };
   const CHECK = '<svg class="check" viewBox="0 0 24 24"><path d="M5 12l4 4L19 7"/></svg>';
   const stepsEl = document.getElementById("steps");
 
@@ -125,7 +168,6 @@
       `<div><div class="lab">${s.lab}</div><div class="sub"></div></div></div>`
     ).join("");
   }
-
   function show(id) {
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("is-active"));
     document.getElementById(id).classList.add("is-active");
@@ -153,6 +195,16 @@
     });
     timers.push(setTimeout(() => show("impact"), t + 500));
   }
+
+  /* tap any box → quick explanation */
+  document.getElementById("metrics").addEventListener("click", (e) => {
+    const box = e.target.closest(".m"); if (!box) return;
+    const d = EXPLAIN[box.dataset.k]; if (!d) return;
+    document.getElementById("popTitle").textContent = d[0];
+    document.getElementById("popText").textContent = d[1];
+    document.getElementById("pop").classList.add("is-open");
+  });
+  function closePop() { document.getElementById("pop").classList.remove("is-open"); }
 
   render();
   play();
