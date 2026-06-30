@@ -4,6 +4,20 @@ Reverse-chronological log of substantive work. Each entry: what shipped, proof, 
 
 ---
 
+## 2026-06-30 (pm) — Upload flow rework + Sync v3 (field-test feedback)
+
+Map: `docs/sprints/2026-06-30_upload-flow-and-sync-v3.md`.
+
+- **Sync v3:** `connect()` no longer awaits the check-in pull, so it can't gate the roster pull→redirect (the active-list regression). **Key insight:** encryption is per-code → both devices must use the **same** code to read the same roster (Courtyard has staff+manager codes; different codes = can't decrypt each other's PII). Manager dashboard = non-PII counts, so this is the intended model. Shared-DEK (any code reads the same data) is the option if manager+staff must share PII.
+- **Upload flow:** compact `AnalyseProgress` (real pdf-status stage + inline counter) replaces the full-screen list + big circle. **Review screen deleted.** Impact is now resume+review+confirm: distribution boxes (Inclus/Comp/Groupe/Hors-liste + VIP overlay + Chambres; **no "à vérifier"**), collapsible cleaned-list, **sticky bottom CTA**. `computeImpact` = strict package partition.
+- **Proof:** verified live on the dev server (screenshots inspected) — compact narration with real stage + inline counter; impact resume with distribution + list toggle + sticky CTA. 279/279 tests, tsc + `next build` clean. Two-device LIVE sync = Angel's device test (same code).
+
+### Next
+- Angel two-device test (same code) on preview.
+- Later: Courtyard proposal/recall doc + RGPD law mapping (GDPR EU 2016/679 + Loi Informatique & Libertés / CNIL).
+
+---
+
 ## 2026-06-30 — Sync v2 (kills the duplicate) + analyse narration + impact screen
 
 ### Sync v2 — cross-device check-in state
