@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imarketin — Analyse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Cormorant+Garamond:ital,wght@1,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="imarketin-ui.css" rel="stylesheet">
+<style>
+  html,body{margin:0;min-height:100%;}
+  .wrap{max-width:560px;margin:0 auto;padding:40px 26px 80px;min-height:100vh;display:flex;flex-direction:column;}
+  .screen{display:none;} .screen.is-active{display:flex;flex-direction:column;flex:1;animation:im-screen-in .5s var(--im-ease) both;}
+
+  /* ---------- LOADING / NARRATION ---------- */
+  .ana-head{text-align:center;margin:8px 0 34px;}
+  .ana-head .im-eyebrow{margin-bottom:8px;}
+  .steps{display:flex;flex-direction:column;gap:6px;margin:auto 0;}
+  .step{display:flex;align-items:center;gap:16px;padding:15px 16px;border-radius:16px;opacity:.4;
+        transition:opacity .4s var(--im-ease), background .4s var(--im-ease);}
+  .step.is-active{opacity:1;background:var(--im-white);box-shadow:var(--im-sh-soft);}
+  .step.is-done{opacity:1;}
+  .step .ico{width:34px;height:34px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;position:relative;}
+  .step.is-pending .ico{background:var(--im-cream);}
+  .step.is-pending .ico::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--im-hairline);}
+  .step.is-active .ico{background:var(--im-gold-tint);}
+  .spinner{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--im-gold-tint-2);border-top-color:var(--im-gold);animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .step.is-done .ico{background:var(--im-gold);}
+  .step .lab{font-weight:700;font-size:15.5px;color:var(--im-ink);}
+  .step .sub{font-size:12.5px;color:var(--im-taupe);margin-top:2px;min-height:14px;}
+  .check{width:18px;height:18px;display:block;}
+  .check path{stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24;animation:dc .35s var(--im-ease) forwards;}
+  @keyframes dc{to{stroke-dashoffset:0;}}
+  .ana-foot{text-align:center;font-size:12.5px;color:var(--im-taupe);margin-top:28px;display:flex;align-items:center;justify-content:center;gap:7px;}
+
+  /* ---------- IMPACT ---------- */
+  .imp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .imp-top .im-mark{font-size:15px;letter-spacing:3px;}
+  .time-chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--im-gold);background:var(--im-gold-tint);border:1px solid var(--im-gold-tint-2);border-radius:var(--im-r-pill);padding:6px 13px;}
+  .imp-hero{margin:30px 0 8px;}
+  .imp-hero .im-lead{margin-top:10px;}
+  .imp-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0 0;}
+  .m{background:var(--im-white);border:1px solid var(--im-hairline);border-radius:var(--im-r-card);box-shadow:var(--im-sh-soft);padding:18px 14px;text-align:center;animation:pop .5s var(--im-ease) both;}
+  .m .n{font-family:var(--im-serif);font-weight:600;font-size:34px;line-height:1;color:var(--im-ink);}
+  .m .n.gold{color:var(--im-gold);} .m .n.alert{color:var(--im-alert);}
+  .m .l{font-size:11.5px;color:var(--im-taupe);margin-top:7px;text-transform:uppercase;letter-spacing:.5px;}
+  .m.big{grid-column:span 3;background:linear-gradient(135deg,var(--im-gold-light),var(--im-gold));border:none;box-shadow:var(--im-sh-gold);}
+  .m.big .n{color:#fff;font-size:46px;} .m.big .l{color:rgba(255,255,255,.85);}
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.96);}to{opacity:1;transform:none;}}
+  .coherence{display:flex;align-items:flex-start;gap:12px;border-radius:var(--im-r-card);padding:14px 16px;margin-top:18px;font-size:13.5px;line-height:1.5;}
+  .coherence.warn{background:#fdf3e7;border:1px solid #f0c98a;color:#7a4e12;}
+  .coherence.ok{background:#eef7ee;border:1px solid #b8dcb8;color:#2f6b32;}
+  .coherence .ci{font-size:18px;line-height:1.2;}
+  .future{font-family:var(--im-serif2);font-style:italic;font-size:15px;color:var(--im-taupe);text-align:center;margin:24px 0 0;}
+  .imp-cta{margin-top:26px;}
+  .replay{display:block;margin:14px auto 0;background:none;border:none;color:var(--im-taupe);font-size:12.5px;font-weight:700;cursor:pointer;}
+</style>
+</head>
+<body class="im im-bg">
+<div class="wrap">
+
+  <!-- ===== LOADING ===== -->
+  <section class="screen is-active" id="loading">
+    <div class="ana-head">
+      <p class="im-eyebrow">Courtyard · Petit-déjeuner</p>
+      <h1 class="im-title" style="font-size:26px">Analyse de la journée</h1>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="ana-foot"><span class="im-dot-live"></span> IA française · données chiffrées · UE</div>
+  </section>
+
+  <!-- ===== IMPACT ===== -->
+  <section class="screen" id="impact">
+    <div class="imp-top">
+      <span class="im-mark">IMARKETIN<span class="dot">.</span></span>
+      <span class="time-chip">⚡ Analysé en 4,2 s</span>
+    </div>
+    <div class="imp-hero">
+      <h1 class="im-display">Bonjour l'équipe</h1>
+      <p class="im-lead">Voici la journée · lundi 30 juin</p>
+    </div>
+
+    <div class="imp-metrics">
+      <div class="m big"><div class="n">250</div><div class="l">Total couverts</div></div>
+      <div class="m"><div class="n">198</div><div class="l">Inclus</div></div>
+      <div class="m"><div class="n">22</div><div class="l">Comp</div></div>
+      <div class="m"><div class="n gold">14</div><div class="l">VIP</div></div>
+      <div class="m"><div class="n">28</div><div class="l">Hors liste</div></div>
+      <div class="m"><div class="n">9</div><div class="l">No-post</div></div>
+      <div class="m"><div class="n alert">2</div><div class="l">À vérifier</div></div>
+    </div>
+
+    <div class="coherence warn">
+      <span class="ci">⚠️</span>
+      <div><b>Cohérence à vérifier.</b> Total <b>250</b>, mais Inclus + Comp + Hors-liste = <b>248</b>. 2 couverts non rattachés — souvent des <b>enfants</b> non comptés. Vérifiez la dernière page du rapport.</div>
+    </div>
+
+    <p class="future">« Affluence prévue vers 8h15 — d'après vos habitués. »</p>
+
+    <div class="imp-cta">
+      <button class="im-btn im-btn--primary im-btn--big im-btn--block">Commencer le service</button>
+      <button class="replay" onclick="play()">↻ Revoir l'analyse</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const STEPS = [
+    { lab: "Téléversement des documents", sub: "2 pages reçues" },
+    { lab: "Lecture par l'IA française", sub: "Mistral OCR · UE" },
+    { lab: "Compréhension des chambres", sub: "142 lignes lues" },
+    { lab: "Recherche de doublons", sub: "3 entrées fusionnées" },
+    { lab: "Vérification des totaux", sub: "Inclus · Comp · Hors-liste · VIP" },
+    { lab: "Cohérence avec le rapport", sub: "contrôle de la dernière page" },
+  ];
+  const CHECK = '<svg class="check" viewBox="0 0 24 24"><path d="M5 12l4 4L19 7"/></svg>';
+  const stepsEl = document.getElementById("steps");
+
+  function render() {
+    stepsEl.innerHTML = STEPS.map((s, i) =>
+      `<div class="step is-pending" id="s${i}"><div class="ico"></div>` +
+      `<div><div class="lab">${s.lab}</div><div class="sub"></div></div></div>`
+    ).join("");
+  }
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("is-active"));
+    document.getElementById(id).classList.add("is-active");
+  }
+
+  let timers = [];
+  function play() {
+    timers.forEach(clearTimeout); timers = [];
+    show("loading"); render();
+    let t = 350;
+    STEPS.forEach((s, i) => {
+      timers.push(setTimeout(() => {
+        const el = document.getElementById("s" + i);
+        el.classList.remove("is-pending"); el.classList.add("is-active");
+        el.querySelector(".ico").innerHTML = '<div class="spinner"></div>';
+      }, t));
+      t += 850;
+      timers.push(setTimeout(() => {
+        const el = document.getElementById("s" + i);
+        el.classList.remove("is-active"); el.classList.add("is-done");
+        el.querySelector(".ico").innerHTML = CHECK;
+        el.querySelector(".sub").textContent = s.sub;
+      }, t));
+      t += 250;
+    });
+    timers.push(setTimeout(() => show("impact"), t + 500));
+  }
+
+  render();
+  play();
+</script>
+</body>
+</html>
