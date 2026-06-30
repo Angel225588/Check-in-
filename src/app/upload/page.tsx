@@ -11,7 +11,8 @@ import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
 import { exchangeCode, cachedLocation, type LocationSession } from "@/lib/sync/session";
-import { SUPABASE_URL } from "@/lib/sync/config";
+import { syncDayToSupabase } from "@/lib/sync/push-day";
+import { SUPABASE_URL, DEFAULT_SYNC_CODE } from "@/lib/sync/config";
 import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
 import { recordSessionGuests } from "@/lib/guests";
@@ -282,10 +283,11 @@ function getGreeting(t: (key: TranslationKey) => string): string {
 
 // Sync settings — connect this device to the secure cloud (EU, encrypted) with a location code.
 function SyncDrawer({ onClose }: { onClose: () => void }) {
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(DEFAULT_SYNC_CODE);
   const [loc, setLoc] = useState<LocationSession | null>(() => cachedLocation());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
 
   async function connect() {
     const c = code.trim();
@@ -293,12 +295,39 @@ function SyncDrawer({ onClose }: { onClose: () => void }) {
     if (!SUPABASE_URL) { setErr("Synchronisation non configurée sur ce serveur."); return; }
     setBusy(true);
     setErr("");
+    setNote("");
     try {
       const s = await exchangeCode(c);
       setLoc(s);
-      setCode("");
+      // Push the current day's clients (encrypted on-device) so they appear in the cloud.
+      try {
+        const { pushed } = await syncDayToSupabase(c);
+        setNote(pushed > 0 ? `${pushed} client(s) synchronisé(s) ✓` : "Connecté. Aucun client chargé à synchroniser pour l'instant.");
+      } catch (e) {
+        setNote("Connecté, mais l'envoi des données a échoué : " + (e as Error).message);
+      }
     } catch (e) {
-      setErr((e as Error).message === "invalid_code" ? "Code invalide." : "Connexion impossible.");
+      const m = (e as Error).message;
+      setErr(
+        m === "invalid_code" ? "Code invalide."
+        : m === "rate_limited" ? "Trop d'essais — réessaie dans quelques minutes."
+        : m === "auth_failed" ? "Le serveur a refusé la connexion."
+        : "Serveur injoignable — vérifie la connexion internet."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pushNow() {
+    const c = code.trim();
+    if (!c) { setErr("Entre le code pour synchroniser."); return; }
+    setBusy(true); setErr(""); setNote("");
+    try {
+      const { pushed } = await syncDayToSupabase(c);
+      setNote(pushed > 0 ? `${pushed} client(s) synchronisé(s) ✓` : "Aucun client chargé à synchroniser.");
+    } catch (e) {
+      setNote("Envoi échoué : " + (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -321,8 +350,16 @@ function SyncDrawer({ onClose }: { onClose: () => void }) {
                 <div className="text-sm text-muted">{loc.locationName} · {loc.role}</div>
               </div>
             </div>
+            {note && <p className="text-sm text-brand font-semibold">{note}</p>}
+            <button
+              onClick={pushNow}
+              disabled={busy}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-95 transition-all disabled:opacity-50"
+            >
+              {busy ? "Synchronisation…" : "Synchroniser maintenant"}
+            </button>
             <p className="text-xs text-muted leading-relaxed">
-              Cet appareil est relié au cloud sécurisé (UE, chiffré de bout en bout). Les données se synchronisent entre les appareils du même établissement.
+              Données chiffrées de bout en bout (UE). Dans Supabase, les noms et chambres sont illisibles (chiffrés) ; seul cet appareil les déchiffre.
             </p>
           </div>
         ) : (
