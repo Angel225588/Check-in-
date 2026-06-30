@@ -11,7 +11,7 @@ import { Client, VipEntry, SessionRecord } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
 import { exchangeCode, cachedLocation, type LocationSession } from "@/lib/sync/session";
-import { syncDayToSupabase } from "@/lib/sync/push-day";
+import { syncDayToSupabase, pullDayFromSupabase } from "@/lib/sync/push-day";
 import { SUPABASE_URL, DEFAULT_SYNC_CODE } from "@/lib/sync/config";
 import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
@@ -299,19 +299,24 @@ function SyncDrawer({ onClose }: { onClose: () => void }) {
     try {
       const s = await exchangeCode(c);
       setLoc(s);
-      // Push the current day's clients (encrypted on-device) so they appear in the cloud.
+      // Pull the session already in the cloud (decrypted on-device) so you see it here.
       try {
-        const { pushed } = await syncDayToSupabase(c);
-        setNote(pushed > 0 ? `${pushed} client(s) synchronisé(s) ✓` : "Connecté. Aucun client chargé à synchroniser pour l'instant.");
+        const { pulled } = await pullDayFromSupabase(c);
+        if (pulled > 0) {
+          setNote(`Session récupérée · ${pulled} client(s) — ouverture…`);
+          setTimeout(() => window.location.assign("/search"), 800);
+        } else {
+          setNote("Connecté. Aucune session dans le cloud — téléverse puis « Synchroniser maintenant ».");
+        }
       } catch (e) {
-        setNote("Connecté, mais l'envoi des données a échoué : " + (e as Error).message);
+        setNote("Connecté, mais récupération échouée : " + (e as Error).message);
       }
     } catch (e) {
       const m = (e as Error).message;
       setErr(
         m === "invalid_code" ? "Code invalide."
         : m === "rate_limited" ? "Trop d'essais — réessaie dans quelques minutes."
-        : m === "auth_failed" ? "Le serveur a refusé la connexion."
+        : m.startsWith("auth_failed") ? `Le serveur a refusé la connexion (${m.replace("auth_failed_", "HTTP ")}).`
         : "Serveur injoignable — vérifie la connexion internet."
       );
     } finally {

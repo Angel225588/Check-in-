@@ -33,6 +33,7 @@ export async function exchangeCode(code: string): Promise<LocationSession> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify({ code: code.trim() }),
@@ -40,7 +41,7 @@ export async function exchangeCode(code: string): Promise<LocationSession> {
   if (!res.ok) {
     if (res.status === 401) throw new Error("invalid_code");
     if (res.status === 429) throw new Error("rate_limited");
-    throw new Error("auth_failed");
+    throw new Error(`auth_failed_${res.status}`);
   }
   const j = await res.json();
   await getSupabase().auth.setSession({

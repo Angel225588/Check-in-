@@ -1,13 +1,27 @@
 // Push the current day's clients to Supabase with zero-knowledge encryption.
 // Name / room / VIP notes are encrypted on-device with a key derived from the
 // access code (never sent to the server); the rest are non-PII operational fields.
+import type { Client } from "../types";
 import { getSupabase } from "../supabase";
 import { cachedLocation } from "./session";
-import { getTodayData } from "../storage";
-import { deriveLocationKeys, encryptField } from "../crypto/field-crypto";
+import { getTodayData, saveClientsMerged } from "../storage";
+import { deriveLocationKeys, encryptField, decryptField } from "../crypto/field-crypto";
 
 export interface PushResult {
   pushed: number;
+}
+
+export interface PullResult {
+  pulled: number;
+}
+
+async function tryDecrypt(dek: CryptoKey, v: string): Promise<string> {
+  if (!v) return "";
+  try {
+    return await decryptField(dek, v);
+  } catch {
+    return v; // legacy plaintext or wrong key — show as-is
+  }
 }
 
 /**
@@ -49,4 +63,47 @@ export async function syncDayToSupabase(code: string): Promise<PushResult> {
   const { error } = await getSupabase().from("clients").insert(rows);
   if (error) throw new Error(error.message);
   return { pushed: rows.length };
+}
+
+/**
+ * Pull the location's clients from Supabase, decrypt PII on-device with the
+ * code-derived key, and merge them into today's local session — so a second
+ * device "sees the session" that another already started.
+ */
+export async function pullDayFromSupabase(code: string): Promise<PullResult> {
+  const loc = cachedLocation();
+  if (!loc) throw new Error("not_connected");
+  const { dek } = await deriveLocationKeys(code, btoa(loc.locationId));
+
+  const { data, error } = await getSupabase().from("clients").select("*").is("deleted_at", null);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  if (rows.length === 0) return { pulled: 0 };
+
+  const clients: Client[] = await Promise.all(
+    rows.map(async (g) => {
+      const str = (k: string) => (typeof g[k] === "string" ? (g[k] as string) : "");
+      const num = (k: string) => (typeof g[k] === "number" ? (g[k] as number) : 0);
+      return {
+        roomNumber: await tryDecrypt(dek, str("room_number")),
+        name: await tryDecrypt(dek, str("name")),
+        roomType: str("room_type"),
+        rtc: str("rtc"),
+        confirmationNumber: str("confirmation_number"),
+        arrivalDate: str("arrival_date"),
+        departureDate: str("departure_date"),
+        reservationStatus: str("reservation_status"),
+        adults: num("adults"),
+        children: num("children"),
+        rateCode: str("rate_code"),
+        packageCode: str("package_code"),
+        isVip: g["is_vip"] === true,
+        vipLevel: str("vip_level") || undefined,
+        vipNotes: await tryDecrypt(dek, str("vip_notes")),
+      } as Client;
+    })
+  );
+
+  saveClientsMerged(clients);
+  return { pulled: clients.length };
 }
