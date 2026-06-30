@@ -4,6 +4,30 @@ Reverse-chronological log of substantive work. Each entry: what shipped, proof, 
 
 ---
 
+## 2026-06-30 — Sync v2 (kills the duplicate) + analyse narration + impact screen
+
+### Sync v2 — cross-device check-in state
+Root cause of the 13h/14h duplicate: check-in *records* never synced, so a 2nd device's `remaining`/`allDone` never reflected the 1st device's check-in and the local guard couldn't fire across devices. Fixed by syncing check-ins (idempotent upsert by record `id`; zero-knowledge PII; sticky tombstone for undo) + a live pull (12s poll + Supabase Realtime + focus). The existing `allDone` guard now blocks the duplicate; added an explicit "déjà pointé à HHh" banner.
+- Files: `src/lib/sync/push-checkins.ts`, `src/lib/sync/keys.ts` (cached PBKDF2), `src/hooks/useLiveSync.ts`, `storage.applyServerCheckins` + tombstone set, check-in/search/upload wiring, migration `0004_realtime_checkins_clients.sql`.
+- **Proof:** failing-first reconcile test (`sync-checkins.test.ts`, 6); server-contract proof via SQL on a throwaway location — 2 pushes → **1 live row** (idempotent), undo → **0 live rows** (tombstone). 279/279 tests, tsc + `next build` clean.
+
+### Analyse narration + start-of-day impact
+`AnalyseLoading` (agent-style plain-word steps during OCR) + `ImpactScreen` ("Bonjour l'équipe / voici la journée" — textured-gold TOTAL, Inclus/Comp/VIP/Hors-liste/À-vérifier/Chambres, tap-any-box → plain explanation, honest coherence flag, analysé-en-X-s, Commencer le service). `impact.ts/computeImpact` = comp/inclus/hors strict partition (sums to total) + VIP overlay + data-quality à-vérifier (TDD, 6). Wired into `/upload`: processing → narration; confirm → impact → service.
+- **Proof:** verified live on the dev server via preview tooling — narration animates, impact shows correct real math (TOTAL 13 = 6+2+5; VIP 1; à-vérifier 1 → coherence banner), tap-to-explain popover works. Screenshots inspected.
+
+### Data minimization
+`dropTodayRawText()` drops the raw OCR dump for the open day once the clean roster is saved (photos already never persisted). TDD (3 tests).
+
+### Verified Pro-tier security posture
+Advisors clean (leaked-password WARN gone; only the 3 intentional locked-table INFO remain). Flagged Attack Challenge Mode to be turned OFF (challenges normal staff; emergency-only; Vercel auto-DDoS is always-on). Skipped OWASP Enterprise ruleset (→ code-side rate-limiting) + PITR (~$100/mo; daily backups suffice).
+
+### Next
+- Angel's two-device LIVE test on preview (`feat/supabase-migration`): upload → narration → impact; device A check-in → device B sees it (no duplicate) + "déjà pointé".
+- Sprint 1 hardening: security headers (HSTS/CSP/frame-deny) + rate-limit on `/api/ocr` + auth path.
+- Then S2 sync→prod cutover (48h dual-run, divergence 0) at Courtyard.
+
+---
+
 ## 2026-06-29 — Security-first pivot: zero-knowledge, quality hooks, S0 storage fix
 
 ### Operating model — Claude = Director of Development
