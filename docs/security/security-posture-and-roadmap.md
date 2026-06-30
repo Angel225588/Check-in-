@@ -107,6 +107,15 @@ Each rung has a **verification gate**. We do not claim a level until its proof e
 
 **Today we are ≈ L0→L1 in progress.** Marriott-signable ≈ **L4**. Central-bank-grade ≈ **L5**.
 
+### Pro tier unlocked (2026-06-30) — Vercel Pro + Supabase Pro
+Paid tiers make the L3/L4 hardening actionable **now**, not "future":
+- **Supabase Pro** ✅ live — project is **always-on** (no auto-pause; the paused-project failures are gone). Includes **daily backups**; enable **PITR** (point-in-time recovery) → restore to any second = L3-grade durability.
+- **Vercel Pro** — turn on the **WAF** (managed rulesets + **rate limiting** on `/api/ocr` + the auth path) + **Attack Challenge Mode** (DDoS) + **BotID** = L4 hardening.
+- **Advisors (2026-06-30): clean.** 3 INFO = intentional locked server-only tables (`app_config`/`auth_attempts`/`location_codes` — deny-all is correct); 1 WARN (leaked-password) is N/A (code auth, not passwords) — enable anyway, it's free.
+
+**Toggle (Angel, dashboards):** Supabase → PITR + leaked-password protection. Vercel → WAF on + Attack Challenge Mode + BotID.
+**Wire (Claude, code):** security headers (HSTS/CSP/frame-deny) + rate-limit guard on `/api/ocr` and the auth path; firewall config in repo.
+
 ---
 
 ## 8. Roadmap — ordered sprints (one thing at a time)
