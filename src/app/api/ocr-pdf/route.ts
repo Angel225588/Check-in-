@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
+import { shouldRetryStatus, parseJsonLoose } from "@/lib/ocr-helpers";
+
+// PDF OCR is heavy (Files API upload + multi-page extraction). Give the
+// function room to finish instead of hitting the platform's short default
+// timeout, which was silently killing larger reports with a 500.
+export const maxDuration = 60;
+export const runtime = "nodejs";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com";
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -39,14 +46,23 @@ Return format:
   ]
 }
 
+PACKAGE / FORECAST reports (IMPORTANT):
+Some reports (e.g. "Package Forecast", rate/package summaries) list a ROOM NUMBER and a PACKAGE or RATE CODE per row but have NO guest name. For every such row that has a room number and a package/rate code but no guest name, add it to a separate top-level array "packageRows" — do NOT put nameless rows in "clients".
+
+"packageRows": [
+  { "roomNumber": "string", "packageCode": "string" }
+]
+
 Rules:
 - Extract EVERY row from EVERY page, do not skip any
+- Rows WITH a guest name go in "clients"; nameless room+package rows go in "packageRows"
 - If a field is not visible or unclear, use "" for strings and 0 for numbers
 - For VIP documents, set isVip: true for all entries
+- Always include a "packageRows" array (use [] when there are none)
 - Return ONLY valid JSON, no markdown, no explanation, no code fences
-- If you cannot read the PDF or it's not a hotel report, return {"type":"unknown","pages":0,"clients":[]}`;
+- If you cannot read the PDF or it's not a hotel report, return {"type":"unknown","pages":0,"clients":[],"packageRows":[]}`;
 
-import { sanitizeAndValidateClient } from "@/lib/validate";
+import { sanitizeAndValidateClient, sanitizeAndValidatePackageRow } from "@/lib/validate";
 
 function validateClient(obj: Record<string, unknown>): boolean {
   return sanitizeAndValidateClient(obj);
@@ -218,11 +234,11 @@ export async function POST(request: NextRequest) {
     const uploaded = await uploadToGeminiFiles(apiKey, pdfBuffer, file.name || "report.pdf");
     fileUri = uploaded.fileUri;
 
-    // Call Gemini with the file reference
+    // Call Gemini with the file reference. Retry transient failures
+    // (rate limits AND upstream 5xx) with a short backoff before giving up.
     let response = await callGeminiWithFile(apiKey, fileUri);
-
-    if (response.status === 429) {
-      await new Promise((r) => setTimeout(r, 3000));
+    for (let attempt = 0; attempt < 2 && shouldRetryStatus(response.status); attempt++) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
       response = await callGeminiWithFile(apiKey, fileUri);
     }
 
@@ -251,19 +267,16 @@ export async function POST(request: NextRequest) {
     const textPart = [...parts].reverse().find(
       (p: Record<string, unknown>) => typeof p.text === "string" && !p.thought
     );
-    const rawText: string = textPart?.text || '{"type":"unknown","pages":0,"clients":[]}';
+    const rawText: string =
+      textPart?.text || '{"type":"unknown","pages":0,"clients":[],"packageRows":[]}';
 
-    // Clean up the response - remove markdown fences if present
-    const cleaned = rawText
-      .replace(/```json\s*/g, "")
-      .replace(/```\s*/g, "")
-      .trim();
-
-    let parsed;
+    // Parse the model output, salvaging valid JSON from any surrounding noise
+    // or trailing truncation on very large reports.
+    let parsed: Record<string, unknown>;
     try {
-      parsed = JSON.parse(cleaned);
+      parsed = parseJsonLoose(rawText) as Record<string, unknown>;
     } catch {
-      console.error(safeLogError("Failed to parse Gemini PDF response:", cleaned));
+      console.error(safeLogError("Failed to parse Gemini PDF response:", rawText));
       return NextResponse.json(
         { error: "AI returned invalid data. Try again or upload images instead." },
         { status: 500 }
@@ -271,21 +284,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Normalize: ensure we have the expected shape
-    const docType: string = parsed.type || "unknown";
+    const docType: string = (parsed.type as string) || "unknown";
     const pages: number = typeof parsed.pages === "number" ? parsed.pages : 0;
     const clients: Record<string, unknown>[] = Array.isArray(parsed.clients)
       ? parsed.clients
       : Array.isArray(parsed)
-        ? parsed
+        ? (parsed as unknown as Record<string, unknown>[])
         : [];
 
-    // Validate and filter clients
+    // Package/forecast rows (room + package code, no guest name required)
+    const rawPackageRows: Record<string, unknown>[] = Array.isArray(parsed.packageRows)
+      ? (parsed.packageRows as Record<string, unknown>[])
+      : [];
+
+    // Validate and filter
     const validClients = clients.filter(validateClient);
+    const validPackageRows = rawPackageRows
+      .filter(sanitizeAndValidatePackageRow)
+      .map((r) => ({ roomNumber: r.roomNumber as string, packageCode: r.packageCode as string }));
 
     return NextResponse.json({
       type: docType,
       pages,
       clients: validClients,
+      packageRows: validPackageRows,
     });
   } catch (err) {
     console.error(safeLogError("OCR PDF route error:", err));
