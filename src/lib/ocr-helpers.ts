@@ -80,3 +80,36 @@ export function overlayPackageForecast<
       : c
   );
 }
+
+/**
+ * De-duplicate client rows merged from parallel PDF page-chunks. Keyed on
+ * confirmation number + room + name so the same guest appearing on a chunk
+ * boundary isn't counted twice. Preserves order (first occurrence wins).
+ */
+export function dedupClients(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  const seen = new Set<string>();
+  const out: Record<string, unknown>[] = [];
+  for (const r of rows) {
+    const key = [
+      String(r.confirmationNumber || "").trim(),
+      String(r.roomNumber || "").trim(),
+      String(r.name || "").trim().toLowerCase(),
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
+}
+
+/** De-duplicate package rows by room number (first occurrence wins). */
+export function dedupPackageRows(rows: PackageRow[]): PackageRow[] {
+  const seen = new Set<string>();
+  const out: PackageRow[] = [];
+  for (const r of rows) {
+    if (seen.has(r.roomNumber)) continue;
+    seen.add(r.roomNumber);
+    out.push(r);
+  }
+  return out;
+}
