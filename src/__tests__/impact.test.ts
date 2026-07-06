@@ -51,6 +51,12 @@ describe("computeImpact — package distribution from the parsed roster", () => 
     expect(computeImpact(SAMPLE).rooms).toBe(6);
   });
 
+  it("reports adults + children so they can be picked as metrics", () => {
+    const i = computeImpact(SAMPLE);
+    expect(i.adults).toBe(9);
+    expect(i.children).toBe(0);
+  });
+
   it("has no à-vérifier field (dropped — confusing, no link)", () => {
     expect("aVerifier" in computeImpact(SAMPLE)).toBe(false);
   });

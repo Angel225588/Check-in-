@@ -17,6 +17,10 @@ export interface ImpactSummary {
   vip: number;
   /** Number of rooms (roster rows). */
   rooms: number;
+  /** Adults across the roster. */
+  adults: number;
+  /** Children across the roster. */
+  children: number;
 }
 
 function pax(c: Client): number {
@@ -42,10 +46,14 @@ export function computeImpact(clients: Client[]): ImpactSummary {
   let groupe = 0;
   let hors = 0;
   let vip = 0;
+  let adults = 0;
+  let children = 0;
 
   for (const c of clients) {
     const p = pax(c);
     total += p;
+    adults += c.adults || 0;
+    children += c.children || 0;
     if (isComp(c)) comp += p;
     else if (isGroup(c)) groupe += p;
     else if (!needsPaymentChoice(c)) inclus += p;
@@ -53,5 +61,5 @@ export function computeImpact(clients: Client[]): ImpactSummary {
     if (c.isVip) vip += p;
   }
 
-  return { total, inclus, comp, groupe, hors, vip, rooms: clients.length };
+  return { total, inclus, comp, groupe, hors, vip, rooms: clients.length, adults, children };
 }

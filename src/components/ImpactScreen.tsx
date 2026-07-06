@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { ImpactSummary } from "@/lib/impact";
 import type { Client } from "@/lib/types";
+import { getSettings, saveSettings } from "@/lib/storage";
 
 /** Tap-to-explain copy — plain French, one job each. */
 const EXPLAIN: Record<string, [string, string]> = {
@@ -12,7 +13,22 @@ const EXPLAIN: Record<string, [string, string]> = {
   hors: ["Hors liste", "Sans forfait petit-déjeuner. À encaisser au comptoir."],
   vip: ["VIP", "Client prioritaire — accueil soigné, attentions particulières."],
   rooms: ["Chambres", "Nombre de chambres sur la liste du jour."],
+  adults: ["Adultes", "Nombre total d'adultes attendus."],
+  children: ["Enfants", "Nombre total d'enfants attendus."],
 };
+
+/** The metrics a hotel can choose to see on its résumé — pick what matters to you. */
+const METRICS: { key: keyof ImpactSummary; label: string; tone?: "gold" }[] = [
+  { key: "inclus", label: "Inclus" },
+  { key: "comp", label: "Comp" },
+  { key: "groupe", label: "Groupe" },
+  { key: "hors", label: "Hors liste" },
+  { key: "vip", label: "VIP", tone: "gold" },
+  { key: "rooms", label: "Chambres" },
+  { key: "adults", label: "Adultes" },
+  { key: "children", label: "Enfants" },
+];
+const DEFAULT_METRICS = ["inclus", "comp", "groupe", "hors", "vip", "rooms"];
 
 const NOISE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
@@ -44,7 +60,15 @@ export default function ImpactScreen({
 }) {
   const [pop, setPop] = useState<[string, string] | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [personalize, setPersonalize] = useState(false);
+  const [enabled, setEnabled] = useState<string[]>(() => getSettings().metrics ?? DEFAULT_METRICS);
   const elapsed = elapsedSec > 0 ? elapsedSec.toFixed(1).replace(".", ",") : "";
+
+  const toggleMetric = (k: string) => {
+    const next = enabled.includes(k) ? enabled.filter((x) => x !== k) : [...enabled, k];
+    setEnabled(next);
+    saveSettings({ ...getSettings(), metrics: next });
+  };
 
   const Box = ({ k, n, label, tone }: { k: string; n: number; label: string; tone?: "gold" }) => (
     <button
@@ -127,13 +151,19 @@ export default function ImpactScreen({
             <div className="relative text-white/90 text-[11.5px] mt-2 uppercase tracking-wide">Total couverts</div>
           </button>
 
-          <Box k="inclus" n={impact.inclus} label="Inclus" />
-          <Box k="comp" n={impact.comp} label="Comp" />
-          <Box k="groupe" n={impact.groupe} label="Groupe" />
-          <Box k="hors" n={impact.hors} label="Hors liste" />
-          <Box k="vip" n={impact.vip} label="VIP" tone="gold" />
-          <Box k="rooms" n={impact.rooms} label="Chambres" />
+          {METRICS.filter((m) => enabled.includes(m.key)).map((m) => (
+            <Box key={m.key} k={m.key} n={impact[m.key]} label={m.label} tone={m.tone} />
+          ))}
         </div>
+
+        {/* Personnaliser — pick which indicators matter to your hotel */}
+        <button
+          onClick={() => setPersonalize(true)}
+          className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-muted active:opacity-60"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+          Personnaliser mes indicateurs
+        </button>
 
         {/* Cleaned-list toggle */}
         <button
@@ -183,6 +213,48 @@ export default function ImpactScreen({
           {ctaLabel ?? `Démarrer la Session (${impact.rooms} ${impact.rooms === 1 ? "chambre" : "chambres"})`}
         </button>
       </div>
+
+      {/* Personnaliser — the hotel picks which indicators it wants to see */}
+      {personalize && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" onClick={() => setPersonalize(false)}>
+          <div className="absolute inset-0 bg-black/35 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-md bg-[#FBF8F3] dark:bg-[#14141A] rounded-t-[24px] p-6 pb-8 shadow-2xl animate-[imkUp_0.3s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
+            <h3 className="text-[22px] text-dark" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>
+              Mes indicateurs
+            </h3>
+            <p className="text-[13px] text-muted mt-1 mb-4">Choisissez ce que vous voulez voir sur votre résumé.</p>
+            <div className="flex flex-wrap gap-2">
+              {METRICS.map((m) => {
+                const on = enabled.includes(m.key);
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => toggleMetric(m.key)}
+                    className={`inline-flex items-center gap-1.5 text-[13.5px] font-semibold rounded-full px-3.5 py-2 transition-all active:scale-[0.96] ${
+                      on ? "bg-brand text-white shadow-sm shadow-brand/30" : "glass-liquid text-muted"
+                    }`}
+                  >
+                    {on && (
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    )}
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setPersonalize(false)}
+              className="mt-6 w-full bg-gradient-to-r from-brand to-brand-light text-white py-3.5 rounded-[52px] font-bold active:scale-[0.97] transition-all"
+            >
+              Terminé
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Explain popover */}
       {pop && (
