@@ -5,6 +5,7 @@ import { useApp } from "@/contexts/AppContext";
 import { getTodayData, getSessionHistory } from "@/lib/storage";
 import { Client, CheckInRecord, SessionRecord } from "@/lib/types";
 import { isComp, getRemainingForRoom, getEnteredForClient, getTotalGuests, getCheckedInCount } from "@/lib/utils";
+import { checkinHref } from "@/lib/checkin-nav";
 import AnimatedNumber from "@/components/AnimatedNumber";
 
 function VipBadge({ level }: { level?: string }) {
@@ -318,7 +319,7 @@ export default function ClientsPage() {
                     client={client}
                     checkIns={todayCheckIns}
                     index={globalIndex}
-                    onClick={() => router.push(`/checkin/${client.roomNumber}?ci=${globalIndex}`)}
+                    onClick={() => router.push(checkinHref(client.roomNumber, globalIndex))}
                   />
                 );
               })}

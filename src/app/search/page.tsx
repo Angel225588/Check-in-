@@ -14,6 +14,7 @@ import AlphaKeypad from "@/components/AlphaKeypad";
 import HistoryPanel from "@/components/HistoryPanel";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import { getRemainingForRoom, isComp } from "@/lib/utils";
+import { checkinHref } from "@/lib/checkin-nav";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -57,10 +58,8 @@ export default function SearchPage() {
   }, [activeFilter, clients, checkIns]);
 
   const handleSelectRoom = (roomNumber: string, clientIndex?: number) => {
-    const url = clientIndex !== undefined
-      ? `/checkin/${roomNumber}?ci=${clientIndex}`
-      : `/checkin/${roomNumber}`;
-    router.push(url);
+    // PII-free navigation: room number goes to sessionStorage, not the URL.
+    router.push(checkinHref(roomNumber, clientIndex));
   };
 
   const handleAddClient = () => {

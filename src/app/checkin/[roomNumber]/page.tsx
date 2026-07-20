@@ -12,6 +12,7 @@ import {
   getSessionHistory,
 } from "@/lib/storage";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
+import { readSelection, checkinHref } from "@/lib/checkin-nav";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import ClientHistory from "@/components/ClientHistory";
@@ -35,7 +36,11 @@ export default function CheckInPage({
 }: {
   params: Promise<{ roomNumber: string }>;
 }) {
-  const { roomNumber } = use(params);
+  // The dynamic segment is an OPAQUE TOKEN, not the room number — keeping the
+  // room out of the URL keeps it out of Vercel access logs. The real selection
+  // is carried in sessionStorage (see lib/checkin-nav). We still fall back to
+  // treating the segment as a literal room number for legacy/deep-link URLs.
+  const { roomNumber: routeToken } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useApp();
@@ -62,11 +67,18 @@ export default function CheckInPage({
     const data = getTodayData();
     if (!data) { router.push("/search"); return; }
 
+    // Resolve the opaque token to the actual selection (room + optional index).
+    // Fallback for legacy/deep-link URLs: treat the token itself as a room number.
+    const sel = readSelection(routeToken);
+    const roomNumber = sel?.roomNumber ?? routeToken;
+    const selCi = sel?.ci;
+
     // Use client index if provided (handles shared rooms)
-    const ciParam = searchParams.get("ci");
+    const ciFromUrl = searchParams.get("ci");
+    const ciStr = selCi !== undefined ? String(selCi) : ciFromUrl;
     let found: Client | undefined;
-    if (ciParam !== null) {
-      const idx = parseInt(ciParam, 10);
+    if (ciStr !== null) {
+      const idx = parseInt(ciStr, 10);
       if (!isNaN(idx) && data.clients[idx]?.roomNumber === roomNumber) {
         found = data.clients[idx];
       }
@@ -78,7 +90,7 @@ export default function CheckInPage({
     if (!found) { router.push("/search"); return; }
 
     // Track client index for updates
-    const foundIndex = ciParam !== null ? parseInt(ciParam, 10) : data.clients.indexOf(found);
+    const foundIndex = ciStr !== null ? parseInt(ciStr, 10) : data.clients.indexOf(found);
     setClientIndex(foundIndex >= 0 ? foundIndex : null);
     setClient(found);
     const rem = getRemainingForRoom(found, data.checkIns);
@@ -105,7 +117,7 @@ export default function CheckInPage({
           ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
       )
     );
-  }, [roomNumber, router, searchParams]);
+  }, [routeToken, router, searchParams]);
 
   // Hooks must run unconditionally, BEFORE any early return.
   const guestId = useMemo(
@@ -159,8 +171,8 @@ export default function CheckInPage({
     updateClient(clientIndex, { roomNumber: editRoom.trim() });
     setClient({ ...client, roomNumber: editRoom.trim() });
     setEditingRoom(false);
-    // Navigate to the new room URL
-    router.replace(`/checkin/${editRoom.trim()}?ci=${clientIndex}`);
+    // Navigate to the new selection via a PII-free token (no room in the URL).
+    router.replace(checkinHref(editRoom.trim(), clientIndex));
   };
 
   const handleSavePeople = () => {
