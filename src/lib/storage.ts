@@ -12,6 +12,72 @@ function getKey(date: string): string {
 
 const HISTORY_KEY = "sessionHistory";
 
+// Upper bound on the accumulated OCR text we keep for a day. Every upload
+// appends its full OCR blob to rawUploadText, and every check-in rewrites the
+// whole day back to localStorage — left unbounded this is what eventually
+// overflows the ~5MB quota mid-shift and makes saves start failing silently.
+// We keep the most recent slice (newest uploads are the ones staff reference).
+const MAX_RAW_UPLOAD_TEXT = 60_000;
+
+function capRawUploadText(text: string): string {
+  if (text.length <= MAX_RAW_UPLOAD_TEXT) return text;
+  return text.slice(text.length - MAX_RAW_UPLOAD_TEXT);
+}
+
+/**
+ * Reclaim localStorage space when a write hits QuotaExceededError, without
+ * touching the day we're trying to save. Deletes always succeed even when the
+ * store is full, so this frees room for a retry. Returns true if it freed
+ * anything worth retrying for.
+ */
+function freeUpStorage(protectDate: string): boolean {
+  if (typeof window === "undefined") return false;
+  let freed = false;
+  const today = getTodayString();
+
+  // 1) Drop stale dailyData_* keys for past days (never the day being saved).
+  const staleKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("dailyData_")) {
+      const date = key.replace("dailyData_", "");
+      if (date !== protectDate && date < today) staleKeys.push(key);
+    }
+  }
+  for (const key of staleKeys) {
+    localStorage.removeItem(key);
+    freed = true;
+  }
+
+  // 2) Strip the heavy rawUploadText from stored session history and trim it.
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw) as SessionRecord[];
+      let changed = false;
+      for (const s of history) {
+        if (s.rawUploadText) {
+          s.rawUploadText = "";
+          changed = true;
+        }
+      }
+      if (history.length > 15) {
+        history.length = 15;
+        changed = true;
+      }
+      if (changed) {
+        // Rewriting a smaller value replaces the key in place; safe even full.
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        freed = true;
+      }
+    }
+  } catch {
+    // History unreadable/unwritable — nothing more we can safely do here.
+  }
+
+  return freed;
+}
+
 // --- Settings ---
 
 const SETTINGS_KEY = "app_settings";
@@ -58,11 +124,23 @@ export function getDataForDate(date: string): DailyData | null {
 
 export function saveTodayData(data: DailyData): boolean {
   data.date = getTodayString();
+  const key = getKey(data.date);
+  const serialized = JSON.stringify(data);
   try {
-    localStorage.setItem(getKey(data.date), JSON.stringify(data));
+    localStorage.setItem(key, serialized);
     return true;
   } catch {
-    // QuotaExceededError — return false so UI can warn user
+    // QuotaExceededError — try to reclaim space from stale data, then retry
+    // once. Only if the retry also fails do we report failure so the UI can
+    // warn the user instead of showing a fake success.
+    if (freeUpStorage(data.date)) {
+      try {
+        localStorage.setItem(key, serialized);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     return false;
   }
 }
@@ -73,7 +151,7 @@ export function saveClients(clients: Client[], rawText?: string): void {
     date: getTodayString(),
     clients,
     checkIns: existing?.checkIns ?? [],
-    rawUploadText: rawText || existing?.rawUploadText || "",
+    rawUploadText: capRawUploadText(rawText || existing?.rawUploadText || ""),
   };
   saveTodayData(data);
 }
@@ -87,9 +165,9 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
   const existingClients = existing?.clients ?? [];
   const result = mergeNewClients(existingClients, newClients);
 
-  const combinedRaw = [existing?.rawUploadText, rawText]
-    .filter(Boolean)
-    .join("\n---\n");
+  const combinedRaw = capRawUploadText(
+    [existing?.rawUploadText, rawText].filter(Boolean).join("\n---\n")
+  );
 
   const data: DailyData = {
     date: getTodayString(),
@@ -104,33 +182,38 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
 export function saveRawUploadText(rawText: string): void {
   const data = getTodayData();
   if (!data) return;
-  data.rawUploadText = rawText;
+  data.rawUploadText = capRawUploadText(rawText);
   saveTodayData(data);
 }
 
-export function addClient(client: Client): void {
+export function addClient(client: Client): boolean {
   const data = getTodayData();
-  if (!data) return;
+  if (!data) return false;
   // Live additions from /search default to walk-in source unless caller specified one.
   const tagged: Client = client.vipSource
     ? client
     : { ...client, vipSource: "walk_in" };
   data.clients.push(tagged);
-  saveTodayData(data);
+  return saveTodayData(data);
 }
 
-export function updateClient(index: number, updates: Partial<Client>): void {
+export function updateClient(index: number, updates: Partial<Client>): boolean {
   const data = getTodayData();
-  if (!data || !data.clients[index]) return;
+  if (!data || !data.clients[index]) return false;
   data.clients[index] = { ...data.clients[index], ...updates };
-  saveTodayData(data);
+  return saveTodayData(data);
 }
 
-export function addCheckIn(record: CheckInRecord): void {
+/**
+ * Persist a check-in. Returns true only if it was actually written to
+ * localStorage — callers MUST check this and surface a failure instead of
+ * showing a success state, otherwise a quota-full tablet silently loses guests.
+ */
+export function addCheckIn(record: CheckInRecord): boolean {
   const data = getTodayData();
-  if (!data) return;
+  if (!data) return false;
   data.checkIns.push(record);
-  saveTodayData(data);
+  return saveTodayData(data);
 }
 
 export function removeCheckIn(id: string): boolean {

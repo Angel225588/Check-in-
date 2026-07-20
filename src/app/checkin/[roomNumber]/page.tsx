@@ -44,6 +44,7 @@ export default function CheckInPage({
   const [remaining, setRemaining] = useState(0);
   const [count, setCount] = useState(1);
   const [checkInSuccess, setCheckInSuccess] = useState(false);
+  const [checkInError, setCheckInError] = useState(false);
   // Default = Chambre (room charge). Reception is required to ASK the guest;
   // the UI prompts even when the default is fine, so the question gets asked.
   const [paymentAction, setPaymentAction] = useState<string | null>("room");
@@ -194,7 +195,14 @@ export default function CheckInPage({
       timestamp: new Date().toISOString(),
       ...(paymentAction ? { paymentAction } : {}),
     };
-    addCheckIn(record);
+    // Only celebrate if the check-in was ACTUALLY persisted. A full-storage
+    // tablet silently drops the write — showing success there loses the guest.
+    const saved = addCheckIn(record);
+    if (!saved) {
+      setCheckInError(true);
+      return;
+    }
+    setCheckInError(false);
     setCheckInSuccess(true);
     setTimeout(() => router.push("/search"), 800);
   };
@@ -213,6 +221,38 @@ export default function CheckInPage({
             <span className="text-sm font-bold text-green-700 dark:text-green-300 bg-green-500/10 px-4 py-1.5 rounded-full">
               {t("checkin.confirmed")}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Save-failure overlay — storage full, check-in was NOT persisted.
+          Blocking + red so reception cannot mistake it for a success. */}
+      {checkInError && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out] p-6">
+          <div className="w-full max-w-sm bg-[#FBF8F3] dark:bg-[#14141A] rounded-[24px] p-6 shadow-2xl text-center animate-[popIn_0.25s_cubic-bezier(0.175,0.885,0.32,1.4)]">
+            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/40">
+              <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <div className="text-lg font-black text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">
+              {t("checkin.saveFailed")}
+            </div>
+            <p className="text-sm text-dark/80 leading-relaxed mb-5">
+              {t("checkin.saveFailedDesc")}
+            </p>
+            <button
+              onClick={() => { setCheckInError(false); handleCheckIn(); }}
+              className="w-full bg-brand text-white py-3 rounded-full text-base font-bold active:scale-[0.97] transition-all mb-2"
+            >
+              {t("checkin.retry")}
+            </button>
+            <button
+              onClick={() => setCheckInError(false)}
+              className="w-full py-2.5 rounded-full glass-liquid text-muted font-semibold text-sm"
+            >
+              {t("checkin.cancel")}
+            </button>
           </div>
         </div>
       )}
