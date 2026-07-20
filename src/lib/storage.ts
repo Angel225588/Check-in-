@@ -1,6 +1,7 @@
 import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
 import { mergeVipIntoClients } from "./vip";
 import { mergeNewClients, MergeResult } from "./merge";
+import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -11,6 +12,58 @@ function getKey(date: string): string {
 }
 
 const HISTORY_KEY = "sessionHistory";
+
+// Keep at most this many days of closed sessions. Acts as a ring buffer:
+// adding a new day past the cap drops the oldest, so storage never grows
+// without bound day over day.
+const MAX_HISTORY_DAYS = 30;
+
+// --- Compression layer ---
+// Guest lists and OCR text are highly repetitive, so LZ compression typically
+// shrinks a day ~5-10x. This multiplies the ~5MB localStorage budget and is
+// what keeps a busy shift from ever hitting the quota. The marker prefix lets
+// reads transparently fall back to legacy UNCOMPRESSED JSON already sitting on
+// existing devices — so upgrading a tablet never loses the day in progress.
+const COMPRESSION_PREFIX = "LZ:";
+
+function encode(value: unknown): string {
+  return COMPRESSION_PREFIX + compressToUTF16(JSON.stringify(value));
+}
+
+/** Decode a stored string, handling both compressed and legacy plaintext. */
+function decode<T>(raw: string): T | null {
+  let json = raw;
+  if (raw.startsWith(COMPRESSION_PREFIX)) {
+    const d = decompressFromUTF16(raw.slice(COMPRESSION_PREFIX.length));
+    if (d == null) return null;
+    json = d;
+  }
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return null;
+  }
+}
+
+// --- Shape guards ---
+// localStorage is trusted single-device data, but a corrupted or hand-edited
+// entry must never crash the app on load. These coerce anything unexpected to
+// a safe empty shape instead of letting `.reduce`/`.findIndex` throw.
+function asDailyData(v: unknown, fallbackDate: string): DailyData | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  if (!Array.isArray(o.clients) || !Array.isArray(o.checkIns)) return null;
+  return {
+    date: typeof o.date === "string" ? o.date : fallbackDate,
+    clients: o.clients as Client[],
+    checkIns: o.checkIns as CheckInRecord[],
+    rawUploadText: typeof o.rawUploadText === "string" ? o.rawUploadText : "",
+  };
+}
+
+function asHistory(v: unknown): SessionRecord[] {
+  return Array.isArray(v) ? (v as SessionRecord[]) : [];
+}
 
 // Upper bound on the accumulated OCR text we keep for a day. Every upload
 // appends its full OCR blob to rawUploadText, and every check-in rewrites the
@@ -53,7 +106,7 @@ function freeUpStorage(protectDate: string): boolean {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
     if (raw) {
-      const history = JSON.parse(raw) as SessionRecord[];
+      const history = asHistory(decode<SessionRecord[]>(raw));
       let changed = false;
       for (const s of history) {
         if (s.rawUploadText) {
@@ -67,7 +120,7 @@ function freeUpStorage(protectDate: string): boolean {
       }
       if (changed) {
         // Rewriting a smaller value replaces the key in place; safe even full.
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        localStorage.setItem(HISTORY_KEY, encode(history));
         freed = true;
       }
     }
@@ -102,30 +155,23 @@ export function saveSettings(settings: AppSettings): void {
 
 export function getTodayData(): DailyData | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(getKey(getTodayString()));
+  const today = getTodayString();
+  const raw = localStorage.getItem(getKey(today));
   if (!raw) return null;
-  try {
-    return JSON.parse(raw) as DailyData;
-  } catch {
-    return null;
-  }
+  return asDailyData(decode(raw), today);
 }
 
 export function getDataForDate(date: string): DailyData | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(getKey(date));
   if (!raw) return null;
-  try {
-    return JSON.parse(raw) as DailyData;
-  } catch {
-    return null;
-  }
+  return asDailyData(decode(raw), date);
 }
 
 export function saveTodayData(data: DailyData): boolean {
   data.date = getTodayString();
   const key = getKey(data.date);
-  const serialized = JSON.stringify(data);
+  const serialized = encode(data);
   try {
     localStorage.setItem(key, serialized);
     return true;
@@ -267,11 +313,7 @@ export function getSessionHistory(): SessionRecord[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(HISTORY_KEY);
   if (!raw) return [];
-  try {
-    return JSON.parse(raw) as SessionRecord[];
-  } catch {
-    return [];
-  }
+  return asHistory(decode<SessionRecord[]>(raw));
 }
 
 export function closeDay(): SessionRecord | null {
@@ -308,12 +350,12 @@ export function closeDay(): SessionRecord | null {
   } else {
     history.unshift(record);
   }
-  if (history.length > 30) history.length = 30;
+  if (history.length > MAX_HISTORY_DAYS) history.length = MAX_HISTORY_DAYS;
 
   // Try saving — if quota exceeded, trim rawUploadText and retry
   let saved = false;
   try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    localStorage.setItem(HISTORY_KEY, encode(history));
     saved = true;
   } catch {
     // Quota exceeded — strip rawUploadText from older sessions to free space
@@ -321,13 +363,13 @@ export function closeDay(): SessionRecord | null {
       history[i].rawUploadText = "";
     }
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      localStorage.setItem(HISTORY_KEY, encode(history));
       saved = true;
     } catch {
       // Still failing — reduce to 15 sessions
       if (history.length > 15) history.length = 15;
       try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        localStorage.setItem(HISTORY_KEY, encode(history));
         saved = true;
       } catch {
         // Cannot save — do NOT clear daily data
@@ -368,13 +410,16 @@ export function autoCloseStale(): number {
   for (const date of staleKeys) {
     const raw = localStorage.getItem(getKey(date));
     if (!raw) continue;
-    let data: DailyData;
-    try {
-      data = JSON.parse(raw) as DailyData;
-    } catch {
+    // Shape-guarded decode: a corrupted/tampered entry must never throw here,
+    // because autoCloseStale runs on every app load — an uncaught error would
+    // white-screen the whole PWA at startup.
+    const data = asDailyData(decode(raw), date);
+    if (!data) {
+      // Unreadable/malformed — drop it so it can't wedge startup.
+      localStorage.removeItem(getKey(date));
       continue;
     }
-    if (!data.clients || data.clients.length === 0) {
+    if (data.clients.length === 0) {
       // Empty session — just remove it
       localStorage.removeItem(getKey(date));
       continue;
@@ -406,11 +451,11 @@ export function autoCloseStale(): number {
     }
     // Sort by date descending
     history.sort((a, b) => b.date.localeCompare(a.date));
-    if (history.length > 30) history.length = 30;
+    if (history.length > MAX_HISTORY_DAYS) history.length = MAX_HISTORY_DAYS;
 
     let saved = false;
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      localStorage.setItem(HISTORY_KEY, encode(history));
       saved = true;
     } catch {
       // Trim rawUploadText from older sessions
@@ -418,7 +463,7 @@ export function autoCloseStale(): number {
         history[i].rawUploadText = "";
       }
       try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        localStorage.setItem(HISTORY_KEY, encode(history));
         saved = true;
       } catch {
         // Cannot save — leave daily data intact

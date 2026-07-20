@@ -122,7 +122,9 @@ describe("saveTodayData — recover space before failing", () => {
     vi.stubGlobal("localStorage", mock);
     const { saveTodayData, getTodayData } = await loadStorage();
 
-    // Fill most of the budget with EVICTABLE junk: an old day + fat history.
+    // Over-fill the budget with EVICTABLE junk (seeded directly, bypassing the
+    // setItem cap). These are large enough that even a compressed "today" write
+    // overflows until the stale data is reclaimed.
     const staleHistory: SessionRecord[] = [
       {
         date: "2000-01-01",
@@ -134,7 +136,7 @@ describe("saveTodayData — recover space before failing", () => {
         totalVip: 0,
         clients: [makeClient()],
         checkIns: [],
-        rawUploadText: "Z".repeat(1500), // bloat that recovery should strip
+        rawUploadText: "Z".repeat(3000), // bloat that recovery should strip
       },
     ];
     mock.store["sessionHistory"] = JSON.stringify(staleHistory);
@@ -142,7 +144,7 @@ describe("saveTodayData — recover space before failing", () => {
       date: "2000-01-01",
       clients: [makeClient()],
       checkIns: [],
-      rawUploadText: "Y".repeat(1200),
+      rawUploadText: "Y".repeat(3000),
     });
 
     // Now a fresh today write that would overflow without eviction.
