@@ -12,6 +12,7 @@ import {
   getSessionHistory,
 } from "@/lib/storage";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
+import { readSelection, checkinHref } from "@/lib/checkin-nav";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import ClientHistory from "@/components/ClientHistory";
@@ -35,7 +36,11 @@ export default function CheckInPage({
 }: {
   params: Promise<{ roomNumber: string }>;
 }) {
-  const { roomNumber } = use(params);
+  // The dynamic segment is an OPAQUE TOKEN, not the room number — keeping the
+  // room out of the URL keeps it out of Vercel access logs. The real selection
+  // is carried in sessionStorage (see lib/checkin-nav). We still fall back to
+  // treating the segment as a literal room number for legacy/deep-link URLs.
+  const { roomNumber: routeToken } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useApp();
@@ -44,6 +49,7 @@ export default function CheckInPage({
   const [remaining, setRemaining] = useState(0);
   const [count, setCount] = useState(1);
   const [checkInSuccess, setCheckInSuccess] = useState(false);
+  const [checkInError, setCheckInError] = useState(false);
   // Default = Chambre (room charge). Reception is required to ASK the guest;
   // the UI prompts even when the default is fine, so the question gets asked.
   const [paymentAction, setPaymentAction] = useState<string | null>("room");
@@ -61,11 +67,18 @@ export default function CheckInPage({
     const data = getTodayData();
     if (!data) { router.push("/search"); return; }
 
+    // Resolve the opaque token to the actual selection (room + optional index).
+    // Fallback for legacy/deep-link URLs: treat the token itself as a room number.
+    const sel = readSelection(routeToken);
+    const roomNumber = sel?.roomNumber ?? routeToken;
+    const selCi = sel?.ci;
+
     // Use client index if provided (handles shared rooms)
-    const ciParam = searchParams.get("ci");
+    const ciFromUrl = searchParams.get("ci");
+    const ciStr = selCi !== undefined ? String(selCi) : ciFromUrl;
     let found: Client | undefined;
-    if (ciParam !== null) {
-      const idx = parseInt(ciParam, 10);
+    if (ciStr !== null) {
+      const idx = parseInt(ciStr, 10);
       if (!isNaN(idx) && data.clients[idx]?.roomNumber === roomNumber) {
         found = data.clients[idx];
       }
@@ -77,7 +90,7 @@ export default function CheckInPage({
     if (!found) { router.push("/search"); return; }
 
     // Track client index for updates
-    const foundIndex = ciParam !== null ? parseInt(ciParam, 10) : data.clients.indexOf(found);
+    const foundIndex = ciStr !== null ? parseInt(ciStr, 10) : data.clients.indexOf(found);
     setClientIndex(foundIndex >= 0 ? foundIndex : null);
     setClient(found);
     const rem = getRemainingForRoom(found, data.checkIns);
@@ -104,7 +117,7 @@ export default function CheckInPage({
           ci.clientName.trim().toLowerCase().replace(/\s+/g, " ") === normName
       )
     );
-  }, [roomNumber, router, searchParams]);
+  }, [routeToken, router, searchParams]);
 
   // Hooks must run unconditionally, BEFORE any early return.
   const guestId = useMemo(
@@ -158,8 +171,8 @@ export default function CheckInPage({
     updateClient(clientIndex, { roomNumber: editRoom.trim() });
     setClient({ ...client, roomNumber: editRoom.trim() });
     setEditingRoom(false);
-    // Navigate to the new room URL
-    router.replace(`/checkin/${editRoom.trim()}?ci=${clientIndex}`);
+    // Navigate to the new selection via a PII-free token (no room in the URL).
+    router.replace(checkinHref(editRoom.trim(), clientIndex));
   };
 
   const handleSavePeople = () => {
@@ -194,7 +207,14 @@ export default function CheckInPage({
       timestamp: new Date().toISOString(),
       ...(paymentAction ? { paymentAction } : {}),
     };
-    addCheckIn(record);
+    // Only celebrate if the check-in was ACTUALLY persisted. A full-storage
+    // tablet silently drops the write — showing success there loses the guest.
+    const saved = addCheckIn(record);
+    if (!saved) {
+      setCheckInError(true);
+      return;
+    }
+    setCheckInError(false);
     setCheckInSuccess(true);
     setTimeout(() => router.push("/search"), 800);
   };
@@ -213,6 +233,38 @@ export default function CheckInPage({
             <span className="text-sm font-bold text-green-700 dark:text-green-300 bg-green-500/10 px-4 py-1.5 rounded-full">
               {t("checkin.confirmed")}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Save-failure overlay — storage full, check-in was NOT persisted.
+          Blocking + red so reception cannot mistake it for a success. */}
+      {checkInError && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out] p-6">
+          <div className="w-full max-w-sm bg-[#FBF8F3] dark:bg-[#14141A] rounded-[24px] p-6 shadow-2xl text-center animate-[popIn_0.25s_cubic-bezier(0.175,0.885,0.32,1.4)]">
+            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/40">
+              <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <div className="text-lg font-black text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">
+              {t("checkin.saveFailed")}
+            </div>
+            <p className="text-sm text-dark/80 leading-relaxed mb-5">
+              {t("checkin.saveFailedDesc")}
+            </p>
+            <button
+              onClick={() => { setCheckInError(false); handleCheckIn(); }}
+              className="w-full bg-brand text-white py-3 rounded-full text-base font-bold active:scale-[0.97] transition-all mb-2"
+            >
+              {t("checkin.retry")}
+            </button>
+            <button
+              onClick={() => setCheckInError(false)}
+              className="w-full py-2.5 rounded-full glass-liquid text-muted font-semibold text-sm"
+            >
+              {t("checkin.cancel")}
+            </button>
           </div>
         </div>
       )}

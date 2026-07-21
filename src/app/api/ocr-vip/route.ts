@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     try {
       entries = JSON.parse(cleaned);
     } catch {
-      console.error(safeLogError("Failed to parse Gemini VIP response:", cleaned));
+      console.error("Failed to parse Gemini VIP response:" + " (unparseable JSON — payload withheld from logs)", { length: cleaned.length });
       return NextResponse.json(
         { error: "AI returned invalid data. Try again." },
         { status: 500 }

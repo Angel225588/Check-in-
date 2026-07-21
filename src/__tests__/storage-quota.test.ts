@@ -225,10 +225,13 @@ describe("freeUpSpace removes only raw text, keeps everything else", () => {
       },
     ];
     localStorage.setItem("sessionHistory", JSON.stringify(history));
+    // Use the real "today" key so getTodayData() resolves the active session
+    // regardless of the calendar date the test runs on.
+    const activeDate = new Date().toISOString().split("T")[0];
     localStorage.setItem(
-      "dailyData_2026-05-31",
+      `dailyData_${activeDate}`,
       JSON.stringify({
-        date: "2026-05-31",
+        date: activeDate,
         clients: [makeClient("201", "Today Guest")],
         checkIns: [],
         rawUploadText: "T".repeat(1_000_000),
@@ -246,7 +249,7 @@ describe("freeUpSpace removes only raw text, keeps everything else", () => {
     expect(h[0].rawUploadText).toBe("");
 
     // Today's daily data: rooms intact; raw text gone.
-    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-31")!);
+    const day = JSON.parse(localStorage.getItem(`dailyData_${activeDate}`)!);
     expect(day.clients.length).toBe(1);
     expect(day.rawUploadText).toBe("");
 

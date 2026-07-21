@@ -20,6 +20,27 @@ const HISTORY_KEY = "sessionHistory";
 // comfortably until everything migrates to Supabase.
 const RAW_TEXT_CAP = 30_000;
 
+// --- Shape guards ---
+// localStorage is trusted single-device data, but a corrupted or hand-edited
+// entry must never crash the app on load. These coerce anything unexpected to a
+// safe shape instead of letting `.reduce`/`.findIndex` throw an uncaught
+// TypeError in autoCloseStale on startup (which would white-screen the PWA).
+function asDailyData(v: unknown, fallbackDate: string): DailyData | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  if (!Array.isArray(o.clients) || !Array.isArray(o.checkIns)) return null;
+  return {
+    date: typeof o.date === "string" ? o.date : fallbackDate,
+    clients: o.clients as Client[],
+    checkIns: o.checkIns as CheckInRecord[],
+    rawUploadText: typeof o.rawUploadText === "string" ? o.rawUploadText : "",
+  };
+}
+
+function asHistory(v: unknown): SessionRecord[] {
+  return Array.isArray(v) ? (v as SessionRecord[]) : [];
+}
+
 // --- Settings ---
 
 const SETTINGS_KEY = "app_settings";
@@ -44,10 +65,11 @@ export function saveSettings(settings: AppSettings): void {
 
 export function getTodayData(): DailyData | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(getKey(getTodayString()));
+  const today = getTodayString();
+  const raw = localStorage.getItem(getKey(today));
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as DailyData;
+    return asDailyData(JSON.parse(raw), today);
   } catch {
     return null;
   }
@@ -58,7 +80,7 @@ export function getDataForDate(date: string): DailyData | null {
   const raw = localStorage.getItem(getKey(date));
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as DailyData;
+    return asDailyData(JSON.parse(raw), date);
   } catch {
     return null;
   }
@@ -148,11 +170,16 @@ export function updateClient(index: number, updates: Partial<Client>): void {
   saveTodayData(data);
 }
 
-export function addCheckIn(record: CheckInRecord): void {
+/**
+ * Persist a check-in. Returns true only if it was actually written to
+ * localStorage — the check-in screen checks this and shows a real error
+ * instead of a fake success, so a quota-full tablet never silently loses a guest.
+ */
+export function addCheckIn(record: CheckInRecord): boolean {
   const data = getTodayData();
-  if (!data) return;
+  if (!data) return false;
   data.checkIns.push(record);
-  saveTodayData(data);
+  return saveTodayData(data);
 }
 
 export function removeCheckIn(id: string): boolean {
@@ -207,7 +234,7 @@ export function getSessionHistory(): SessionRecord[] {
   const raw = localStorage.getItem(HISTORY_KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as SessionRecord[];
+    return asHistory(JSON.parse(raw));
   } catch {
     return [];
   }
@@ -437,14 +464,18 @@ export function autoCloseStale(): number {
   for (const date of staleKeys) {
     const raw = localStorage.getItem(getKey(date));
     if (!raw) continue;
-    let data: DailyData;
+    // Shape-guarded: autoCloseStale runs on every app load, so a corrupted or
+    // tampered entry must never throw here (that would white-screen the PWA).
+    let parsed: unknown;
     try {
-      data = JSON.parse(raw) as DailyData;
+      parsed = JSON.parse(raw);
     } catch {
+      localStorage.removeItem(getKey(date));
       continue;
     }
-    if (!data.clients || data.clients.length === 0) {
-      // Empty session — just remove it
+    const data = asDailyData(parsed, date);
+    if (!data || data.clients.length === 0) {
+      // Empty/malformed session — just remove it
       localStorage.removeItem(getKey(date));
       continue;
     }

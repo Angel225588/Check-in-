@@ -58,3 +58,32 @@ export function sanitizeAndValidateClient(obj: Record<string, unknown>): boolean
     isValidName(obj.name)
   );
 }
+
+/**
+ * Sanitize/validate a package-forecast row — used for reports (e.g. "Package
+ * Forecast") that list a room number and package/rate code but NO guest name.
+ * Unlike a client row, a name is NOT required; only a valid room number and a
+ * non-empty package code.
+ */
+export function sanitizeAndValidatePackageRow(obj: Record<string, unknown>): boolean {
+  // Strip HTML from all string fields
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === "string") {
+      obj[key] = (obj[key] as string).replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, 200);
+    }
+  }
+
+  if (typeof obj.roomNumber === "string") {
+    obj.roomNumber = obj.roomNumber.trim();
+  }
+  if (typeof obj.packageCode === "string") {
+    obj.packageCode = normalizePackageCode(obj.packageCode as string);
+  }
+
+  return (
+    typeof obj.roomNumber === "string" &&
+    isValidRoomNumber(obj.roomNumber) &&
+    typeof obj.packageCode === "string" &&
+    (obj.packageCode as string).length > 0
+  );
+}

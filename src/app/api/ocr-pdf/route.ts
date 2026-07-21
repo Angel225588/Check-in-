@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
+import {
+  shouldRetryStatus,
+  parseJsonLoose,
+  dedupClients,
+  dedupPackageRows,
+} from "@/lib/ocr-helpers";
+import { splitPdfIntoChunks } from "@/lib/pdf-split";
+
+// PDF OCR is heavy (Files API upload + multi-page extraction). A single call
+// on a big report ran past 60s and hit FUNCTION_INVOCATION_TIMEOUT, so we now
+// split into page-chunks and process them in parallel. maxDuration is raised
+// as a safety net for very large uploads / rate-limit backoffs.
+export const maxDuration = 300;
+export const runtime = "nodejs";
+
+// Pages per parallel chunk. A 15-page report → 3 short concurrent calls.
+const PAGES_PER_CHUNK = 5;
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com";
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -31,7 +48,7 @@ Return format:
       "adults": number,
       "children": number,
       "rateCode": "string",
-      "packageCode": "string",
+      "packageCode": "string (the ENTIRE 'Package Codes' cell, all comma-separated codes)",
       "isVip": boolean,
       "vipLevel": "string (if VIP doc)",
       "vipNotes": "string (if VIP doc)"
@@ -39,14 +56,25 @@ Return format:
   ]
 }
 
+Occasionally a row lists a ROOM NUMBER and PACKAGE CODE but has NO guest name.
+Put any such nameless room+package row in a separate top-level array "packageRows"
+(do NOT put nameless rows in "clients"):
+
+"packageRows": [
+  { "roomNumber": "string", "packageCode": "string" }
+]
+
 Rules:
 - Extract EVERY row from EVERY page, do not skip any
+- Rows WITH a guest name go in "clients" (even if the room number is blank); only nameless room+package rows go in "packageRows"
+- packageCode MUST be the ENTIRE "Package Codes" cell copied verbatim, including EVERY comma-separated code, e.g. "CITY TAX,BKF GRP", "CITY TAX,GARAGE,BKF COMP", or "CITY TAX" alone. NEVER drop CITY TAX, GARAGE, or the BKF/UPS code — breakfast and payment detection depend on the BKF code being present in this string.
 - If a field is not visible or unclear, use "" for strings and 0 for numbers
 - For VIP documents, set isVip: true for all entries
+- Always include a "packageRows" array (use [] when there are none)
 - Return ONLY valid JSON, no markdown, no explanation, no code fences
-- If you cannot read the PDF or it's not a hotel report, return {"type":"unknown","pages":0,"clients":[]}`;
+- If you cannot read the PDF or it's not a hotel report, return {"type":"unknown","pages":0,"clients":[],"packageRows":[]}`;
 
-import { sanitizeAndValidateClient } from "@/lib/validate";
+import { sanitizeAndValidateClient, sanitizeAndValidatePackageRow } from "@/lib/validate";
 
 function validateClient(obj: Record<string, unknown>): boolean {
   return sanitizeAndValidateClient(obj);
@@ -154,6 +182,72 @@ async function callGeminiWithFile(
   );
 }
 
+interface ChunkResult {
+  type: string;
+  pages: number;
+  clients: Record<string, unknown>[];
+  packageRows: { roomNumber: string; packageCode: string }[];
+}
+
+/**
+ * Extract one PDF chunk end-to-end: upload to the Files API, call Gemini
+ * (retrying transient failures), parse and validate. Cleans up its uploaded
+ * file. Throws on hard failure so the caller can count failed chunks.
+ */
+async function processChunk(
+  apiKey: string,
+  pdfBuffer: Buffer,
+  displayName: string
+): Promise<ChunkResult> {
+  let fileUri: string | null = null;
+  try {
+    const uploaded = await uploadToGeminiFiles(apiKey, pdfBuffer, displayName);
+    fileUri = uploaded.fileUri;
+
+    // Retry transient upstream failures (429 + 5xx) with a short backoff.
+    let response = await callGeminiWithFile(apiKey, fileUri);
+    for (let attempt = 0; attempt < 2 && shouldRetryStatus(response.status); attempt++) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      response = await callGeminiWithFile(apiKey, fileUri);
+    }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(safeLogError("Gemini API error (PDF chunk):", errorText));
+      throw new Error(`Gemini responded ${response.status}`);
+    }
+
+    const result = await response.json();
+    const parts = result.candidates?.[0]?.content?.parts || [];
+    const textPart = [...parts].reverse().find(
+      (p: Record<string, unknown>) => typeof p.text === "string" && !p.thought
+    );
+    const rawText: string =
+      textPart?.text || '{"type":"unknown","pages":0,"clients":[],"packageRows":[]}';
+
+    const parsed = parseJsonLoose(rawText) as Record<string, unknown>;
+
+    const type: string = (parsed.type as string) || "unknown";
+    const pages: number = typeof parsed.pages === "number" ? parsed.pages : 0;
+    const clientsRaw: Record<string, unknown>[] = Array.isArray(parsed.clients)
+      ? parsed.clients
+      : Array.isArray(parsed)
+        ? (parsed as unknown as Record<string, unknown>[])
+        : [];
+    const packageRowsRaw: Record<string, unknown>[] = Array.isArray(parsed.packageRows)
+      ? (parsed.packageRows as Record<string, unknown>[])
+      : [];
+
+    const clients = clientsRaw.filter(validateClient);
+    const packageRows = packageRowsRaw
+      .filter(sanitizeAndValidatePackageRow)
+      .map((r) => ({ roomNumber: r.roomNumber as string, packageCode: r.packageCode as string }));
+
+    return { type, pages, clients, packageRows };
+  } finally {
+    if (fileUri) deleteGeminiFile(apiKey, fileUri);
+  }
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -163,8 +257,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-
-  let fileUri: string | null = null;
 
   try {
     let formData: FormData;
@@ -214,78 +306,56 @@ export async function POST(request: NextRequest) {
     }
     const pdfBuffer = Buffer.from(bytes);
 
-    // Upload to Gemini Files API
-    const uploaded = await uploadToGeminiFiles(apiKey, pdfBuffer, file.name || "report.pdf");
-    fileUri = uploaded.fileUri;
-
-    // Call Gemini with the file reference
-    let response = await callGeminiWithFile(apiKey, fileUri);
-
-    if (response.status === 429) {
-      await new Promise((r) => setTimeout(r, 3000));
-      response = await callGeminiWithFile(apiKey, fileUri);
+    // Split large reports into page-chunks so no single Gemini call runs past
+    // the function timeout. Falls back to the whole file if splitting fails.
+    let chunks: Uint8Array[];
+    try {
+      chunks = await splitPdfIntoChunks(pdfBuffer, PAGES_PER_CHUNK);
+    } catch (err) {
+      console.error(safeLogError("PDF split failed, processing whole file:", err));
+      chunks = [pdfBuffer];
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(safeLogError("Gemini API error (PDF):", errorText));
+    const baseName = (file.name || "report.pdf").replace(/\.pdf$/i, "");
 
-      if (response.status === 429) {
-        return NextResponse.json(
-          { error: "Rate limit exceeded. Please wait a moment and try again." },
-          { status: 429 }
-        );
-      }
+    // Process all chunks in parallel — wall-clock is the slowest single chunk,
+    // not the sum of all of them.
+    const settled = await Promise.allSettled(
+      chunks.map((chunk, i) =>
+        processChunk(apiKey, Buffer.from(chunk), `${baseName}-part${i + 1}.pdf`)
+      )
+    );
 
+    const succeeded = settled.filter(
+      (s): s is PromiseFulfilledResult<ChunkResult> => s.status === "fulfilled"
+    );
+
+    // Every chunk failed — surface an error so the UI can offer a retry.
+    if (succeeded.length === 0) {
+      const firstErr = settled.find((s) => s.status === "rejected") as
+        | PromiseRejectedResult
+        | undefined;
+      console.error(safeLogError("All PDF chunks failed:", firstErr?.reason));
       return NextResponse.json(
         { error: "AI processing failed. Try again or upload images instead." },
-        { status: response.status }
+        { status: 502 }
       );
     }
 
-    const result = await response.json();
-
-    // Gemini 2.5 Flash uses thinking — parts[0] may be the thought,
-    // the actual text is the LAST text part in the array
-    const parts = result.candidates?.[0]?.content?.parts || [];
-    const textPart = [...parts].reverse().find(
-      (p: Record<string, unknown>) => typeof p.text === "string" && !p.thought
-    );
-    const rawText: string = textPart?.text || '{"type":"unknown","pages":0,"clients":[]}';
-
-    // Clean up the response - remove markdown fences if present
-    const cleaned = rawText
-      .replace(/```json\s*/g, "")
-      .replace(/```\s*/g, "")
-      .trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      console.error(safeLogError("Failed to parse Gemini PDF response:", cleaned));
-      return NextResponse.json(
-        { error: "AI returned invalid data. Try again or upload images instead." },
-        { status: 500 }
-      );
-    }
-
-    // Normalize: ensure we have the expected shape
-    const docType: string = parsed.type || "unknown";
-    const pages: number = typeof parsed.pages === "number" ? parsed.pages : 0;
-    const clients: Record<string, unknown>[] = Array.isArray(parsed.clients)
-      ? parsed.clients
-      : Array.isArray(parsed)
-        ? parsed
-        : [];
-
-    // Validate and filter clients
-    const validClients = clients.filter(validateClient);
+    // Merge chunk results, de-duplicating rows that straddle a chunk boundary.
+    const clients = dedupClients(succeeded.flatMap((s) => s.value.clients));
+    const packageRows = dedupPackageRows(succeeded.flatMap((s) => s.value.packageRows));
+    const docType =
+      succeeded.map((s) => s.value.type).find((t) => t && t !== "unknown") || "unknown";
+    const pages = succeeded.reduce((sum, s) => sum + (s.value.pages || 0), 0);
 
     return NextResponse.json({
       type: docType,
       pages,
-      clients: validClients,
+      clients,
+      packageRows,
+      chunks: chunks.length,
+      chunksFailed: settled.length - succeeded.length,
     });
   } catch (err) {
     console.error(safeLogError("OCR PDF route error:", err));
@@ -295,10 +365,5 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
-  } finally {
-    // Clean up uploaded file
-    if (fileUri) {
-      deleteGeminiFile(apiKey, fileUri);
-    }
   }
 }

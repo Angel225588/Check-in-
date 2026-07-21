@@ -95,6 +95,9 @@ const translations = {
   "checkin.save": { fr: "Sauvegarder", en: "Save" },
   "checkin.cancel": { fr: "Annuler", en: "Cancel" },
   "checkin.confirmed": { fr: "Enregistré", en: "Checked In" },
+  "checkin.saveFailed": { fr: "NON enregistré", en: "NOT saved" },
+  "checkin.saveFailedDesc": { fr: "Mémoire de l'appareil pleine — le check-in n'a pas été sauvegardé. Fermez la journée ou libérez de l'espace, puis réessayez.", en: "Device storage is full — this check-in was not saved. Close the day or free up space, then try again." },
+  "checkin.retry": { fr: "Réessayer", en: "Retry" },
 
   // History
   "history.title": { fr: "Historique des Check-ins", en: "Check-in History" },

@@ -12,6 +12,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
 import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
+import { overlayPackageForecast, type PackageRow } from "@/lib/ocr-helpers";
 import { recordSessionGuests } from "@/lib/guests";
 import { isComp } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
@@ -26,6 +27,7 @@ interface PdfUploadStatus {
   status: "uploading" | "processing" | "verifying" | "done" | "error";
   docType?: "clients" | "vip" | "unknown";
   clients: Client[];
+  packageRows?: PackageRow[];
   pages?: number;
   rawText?: string;
   error?: string;
@@ -299,6 +301,7 @@ export default function UploadPage() {
   // Independent state for each upload
   const [baseClients, setBaseClients] = useState<Client[]>([]);
   const [vipRawClients, setVipRawClients] = useState<Client[]>([]);
+  const [packageForecast, setPackageForecast] = useState<PackageRow[]>([]);
   const [ocrRawText, setOcrRawText] = useState<string>("");
   const [showManual, setShowManual] = useState(false);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
@@ -316,25 +319,34 @@ export default function UploadPage() {
 
   // Merge clients + VIP whenever either changes (race-proof)
   const parsedClients = useMemo(() => {
-    if (baseClients.length === 0 && vipRawClients.length === 0) return [];
-    if (vipRawClients.length === 0) return baseClients;
+    let merged: Client[];
+    if (baseClients.length === 0 && vipRawClients.length === 0) {
+      merged = [];
+    } else if (vipRawClients.length === 0) {
+      merged = baseClients;
+    } else {
+      const vipEntries: VipEntry[] = vipRawClients.map((v) => ({
+        roomNumber: v.roomNumber,
+        name: v.name,
+        vipLevel: v.vipLevel || "",
+        vipNotes: v.vipNotes || "",
+        confirmationNumber: v.confirmationNumber,
+        arrivalDate: v.arrivalDate,
+        departureDate: v.departureDate,
+        roomType: v.roomType,
+        adults: v.adults,
+        children: v.children,
+        rateCode: v.rateCode,
+      }));
+      merged = mergeVipIntoClients(baseClients, vipEntries);
+    }
 
-    const vipEntries: VipEntry[] = vipRawClients.map((v) => ({
-      roomNumber: v.roomNumber,
-      name: v.name,
-      vipLevel: v.vipLevel || "",
-      vipNotes: v.vipNotes || "",
-      confirmationNumber: v.confirmationNumber,
-      arrivalDate: v.arrivalDate,
-      departureDate: v.departureDate,
-      roomType: v.roomType,
-      adults: v.adults,
-      children: v.children,
-      rateCode: v.rateCode,
-    }));
-
-    return mergeVipIntoClients(baseClients, vipEntries);
-  }, [baseClients, vipRawClients]);
+    // Overlay package-forecast data (room → package code) from reports that
+    // list packages without guest names, e.g. "Package Forecast". This only
+    // fills an empty packageCode on a matching room; it never overwrites or
+    // removes anything.
+    return overlayPackageForecast(merged, packageForecast);
+  }, [baseClients, vipRawClients, packageForecast]);
 
   const vipCount = parsedClients.filter((c) => c.isVip).length;
   const clientsUploaded = parsedClients.length > 0;
@@ -423,10 +435,11 @@ export default function UploadPage() {
 
       const data = await res.json();
       const clients = Array.isArray(data.clients) ? data.clients as Client[] : [];
+      const packageRows = Array.isArray(data.packageRows) ? data.packageRows as PackageRow[] : [];
       const docType = (data.type as "clients" | "vip" | "unknown") || "unknown";
 
       setPdfUploads((prev) => prev.map((p, i) =>
-        i === index ? { ...p, status: "verifying", clients, docType, pages: data.pages, rawText: data.rawText } : p
+        i === index ? { ...p, status: "verifying", clients, packageRows, docType, pages: data.pages, rawText: data.rawText } : p
       ));
 
       // Step 2: Verify (non-blocking — skip if slow or fails)
@@ -496,10 +509,12 @@ export default function UploadPage() {
 
     const clientPdfs = donePdfs.filter((p) => p.docType !== "vip").flatMap((p) => p.clients);
     const vipPdfs = donePdfs.filter((p) => p.docType === "vip").flatMap((p) => p.clients);
+    const pkgRows = donePdfs.flatMap((p) => p.packageRows || []);
     const allRaw = donePdfs.map((p) => p.rawText).filter(Boolean).join("\n---\n");
 
     if (clientPdfs.length > 0) setBaseClients(clientPdfs);
     if (vipPdfs.length > 0) setVipRawClients(vipPdfs);
+    if (pkgRows.length > 0) setPackageForecast(pkgRows);
     if (allRaw) setOcrRawText(allRaw);
     setView("review");
   }, [pdfUploads]);
@@ -580,6 +595,7 @@ export default function UploadPage() {
   const handleClear = () => {
     setBaseClients([]);
     setVipRawClients([]);
+    setPackageForecast([]);
     setOcrRawText("");
   };
 

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { CheckInRecord } from "@/lib/types";
 import { formatTime } from "@/lib/utils";
 import { removeCheckIn, getTodayData } from "@/lib/storage";
+import { checkinHref } from "@/lib/checkin-nav";
 import { useApp } from "@/contexts/AppContext";
 
 interface HistoryPanelProps {
@@ -44,7 +45,7 @@ export default function HistoryPanel({
     const data = getTodayData();
     if (!data) {
       onClose();
-      router.push(`/checkin/${record.roomNumber}`);
+      router.push(checkinHref(record.roomNumber));
       return;
     }
     const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
@@ -53,11 +54,7 @@ export default function HistoryPanel({
       (c) => c.roomNumber === record.roomNumber && norm(c.name) === target
     );
     onClose();
-    router.push(
-      idx >= 0
-        ? `/checkin/${record.roomNumber}?ci=${idx}`
-        : `/checkin/${record.roomNumber}`
-    );
+    router.push(checkinHref(record.roomNumber, idx >= 0 ? idx : undefined));
   };
 
   return (
