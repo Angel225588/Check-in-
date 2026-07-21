@@ -1,0 +1,73 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  .wrap{height:100vh;display:grid;grid-template-columns:1.35fr 1fr;gap:18px;padding:20px;}
+  .col{display:flex;flex-direction:column;gap:14px;min-height:0;}
+  .hero{border-radius:20px;padding:20px 24px;}
+  .room{font-size:76px;font-weight:900;color:var(--gold);line-height:.9;letter-spacing:-2px;}
+  .name{font-size:40px;margin-top:2px;}
+  .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .stat{padding:14px 12px;text-align:center;}
+  .stat .v{font-size:30px;font-weight:800;margin-top:2px;}
+  .stat .v.g{color:var(--gold);}
+  .action{border-radius:20px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;flex:1;}
+  .pay{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .enter{padding:22px;font-size:30px;}
+  .hist{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding:6px 4px;}
+</style></head>
+<body>
+<div class="badge-label">CONCEPT A — Split cockpit (info left · action right)</div>
+<div class="wrap">
+  <!-- LEFT: identity + facts -->
+  <div class="col">
+    <div class="hero glass">
+      <a class="back">‹ Rechercher</a>
+      <div style="display:flex;align-items:baseline;gap:20px;margin-top:14px;flex-wrap:wrap;">
+        <div class="room">524</div><div class="name serif">Sedalo, Tete</div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;">
+        <span class="tag-comp">COMP · 104€</span>
+        <span class="k">Arrivée 19/07 → Départ 22/07 · BKF COMP</span>
+      </div>
+    </div>
+    <div class="vip" style="padding:14px 18px;display:flex;align-items:center;gap:14px;">
+      <span style="font-size:22px;">★</span>
+      <div><b style="letter-spacing:.08em;">VIP ×4</b><div style="font-size:12px;opacity:.9;">Client VIP — accueil prioritaire</div></div>
+    </div>
+    <div class="row3">
+      <div class="stat"><div class="k">Adultes</div><div class="v">2</div></div>
+      <div class="stat"><div class="k">Enfants</div><div class="v">2</div></div>
+      <div class="stat"><div class="k">Total</div><div class="v g">4</div></div>
+    </div>
+    <div class="stat" style="padding:12px 16px;flex:1;">
+      <div class="hist"><span class="k">Historique</span><span>3 sur 4 restants</span></div>
+      <div class="hist" style="color:var(--ink);"><span>08:23 — 1 personne</span><span style="color:#c0392b;">annuler ↩</span></div>
+    </div>
+  </div>
+  <!-- RIGHT: the decision + the button, always on screen -->
+  <div class="col">
+    <div class="action glass">
+      <div>
+        <div class="k">Progression du check-in — 1/4</div>
+        <div class="progress" style="margin:8px 0 4px;"><i></i></div>
+      </div>
+      <div style="text-align:center;">
+        <div class="k" style="margin-bottom:8px;">Personnes qui entrent</div>
+        <div class="counter"><button>−</button><div class="n">3</div><button>+</button></div>
+        <div class="k" style="margin-top:8px;">sur 4 restants</div>
+      </div>
+      <div>
+        <div class="k" style="margin-bottom:8px;">Mode de paiement — <span style="color:var(--gold)">demande au client</span></div>
+        <div class="pay">
+          <div class="pill active"><span class="ic">🏨</span>Chambre</div>
+          <div class="pill"><span class="ic">⭐</span>Points</div>
+          <div class="pill"><span class="ic">💵</span>Cash</div>
+          <div class="pill"><span class="ic">💳</span>Carte</div>
+          <div class="pill"><span class="ic">👤</span>Superv.</div>
+        </div>
+      </div>
+      <button class="enter">Enregistrer</button>
+    </div>
+  </div>
+</div>
+</body></html>
