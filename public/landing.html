@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imarketin — L'intelligence du matin, pour les grands hôtels</title>
+<meta name="description" content="L'application qui transforme le check-in du petit déjeuner en intelligence opérationnelle. Pour les hôtels 4★, 5★ & Palaces. Hébergement UE, conforme RGPD.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="/vendor/gsap/gsap.min.js"></script>
+<script src="/vendor/gsap/ScrollTrigger.min.js"></script>
+<style>
+  :root{
+    --ink:#1A1714; --cream:#F5F0E8; --paper:#FBF7EF; --paper2:#F0E9DC;
+    --gold:#A66914; --gold-light:#DD9C28; --taupe:#8A7E6E; --line:#E2D9C9;
+    --dark:#16130F; --dark2:#1d1a16;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Nunito',sans-serif; color:var(--ink); background:var(--cream);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden; line-height:1.6}
+  .serif{font-family:'Playfair Display',serif}
+  .wrap{max-width:1240px; margin:0 auto; padding:0 40px}
+  section{position:relative}
+  h2.title{font-family:'Playfair Display',serif; font-weight:500; font-size:clamp(28px,3.8vw,46px); line-height:1.15; letter-spacing:-.01em}
+  .eyebrow{font-size:12px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); margin-bottom:22px}
+  .reveal{opacity:0; transform:translateY(38px)}
+  .no-js .reveal{opacity:1; transform:none}
+
+  /* NAV */
+  nav{position:fixed; top:0; left:0; right:0; z-index:50; display:flex; align-items:center;
+    justify-content:space-between; padding:20px 40px; backdrop-filter:blur(10px);
+    background:rgba(245,240,232,.72); border-bottom:1px solid rgba(226,217,201,.6); transition:padding .3s}
+  .brand{font-family:'Playfair Display',serif; font-size:22px; letter-spacing:.16em; font-weight:500}
+  .brand b{color:var(--gold)}
+  .nav-links{display:flex; gap:34px; align-items:center}
+  .nav-links a{color:var(--ink); text-decoration:none; font-size:14px; font-weight:500; opacity:.78; transition:opacity .3s}
+  .nav-links a:hover{opacity:1}
+  .pill{background:var(--gold); color:#fff; padding:11px 22px; border-radius:52px; font-size:13.5px;
+    font-weight:700; text-decoration:none; letter-spacing:.02em; transition:background .35s,transform .35s; display:inline-block; border:none; cursor:pointer}
+  .pill:hover{background:var(--gold-light); transform:translateY(-1px)}
+  .pill.lg{padding:15px 32px; font-size:15px}
+
+  /* HERO */
+  .hero{min-height:100vh; display:grid; grid-template-columns:1.05fr 1fr; gap:60px; align-items:center; padding:150px 0 90px}
+  h1{font-family:'Playfair Display',serif; font-weight:500; font-size:clamp(38px,5vw,62px); line-height:1.08; letter-spacing:-.01em; margin-bottom:14px}
+  h1 .word{display:inline-block; white-space:nowrap}
+  h1 .ch{display:inline-block; opacity:0; will-change:transform,opacity,filter}
+  .kicker{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(22px,2.4vw,30px); color:var(--taupe); margin-bottom:30px; opacity:0}
+  .kicker .em{color:var(--gold); font-style:normal; font-weight:500}
+  .sub{font-size:17.5px; line-height:1.7; color:#473f37; max-width:480px; margin-bottom:38px; opacity:0}
+  .cta-row{display:flex; gap:20px; align-items:center; margin-bottom:40px; opacity:0; flex-wrap:wrap}
+  .ghost{color:var(--ink); text-decoration:none; font-size:14.5px; font-weight:600; border-bottom:1px solid var(--gold); padding-bottom:3px; transition:color .3s}
+  .ghost:hover{color:var(--gold)}
+  .trust{display:flex; gap:24px; font-size:12.5px; color:var(--taupe); opacity:0; flex-wrap:wrap}
+  .trust span{display:flex; align-items:center; gap:7px}
+  .dot{width:5px; height:5px; border-radius:50%; background:var(--gold)}
+
+  /* HERO VISUAL */
+  .stage{position:relative; aspect-ratio:4/4.4; width:100%}
+  .layer{position:absolute; inset:0; border-radius:16px; overflow:hidden; box-shadow:0 40px 80px -30px rgba(26,23,20,.4)}
+  .paper{background:var(--paper); transform:rotate(-1.4deg); border:1px solid var(--line); padding:34px 30px;
+    background-image:repeating-linear-gradient(transparent,transparent 37px,rgba(138,126,110,.10) 37px,rgba(138,126,110,.10) 38px)}
+  .paper-h{font-family:'Courier New',monospace; font-size:11px; letter-spacing:.14em; color:var(--taupe); text-transform:uppercase; margin-bottom:4px}
+  .paper-t{font-family:'Courier New',monospace; font-size:14px; font-weight:700; color:#5a5048; margin-bottom:22px; letter-spacing:.02em}
+  .prow{font-family:'Courier New',monospace; font-size:12.5px; color:#6a6058; height:21px; display:flex; gap:14px; opacity:.92}
+  .prow b{display:inline-block; width:42px; color:#4a423b}
+  .stamp{position:absolute; bottom:26px; right:26px; font-family:'Courier New',monospace; font-size:10px; color:var(--taupe); border:1px solid var(--line); padding:5px 10px; border-radius:4px; transform:rotate(-4deg)}
+  .digi{background:linear-gradient(160deg,#1d1a16 0%,#13110d 100%); color:#efe7d8; transform:rotate(-1.4deg); padding:30px 28px; clip-path:inset(0 0 100% 0)}
+  .digi-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px}
+  .digi-title{font-family:'Playfair Display',serif; font-size:17px; font-weight:500}
+  .digi-live{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold-light); display:flex; align-items:center; gap:6px}
+  .blink{width:6px; height:6px; border-radius:50%; background:var(--gold-light); box-shadow:0 0 8px var(--gold-light)}
+  .search{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 14px; font-size:12.5px; color:#9a9082; margin-bottom:18px}
+  .drow{display:flex; align-items:center; gap:12px; padding:9px 6px; border-bottom:1px solid rgba(255,255,255,.06); font-size:13px}
+  .num{width:38px; color:var(--gold-light); font-weight:700; font-size:12px}
+  .nm{flex:1; color:#e8e0d2}
+  .vip{font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:#12100c; background:var(--gold-light); padding:2px 8px; border-radius:20px; font-weight:800}
+  .chk{width:18px; height:18px; border-radius:50%; border:1.5px solid var(--gold-light); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--gold-light)}
+  .digi-stat{margin-top:20px; display:flex; gap:26px}
+  .stat b{font-family:'Playfair Display',serif; font-size:26px; color:#fff; display:block; line-height:1}
+  .stat span{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--taupe)}
+  .scan{position:absolute; left:-4%; right:-4%; height:3px; top:0; background:linear-gradient(90deg,transparent,var(--gold-light),transparent); box-shadow:0 0 26px 6px rgba(221,156,40,.55); opacity:0; z-index:5; border-radius:3px}
+  .mote{position:absolute; width:4px; height:4px; border-radius:50%; background:var(--gold-light); box-shadow:0 0 8px var(--gold-light); opacity:0; z-index:6}
+
+  /* MANIFESTO 2030 */
+  .manifesto{background:var(--dark); color:var(--cream); padding:96px 0; text-align:center}
+  .manifesto .m-eyebrow{font-size:12px; letter-spacing:.24em; text-transform:uppercase; color:var(--gold-light); margin-bottom:22px}
+  .manifesto h2{font-family:'Playfair Display',serif; font-weight:400; font-size:clamp(26px,3.4vw,40px); line-height:1.35; max-width:900px; margin:0 auto}
+  .manifesto h2 .em{color:var(--gold-light); font-style:italic}
+
+  /* SOCIAL PROOF */
+  .proof{padding:80px 0; text-align:center; border-bottom:1px solid var(--line)}
+  .proof .q{font-family:'Cormorant Garamond',serif; font-size:clamp(24px,3vw,34px); font-style:italic; line-height:1.4; max-width:820px; margin:0 auto 24px; color:#2e2820}
+  .proof .src{font-size:13px; letter-spacing:.06em; color:var(--taupe); text-transform:uppercase}
+  .proof .tag{display:inline-block; margin-top:30px; font-size:12.5px; color:var(--taupe); border:1px solid var(--line); padding:8px 18px; border-radius:52px}
+
+  /* PROBLEM */
+  .problem{padding:110px 0}
+  .problem .grid{display:grid; grid-template-columns:1fr 1fr; gap:70px; align-items:center}
+  .problem p{font-size:18px; line-height:1.75; color:#473f37; margin-top:24px; max-width:520px}
+  .problem .lead{font-family:'Cormorant Garamond',serif; font-size:23px; font-style:italic; color:var(--gold)}
+  .pain-list{margin-top:30px; display:flex; flex-direction:column; gap:2px}
+  .pain-list li{list-style:none; font-family:'Courier New',monospace; font-size:14px; color:#6a6058; padding:11px 0; border-bottom:1px dashed var(--line); display:flex; gap:12px; align-items:center}
+  .pain-list li::before{content:'—'; color:var(--taupe)}
+
+  /* HOW */
+  .how{padding:110px 0; background:var(--paper); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+  .how .head{text-align:center; max-width:680px; margin:0 auto 70px}
+  .how .head p{margin-top:18px; color:var(--taupe); font-size:17px}
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:40px}
+  .step{position:relative}
+  .step .n{font-family:'Playfair Display',serif; font-size:15px; color:var(--gold); border:1px solid var(--gold); width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:24px}
+  .step h3{font-family:'Playfair Display',serif; font-weight:500; font-size:22px; margin-bottom:12px}
+  .step p{color:#5a5249; font-size:15.5px; line-height:1.7}
+  .how .foot{text-align:center; margin-top:60px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:21px; color:var(--taupe)}
+
+  /* MID CTA */
+  .midcta{padding:80px 0; text-align:center}
+  .midcta h2{margin-bottom:30px}
+
+  /* BENEFITS */
+  .benefits{padding:110px 0; background:var(--dark); color:var(--cream)}
+  .benefits .head{text-align:center; max-width:680px; margin:0 auto 64px}
+  .benefits .head .eyebrow{color:var(--gold-light)}
+  .bcards{display:grid; grid-template-columns:repeat(3,1fr); gap:30px}
+  .bcard{background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); border-radius:16px; padding:38px 32px}
+  .bcard .role{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-light); margin-bottom:18px}
+  .bcard h3{font-family:'Playfair Display',serif; font-weight:500; font-size:21px; line-height:1.3; color:#fff}
+  .bcard p{margin-top:14px; color:#b8ae9e; font-size:15px; line-height:1.7}
+
+  /* SHOWCASE — real app screens */
+  .showcase{padding:110px 0; background:var(--dark); color:var(--cream); text-align:center}
+  .showcase .eyebrow{color:var(--gold-light)}
+  .showcase .head{max-width:700px; margin:0 auto 64px}
+  .showcase .head p{margin-top:16px; color:#b8ae9e; font-size:17px}
+  .shots{display:grid; grid-template-columns:1fr 1fr; gap:40px; max-width:980px; margin:0 auto; align-items:start}
+  .shot .frame{border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.10); box-shadow:0 50px 90px -35px rgba(0,0,0,.8); background:#fff}
+  .shot .frame img{display:block; width:100%; height:440px; object-fit:cover; object-position:top}
+  .shot .cap{margin-top:20px}
+  .shot .cap b{display:block; font-family:'Playfair Display',serif; font-size:18px; color:#fff; font-weight:500; margin-bottom:5px}
+  .shot .cap span{font-size:14px; color:#b8ae9e; line-height:1.6}
+  @media(max-width:760px){ .shots{grid-template-columns:1fr; gap:48px} .shot .frame img{height:auto} }
+
+  /* TRUST */
+  .trustsec{padding:110px 0}
+  .trustsec .grid{display:grid; grid-template-columns:1fr 1.1fr; gap:70px; align-items:center}
+  .trust-items{display:flex; flex-direction:column; gap:0}
+  .trust-items .ti{padding:22px 0; border-bottom:1px solid var(--line); display:flex; gap:18px; align-items:flex-start}
+  .trust-items .ti:last-child{border-bottom:none}
+  .ti .ic{flex-shrink:0; width:34px; height:34px; border-radius:50%; border:1px solid var(--gold); color:var(--gold); display:flex; align-items:center; justify-content:center; font-size:15px}
+  .ti b{font-weight:700; display:block; margin-bottom:4px; font-size:16px}
+  .ti span{color:var(--taupe); font-size:14.5px; line-height:1.6}
+
+  /* PILOT */
+  .pilot{padding:110px 0; background:var(--dark2); color:var(--cream); text-align:center}
+  .pilot .eyebrow{color:var(--gold-light)}
+  .pilot .lead{max-width:680px; margin:24px auto 40px; color:#c3b9a8; font-size:18px; line-height:1.7}
+  .pilot-bullets{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:42px}
+  .pilot-bullets span{font-size:13.5px; color:#e8e0d2; border:1px solid rgba(255,255,255,.14); padding:9px 18px; border-radius:52px}
+  .guarantee{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--gold-light); margin-top:30px}
+
+  /* FAQ */
+  .faq{padding:110px 0; max-width:880px; margin:0 auto}
+  .faq h2{text-align:center; margin-bottom:54px}
+  details{border-bottom:1px solid var(--line); padding:6px 0}
+  summary{cursor:pointer; list-style:none; padding:22px 0; font-family:'Playfair Display',serif; font-size:19px; font-weight:500; display:flex; justify-content:space-between; align-items:center; gap:20px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:'+'; color:var(--gold); font-size:24px; font-family:'Nunito'; transition:transform .3s}
+  details[open] summary::after{content:'–'}
+  details p{padding:0 0 24px; color:#5a5249; font-size:16px; line-height:1.75; max-width:760px}
+
+  /* FOUNDER */
+  .founder{padding:110px 0; background:var(--paper); border-top:1px solid var(--line)}
+  .founder .grid{display:grid; grid-template-columns:.8fr 1.2fr; gap:60px; align-items:center}
+  .f-portrait{aspect-ratio:1/1.1; border-radius:16px; background:linear-gradient(160deg,#2a251f,#16130f); display:flex; align-items:flex-end; padding:28px; color:#efe7d8; box-shadow:0 30px 60px -30px rgba(26,23,20,.5)}
+  .f-portrait .ph{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:15px; color:var(--taupe)}
+  .founder p{font-size:17.5px; line-height:1.8; color:#473f37; margin-top:22px; max-width:560px}
+  .founder .sig{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:22px; color:var(--gold); margin-top:24px}
+
+  /* SOUL + FINAL */
+  .soul{padding:120px 0; text-align:center; background:var(--dark); color:var(--cream)}
+  .soul .line{font-family:'Playfair Display',serif; font-weight:400; font-size:clamp(26px,3.4vw,42px); line-height:1.3; max-width:860px; margin:0 auto 14px}
+  .soul .line .em{color:var(--gold-light); font-style:italic}
+  .soul .sub{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:22px; color:#b8ae9e; max-width:600px; margin:24px auto 46px; opacity:1}
+  .soul .cta-row{justify-content:center; opacity:1}
+  .soul .ghost{color:var(--cream); border-color:var(--gold-light)}
+  .soul .ghost:hover{color:var(--gold-light)}
+
+  /* FOOTER */
+  footer{padding:54px 0; background:var(--dark); color:var(--taupe); border-top:1px solid rgba(255,255,255,.08)}
+  footer .row{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px}
+  footer .brand{color:var(--cream)}
+  footer .meta{font-size:12.5px; display:flex; gap:22px; flex-wrap:wrap}
+  footer a{color:var(--taupe); text-decoration:none}
+  footer a:hover{color:var(--cream)}
+
+  @media(max-width:920px){
+    .nav-links a:not(.pill){display:none}
+    .hero{grid-template-columns:1fr; gap:50px; padding:120px 0 70px}
+    .stage{max-width:420px; margin:0 auto}
+    .problem .grid,.trustsec .grid,.founder .grid{grid-template-columns:1fr; gap:40px}
+    .steps,.bcards{grid-template-columns:1fr; gap:28px}
+    .wrap{padding:0 26px}
+    nav{padding:16px 24px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1!important; transform:none!important}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">IMARKETIN<b>.</b></div>
+  <div class="nav-links">
+    <a href="#produit">Le produit</a>
+    <a href="#confiance">Confiance</a>
+    <a href="#fondateur">Le fondateur</a>
+    <a href="#demo" class="pill">Réserver une démo</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="wrap">
+  <section class="hero">
+    <div class="hero-text">
+      <div class="eyebrow" id="eyebrow">Pour les hôtels 4★, 5★ &amp; Palaces</div>
+      <h1 id="headline">Connaissez votre maison avant le service.</h1>
+      <div class="kicker" id="kicker">Le papier du matin <span class="em">disparaît</span>.</div>
+      <p class="sub" id="sub">À sa place : qui est attendu, qui est VIP, où en est le service — d'un coup d'œil, sur la tablette déjà en salle.</p>
+      <div class="cta-row" id="ctarow">
+        <a href="#demo" class="pill lg">Réserver une démo</a>
+        <a href="#produit" class="ghost">Voir comment ça marche</a>
+      </div>
+      <div class="trust" id="trust">
+        <span><i class="dot"></i> En service quotidien dans un hôtel 4★ à Paris</span>
+        <span><i class="dot"></i> Hébergement UE · RGPD</span>
+      </div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="layer paper" id="paper">
+        <div class="paper-h">Rapport — Service du matin</div>
+        <div class="paper-t">PETIT DÉJEUNER · 06h30</div>
+        <div class="prow"><b>204</b> MARTIN, Claire</div>
+        <div class="prow"><b>118</b> DUBOIS, Henri</div>
+        <div class="prow"><b>337</b> LEFEVRE, Anne-Marie</div>
+        <div class="prow"><b>052</b> GIRARD, Thomas</div>
+        <div class="prow"><b>419</b> MOREAU, Sophie</div>
+        <div class="prow"><b>225</b> ROUSSEAU, Léa</div>
+        <div class="prow"><b>308</b> FONTAINE, Marc</div>
+        <div class="prow"><b>141</b> GARNIER, Julie</div>
+        <div class="prow"><b>276</b> CHEVALIER, Paul</div>
+        <div class="stamp">page 7 / 15</div>
+      </div>
+      <div class="layer digi" id="digi">
+        <div class="digi-top">
+          <div class="digi-title">Service du matin</div>
+          <div class="digi-live"><i class="blink"></i> En direct</div>
+        </div>
+        <div class="search">Rechercher une chambre ou un nom…</div>
+        <div class="drow"><span class="num">204</span><span class="nm">Martin, Claire</span><span class="vip">VIP</span><span class="chk">✓</span></div>
+        <div class="drow"><span class="num">118</span><span class="nm">Dubois, Henri</span><span class="chk">✓</span></div>
+        <div class="drow"><span class="num">337</span><span class="nm">Lefevre, Anne-Marie</span><span class="vip">VIP</span><span class="chk">✓</span></div>
+        <div class="drow"><span class="num">052</span><span class="nm">Girard, Thomas</span><span class="chk" style="border-color:rgba(255,255,255,.2);color:transparent">·</span></div>
+        <div class="drow"><span class="num">419</span><span class="nm">Moreau, Sophie</span><span class="chk">✓</span></div>
+        <div class="digi-stat">
+          <div class="stat"><b>142</b><span>Présents</span></div>
+          <div class="stat"><b>180</b><span>Attendus</span></div>
+          <div class="stat"><b>06</b><span>VIP en salle</span></div>
+        </div>
+      </div>
+      <div class="scan" id="scan"></div>
+      <div class="mote" id="m1" style="left:30%"></div>
+      <div class="mote" id="m2" style="left:55%"></div>
+      <div class="mote" id="m3" style="left:72%"></div>
+      <div class="mote" id="m4" style="left:44%"></div>
+    </div>
+  </section>
+</div>
+
+<!-- MANIFESTO 2030 -->
+<section class="manifesto">
+  <div class="wrap">
+    <div class="m-eyebrow reveal">La norme de demain</div>
+    <h2 class="reveal">D'ici 2030, le service d'un grand hôtel ne reposera plus sur du papier.<br>Moins de paperasse, <span class="em">plus de regard</span> pour vos clients — et la donnée qui rend chaque décision évidente.</h2>
+  </div>
+</section>
+
+<!-- SOCIAL PROOF -->
+<section class="proof">
+  <div class="wrap">
+    <p class="q reveal">« Ça, c'est une vraie valeur. Savoir en temps réel où en est le service, qui est VIP, qui n'est pas venu — c'est ce qui nous manquait. »</p>
+    <div class="src reveal">Responsable — hôtel 4★ à Paris &nbsp;·&nbsp; <em style="text-transform:none">citation à confirmer</em></div>
+    <div class="tag reveal">En service quotidien depuis avril 2026</div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem" id="produit">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <div class="eyebrow reveal">Le problème, dans vos mots</div>
+        <h2 class="title reveal">Le matin d'un grand hôtel ne devrait pas reposer sur du papier.</h2>
+        <p class="reveal">Listes imprimées chaque jour, 300 couverts sur 15 pages, noms cherchés à la main, contestations sans preuve à la réception. Et au bout du compte, <span class="lead">aucun chiffre, aucune visibilité.</span> Vous pilotez votre service le plus important à l'aveugle.</p>
+      </div>
+      <div>
+        <ul class="pain-list reveal">
+          <li>15 pages à feuilleter pour retrouver une chambre</li>
+          <li>Un nom mal saisi, et le VIP passe inaperçu</li>
+          <li>Une contestation, et aucune preuve à l'écran</li>
+          <li>La fin du service, et aucun chiffre à analyser</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="how">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow reveal">Comment ça marche</div>
+      <h2 class="title reveal">Du papier au pilotage, en trois gestes.</h2>
+      <p class="reveal">Aucune intégration. Aucune formation. Sur la tablette déjà en salle.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="n">1</div>
+        <h3>Importez la liste</h3>
+        <p>Une photo ou un PDF du rapport du matin. Lu, nettoyé, trié en deux minutes.</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">2</div>
+        <h3>Retrouvez chaque client</h3>
+        <p>Par chambre ou par nom, instantanément. Les VIPs et clients prioritaires signalés d'eux-mêmes.</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">3</div>
+        <h3>Pilotez le service</h3>
+        <p>Check-in en moins de dix secondes. Et pour la première fois, les chiffres du matin : présence, no-shows, heures de pointe.</p>
+      </div>
+    </div>
+    <div class="foot reveal">L'administratif disparaît — et l'équipe relève les yeux vers la salle.</div>
+  </div>
+</section>
+
+<!-- SHOWCASE — real app screens -->
+<section class="showcase">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow reveal">L'application, en situation</div>
+      <h2 class="title reveal" style="color:#fff">Conçue pour le vrai service du matin.</h2>
+      <p class="reveal">Pas une maquette de laboratoire. Les écrans que votre équipe utilise chaque matin, sur la tablette déjà en salle.</p>
+    </div>
+    <div class="shots">
+      <div class="shot reveal">
+        <div class="frame"><img src="img/app-results.png" alt="Recherche d'une chambre et check-in en salle"></div>
+        <div class="cap"><b>Retrouvez chaque client</b><span>Recherche par chambre ou par nom, statut en direct, VIPs signalés — check-in en moins de dix secondes.</span></div>
+      </div>
+      <div class="shot reveal">
+        <div class="frame"><img src="img/app-dashboard.png" alt="Tableau de bord direction — chiffres du matin"></div>
+        <div class="cap"><b>Pilotez d'un coup d'œil</b><span>Le poste de pilotage de la direction : présence, pic d'affluence, compliments, no-shows — les chiffres du matin, enfin lisibles.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MID CTA -->
+<section class="midcta">
+  <div class="wrap">
+    <h2 class="title reveal">Voyez-le sur votre service de demain.</h2>
+    <a href="#demo" class="pill lg reveal" style="display:inline-block">Réserver une démo (20 min)</a>
+  </div>
+</section>
+
+<!-- BENEFITS -->
+<section class="benefits">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow reveal">La valeur, pour chacun chez vous</div>
+      <h2 class="title reveal" style="color:#fff">Un outil que tout le monde a une raison d'aimer.</h2>
+    </div>
+    <div class="bcards">
+      <div class="bcard reveal">
+        <div class="role">Direction générale</div>
+        <h3>La visibilité que vous n'aviez jamais eue sur le matin.</h3>
+        <p>Le contrôle de votre service le plus exposé — sans micro-management. Une promesse d'hospitalité tenue jusqu'au petit déjeuner.</p>
+      </div>
+      <div class="bcard reveal">
+        <div class="role">F&amp;B / Opérations</div>
+        <h3>Un service qui respire à 8h.</h3>
+        <p>Zéro erreur de saisie, contestations défendues en 30 secondes, preuve à l'écran. Une équipe présente en salle, pas penchée sur des papiers.</p>
+      </div>
+      <div class="bcard reveal">
+        <div class="role">Propriété / Direction financière</div>
+        <h3>L'expérience 4★ protégée, pour un coût modeste.</h3>
+        <p>Sans engagement, des heures d'équipe récupérées, et l'image de l'établissement renforcée là où elle se joue chaque matin.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section class="trustsec" id="confiance">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <div class="eyebrow reveal">Confiance &amp; conformité</div>
+        <h2 class="title reveal">Vos données clients, protégées comme elles le méritent.</h2>
+        <p class="reveal" style="margin-top:22px; color:var(--taupe); font-size:16.5px; max-width:420px">La conformité n'est pas une option en France. Elle est intégrée dès la première ligne.</p>
+      </div>
+      <div class="trust-items reveal">
+        <div class="ti"><div class="ic">◆</div><div><b>Hébergement en Union Européenne (Frankfurt)</b><span>Vos données ne quittent jamais l'UE.</span></div></div>
+        <div class="ti"><div class="ic">◆</div><div><b>Notes factuelles uniquement</b><span>Préférences, allergies — jamais de jugement ni de donnée sensible.</span></div></div>
+        <div class="ti"><div class="ic">◆</div><div><b>Droit à l'effacement en un clic</b><span>Journal d'audit complet · DPA disponible.</span></div></div>
+        <div class="ti"><div class="ic">◆</div><div><b>Vos données vous appartiennent à 100 %</b><span>Exportables à tout moment, sans frais.</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PILOT -->
+<section class="pilot" id="demo">
+  <div class="wrap">
+    <div class="eyebrow reveal">L'offre</div>
+    <h2 class="title reveal" style="color:#fff">Programme Partenaire Fondateur — limité à 3 établissements.</h2>
+    <p class="lead reveal">Essayez sur votre vrai service du matin. Fenêtre définie, objectif clair, accompagnement direct du fondateur.</p>
+    <div class="pilot-bullets reveal">
+      <span>Sans engagement</span>
+      <span>Résiliable à tout moment</span>
+      <span>Données exportables</span>
+      <span>Tarif fondateur gelé</span>
+    </div>
+    <a href="mailto:contact@imarketin.com" class="pill lg reveal">Réserver une démo (20 min)</a>
+    <div class="guarantee reveal">Si l'application ne tourne pas parfaitement sous 30 jours, vous ne payez pas.</div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="wrap">
+    <h2 class="title reveal">Les questions qu'on nous pose.</h2>
+    <div class="reveal">
+      <details><summary>Vous êtes récents — qui l'utilise déjà ?</summary><p>L'application tourne chaque matin dans un hôtel 4★ à Paris depuis avril 2026. Et vous parlez directement au fondateur, pas à un service client.</p></details>
+      <details><summary>Nos données sont-elles protégées (RGPD) ?</summary><p>Hébergement UE (Frankfurt), chiffrement, notes factuelles uniquement, droit à l'effacement, DPA. Vos données restent les vôtres, exportables à tout moment.</p></details>
+      <details><summary>Est-ce que ça perturbe le service ?</summary><p>Aucune formation. L'app tourne sur la tablette déjà en salle. Photo de la liste → recherche → check-in en moins de dix secondes.</p></details>
+      <details><summary>Faut-il l'intégrer à notre PMS (Opera, etc.) ?</summary><p>Non. Elle fonctionne en autonomie, à côté de vos outils. Rien à remplacer, aucun ticket IT.</p></details>
+      <details><summary>Et si ça ne nous convient pas ?</summary><p>Pilote sans engagement, résiliable quand vous voulez, données exportables. Le risque est pour nous, pas pour vous.</p></details>
+      <details><summary>Combien ça coûte ?</summary><p>Selon votre établissement. Réservez une démo de 20 minutes — on vous montre, et on vous chiffre clairement.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDER -->
+<section class="founder" id="fondateur">
+  <div class="wrap">
+    <div class="grid">
+      <div class="f-portrait reveal"><div class="ph">[ portrait — Angel Polanco ]</div></div>
+      <div>
+        <div class="eyebrow reveal">Le fondateur</div>
+        <h2 class="title reveal">Une personne, pas une plateforme.</h2>
+        <p class="reveal">Derrière Imarketin : Angel Polanco. J'ai conçu cette application avec un hôtel, pour son service réel — pas en laboratoire. Vous avez ma ligne directe, et des améliorations livrées au fil de vos retours.</p>
+        <div class="sig reveal">— Angel Polanco, fondateur</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOUL + FINAL -->
+<section class="soul">
+  <div class="wrap">
+    <div class="line reveal">La technologie la plus élégante est celle <span class="em">qu'on ne voit pas</span>.</div>
+    <div class="sub reveal">Elle s'efface — pour que votre hospitalité reste au premier plan.</div>
+    <div class="cta-row reveal">
+      <a href="#demo" class="pill lg">Réserver une démo</a>
+      <a href="mailto:contact@imarketin.com" class="ghost">Écrire au fondateur</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <div class="brand">IMARKETIN<b>.</b></div>
+      <div class="meta">
+        <span>Hébergement UE · RGPD</span>
+        <a href="mailto:contact@imarketin.com">contact@imarketin.com</a>
+        <span>© 2026 Imarketin</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // headline split: words -> chars (no break inside words)
+  var h = document.getElementById('headline');
+  var words = h.textContent.split(' '); h.textContent='';
+  words.forEach(function(word, wi){
+    var w = document.createElement('span'); w.className='word';
+    word.split('').forEach(function(c){
+      var s = document.createElement('span'); s.className='ch'; s.textContent=c;
+      w.appendChild(s);
+    });
+    h.appendChild(w);
+    if(wi < words.length-1){ h.appendChild(document.createTextNode(' ')); }
+  });
+
+  // Hard guard: if GSAP failed to load (CDN down), show everything and bail — never blank.
+  if(typeof gsap === 'undefined'){
+    document.querySelectorAll('.reveal,.ch,#eyebrow,#kicker,#sub,#ctarow,#trust')
+      .forEach(function(e){ e.style.opacity=1; e.style.transform='none'; });
+    document.getElementById('digi').style.clipPath='inset(0 0 0% 0)';
+    document.getElementById('paper').style.clipPath='inset(100% 0 0 0)';
+    return;
+  }
+
+  // Reveals: IntersectionObserver triggers a GSAP fade (inline styles render everywhere).
+  var revealEls = gsap.utils.toArray('.reveal');
+  gsap.set(revealEls, {opacity:0, y:38});
+  var showReveal = function(el){ gsap.to(el, {opacity:1, y:0, duration:1.0, ease:'power3.out'}); };
+
+  if(reduce){
+    document.querySelectorAll('.ch').forEach(function(e){e.style.opacity=1});
+    ['#eyebrow','#kicker','#sub','#ctarow','#trust'].forEach(function(s){document.querySelector(s).style.opacity=1});
+    document.getElementById('digi').style.clipPath='inset(0 0 0% 0)';
+    document.getElementById('paper').style.clipPath='inset(100% 0 0 0)';
+    gsap.set(revealEls, {opacity:1, y:0});
+    return;
+  }
+
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){ showReveal(en.target); io.unobserve(en.target); } });
+    }, {rootMargin:'0px 0px -8% 0px', threshold:0.05});
+    revealEls.forEach(function(e){ io.observe(e); });
+    // hard safety: reveal anything still hidden 4s after load — guarantees no blank section
+    window.addEventListener('load', function(){ setTimeout(function(){ revealEls.forEach(showReveal); }, 4000); });
+  } else {
+    revealEls.forEach(showReveal);
+  }
+
+  gsap.set('.ch',{y:24, filter:'blur(6px)'});
+  gsap.timeline({defaults:{ease:'power3.out'}})
+    .to('#eyebrow',{opacity:1,duration:.7},0.1)
+    .to('.ch',{opacity:1,y:0,filter:'blur(0px)',duration:.7,stagger:0.022},0.2)
+    .fromTo('#kicker',{opacity:0,y:14},{opacity:1,y:0,duration:.7},'-=0.4')
+    .fromTo('#sub',{opacity:0,y:14},{opacity:1,y:0,duration:.7},'-=0.45')
+    .fromTo('#ctarow',{opacity:0,y:14},{opacity:1,y:0,duration:.6},'-=0.45')
+    .fromTo('#trust',{opacity:0,y:14},{opacity:1,y:0,duration:.6},'-=0.45');
+
+  // signature: paper -> data sweep
+  var stageH = document.getElementById('stage').offsetHeight;
+  gsap.timeline({delay:0.6})
+    .set('#scan',{top:0,opacity:1})
+    .set('#digi',{clipPath:'inset(0 0 100% 0)'})
+    .set('#paper',{clipPath:'inset(0 0 0 0)'})
+    .to('#scan',{top:stageH,duration:2.1,ease:'power1.inOut'},0)
+    .to('#digi',{clipPath:'inset(0 0 0% 0)',duration:2.1,ease:'power1.inOut'},0)
+    .to('#paper',{clipPath:'inset(100% 0 0 0)',duration:2.1,ease:'power1.inOut'},0)
+    .to('#scan',{opacity:0,duration:.5},2.0)
+    .fromTo('.mote',{opacity:0,y:0},{opacity:.9,y:-60,duration:1.4,stagger:0.18,ease:'power1.out'},0.7)
+    .to('.mote',{opacity:0,duration:.6},'-=0.4');
+
+  // optional parallax enhancement (non-critical — reveals already handled by IO above)
+  if(window.ScrollTrigger){
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.to('#stage',{yPercent:-9,ease:'none',
+      scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
+    gsap.fromTo('.manifesto h2',{yPercent:6},{yPercent:-6,ease:'none',
+      scrollTrigger:{trigger:'.manifesto',start:'top bottom',end:'bottom top',scrub:true}});
+    window.addEventListener('load', function(){ ScrollTrigger.refresh(); });
+  }
+})();
+</script>
+<!-- Vercel Web Analytics (static page) -->
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

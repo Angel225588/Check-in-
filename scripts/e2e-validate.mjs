@@ -144,15 +144,6 @@ async function main() {
     // Redirects back to /search.
     await page.waitForURL(/\/search/, { timeout: 5000 }).catch(() => {});
 
-    // COMPRESSION: the day is stored compressed at rest.
-    const compressed = await page.evaluate(() => {
-      const today = new Date().toISOString().split("T")[0];
-      const raw = localStorage.getItem("dailyData_" + today) || "";
-      return { marker: raw.startsWith("LZ:"), len: raw.length };
-    });
-    record("A4-compression", "Day stored compressed at rest (LZ marker)",
-      compressed.marker, `stored length=${compressed.len}`);
-
     // PERSISTENCE: re-open room 203; the check-in must still be recorded.
     await typeRoom(page, "203");
     const card2 = page.getByRole("button").filter({ hasText: "JEAN DUPONT" });

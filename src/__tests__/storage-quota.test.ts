@@ -1,188 +1,261 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Client, CheckInRecord, DailyData, SessionRecord } from "@/lib/types";
+import {
+  saveClients,
+  saveClientsMerged,
+  getTodayData,
+  reclaimStorageSpace,
+  freeUpSpace,
+} from "../lib/storage";
+import { Client } from "../lib/types";
 
-/**
- * A localStorage mock with a hard byte budget, so we can reproduce the real
- * QuotaExceededError that happens on the reception tablet mid-shift.
- * setItem throws (like a real browser) when the write would exceed `maxBytes`;
- * removeItem always frees space (deletes succeed even when the store is full).
- */
-function makeBoundedLocalStorage(maxBytes: number) {
-  const store: Record<string, string> = {};
-  const size = () =>
-    Object.entries(store).reduce((s, [k, v]) => s + k.length + v.length, 0);
+function makeClient(room: string, name: string): Client {
   return {
-    store,
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => {
-      const projected = size() - (store[key]?.length ?? 0) + key.length + value.length;
-      if (projected > maxBytes) {
-        const err = new Error("QuotaExceededError");
-        err.name = "QuotaExceededError";
-        throw err;
-      }
-      store[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    get length() {
-      return Object.keys(store).length;
-    },
-    key: (i: number) => Object.keys(store)[i] ?? null,
-    clear: () => {
-      for (const k of Object.keys(store)) delete store[k];
-    },
-  };
-}
-
-function makeClient(overrides: Partial<Client> = {}): Client {
-  return {
-    roomNumber: "101",
-    roomType: "DLXK",
+    roomNumber: room,
+    roomType: "",
     rtc: "",
-    confirmationNumber: "100",
-    name: "TEST GUEST",
-    arrivalDate: "01/03/26",
-    departureDate: "05/03/26",
-    reservationStatus: "CKIN",
+    confirmationNumber: "",
+    name,
+    arrivalDate: "",
+    departureDate: "",
+    reservationStatus: "",
     adults: 2,
     children: 0,
     rateCode: "",
     packageCode: "",
-    ...overrides,
   };
 }
 
-const today = new Date().toISOString().split("T")[0];
+/**
+ * Regression test for the "click Start → bounced back to the upload screen,
+ * have to re-upload the docs" bug.
+ *
+ * On iPad Safari / installed PWA the localStorage quota is small. The large
+ * raw OCR text saved alongside the parsed rooms pushed the dailyData_* payload
+ * over quota, localStorage.setItem threw QuotaExceededError, saveTodayData
+ * swallowed it and returned false — so the session was never persisted. The
+ * next screen then found no active session and sent the user back to upload.
+ *
+ * The fix: when the write fails because of the bulky raw text, drop the raw
+ * text and retry so the rooms themselves still persist.
+ */
+describe("saveClientsMerged under localStorage quota pressure", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
 
-function makeCheckIn(overrides: Partial<CheckInRecord> = {}): CheckInRecord {
-  return {
-    id: Math.random().toString(36).slice(2),
-    roomNumber: "101",
-    clientName: "TEST GUEST",
-    peopleEntered: 1,
-    timestamp: new Date().toISOString(),
-    ...overrides,
-  };
-}
+  it("persists the rooms even when the raw OCR text would exceed quota", () => {
+    const realSetItem = Storage.prototype.setItem;
+    const QUOTA = 5000; // pretend the dailyData payload cap is ~5KB
 
-// Re-import the module fresh for each test so it re-reads the stubbed global.
-async function loadStorage() {
-  return await import("@/lib/storage");
-}
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string
+    ) {
+      if (key.startsWith("dailyData_") && value.length > QUOTA) {
+        const err = new Error("QuotaExceededError");
+        err.name = "QuotaExceededError";
+        throw err;
+      }
+      return realSetItem.call(this, key, value);
+    });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.resetModules();
+    const clients = [makeClient("101", "Dupont"), makeClient("102", "Martin")];
+    const hugeRaw = "X".repeat(20000); // larger than QUOTA on its own
+
+    const result = saveClientsMerged(clients, hugeRaw);
+    expect(result.merged.length).toBe(2);
+
+    const data = getTodayData();
+    expect(data).not.toBeNull();
+    expect(data!.clients.length).toBe(2);
+    // Raw text was dropped so the rooms could fit under quota.
+    expect((data!.rawUploadText ?? "").length).toBeLessThan(QUOTA);
+  });
+
+  it("saveClients also persists rooms when raw text would exceed quota", () => {
+    const realSetItem = Storage.prototype.setItem;
+    const QUOTA = 5000;
+
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string
+    ) {
+      if (key.startsWith("dailyData_") && value.length > QUOTA) {
+        const err = new Error("QuotaExceededError");
+        err.name = "QuotaExceededError";
+        throw err;
+      }
+      return realSetItem.call(this, key, value);
+    });
+
+    saveClients([makeClient("201", "Bernard")], "Y".repeat(20000));
+
+    const data = getTodayData();
+    expect(data).not.toBeNull();
+    expect(data!.clients.length).toBe(1);
+    expect((data!.rawUploadText ?? "").length).toBeLessThan(QUOTA);
+  });
+
+  it("still persists rooms + raw text normally when under quota", () => {
+    const clients = [makeClient("301", "Petit")];
+    saveClientsMerged(clients, "small raw text");
+
+    const data = getTodayData();
+    expect(data).not.toBeNull();
+    expect(data!.clients.length).toBe(1);
+    expect(data!.rawUploadText).toContain("small raw text");
+  });
+
+  it("caps the persisted raw OCR text so it cannot bloat localStorage", () => {
+    const clients = [makeClient("401", "Durand")];
+    const enormousRaw = "Z".repeat(5_000_000); // 5MB raw OCR dump
+
+    saveClientsMerged(clients, enormousRaw);
+
+    const data = getTodayData();
+    expect(data).not.toBeNull();
+    expect(data!.clients.length).toBe(1);
+    // Raw text is capped to a small snippet, not the full multi-MB dump.
+    expect((data!.rawUploadText ?? "").length).toBeLessThanOrEqual(30_000);
+  });
 });
 
-describe("addCheckIn — save result must be reported (no fake success)", () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
+/**
+ * Regression test for the upgrade case: a tablet that ran an OLDER build has
+ * multi-MB raw OCR dumps already sitting in storage. reclaimStorageSpace()
+ * runs at startup and trims them so today's session can save again.
+ */
+describe("reclaimStorageSpace strips pre-existing bloat", () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
 
-  it("returns true when the check-in is actually persisted", async () => {
-    vi.stubGlobal("localStorage", makeBoundedLocalStorage(5_000_000));
-    const { saveTodayData, addCheckIn, getTodayData } = await loadStorage();
-    saveTodayData({ date: today, clients: [makeClient()], checkIns: [] });
-
-    const ok = addCheckIn(makeCheckIn());
-
-    expect(ok).toBe(true);
-    expect(getTodayData()?.checkIns).toHaveLength(1);
-  });
-
-  it("returns false when the write fails and cannot be recovered", async () => {
-    // Tiny budget already fully consumed by the seeded day → no slack, nothing
-    // stale to evict → the check-in genuinely cannot be saved.
-    const mock = makeBoundedLocalStorage(600);
-    vi.stubGlobal("localStorage", mock);
-    const { saveTodayData, addCheckIn, getTodayData } = await loadStorage();
-    // Seed today directly so the day exists, then jam the budget full.
-    saveTodayData({ date: today, clients: [makeClient()], checkIns: [] });
-    mock.store["_filler"] = "x".repeat(500);
-
-    const ok = addCheckIn(makeCheckIn({ id: "should-not-persist" }));
-
-    expect(ok).toBe(false);
-    // The record must NOT appear as saved — the UI relies on this to warn.
-    const persisted = getTodayData()?.checkIns ?? [];
-    expect(persisted.some((c) => c.id === "should-not-persist")).toBe(false);
-  });
-});
-
-describe("saveTodayData — recover space before failing", () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
-
-  it("evicts stale history/day data and succeeds on retry", async () => {
-    const mock = makeBoundedLocalStorage(4000);
-    vi.stubGlobal("localStorage", mock);
-    const { saveTodayData, getTodayData } = await loadStorage();
-
-    // Over-fill the budget with EVICTABLE junk (seeded directly, bypassing the
-    // setItem cap). These are large enough that even a compressed "today" write
-    // overflows until the stale data is reclaimed.
-    const staleHistory: SessionRecord[] = [
+  it("trims giant rawUploadText from existing history + daily data, keeps rooms", () => {
+    const bloatedHistory = [
       {
-        date: "2000-01-01",
-        closedAt: "2000-01-01T00:00:00.000Z",
-        totalRooms: 1,
-        totalGuests: 1,
+        date: "2026-05-24",
+        closedAt: "2026-05-24T08:00:00Z",
+        totalRooms: 2,
+        totalGuests: 4,
         totalEntered: 0,
-        totalRemaining: 1,
+        totalRemaining: 4,
         totalVip: 0,
-        clients: [makeClient()],
+        clients: [makeClient("101", "Old Guest A"), makeClient("102", "Old Guest B")],
         checkIns: [],
-        rawUploadText: "Z".repeat(3000), // bloat that recovery should strip
+        rawUploadText: "A".repeat(2_000_000),
       },
     ];
-    mock.store["sessionHistory"] = JSON.stringify(staleHistory);
-    mock.store["dailyData_2000-01-01"] = JSON.stringify({
-      date: "2000-01-01",
-      clients: [makeClient()],
-      checkIns: [],
-      rawUploadText: "Y".repeat(3000),
-    });
+    localStorage.setItem("sessionHistory", JSON.stringify(bloatedHistory));
+    localStorage.setItem(
+      "dailyData_2026-05-30",
+      JSON.stringify({
+        date: "2026-05-30",
+        clients: [makeClient("201", "Yesterday Guest")],
+        checkIns: [],
+        rawUploadText: "B".repeat(2_000_000),
+      })
+    );
 
-    // Now a fresh today write that would overflow without eviction.
-    const ok = saveTodayData({
-      date: today,
-      clients: [makeClient(), makeClient({ roomNumber: "102" })],
-      checkIns: [makeCheckIn()],
-      rawUploadText: "A".repeat(400),
-    });
+    const before =
+      (localStorage.getItem("sessionHistory")?.length ?? 0) +
+      (localStorage.getItem("dailyData_2026-05-30")?.length ?? 0);
 
-    expect(ok).toBe(true);
-    expect(getTodayData()?.clients).toHaveLength(2);
-    // Stale day should have been reclaimed.
-    expect(mock.store["dailyData_2000-01-01"]).toBeUndefined();
+    const reclaimed = reclaimStorageSpace();
+    expect(reclaimed).toBeGreaterThan(3_000_000);
+
+    const after =
+      (localStorage.getItem("sessionHistory")?.length ?? 0) +
+      (localStorage.getItem("dailyData_2026-05-30")?.length ?? 0);
+    expect(after).toBeLessThan(before);
+
+    // Rooms preserved, raw text trimmed.
+    const hist = JSON.parse(localStorage.getItem("sessionHistory")!);
+    expect(hist[0].clients.length).toBe(2);
+    expect(hist[0].rawUploadText.length).toBeLessThanOrEqual(30_000);
+
+    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-30")!);
+    expect(day.clients.length).toBe(1);
+    expect(day.rawUploadText.length).toBeLessThanOrEqual(30_000);
+  });
+
+  it("is a no-op when nothing is bloated", () => {
+    localStorage.setItem(
+      "dailyData_2026-05-31",
+      JSON.stringify({
+        date: "2026-05-31",
+        clients: [makeClient("301", "Today")],
+        checkIns: [],
+        rawUploadText: "tiny",
+      })
+    );
+    expect(reclaimStorageSpace()).toBe(0);
+    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-31")!);
+    expect(day.rawUploadText).toBe("tiny");
   });
 });
 
-describe("rawUploadText growth is bounded", () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
+/**
+ * The manual "Free up space" Settings button. Must strip ALL raw text but
+ * preserve every room, check-in, and session.
+ */
+describe("freeUpSpace removes only raw text, keeps everything else", () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
 
-  it("caps combined rawUploadText so it can't blow the quota over a shift", async () => {
-    vi.stubGlobal("localStorage", makeBoundedLocalStorage(5_000_000));
-    const { saveClientsMerged, getTodayData } = await loadStorage();
+  it("clears raw text from history + daily data, preserves rooms/check-ins/stats", () => {
+    const history = [
+      {
+        date: "2026-05-28",
+        closedAt: "2026-05-28T08:00:00Z",
+        totalRooms: 2,
+        totalGuests: 4,
+        totalEntered: 2,
+        totalRemaining: 2,
+        totalVip: 1,
+        clients: [makeClient("101", "Guest A"), makeClient("102", "Guest B")],
+        checkIns: [
+          { id: "ci1", roomNumber: "101", clientName: "Guest A", peopleEntered: 2, timestamp: "2026-05-28T07:30:00Z" },
+        ],
+        rawUploadText: "R".repeat(1_000_000),
+      },
+    ];
+    localStorage.setItem("sessionHistory", JSON.stringify(history));
+    // Use the real "today" key so getTodayData() resolves the active session
+    // regardless of the calendar date the test runs on.
+    const activeDate = new Date().toISOString().split("T")[0];
+    localStorage.setItem(
+      `dailyData_${activeDate}`,
+      JSON.stringify({
+        date: activeDate,
+        clients: [makeClient("201", "Today Guest")],
+        checkIns: [],
+        rawUploadText: "T".repeat(1_000_000),
+      })
+    );
 
-    // Simulate many report photos across the day, each adding a big OCR blob.
-    for (let i = 0; i < 40; i++) {
-      saveClientsMerged(
-        [makeClient({ roomNumber: `2${i.toString().padStart(2, "0")}`, name: `GUEST ${i}` })],
-        "OCR_TEXT_BLOCK_".repeat(2000) // ~30KB each upload
-      );
-    }
+    const freed = freeUpSpace();
+    expect(freed).toBeGreaterThan(1_900_000);
 
-    const raw = getTodayData()?.rawUploadText ?? "";
-    // Must be bounded, not the ~1.2MB the naive concat would produce.
-    expect(raw.length).toBeLessThanOrEqual(100_000);
-    // Clients themselves are still all merged/retained.
-    expect(getTodayData()?.clients.length).toBe(40);
+    // History: rooms, check-ins, stats intact; raw text gone.
+    const h = JSON.parse(localStorage.getItem("sessionHistory")!);
+    expect(h[0].clients.length).toBe(2);
+    expect(h[0].checkIns.length).toBe(1);
+    expect(h[0].totalVip).toBe(1);
+    expect(h[0].rawUploadText).toBe("");
+
+    // Today's daily data: rooms intact; raw text gone.
+    const day = JSON.parse(localStorage.getItem(`dailyData_${activeDate}`)!);
+    expect(day.clients.length).toBe(1);
+    expect(day.rawUploadText).toBe("");
+
+    // The active session is still readable afterward (no bounce-to-upload).
+    const active = getTodayData();
+    expect(active).not.toBeNull();
+    expect(active!.clients.length).toBe(1);
   });
 });

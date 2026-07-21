@@ -1,7 +1,6 @@
 import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
 import { mergeVipIntoClients } from "./vip";
 import { mergeNewClients, MergeResult } from "./merge";
-import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -13,42 +12,19 @@ function getKey(date: string): string {
 
 const HISTORY_KEY = "sessionHistory";
 
-// Keep at most this many days of closed sessions. Acts as a ring buffer:
-// adding a new day past the cap drops the oldest, so storage never grows
-// without bound day over day.
-const MAX_HISTORY_DAYS = 30;
-
-// --- Compression layer ---
-// Guest lists and OCR text are highly repetitive, so LZ compression typically
-// shrinks a day ~5-10x. This multiplies the ~5MB localStorage budget and is
-// what keeps a busy shift from ever hitting the quota. The marker prefix lets
-// reads transparently fall back to legacy UNCOMPRESSED JSON already sitting on
-// existing devices — so upgrading a tablet never loses the day in progress.
-const COMPRESSION_PREFIX = "LZ:";
-
-function encode(value: unknown): string {
-  return COMPRESSION_PREFIX + compressToUTF16(JSON.stringify(value));
-}
-
-/** Decode a stored string, handling both compressed and legacy plaintext. */
-function decode<T>(raw: string): T | null {
-  let json = raw;
-  if (raw.startsWith(COMPRESSION_PREFIX)) {
-    const d = decompressFromUTF16(raw.slice(COMPRESSION_PREFIX.length));
-    if (d == null) return null;
-    json = d;
-  }
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return null;
-  }
-}
+// Stopgap (pre-Supabase): the parsed rooms for a day are only ~45KB, but the
+// raw OCR dump from the local Tesseract fallback can be several MB and is the
+// main thing that exhausts the small iPad Safari / PWA localStorage budget. It
+// is only used for an optional "Raw data" debug view, so we keep at most a
+// capped snippet. This lets a full week (and well beyond) of sessions persist
+// comfortably until everything migrates to Supabase.
+const RAW_TEXT_CAP = 30_000;
 
 // --- Shape guards ---
 // localStorage is trusted single-device data, but a corrupted or hand-edited
-// entry must never crash the app on load. These coerce anything unexpected to
-// a safe empty shape instead of letting `.reduce`/`.findIndex` throw.
+// entry must never crash the app on load. These coerce anything unexpected to a
+// safe shape instead of letting `.reduce`/`.findIndex` throw an uncaught
+// TypeError in autoCloseStale on startup (which would white-screen the PWA).
 function asDailyData(v: unknown, fallbackDate: string): DailyData | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
@@ -63,72 +39,6 @@ function asDailyData(v: unknown, fallbackDate: string): DailyData | null {
 
 function asHistory(v: unknown): SessionRecord[] {
   return Array.isArray(v) ? (v as SessionRecord[]) : [];
-}
-
-// Upper bound on the accumulated OCR text we keep for a day. Every upload
-// appends its full OCR blob to rawUploadText, and every check-in rewrites the
-// whole day back to localStorage — left unbounded this is what eventually
-// overflows the ~5MB quota mid-shift and makes saves start failing silently.
-// We keep the most recent slice (newest uploads are the ones staff reference).
-const MAX_RAW_UPLOAD_TEXT = 60_000;
-
-function capRawUploadText(text: string): string {
-  if (text.length <= MAX_RAW_UPLOAD_TEXT) return text;
-  return text.slice(text.length - MAX_RAW_UPLOAD_TEXT);
-}
-
-/**
- * Reclaim localStorage space when a write hits QuotaExceededError, without
- * touching the day we're trying to save. Deletes always succeed even when the
- * store is full, so this frees room for a retry. Returns true if it freed
- * anything worth retrying for.
- */
-function freeUpStorage(protectDate: string): boolean {
-  if (typeof window === "undefined") return false;
-  let freed = false;
-  const today = getTodayString();
-
-  // 1) Drop stale dailyData_* keys for past days (never the day being saved).
-  const staleKeys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("dailyData_")) {
-      const date = key.replace("dailyData_", "");
-      if (date !== protectDate && date < today) staleKeys.push(key);
-    }
-  }
-  for (const key of staleKeys) {
-    localStorage.removeItem(key);
-    freed = true;
-  }
-
-  // 2) Strip the heavy rawUploadText from stored session history and trim it.
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (raw) {
-      const history = asHistory(decode<SessionRecord[]>(raw));
-      let changed = false;
-      for (const s of history) {
-        if (s.rawUploadText) {
-          s.rawUploadText = "";
-          changed = true;
-        }
-      }
-      if (history.length > 15) {
-        history.length = 15;
-        changed = true;
-      }
-      if (changed) {
-        // Rewriting a smaller value replaces the key in place; safe even full.
-        localStorage.setItem(HISTORY_KEY, encode(history));
-        freed = true;
-      }
-    }
-  } catch {
-    // History unreadable/unwritable — nothing more we can safely do here.
-  }
-
-  return freed;
 }
 
 // --- Settings ---
@@ -158,35 +68,31 @@ export function getTodayData(): DailyData | null {
   const today = getTodayString();
   const raw = localStorage.getItem(getKey(today));
   if (!raw) return null;
-  return asDailyData(decode(raw), today);
+  try {
+    return asDailyData(JSON.parse(raw), today);
+  } catch {
+    return null;
+  }
 }
 
 export function getDataForDate(date: string): DailyData | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(getKey(date));
   if (!raw) return null;
-  return asDailyData(decode(raw), date);
+  try {
+    return asDailyData(JSON.parse(raw), date);
+  } catch {
+    return null;
+  }
 }
 
 export function saveTodayData(data: DailyData): boolean {
   data.date = getTodayString();
-  const key = getKey(data.date);
-  const serialized = encode(data);
   try {
-    localStorage.setItem(key, serialized);
+    localStorage.setItem(getKey(data.date), JSON.stringify(data));
     return true;
   } catch {
-    // QuotaExceededError — try to reclaim space from stale data, then retry
-    // once. Only if the retry also fails do we report failure so the UI can
-    // warn the user instead of showing a fake success.
-    if (freeUpStorage(data.date)) {
-      try {
-        localStorage.setItem(key, serialized);
-        return true;
-      } catch {
-        return false;
-      }
-    }
+    // QuotaExceededError — return false so UI can warn user
     return false;
   }
 }
@@ -197,9 +103,15 @@ export function saveClients(clients: Client[], rawText?: string): void {
     date: getTodayString(),
     clients,
     checkIns: existing?.checkIns ?? [],
-    rawUploadText: capRawUploadText(rawText || existing?.rawUploadText || ""),
+    rawUploadText: (rawText || existing?.rawUploadText || "").slice(0, RAW_TEXT_CAP),
   };
-  saveTodayData(data);
+  // If the (capped) raw OCR text still pushes us over the localStorage quota
+  // (common on iPad Safari / installed PWA), drop it and retry so the rooms
+  // still persist.
+  if (!saveTodayData(data) && data.rawUploadText) {
+    data.rawUploadText = "";
+    saveTodayData(data);
+  }
 }
 
 /**
@@ -211,9 +123,10 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
   const existingClients = existing?.clients ?? [];
   const result = mergeNewClients(existingClients, newClients);
 
-  const combinedRaw = capRawUploadText(
-    [existing?.rawUploadText, rawText].filter(Boolean).join("\n---\n")
-  );
+  const combinedRaw = [existing?.rawUploadText, rawText]
+    .filter(Boolean)
+    .join("\n---\n")
+    .slice(0, RAW_TEXT_CAP);
 
   const data: DailyData = {
     date: getTodayString(),
@@ -221,39 +134,46 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
     checkIns: existing?.checkIns ?? [],
     rawUploadText: combinedRaw,
   };
-  saveTodayData(data);
+  // If the (capped) raw OCR text still pushes us over the localStorage quota
+  // (common on iPad Safari / installed PWA), drop it and retry so the rooms
+  // still persist. Otherwise the session silently fails to save and the next
+  // screen bounces the user back to the upload screen.
+  if (!saveTodayData(data) && data.rawUploadText) {
+    data.rawUploadText = "";
+    saveTodayData(data);
+  }
   return result;
 }
 
 export function saveRawUploadText(rawText: string): void {
   const data = getTodayData();
   if (!data) return;
-  data.rawUploadText = capRawUploadText(rawText);
+  data.rawUploadText = rawText;
   saveTodayData(data);
 }
 
-export function addClient(client: Client): boolean {
+export function addClient(client: Client): void {
   const data = getTodayData();
-  if (!data) return false;
+  if (!data) return;
   // Live additions from /search default to walk-in source unless caller specified one.
   const tagged: Client = client.vipSource
     ? client
     : { ...client, vipSource: "walk_in" };
   data.clients.push(tagged);
-  return saveTodayData(data);
+  saveTodayData(data);
 }
 
-export function updateClient(index: number, updates: Partial<Client>): boolean {
+export function updateClient(index: number, updates: Partial<Client>): void {
   const data = getTodayData();
-  if (!data || !data.clients[index]) return false;
+  if (!data || !data.clients[index]) return;
   data.clients[index] = { ...data.clients[index], ...updates };
-  return saveTodayData(data);
+  saveTodayData(data);
 }
 
 /**
  * Persist a check-in. Returns true only if it was actually written to
- * localStorage — callers MUST check this and surface a failure instead of
- * showing a success state, otherwise a quota-full tablet silently loses guests.
+ * localStorage — the check-in screen checks this and shows a real error
+ * instead of a fake success, so a quota-full tablet never silently loses a guest.
  */
 export function addCheckIn(record: CheckInRecord): boolean {
   const data = getTodayData();
@@ -313,7 +233,141 @@ export function getSessionHistory(): SessionRecord[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(HISTORY_KEY);
   if (!raw) return [];
-  return asHistory(decode<SessionRecord[]>(raw));
+  try {
+    return asHistory(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * One-time / startup space reclaimer.
+ *
+ * Devices that ran an older build accumulated multi-MB raw OCR dumps inside
+ * sessionHistory and past dailyData_* days. On a small-quota browser (iPad
+ * Safari / installed PWA) that old bloat can fill localStorage so completely
+ * that even today's tiny ~45KB session can no longer be saved — which sends
+ * the user back to the upload screen on every "Start".
+ *
+ * This strips the bulky rawUploadText from all stored history + daily data,
+ * keeping only a small capped snippet. The parsed rooms, check-ins, and all
+ * stats are preserved untouched. Safe to call on every app load — it only
+ * rewrites a key when it actually shrinks it.
+ *
+ * Returns the approximate number of bytes reclaimed.
+ */
+export function reclaimStorageSpace(): number {
+  if (typeof window === "undefined") return 0;
+  let reclaimed = 0;
+
+  // 1) Trim raw text inside the session-history blob.
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw) as SessionRecord[];
+      let changed = false;
+      for (const s of history) {
+        if (s.rawUploadText && s.rawUploadText.length > RAW_TEXT_CAP) {
+          s.rawUploadText = s.rawUploadText.slice(0, RAW_TEXT_CAP);
+          changed = true;
+        }
+      }
+      if (changed) {
+        const next = JSON.stringify(history);
+        reclaimed += raw.length - next.length;
+        localStorage.setItem(HISTORY_KEY, next);
+      }
+    }
+  } catch {
+    // Corrupt history — leave it; autoCloseStale / normal paths handle it.
+  }
+
+  // 2) Trim raw text inside every dailyData_* day (today included).
+  const dailyKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("dailyData_")) dailyKeys.push(key);
+  }
+  for (const key of dailyKeys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const data = JSON.parse(raw) as DailyData;
+      if (data.rawUploadText && data.rawUploadText.length > RAW_TEXT_CAP) {
+        data.rawUploadText = data.rawUploadText.slice(0, RAW_TEXT_CAP);
+        const next = JSON.stringify(data);
+        reclaimed += raw.length - next.length;
+        localStorage.setItem(key, next);
+      }
+    } catch {
+      // Skip unparseable day.
+    }
+  }
+
+  return reclaimed;
+}
+
+/**
+ * Manual "free up space" action (Settings button).
+ *
+ * Like reclaimStorageSpace() but strips the raw OCR text *entirely* (not just
+ * down to the cap) from every stored session + daily-data key, for maximum
+ * reclamation. This is the safe, user-facing escape hatch for a device whose
+ * storage is full.
+ *
+ * IMPORTANT — what this keeps vs removes:
+ *   KEEPS:   every room list, every check-in, all 30-day session history,
+ *            VIP / COMP flags, stats, dashboard data, settings, guest profiles.
+ *   REMOVES: ONLY the raw unformatted OCR text dump (the "Raw data" debug
+ *            expander). Nothing functional is lost.
+ *
+ * Returns the approximate number of bytes freed.
+ */
+export function freeUpSpace(): number {
+  if (typeof window === "undefined") return 0;
+  let freed = 0;
+
+  // Session history — clear raw text on every record.
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw) as SessionRecord[];
+      let changed = false;
+      for (const s of history) {
+        if (s.rawUploadText) {
+          freed += s.rawUploadText.length;
+          s.rawUploadText = "";
+          changed = true;
+        }
+      }
+      if (changed) localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+  } catch {
+    // Leave corrupt history untouched.
+  }
+
+  // Every dailyData_* day (today included) — clear raw text.
+  const dailyKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("dailyData_")) dailyKeys.push(key);
+  }
+  for (const key of dailyKeys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const data = JSON.parse(raw) as DailyData;
+      if (data.rawUploadText) {
+        freed += data.rawUploadText.length;
+        data.rawUploadText = "";
+        localStorage.setItem(key, JSON.stringify(data));
+      }
+    } catch {
+      // Skip unparseable day.
+    }
+  }
+
+  return freed;
 }
 
 export function closeDay(): SessionRecord | null {
@@ -350,12 +404,12 @@ export function closeDay(): SessionRecord | null {
   } else {
     history.unshift(record);
   }
-  if (history.length > MAX_HISTORY_DAYS) history.length = MAX_HISTORY_DAYS;
+  if (history.length > 30) history.length = 30;
 
   // Try saving — if quota exceeded, trim rawUploadText and retry
   let saved = false;
   try {
-    localStorage.setItem(HISTORY_KEY, encode(history));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     saved = true;
   } catch {
     // Quota exceeded — strip rawUploadText from older sessions to free space
@@ -363,13 +417,13 @@ export function closeDay(): SessionRecord | null {
       history[i].rawUploadText = "";
     }
     try {
-      localStorage.setItem(HISTORY_KEY, encode(history));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       saved = true;
     } catch {
       // Still failing — reduce to 15 sessions
       if (history.length > 15) history.length = 15;
       try {
-        localStorage.setItem(HISTORY_KEY, encode(history));
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
         saved = true;
       } catch {
         // Cannot save — do NOT clear daily data
@@ -410,17 +464,18 @@ export function autoCloseStale(): number {
   for (const date of staleKeys) {
     const raw = localStorage.getItem(getKey(date));
     if (!raw) continue;
-    // Shape-guarded decode: a corrupted/tampered entry must never throw here,
-    // because autoCloseStale runs on every app load — an uncaught error would
-    // white-screen the whole PWA at startup.
-    const data = asDailyData(decode(raw), date);
-    if (!data) {
-      // Unreadable/malformed — drop it so it can't wedge startup.
+    // Shape-guarded: autoCloseStale runs on every app load, so a corrupted or
+    // tampered entry must never throw here (that would white-screen the PWA).
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
       localStorage.removeItem(getKey(date));
       continue;
     }
-    if (data.clients.length === 0) {
-      // Empty session — just remove it
+    const data = asDailyData(parsed, date);
+    if (!data || data.clients.length === 0) {
+      // Empty/malformed session — just remove it
       localStorage.removeItem(getKey(date));
       continue;
     }
@@ -451,11 +506,11 @@ export function autoCloseStale(): number {
     }
     // Sort by date descending
     history.sort((a, b) => b.date.localeCompare(a.date));
-    if (history.length > MAX_HISTORY_DAYS) history.length = MAX_HISTORY_DAYS;
+    if (history.length > 30) history.length = 30;
 
     let saved = false;
     try {
-      localStorage.setItem(HISTORY_KEY, encode(history));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       saved = true;
     } catch {
       // Trim rawUploadText from older sessions
@@ -463,7 +518,7 @@ export function autoCloseStale(): number {
         history[i].rawUploadText = "";
       }
       try {
-        localStorage.setItem(HISTORY_KEY, encode(history));
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
         saved = true;
       } catch {
         // Cannot save — leave daily data intact
