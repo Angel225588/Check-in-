@@ -38,6 +38,18 @@ Status:     Shipped / In-progress / Needs-repro
 
 # Log
 
+## [2026-07-21] Market-validation framework built + run · ClickUp: Sale·Roadmap
+Situation: is this a business, for whom, and at what price? Founder had no pricing
+hypothesis and wanted the segment (Marriott-level vs independents) decided by research.
+Response: built the reusable 5-lens agent round-table (demand · competitors · pricing ·
+market-size · go-to-market) and ran it. Verdict **GO (4/5)**: beachhead = **independent
+Paris hotels**, launch-test **€49/mo**, category near-empty (rival = paper+highlighter),
+France TAM ~€13M ARR (plan multi-country), moat = distribution/workflow not tech. #1 move:
+Courtyard before/after + testimonial video → founder walk-ins around that Courtyard.
+Verified: full cited brief in `docs/MARKET-VALIDATION.md`; ClickUp pricing/GTM/framework
+tasks updated.
+Status: Shipped (research); GTM execution now tracked in Sale·Roadmap.
+
 ## [2026-07-20] Reconciled fixes shipped to production · PR #3 · de9317b
 Situation: the reported incident — check-in showed a green ✓ but the count never
 moved ("stuck at 11"); separately, `main` had moved 10 commits ahead of the fix
