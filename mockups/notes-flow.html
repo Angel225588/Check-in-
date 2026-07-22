@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notes flow — Check-in</title>
+<style>
+  :root{
+    --gold:#A66914; --gold-l:#DD9C28;
+    --bg:#0B0B0F; --panel:#141419; --panel2:#1B1B22; --line:rgba(255,255,255,.08);
+    --txt:#F4F1EA; --muted:#9A9AA2;
+    --alerte:#E23B3B; --pref:#3B82F6; --fid:#DD9C28; --event:#8B5CF6; --info:#8A8A8E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt)}
+  .serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+  .frame{height:100vh;display:flex;overflow:hidden}
+
+  /* ===== NOTES PANEL (the lateral bar, widened for notes) ===== */
+  .panel{width:390px;flex:none;height:100%;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .phead{padding:18px 18px 10px;display:flex;align-items:center;justify-content:space-between}
+  .phead b{font-size:17px;display:flex;align-items:center;gap:8px}
+  .iconbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);color:var(--muted);display:grid;place-items:center;font-size:14px}
+  .tabs{display:flex;gap:6px;margin:0 18px 12px;background:rgba(255,255,255,.05);border-radius:999px;padding:4px}
+  .tabs button{flex:1;border:0;background:transparent;color:var(--muted);font-weight:800;font-size:13px;padding:8px;border-radius:999px}
+  .tabs button.on{background:#fff;color:#111}
+
+  /* filter chips */
+  .filters{display:flex;gap:7px;padding:0 18px 12px;overflow-x:auto;scrollbar-width:none}
+  .filters::-webkit-scrollbar{display:none}
+  .fchip{flex:none;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:6px}
+  .fchip .dot{width:9px;height:9px;border-radius:50%}
+  .fchip.on{color:#fff;border-color:transparent;background:rgba(255,255,255,.14)}
+
+  .list{flex:1;overflow-y:auto;padding:2px 14px 120px}
+  .sect{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 6px 8px;font-weight:800}
+  .note{position:relative;border-radius:16px;padding:13px 14px 12px;margin:0 0 10px;background:var(--panel2);border:1px solid var(--line);border-left-width:4px}
+  .note .top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .note .sit{font-size:12px;font-weight:900;letter-spacing:.01em}
+  .note .pin{margin-left:auto;font-size:13px;opacity:.65}
+  .note .body{font-size:14.5px;line-height:1.34;color:var(--txt)}
+  .note .meta{margin-top:8px;font-size:11px;color:var(--muted)}
+  .note.alerte{border-left-color:var(--alerte)} .note.alerte .sit{color:#ff7a7a}
+  .note.pref{border-left-color:var(--pref)} .note.pref .sit{color:#7fa8ff}
+  .note.fid{border-left-color:var(--fid)} .note.fid .sit{color:var(--gold-l)}
+  .note.event{border-left-color:var(--event)} .note.event .sit{color:#b79bff}
+  .note.info{border-left-color:var(--info)} .note.info .sit{color:#c3c3c9}
+
+  /* add button */
+  .addbar{position:absolute;left:0;right:0;bottom:0;padding:14px 18px 18px;background:linear-gradient(180deg,transparent,var(--panel) 34%)}
+  .add{width:100%;border:0;border-radius:16px;padding:15px;font-size:15px;font-weight:900;color:#fff;background:linear-gradient(90deg,var(--gold),var(--gold-l));box-shadow:0 10px 26px -10px rgba(166,105,20,.8);display:flex;align-items:center;justify-content:center;gap:9px}
+
+  /* ===== faded check-in context (right) ===== */
+  .context{flex:1;height:100%;padding:26px;display:flex;flex-direction:column;gap:16px;filter:saturate(.9)}
+  .roomcard{border-radius:22px;padding:22px 24px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between}
+  .roomcard .num{font-size:60px;font-weight:900;color:var(--gold-l);line-height:.85;font-family:ui-monospace,monospace}
+  .roomcard .nm{font-size:34px;margin-left:14px}
+  .pinnedInline{border-radius:16px;padding:12px 15px;background:rgba(226,59,59,.10);border:1px solid rgba(226,59,59,.3);display:flex;gap:10px;align-items:center}
+  .pinnedInline b{color:#ff8a8a}
+  .ctxfill{flex:1;display:grid;place-items:center;color:var(--muted);text-align:center}
+  .ghostbtn{border-radius:44px;padding:18px;text-align:center;font-size:22px;font-weight:900;color:#fff;background:linear-gradient(90deg,#16a34a,#22c55e)}
+
+  /* ===== COMPOSER SHEET ===== */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:.25s;z-index:20}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border-top-left-radius:26px;border-top-right-radius:26px;border-top:1px solid var(--line);
+    transform:translateY(102%);transition:transform .32s cubic-bezier(.22,.9,.3,1);padding:8px 18px calc(18px + var(--kb,0px));box-shadow:0 -30px 60px -20px rgba(0,0,0,.6)}
+  .sheet.on{transform:translateY(0)}
+  .grab{width:42px;height:5px;border-radius:5px;background:rgba(255,255,255,.2);margin:8px auto 12px}
+  .sheet h3{margin:2px 4px 12px;font-size:16px;font-weight:900}
+  .slabel{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:4px 4px 8px}
+  .sits{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+  .sit-opt{border:1.5px solid var(--line);background:var(--panel2);border-radius:15px;padding:11px 6px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:11.5px;font-weight:800;color:var(--muted)}
+  .sit-opt .em{font-size:20px}
+  .sit-opt.on{color:#fff}
+  .sit-opt.on.alerte{border-color:var(--alerte);background:rgba(226,59,59,.16)}
+  .sit-opt.on.pref{border-color:var(--pref);background:rgba(59,130,246,.16)}
+  .sit-opt.on.fid{border-color:var(--fid);background:rgba(221,156,40,.16)}
+  .sit-opt.on.event{border-color:var(--event);background:rgba(139,92,246,.16)}
+  .sit-opt.on.info{border-color:var(--info);background:rgba(138,138,142,.18)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .chip{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:700}
+  .chip:active{transform:scale(.96)}
+  .ta{width:100%;min-height:74px;resize:none;border-radius:16px;border:1.5px solid var(--line);background:var(--panel2);color:var(--txt);padding:13px 15px;font-size:15.5px;font-family:inherit;line-height:1.4}
+  .ta:focus{outline:none;border-color:var(--gold)}
+  .rowend{display:flex;align-items:center;gap:12px;margin-top:12px}
+  .pintoggle{display:flex;align-items:center;gap:9px;font-weight:800;font-size:14px;color:var(--muted)}
+  .switch{width:46px;height:28px;border-radius:999px;background:rgba(255,255,255,.15);position:relative;transition:.2s}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+  .pintoggle.on .switch{background:var(--gold)} .pintoggle.on .switch::after{left:21px} .pintoggle.on{color:var(--txt)}
+  .save{margin-left:auto;border:0;border-radius:999px;padding:13px 26px;font-weight:900;font-size:15px;color:#fff;background:linear-gradient(90deg,var(--gold),var(--gold-l))}
+  .save[disabled]{opacity:.4}
+
+  /* fake tablet keyboard */
+  .kb{margin:14px -18px -18px;padding:10px 8px calc(10px + env(safe-area-inset-bottom));background:#2A2A31;border-top:1px solid #000}
+  .krow{display:flex;gap:6px;justify-content:center;margin:5px 0}
+  .key{flex:1;max-width:42px;height:38px;border-radius:8px;background:#4a4a52;color:#fff;display:grid;place-items:center;font-size:14px;box-shadow:0 1px 0 rgba(0,0,0,.5)}
+  .key.wide{max-width:none;flex:2.4} .key.sp{flex:5;max-width:none}
+</style>
+</head>
+<body>
+<div class="frame">
+  <!-- NOTES PANEL -->
+  <aside class="panel">
+    <div class="phead"><b>🗒️ Notes</b><button class="iconbtn">✕</button></div>
+    <div class="tabs"><button>Tout</button><button>Visites</button><button class="on">Notes</button></div>
+
+    <div class="filters" id="filters">
+      <button class="fchip on" data-f="all">Toutes</button>
+      <button class="fchip" data-f="alerte"><span class="dot" style="background:var(--alerte)"></span>Alerte</button>
+      <button class="fchip" data-f="pref"><span class="dot" style="background:var(--pref)"></span>Préférence</button>
+      <button class="fchip" data-f="fid"><span class="dot" style="background:var(--fid)"></span>Fidélité</button>
+      <button class="fchip" data-f="event"><span class="dot" style="background:var(--event)"></span>Événement</button>
+      <button class="fchip" data-f="info"><span class="dot" style="background:var(--info)"></span>Info</button>
+    </div>
+
+    <div class="list" id="list">
+      <div class="sect" data-sect>📌 Épinglées</div>
+      <div class="note alerte" data-cat="alerte" data-pin="1">
+        <div class="top"><span class="sit">🔴 ALERTE</span><span class="pin">📌</span></div>
+        <div class="body">Allergie sévère aux arachides — prévenir la cuisine.</div>
+        <div class="meta">Ajoutée par Sofia · 12 mai</div>
+      </div>
+      <div class="sect" data-sect>Toutes les notes</div>
+      <div class="note pref" data-cat="pref" data-pin="0">
+        <div class="top"><span class="sit">🔵 PRÉFÉRENCE</span></div>
+        <div class="body">Table près de la fenêtre, lait d'avoine pour le café.</div>
+        <div class="meta">Ajoutée par Marc · 12 mai</div>
+      </div>
+      <div class="note fid" data-cat="fid" data-pin="0">
+        <div class="top"><span class="sit">🟡 FIDÉLITÉ</span></div>
+        <div class="body">5ᵉ séjour cette année — offrir une viennoiserie.</div>
+        <div class="meta">Ajoutée par Sofia · 2 avr</div>
+      </div>
+      <div class="note event" data-cat="event" data-pin="0">
+        <div class="top"><span class="sit">🎉 ÉVÉNEMENT</span></div>
+        <div class="body">Anniversaire de mariage pendant le séjour.</div>
+        <div class="meta">Ajoutée par Léa · 2 avr</div>
+      </div>
+    </div>
+
+    <div class="addbar"><button class="add" onclick="openSheet()">＋ Ajouter une note</button></div>
+
+    <!-- COMPOSER -->
+    <div class="scrim" id="scrim" onclick="closeSheet()"></div>
+    <div class="sheet" id="sheet">
+      <div class="grab"></div>
+      <h3>Nouvelle note · ch. 619 David, Julie</h3>
+
+      <div class="slabel">Situation</div>
+      <div class="sits" id="sits">
+        <button class="sit-opt alerte" data-c="alerte"><span class="em">🔴</span>Alerte</button>
+        <button class="sit-opt pref" data-c="pref"><span class="em">🔵</span>Préférence</button>
+        <button class="sit-opt fid" data-c="fid"><span class="em">🟡</span>Fidélité</button>
+        <button class="sit-opt event" data-c="event"><span class="em">🎉</span>Événement</button>
+        <button class="sit-opt info on" data-c="info"><span class="em">⚪</span>Info</button>
+      </div>
+
+      <div class="slabel">Rapide</div>
+      <div class="chips" id="chips"></div>
+
+      <textarea class="ta" id="ta" placeholder="Écrire une note…"></textarea>
+
+      <div class="rowend">
+        <button class="pintoggle" id="pintoggle" onclick="togglePin()"><span class="switch"></span>📌 Épingler en haut</button>
+        <button class="save" id="save" onclick="saveNote()">Enregistrer</button>
+      </div>
+
+      <!-- fake tablet keyboard (visual only) -->
+      <div class="kb">
+        <div class="krow"><span class="key">a</span><span class="key">z</span><span class="key">e</span><span class="key">r</span><span class="key">t</span><span class="key">y</span><span class="key">u</span><span class="key">i</span><span class="key">o</span><span class="key">p</span></div>
+        <div class="krow"><span class="key">q</span><span class="key">s</span><span class="key">d</span><span class="key">f</span><span class="key">g</span><span class="key">h</span><span class="key">j</span><span class="key">k</span><span class="key">l</span><span class="key">m</span></div>
+        <div class="krow"><span class="key wide">⇧</span><span class="key">w</span><span class="key">x</span><span class="key">c</span><span class="key">v</span><span class="key">b</span><span class="key">n</span><span class="key wide">⌫</span></div>
+        <div class="krow"><span class="key wide">123</span><span class="key sp">espace</span><span class="key wide">retour</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- FADED CHECK-IN CONTEXT -->
+  <main class="context">
+    <div class="roomcard">
+      <div><span class="num">619</span><span class="nm serif">David, Julie</span></div>
+      <div style="text-align:center;color:var(--muted);font-size:12px;font-weight:800">ADULTES<div style="font-size:24px;color:var(--txt)">1</div></div>
+    </div>
+    <div class="pinnedInline"><span>🔴</span><div><b>Allergie arachides</b> — prévenir la cuisine.</div></div>
+    <div class="ctxfill">L'écran de check-in reste derrière —<br>les notes glissent par-dessus.</div>
+    <div class="ghostbtn">Enregistrer</div>
+  </main>
+</div>
+
+<script>
+  var QUICK = {
+    alerte:["Allergie","Sans gluten","Mobilité réduite","Ne pas déranger"],
+    pref:["Près fenêtre","Lait d'avoine","Sans porc","Table calme"],
+    fid:["Habitué","Offrir viennoiserie","Surclasser petit-déj"],
+    event:["Anniversaire","Lune de miel","Voyage d'affaires"],
+    info:["Départ tardif","Groupe","Note interne"]
+  };
+  var LABEL={alerte:"🔴 ALERTE",pref:"🔵 PRÉFÉRENCE",fid:"🟡 FIDÉLITÉ",event:"🎉 ÉVÉNEMENT",info:"⚪ INFO"};
+  var cur="info", pinned=false;
+
+  function renderChips(){
+    var box=document.getElementById('chips'); box.innerHTML="";
+    QUICK[cur].forEach(function(t){
+      var b=document.createElement('button'); b.className="chip"; b.textContent=t;
+      b.onclick=function(){var ta=document.getElementById('ta'); ta.value=(ta.value?ta.value+" · ":"")+t; ta.focus(); syncSave();};
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('sits').addEventListener('click',function(e){
+    var b=e.target.closest('.sit-opt'); if(!b)return;
+    cur=b.dataset.c;
+    [].forEach.call(this.children,function(c){c.classList.toggle('on',c===b);});
+    renderChips();
+  });
+  document.getElementById('ta').addEventListener('input',syncSave);
+  function syncSave(){document.getElementById('save').disabled=!document.getElementById('ta').value.trim();}
+  function togglePin(){pinned=!pinned;document.getElementById('pintoggle').classList.toggle('on',pinned);}
+  function openSheet(){document.getElementById('scrim').classList.add('on');document.getElementById('sheet').classList.add('on');renderChips();syncSave();setTimeout(function(){document.getElementById('ta').focus();},250);}
+  function closeSheet(){document.getElementById('scrim').classList.remove('on');document.getElementById('sheet').classList.remove('on');}
+  function saveNote(){
+    var txt=document.getElementById('ta').value.trim(); if(!txt)return;
+    var n=document.createElement('div'); n.className="note "+cur; n.dataset.cat=cur; n.dataset.pin=pinned?"1":"0";
+    n.innerHTML='<div class="top"><span class="sit">'+LABEL[cur]+'</span>'+(pinned?'<span class="pin">📌</span>':'')+'</div><div class="body">'+txt.replace(/</g,"&lt;")+'</div><div class="meta">Ajoutée par vous · à l\'instant</div>';
+    var list=document.getElementById('list');
+    var anchor=pinned?list.children[1]:list.querySelector('.sect:last-of-type').nextSibling;
+    list.insertBefore(n, anchor);
+    document.getElementById('ta').value=""; syncSave(); closeSheet();
+  }
+  // filters
+  document.getElementById('filters').addEventListener('click',function(e){
+    var b=e.target.closest('.fchip'); if(!b)return;
+    [].forEach.call(this.children,function(c){c.classList.toggle('on',c===b);});
+    var f=b.dataset.f;
+    [].forEach.call(document.querySelectorAll('#list .note'),function(n){
+      n.style.display=(f==="all"||n.dataset.cat===f)?"":"none";
+    });
+    [].forEach.call(document.querySelectorAll('#list [data-sect]'),function(s){s.style.display=(f==="all")?"":"none";});
+  });
+</script>
+</body>
+</html>

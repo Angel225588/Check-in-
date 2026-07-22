@@ -1,0 +1,26 @@
+import { chromium } from "playwright";
+import { readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
+const root="/opt/pw-browsers";
+const d=readdirSync(root).filter(x=>x.startsWith("chromium-")).sort().reverse().find(x=>existsSync(join(root,x,"chrome-linux","chrome")));
+const exe=join(root,d,"chrome-linux","chrome");
+const dir="/home/user/Check-in-/mockups";
+const url="file://"+dir+"/notes-flow.html";
+const b=await chromium.launch({headless:true,executablePath:exe});
+const ctx=await b.newContext({viewport:{width:1194,height:834},deviceScaleFactor:2});
+const p=await ctx.newPage();
+await p.goto(url,{waitUntil:"load"});
+await p.waitForTimeout(300);
+await p.screenshot({path:dir+"/notes-1-list.png"});
+await p.click("text=＋ Ajouter une note");
+await p.waitForTimeout(600);
+await p.screenshot({path:dir+"/notes-2-compose.png"});
+// pick an "alerte" situation + a quick chip to show the flow
+await p.click('.sit-opt[data-c="alerte"]');
+await p.waitForTimeout(150);
+await p.click("text=Allergie");
+await p.click("#pintoggle");
+await p.waitForTimeout(300);
+await p.screenshot({path:dir+"/notes-3-filled.png"});
+await b.close();
+console.log("done");
