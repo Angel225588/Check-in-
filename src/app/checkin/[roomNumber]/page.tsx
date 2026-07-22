@@ -67,6 +67,7 @@ export default function CheckInPage({
   const [todayCheckIns, setTodayCheckIns] = useState<CheckInRecord[]>([]);
   const [roomEvents, setRoomEvents] = useState<RoomEvent[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false); // drawer on small screens
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // manual hide on tablet
   const [sideTab, setSideTab] = useState<"all" | "visites" | "notes">("all");
 
   useEffect(() => {
@@ -182,6 +183,7 @@ export default function CheckInPage({
   // Dock the sidebar on tablet ONLY when there's activity worth showing; an
   // empty first-visit column just wastes horizontal space, so collapse it.
   const dockSidebar = !isFirstVisit;
+  const showDock = dockSidebar && !sidebarCollapsed; // docked on tablet unless manually hidden
 
   const handleCheckIn = () => {
     if (count <= 0 || allDone || checkInSuccess) return;
@@ -256,15 +258,15 @@ export default function CheckInPage({
            history to show; a first-visit guest has nothing to display, so it
            auto-collapses to a drawer and the card gets the full width. ===== */}
       {sidebarOpen && (
-        <div className={`fixed inset-0 z-30 bg-black/30 backdrop-blur-sm ${dockSidebar ? "lg:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
+        <div className={`fixed inset-0 z-30 bg-black/30 backdrop-blur-sm ${showDock ? "lg:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[248px] max-w-[82vw] shrink-0 p-3 transition-transform ${dockSidebar ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 w-[248px] max-w-[82vw] shrink-0 p-3 transition-transform ${showDock ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="h-full glass-liquid rounded-[22px] p-4 flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center justify-between">
             <b className="text-[15px] text-dark flex items-center gap-1.5"><Clock weight="duotone" size={17} /> Activité</b>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden w-8 h-8 rounded-full grid place-items-center glass-liquid" aria-label="Fermer"><X size={13} /></button>
+            <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-8 h-8 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={13} /></button>
           </div>
 
           {isFirstVisit ? (
@@ -319,14 +321,14 @@ export default function CheckInPage({
               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               <span className="text-sm font-medium text-brand">{t("checkin.search")}</span>
             </button>
-            <button onClick={() => setSidebarOpen(true)} className={`${dockSidebar ? "lg:hidden" : ""} ml-auto flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96]`}>
+            <button onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }} className={`${showDock ? "lg:hidden" : ""} ml-auto flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96]`}>
               <Clock weight="duotone" size={16} className="text-brand" />
               {!isFirstVisit && pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
             </button>
           </div>
 
           {/* IDENTITY CARD — gold when VIP */}
-          <div className={`rounded-[22px] px-5 py-5 relative ${isVip ? "" : "glass-liquid"}`} style={cardVipStyle}>
+          <div className={`rounded-[22px] px-5 py-5 relative ${isVip ? "" : "glass-liquid border border-black/[0.07] dark:border-white/[0.12] shadow-sm"}`} style={cardVipStyle}>
             <div className="flex items-start gap-4 flex-wrap">
               <div className="min-w-0 flex-1">
                 {isVip && (
@@ -348,7 +350,7 @@ export default function CheckInPage({
                       {client.roomNumber}
                     </button>
                   )}
-                  <h2 className={`text-[34px] leading-none tracking-tight ${onGold}`} style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>{client.name}</h2>
+                  <h2 className={`text-[40px] leading-[0.9] tracking-tight ${onGold}`} style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>{client.name}</h2>
                 </div>
 
                 {/* TAGS — COMP (no price), dates, breakfast-not-included */}
@@ -391,6 +393,19 @@ export default function CheckInPage({
 
           {/* Morning-brief room events */}
           {roomEvents.length > 0 && <RoomEventBadges events={roomEvents} variant="stack" showReason />}
+
+          {/* Breakfast INCLUDED — fill the empty space with calm reassurance */}
+          {!needsPay && (
+            <div className="flex-1 grid place-items-center py-8">
+              <div className="flex flex-col items-center gap-3 text-center animate-[fadeIn_0.4s_ease]">
+                <span className="w-[68px] h-[68px] rounded-full grid place-items-center text-[32px] bg-green-500/[0.12] dark:bg-green-400/[0.14] ring-1 ring-green-500/20">☕</span>
+                <div>
+                  <div className="text-[18px] font-black text-green-600 dark:text-green-400">{comp ? "Petit-déjeuner offert" : "Petit-déjeuner inclus"}</div>
+                  <div className="text-[13px] text-muted mt-0.5">Rien à encaisser — bon appétit&nbsp;☀️</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Breakfast NOT included — prompt to collect payment */}
           {needsPay && (
