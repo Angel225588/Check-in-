@@ -179,6 +179,9 @@ export default function CheckInPage({
   const isVip = !!client.isVip;
   const needsPay = needsPaymentChoice(client);
   const isFirstVisit = pastStays.length === 0; // R2/R5: a new guest has no past stays
+  // Dock the sidebar on tablet ONLY when there's activity worth showing; an
+  // empty first-visit column just wastes horizontal space, so collapse it.
+  const dockSidebar = !isFirstVisit;
 
   const handleCheckIn = () => {
     if (count <= 0 || allDone || checkInSuccess) return;
@@ -249,12 +252,14 @@ export default function CheckInPage({
         </div>
       )}
 
-      {/* ===== ACTIVITY SIDEBAR (left) — static on tablet, drawer on phone ===== */}
+      {/* ===== ACTIVITY SIDEBAR (left) — docked on tablet only when there's
+           history to show; a first-visit guest has nothing to display, so it
+           auto-collapses to a drawer and the card gets the full width. ===== */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className={`fixed inset-0 z-30 bg-black/30 backdrop-blur-sm ${dockSidebar ? "lg:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
       )}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-[300px] max-w-[85vw] shrink-0 p-3 transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 w-[248px] max-w-[82vw] shrink-0 p-3 transition-transform ${dockSidebar ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="h-full glass-liquid rounded-[22px] p-4 flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center justify-between">
@@ -314,7 +319,7 @@ export default function CheckInPage({
               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               <span className="text-sm font-medium text-brand">{t("checkin.search")}</span>
             </button>
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden ml-auto flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96]">
+            <button onClick={() => setSidebarOpen(true)} className={`${dockSidebar ? "lg:hidden" : ""} ml-auto flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96]`}>
               <Clock weight="duotone" size={16} className="text-brand" />
               {!isFirstVisit && pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
             </button>
