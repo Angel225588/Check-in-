@@ -1,0 +1,15 @@
+import { chromium } from "playwright";
+import { readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
+const root="/opt/pw-browsers";
+const d=readdirSync(root).filter(x=>x.startsWith("chromium-")).sort().reverse().find(x=>existsSync(join(root,x,"chrome-linux","chrome")));
+const exe=join(root,d,"chrome-linux","chrome");
+const dir=process.cwd()+"/mockups";
+const b=await chromium.launch({headless:true,executablePath:exe});
+const p=await b.newPage({viewport:{width:1194,height:834},deviceScaleFactor:2});
+await p.goto("file://"+dir+"/checkin-preview.html",{waitUntil:"load"});
+await p.evaluate(()=>{window.set("first");});
+await p.screenshot({path:dir+"/shot-p-first.png",animations:"disabled"});
+await p.evaluate(()=>{window.set("vip");window.setTab("notes");});
+await p.screenshot({path:dir+"/shot-p-notes.png",animations:"disabled"});
+await b.close();console.log("done");
