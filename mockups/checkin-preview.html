@@ -11,7 +11,9 @@
 
   .stage{height:100vh;display:grid;grid-template-columns:300px 1fr;gap:18px;padding:60px 20px 20px;transition:.35s cubic-bezier(.2,.8,.2,1)}
   .stage.collapsed{grid-template-columns:0 1fr}
-  .main{display:flex;flex-direction:column;gap:16px;min-height:0}
+  .main{display:flex;flex-direction:column;gap:16px;min-height:0;height:100%}
+  /* content scrolls; the action box is PINNED so the CTA is always reachable at any zoom */
+  .scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding-bottom:2px}
 
   .idcard{border-radius:24px;padding:22px 26px;display:flex;gap:20px;align-items:center}
   .idcard.plain{background:rgba(255,255,255,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.6);box-shadow:0 8px 30px -12px rgba(60,40,10,.2)}
@@ -42,8 +44,7 @@
   .gpill .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.55));border:1px solid rgba(255,255,255,.85)}
   .gpill.active{background:rgba(42,32,22,.92);color:#fff} .gpill.active .ic{background:linear-gradient(135deg,var(--gold),var(--gold-light))}
 
-  .spacer{flex:1}
-  .actionbox{background:rgba(255,255,255,.55);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.7);border-radius:26px;padding:16px 18px 18px;box-shadow:0 10px 34px -16px rgba(60,40,10,.28)}
+  .actionbox{flex:none;background:rgba(251,248,243,.86);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.7);border-radius:26px;padding:16px 18px 18px;box-shadow:0 -6px 26px -14px rgba(60,40,10,.32)}
   .counter{display:flex;align-items:center;justify-content:center;gap:26px;margin-bottom:14px}
   .counter .n{font-size:58px;font-weight:900;font-variant-numeric:tabular-nums;min-width:84px;text-align:center}
   .counter button{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:28px;color:var(--gold);cursor:pointer;box-shadow:0 5px 14px -8px rgba(0,0,0,.25)}
@@ -57,7 +58,9 @@
   .sidehead{display:flex;align-items:center;justify-content:space-between}
   .closebtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px}
   .ftchip{display:none} body[data-first="1"] .ftchip{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#fff;border-radius:999px;padding:7px 14px;font-weight:900;font-size:12.5px;box-shadow:0 6px 16px -6px rgba(166,105,20,.6)}
-  .ftmini{display:none} body[data-first="1"] .ftmini{display:block;color:var(--muted);font-size:12.5px}
+  /* First visit = empty history & no notes (a new guest can't be a returning one) */
+  body[data-first="1"] .list .note,body[data-first="1"] .list .visit,body[data-first="1"] .list .hh{display:none}
+  .emptyfirst{display:none} body[data-first="1"] .emptyfirst{display:block;color:var(--muted);font-size:13px;text-align:center;padding:14px 6px}
 
   .tabs{display:flex;gap:6px;background:rgba(0,0,0,.05);border-radius:999px;padding:4px}
   .tabs button{flex:1;border:0;background:transparent;font:800 12px/1 system-ui;color:var(--muted);padding:9px 6px;border-radius:999px;cursor:pointer}
@@ -97,7 +100,6 @@
     <div class="sidehead"><b style="font-size:16px">🕐 Activité</b>
       <button class="closebtn" onclick="document.getElementById('stage').classList.add('collapsed')">✕</button></div>
     <span class="ftchip">★ Première visite</span>
-    <span class="ftmini">Nouveau client — accueil soigné ☕</span>
 
     <div class="tabs">
       <button data-t="all" class="on">Tout</button>
@@ -119,25 +121,26 @@
       <div class="visit today"><span class="dot"></span><span class="d">Aujourd'hui</span><span class="m">08:23 · 1 pers</span></div>
       <div class="visit"><span class="d">22 mai</span><span class="m">2 pers · ch. 210</span></div>
       <div class="visit"><span class="d">03 mars</span><span class="m">1 pers · ch. 418</span></div>
+      <div class="emptyfirst">Aucune activité — nouveau client ☕</div>
       <div class="addnote">＋ Ajouter une note</div>
     </div>
   </div>
 
   <!-- MAIN -->
   <div class="main">
+   <div class="scroll">
     <div class="idcard vip" id="idcard">
       <div class="idmain">
         <div class="viptag" id="viptag">★ VIP ×4</div>
         <div class="idrow"><div class="room">524</div><div class="name serif">Sedalo, Tete</div></div>
         <div class="tags">
-          <span class="tag comp">COMP · 104€</span><span class="tag">🛬 19/07</span><span class="tag">🛫 22/07</span>
+          <span class="tag comp">COMP</span><span class="tag">🛬 19/07</span><span class="tag">🛫 22/07</span>
           <span class="tag warn" id="bkfwarn" style="display:none">☕✕ PETIT-DÉJ NON INCLUS</span>
         </div>
       </div>
       <div class="chips">
         <div class="chip"><div class="k">Adultes</div><div class="v">2</div></div>
         <div class="chip"><div class="k">Enfants</div><div class="v">2</div></div>
-        <div class="chip"><div class="k">Total</div><div class="v g">4</div></div>
       </div>
     </div>
     <div class="alert"><div class="bell">☕✕</div><div><div class="big">Petit-déjeuner NON inclus — à encaisser</div><div class="sub">Demandez au client : l'ajouter à la chambre, ou payer maintenant ?</div></div></div>
@@ -145,7 +148,7 @@
       <div class="gpill active"><span class="ic">🏨</span>Chambre</div><div class="gpill"><span class="ic">💳</span>Carte</div>
       <div class="gpill"><span class="ic">💵</span>Cash</div><div class="gpill"><span class="ic">🧑‍💼</span>Supervisor</div>
     </div></div>
-    <div class="spacer"></div>
+   </div><!-- /scroll -->
     <div class="actionbox">
       <div class="counter"><button>−</button><div class="n">3</div><button>+</button></div>
       <button class="enter">Enregistrer</button>
