@@ -46,7 +46,7 @@
 
   .body{flex:1;min-height:0;display:flex;gap:10px}
   .left{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
-  .right{width:326px;flex:none;display:flex;flex-direction:column;gap:10px}
+  .right{width:300px;flex:none;display:flex;flex-direction:column;gap:10px}
 
   /* 1 · affluence */
   .peak{height:132px;display:flex;align-items:flex-end;gap:5px;margin-top:12px}
@@ -64,13 +64,13 @@
   /* 2 · treemap — area carries the proportion, which is the whole point: you
      read the split without counting anything. Colour is then only a label, so
      the red/green problem stops being load-bearing. */
-  .tm{display:flex;gap:6px;height:214px;margin-top:12px}
-  .tm .col{display:flex;flex-direction:column;gap:6px}
+  .tm{display:flex;flex-direction:column;gap:7px;flex:1;min-height:0;margin-top:14px}
+  .tm .col{display:flex;gap:7px}
   .blk{position:relative;border-radius:12px;padding:14px 16px;overflow:hidden;cursor:pointer;
     display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
   .blk .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;
     opacity:.92}
-  .blk .v{font-size:38px;font-weight:800;line-height:1;letter-spacing:-.03em;
+  .blk .v{font-size:34px;font-weight:800;line-height:1;letter-spacing:-.03em;
     font-variant-numeric:tabular-nums;margin-top:2px}
   .blk .p{font-size:15px;font-weight:800;opacity:.95;font-variant-numeric:tabular-nums}
   .blk.sm{padding:10px 12px}
@@ -121,17 +121,27 @@
   .ringwrap{position:relative;width:150px;height:150px;display:grid;place-items:center}
   .ringwrap svg{position:absolute;inset:0;transform:rotate(-90deg)}
 
-  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-  .tile{border-radius:13px;padding:10px 12px;cursor:pointer;text-align:left;border:1px solid var(--hair);
-    background:rgba(255,255,255,.035)}
+  /* Quick filters, sitting directly on top of the data they filter. Reading
+     them and acting on them is then the same gesture. */
+  .tiles{display:flex;gap:7px;overflow-x:auto;margin-top:12px;scrollbar-width:none}
+  .tiles::-webkit-scrollbar{display:none}
+  .tile{flex:none;min-height:56px;padding:7px 15px;border-radius:13px;cursor:pointer;
+    text-align:left;border:1px solid var(--hair);background:rgba(255,255,255,.035)}
   body.light .tile{background:#fff;border:1px solid rgba(42,38,32,.09)}
   .tile.on{background:linear-gradient(180deg,rgba(221,156,40,.20),rgba(221,156,40,.05));
-    box-shadow:inset 0 1px 0 rgba(255,222,160,.26)}
-  .tile .k{font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;
-    color:var(--muted)}
-  .tile .v{font-size:26px;font-weight:800;line-height:1.1;margin-top:1px;
+    box-shadow:inset 0 1px 0 rgba(255,222,160,.26);border-color:transparent}
+  .tile .k{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;
+    color:var(--muted);white-space:nowrap}
+  .tile .v{font-size:22px;font-weight:800;line-height:1.15;
     font-variant-numeric:tabular-nums;color:var(--ink-2)}
-  .tile.on .v{color:var(--gold-ink)}
+  .tile.on .v,.tile.on .k{color:var(--gold-ink)}
+  .fbtn{flex:none;width:56px;min-height:50px;border-radius:13px;border:1px solid var(--hair);
+    background:rgba(255,255,255,.05);color:var(--ink-2);cursor:pointer;display:grid;
+    place-items:center}
+  body.light .fbtn{background:#fff;border:1px solid rgba(42,38,32,.09)}
+  .fbtn svg{width:19px;height:19px}
+  .srow{display:flex;gap:8px;align-items:stretch;margin:10px 0}
+  .srow .search{flex:1;margin:0}
 
   .tools{width:1194px;margin:0 auto 6px;display:flex;gap:8px;font-family:system-ui;font-size:13px}
   .tools button{padding:7px 13px;border-radius:999px;border:1px solid #55504a;
@@ -164,18 +174,18 @@
         <div class="axis"><span>06:30</span><span>07:30</span><span>08:30</span><span>09:30</span><span>10:30</span></div>
       </div>
 
-      <!-- 2 · heat grid -->
-      <div class="pane">
-        <div class="cap"><span>Répartition du service</span><b id="tmlab">164 chambres</b></div>
-        <div class="tm" id="tm"></div>
-      </div>
-
       <!-- 3 · list -->
       <div class="pane listpane">
         <div class="cap"><span>Par ordre d'arrivée</span><b id="cnt">164 chambres</b></div>
-        <div class="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          <input id="q" placeholder="Chambre ou nom du client…">
+        <div class="tiles" id="tiles"></div>
+        <div class="srow">
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="q" placeholder="Chambre ou nom du client…">
+          </div>
+          <button class="fbtn" title="Trier et filtrer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          </button>
         </div>
         <div class="rows" id="rows"></div>
       </div>
@@ -197,7 +207,10 @@
             </div>
           </div>
         </div>
-        <div class="tiles" id="tiles"></div>
+      </div>
+      <div class="pane" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="cap"><span>Répartition</span><b id="tmlab">164</b></div>
+        <div class="tm" id="tm"></div>
       </div>
     </div>
   </div>
@@ -241,16 +254,13 @@ const pc = (n)=> (n/T*100).toFixed(1) + " %";
 // split by their relative weight so the taller one is genuinely the bigger one.
 const rest = N.pa + N.no;
 document.getElementById("tm").innerHTML = `
-  <div class="col" style="flex:${N.in}">
-    <div class="blk b-in" style="flex:1" onclick="setFilter('in')">
-      <div class="k">Entrés</div>
-      <div class="v">${N.in}</div>
-      <div class="p">${pc(N.in)}</div>
-      <div class="sub">
-        <div><div class="k">VIP</div><div class="n">30</div></div>
-        <div><div class="k">Offert</div><div class="n">20</div></div>
-        <div><div class="k">Standard</div><div class="n">${N.in-50}</div></div>
-      </div>
+  <div class="blk b-in" style="flex:${N.in}" onclick="setFilter('in')">
+    <div class="k">Entrés</div>
+    <div class="v">${N.in}</div>
+    <div class="p">${pc(N.in)}</div>
+    <div class="sub">
+      <div><div class="k">VIP</div><div class="n">30</div></div>
+      <div><div class="k">Offert</div><div class="n">20</div></div>
     </div>
   </div>
   <div class="col" style="flex:${rest}">
