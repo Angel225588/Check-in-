@@ -113,7 +113,7 @@
     </div>
     <!-- detail mode (Variant A) -->
     <div id="pane-detail" style="display:none;flex-direction:column;height:100%">
-      <div class="phead"><button class="back" onclick="closeNote()">‹ Notes</button><button class="iconbtn">⋯</button></div>
+      <div class="phead"><button class="back" onclick="closeNote()">‹ Notes</button><button class="iconbtn" onclick="expandNote()" aria-label="Agrandir" title="Agrandir">⤢</button></div>
       <div class="plist"><div id="detailA"></div></div>
     </div>
   </aside>
@@ -158,8 +158,12 @@
     n2:{cat:"fid",tone:"FIDÉLITÉ",icon:"⭐",title:"Habitué — 5ᵉ séjour",desc:"5ᵉ séjour cette année. Offrir une viennoiserie ce matin et le saluer par son nom.",by:"Sofia",when:"2 avr",log:[["Sofia","créée","2 avr · 09:02"]]},
     n3:{cat:"pref",tone:"PRÉFÉRENCE",icon:"☕",title:"Table & café",desc:"Préfère une table près de la fenêtre. Lait d'avoine pour le café.",by:"Marc",when:"12 mai",log:[["Marc","créée","12 mai · 07:55"]]}
   };
-  var mode="A";
+  var mode="A", currentId=null;
   function setMode(m){mode=m;document.getElementById('mA').classList.toggle('on',m==="A");document.getElementById('mB').classList.toggle('on',m==="B");closeNote();}
+  // ⤢ — promote the lateral detail into the centered reading box (long notes)
+  function expandNote(){ if(!currentId)return; var n=NOTES[currentId];
+    document.getElementById('detailB').innerHTML='<div style="display:flex;justify-content:flex-end;margin:-6px -6px 4px"><button class="iconbtn" onclick="closeNote()">✕</button></div>'+detailHTML(n);
+    document.getElementById('cscrim').classList.add('on'); }
   function detailHTML(n){
     return '<div class="detail">'+
       '<span class="d-tone '+n.cat+'"><span class="dot"></span>'+n.tone+' · 📌 épinglée</span>'+
@@ -173,7 +177,7 @@
     '</div>';
   }
   function openNote(id){
-    var n=NOTES[id]; if(!n)return;
+    var n=NOTES[id]; if(!n)return; currentId=id;
     if(mode==="A"){
       document.getElementById('detailA').innerHTML=detailHTML(n);
       document.getElementById('pane-list').style.display="none";
