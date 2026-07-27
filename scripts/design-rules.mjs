@@ -21,6 +21,7 @@
 import { chromium } from "playwright";
 import { readdirSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { spawn } from "node:child_process";
 
 const BASE = process.env.BASE_URL || "http://localhost:3200";
 const ROOT = process.cwd();
@@ -174,21 +175,38 @@ const COMPOSITE = `(el) => {
 }`;
 
 // Wait for the server rather than assuming a fixed sleep was long enough.
-async function waitForServer(timeoutMs = 90000) {
+async function ping(timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
       const r = await fetch(`${BASE}/upload`, { redirect: "manual" });
-      if (r.status < 500) return;
+      if (r.status < 500) return true;
     } catch {}
     await new Promise((r) => setTimeout(r, 700));
   }
-  throw new Error(`No server answering at ${BASE} after ${timeoutMs}ms`);
+  return false;
+}
+
+// Own the server unless one is already up. A gate that depends on the caller
+// remembering to start (and not to rebuild underneath) a server is a gate that
+// reports infrastructure noise as design regressions.
+let _server = null;
+async function startServer() {
+  if (await ping(2000)) return; // caller supplied one
+  const port = new URL(BASE).port || "3000";
+  _server = spawn("npx", ["next", "start", "-p", port], {
+    cwd: ROOT, stdio: "ignore", detached: true,
+  });
+  _server.unref();
+  if (!(await ping(90000))) throw new Error(`Could not start a server on ${BASE}`);
+}
+function stopServer() {
+  if (_server) { try { process.kill(-_server.pid, "SIGKILL"); } catch {} _server = null; }
 }
 
 async function main() {
   try { mkdirSync(OUT, { recursive: true }); } catch {}
-  await waitForServer();
+  await startServer();
   const browser = null; // contexts come from browserFor(); see above
 
   // ── R1 · CTA reachable without scrolling, at every viewport ────────────
@@ -343,6 +361,7 @@ async function main() {
   }
 
   await closeBrowser();
+  stopServer();
 
   const passed = results.filter((r) => r.pass).length;
   const failed = results.length - passed;
@@ -351,4 +370,4 @@ async function main() {
   process.exit(failed === 0 ? 0 : 1);
 }
 
-main().catch((e) => { console.error("design-rules driver crashed:", e); process.exit(2); });
+main().catch((e) => { console.error("design-rules driver crashed:", e); stopServer(); process.exit(2); });
