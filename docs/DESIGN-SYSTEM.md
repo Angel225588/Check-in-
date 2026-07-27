@@ -92,6 +92,18 @@ reachability and tap size cannot be checked from source.
 | **R7** | No emoji as product iconography | See §1. |
 | **R8** | Every interactive element is ≥ 44×44 CSS px | Sidebar tabs were 34px tall, the close ✕ was 32px. |
 | **R9** | Text meets WCAG AA (4.5:1, or 3:1 when large) | Caught the invisible selected tab, the faint active payment label, and the gold card. |
+| **R10a** | A first-visit guest can reach their notes | The tab row was gated on `!isFirstVisit`, so a new guest had **no path at all** to their notes — an allergy recorded at booking was unreachable. |
+| **R10b** | An alert note surfaces on the card unopened | Reception should not have to go looking for an allergy. |
+| **R11** | At most 3 pinned chips, none clipped, remainder counted | The mockup's 4th chip was cut at 75% behind an undiscoverable scroll, which reads as "nothing more here". |
+| **R12a** | Delete is not the closest control to the thumb | Delete was the easiest control to hit by accident, on a screen where the accident erases a medical note. |
+| **R12b** | Delete asks before destroying a note | Same. One tap should not be enough. |
+| **R13** | The activity control sits on the side the panel opens from | The trigger sat top-right while the panel slid in from the left — you reached across the screen to summon something that then appeared under your other hand. |
+| **R13b** | The handedness toggle actually moves the controls | A preference that silently does nothing is worse than no preference. |
+
+R10–R13 drive the **real composer** in a real browser rather than seeding
+storage. Notes are encrypted under a non-extractable key, so there is no way to
+plant one from the outside — and exercising the actual flow is the stronger
+test regardless. See `docs/NOTES.md`.
 
 ### Two things R9 gets right that a naive check does not
 

@@ -82,7 +82,64 @@ design regression trains you to ignore it, which is worse than having none.
 
 ---
 
-## 2026-07-27 · Notes — designed, not built
+## 2026-07-27 · Notes — built
+
+**Branch** `claude/checkin-landscape-redesign`
+**ClickUp** [Notes client](https://app.clickup.com/t/wdy2xgx36g) · [safety issue](https://app.clickup.com/t/wdy2xgx36f)
+**Verify** `npx vitest run` (315) · `npm run design-rules` (R10–R13) · `tsc` · build
+**Docs** `docs/NOTES.md`
+
+### The safety defect, closed
+
+The sidebar tab row was gated on `!isFirstVisit`. A guest with no prior stay
+had **no route to their own notes at all** — an allergy recorded at booking was
+unreachable from the one screen that decides whether they eat.
+
+The tab row now renders for every guest. Alert notes carry a red dot on both
+the tab and the activity trigger, and pinned notes surface as chips on the
+check-in card itself, so an allergy is readable without opening anything. R10a
+and R10b assert both, driving the real UI.
+
+### Encryption
+
+AES-GCM 256 under a `CryptoKey` created with `extractable: false` and held in
+IndexedDB. The raw key bytes never exist as JS values, so they cannot be read
+out, logged, or copied to another device — even by code running in the page.
+`exportKey` on it rejects, and a test asserts that.
+
+Two separate leaks are closed: the *value* is encrypted, and the *key* is a
+salted SHA-256 digest — `notes_524_POLANCO` would hand over the guest list no
+matter how well the value were encrypted. Payloads gzip before encryption when
+compression actually wins.
+
+Every failure path returns `null` and stays silent. A `console.error` carrying
+a note body would undo the encryption by writing plaintext somewhere far easier
+to read; a test drives the whole CRUD cycle with every console method spied on.
+
+`docs/NOTES.md` states the threat model plainly, including what this
+deliberately does **not** defend against (code in the page calling `decrypt`
+itself — no browser-side scheme can, and pretending otherwise is theatre).
+
+### Usability findings from the earlier scripted test, now fixed
+
+Delete moved out of the thumb zone into the header, and asks first (R12a/b).
+Tone colours the whole row rather than a 12px dot, after testers read an Alert
+and a Preference as the same card. Pinned chips capped at three with the
+remainder counted; because alerts sort first, the cap can never hide one (R11).
+
+### Handedness
+
+Reported from a screenshot: the activity trigger sat top-**right** while the
+panel slid in from the **left**. Panel, trigger and docked column now follow a
+persisted `handSide` setting with a toggle in the top row (R13).
+
+One implementation note worth keeping: the mirroring uses `flex-row-reverse`,
+so `ml-auto` cannot be used for spacing in those rows — auto margins resolve
+against the main axis and silently flip meaning. Use an explicit spacer.
+
+---
+
+## 2026-07-27 · Notes — designed, not built (superseded by the entry above)
 
 **ClickUp** [Notes client — flux validé](https://app.clickup.com/t/wdy2xgx36g) · Sale · Roadmap
 **Safety issue** [1ʳᵉ visite = aucun accès aux notes](https://app.clickup.com/t/wdy2xgx36f) · Security · Backlog
