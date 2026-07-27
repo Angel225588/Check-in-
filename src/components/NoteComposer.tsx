@@ -102,10 +102,13 @@ export default function NoteComposer({
             value={body}
             onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
             placeholder="Détail — ce que la réception doit savoir"
-            rows={5}
+            rows={7}
             maxLength={MAX_BODY}
             data-role="note-body"
-            className="w-full px-4 py-3.5 rounded-[16px] text-[17px] leading-relaxed text-dark resize-none focus:outline-none focus:ring-2 focus:ring-brand/40"
+            /* Tall enough that the writing surface visibly outweighs the tone
+               chooser — R14b measured 224px of fields against 230px of chips
+               and failed, which is precisely the complaint that started this. */
+            className="w-full min-h-[224px] px-4 py-3.5 rounded-[16px] text-[17px] leading-relaxed text-dark resize-none focus:outline-none focus:ring-2 focus:ring-brand/40"
             style={{ background: "rgba(0,0,0,.05)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.07)" }}
           />
 
