@@ -123,6 +123,21 @@ async function open(_ignored, client, { dark = false, history = null, w = 1194, 
       `This is an environment fault, not a design-rule failure: rebuild, then restart the server.`
     );
   }
+  // HTML alone is not enough: if the stylesheet did not apply, every element
+  // measures at its unstyled size (a 1128x64 CTA reports as 81x21) and the
+  // suite blames the layout for a missing asset. Wait for a brand token to
+  // resolve, which only happens once the real stylesheet is in.
+  try {
+    await page.waitForFunction(
+      () => getComputedStyle(document.documentElement).getPropertyValue("--color-brand").trim().length > 0,
+      { timeout: 8000 }
+    );
+  } catch {
+    throw new Error(
+      `Stylesheet never applied at ${BASE}/checkin/${client.roomNumber} — measurements would be of ` +
+      `unstyled elements. Environment fault, not a design-rule failure.`
+    );
+  }
   return { ctx, page };
 }
 
