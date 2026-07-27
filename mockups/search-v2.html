@@ -119,17 +119,20 @@
 
   /* search bar — the keypad fills it with digits, the on-screen ABC or a
      paired keyboard fills it with a name. One field, two ways in. */
-  .searchbar{display:flex;align-items:center;gap:13px;padding:0 20px;min-height:70px;
+  .searchbar{display:flex;align-items:center;gap:16px;padding:0 24px;min-height:96px;
     border-radius:var(--r-lg);
     background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
     backdrop-filter:blur(18px) saturate(1.15);
     border:1px solid rgba(255,255,255,.08);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 34px -22px rgba(0,0,0,.9)}
-  .searchbar svg{width:24px;height:24px;color:var(--muted);flex:none}
+  .searchbar svg{width:29px;height:29px;color:var(--muted);flex:none}
   .searchbar input{flex:1;min-width:0;background:none;border:none;outline:none;
-    font:inherit;font-size:24px;font-weight:700;color:var(--ink)}
-  .searchbar input::placeholder{color:var(--muted);font-weight:600}
-  .clearq{width:44px;height:44px;border-radius:999px;border:none;background:var(--key);
+    font:inherit;font-size:31px;font-weight:700;color:var(--ink)}
+  .searchbar input::placeholder{
+    font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    font-style:italic;font-weight:400;font-size:29px;letter-spacing:.005em;
+    color:var(--muted);opacity:.85}
+  .clearq{width:52px;height:52px;border-radius:999px;border:none;background:var(--key);
     color:var(--ink-2);font-size:17px;cursor:pointer;flex:none}
 
   /* recents strip */
@@ -225,7 +228,7 @@
   /* The preview/clock takes ALL the space above; the keypad and its CTA are
      pinned to the bottom of the column. Same rule as R1 on the check-in
      screen: the thing you must reach never drifts away from the thumb. */
-  .detail{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+  .detail{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
     backdrop-filter:blur(18px) saturate(1.15);border:1px solid rgba(255,255,255,.08);
     border-radius:var(--r-lg);padding:18px 20px;flex:1;min-height:158px;display:flex;
     flex-direction:column;justify-content:center;overflow:hidden}
@@ -235,15 +238,30 @@
 
   /* idle — service clock */
   .clockrow{display:flex;align-items:baseline;gap:10px}
-  .clock{font-size:66px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;
-    letter-spacing:-.01em}
+  .clock{font-size:108px;font-weight:300;line-height:.92;letter-spacing:-.045em;
+    font-variant-numeric:tabular-nums;display:flex}
+  .clock .d{display:inline-block}
+  .clock .sep{display:inline-flex;flex-direction:column;justify-content:center;
+    gap:.16em;padding:0 .10em;align-self:center}
+  .clock .sep i{display:block;width:.085em;height:.085em;border-radius:50%;
+    background:currentColor;opacity:.42;animation:blink 2s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:.42}50%{opacity:.16}}
+  /* Each minute the digits that actually changed give a single tick, so the
+     clock reads as running without anything moving the rest of the time. */
+  .clock .d.chg{animation:tickIn .34s cubic-bezier(.2,.9,.25,1)}
+  @keyframes tickIn{
+    0%{opacity:.15;transform:translateY(-.14em) scale(.93)}
+    60%{opacity:1;transform:translateY(.012em) scale(1.015)}
+    100%{transform:none}}
   .rush{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
     padding:4px 9px;border-radius:999px;background:rgba(221,156,40,.16);color:var(--gold-ink)}
-  .bar{height:9px;border-radius:999px;background:var(--key);overflow:hidden;margin:11px 0 7px;
-    border:1px solid var(--key-edge)}
-  .bar i{display:block;height:100%;background:var(--gold);border-radius:999px}
-  .svc{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);
-    font-weight:600}
+  /* Day progress hugs the bottom edge of the box, like a transport bar. */
+  .bar{position:absolute;left:0;right:0;bottom:0;height:7px;overflow:hidden;
+    background:rgba(255,255,255,.05);border-radius:0 0 var(--r-lg) var(--r-lg)}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));
+    box-shadow:0 0 16px -2px rgba(221,156,40,.8)}
+  .svc{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);
+    font-weight:600;margin-top:14px}
   .svc b{color:var(--ink-2);font-weight:700}
 
   /* searching — guest preview, treated as a key card rather than a text block.
@@ -327,6 +345,7 @@
   <button onclick="document.body.classList.toggle('light')">Clair / Sombre</button>
   <button onclick="document.body.classList.toggle('rainbow')">Comparer : 1 accent ⇄ 5 couleurs</button>
   <button onclick="document.body.classList.toggle('mirror')">Inverser (gaucher / droitier)</button>
+  <button onclick="clockM=(clockM+1)%60; if(!clockM) clockH=(clockH+1)%24; if(!typed) render();">+1 minute (voir le tic)</button>
   <span>— maquette interactive : tapez au clavier ou sur le pavé</span>
 </div>
 
@@ -357,7 +376,6 @@
         <input id="q" placeholder="Chambre ou nom du client…" autocomplete="off">
         <button class="clearq" id="clearq" aria-label="Effacer">✕</button>
       </div>
-      <div class="sec" id="listLabel">Restants — 38 chambres</div>
       <div class="list" id="list"></div>
     </div>
 
@@ -447,22 +465,29 @@ function whoBadge(x){
 
 /* Service window — breakfast runs 06:30 to 10:30. */
 const SVC_START = 6.5, SVC_END = 10.5;
-let clockH = 7, clockM = 12;
+let clockH = 7, clockM = 12, prev4 = null;
 function serviceBox(){
   const now = clockH + clockM/60;
   const pct = Math.max(0, Math.min(1, (now - SVC_START) / (SVC_END - SVC_START)));
   const leftMin = Math.max(0, Math.round((SVC_END - now) * 60));
   const rush = now >= 7.5 && now <= 9 ? `<span class="rush">Pointe</span>` : "";
+  const now4 = String(clockH).padStart(2,"0") + String(clockM).padStart(2,"0");
+  const digits = now4.split("").map((d,i)=>{
+    const changed = prev4 && prev4[i] !== d;
+    return `<span class="d ${changed?"chg":""}" style="animation-delay:${i*30}ms">${d}</span>`
+         + (i===1 ? `<span class="sep"><i></i><i></i></span>` : "");
+  }).join("");
+  prev4 = now4;
   return `
     <div class="clockrow">
-      <div class="clock">${String(clockH).padStart(2,"0")}:${String(clockM).padStart(2,"0")}</div>
+      <div class="clock">${digits}</div>
       ${rush}
     </div>
-    <div class="bar"><i style="width:${(pct*100).toFixed(1)}%"></i></div>
     <div class="svc">
       <span>Service <b>06:30 – 10:30</b></span>
       <span><b>${Math.floor(leftMin/60)}h${String(leftMin%60).padStart(2,"0")}</b> restantes</span>
-    </div>`;
+    </div>
+    <div class="bar"><i style="width:${(pct*100).toFixed(1)}%"></i></div>`;
 }
 
 var render = function(){
@@ -519,9 +544,6 @@ var render = function(){
 
   /* ── list ── */
   const shown = typed ? near : ROOMS;
-  el("listLabel").textContent = typed
-    ? `Résultats — ${shown.length}`
-    : `Restants — ${ROOMS.filter(x=>!x.done).length} chambres`;
   el("list").innerHTML = shown.map(x=>{
     const inn = x.in || 0, rem = x.p - inn, done = rem <= 0;
     const locked = !!(x.alert || x.pay);   // no gesture past an allergy or a bill
