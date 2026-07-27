@@ -85,7 +85,7 @@ function DonutRing({ percent, size = 120, stroke = 10 }: { percent: number; size
 export default function ReportPageWrapper() {
   return (
     <Suspense fallback={
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4">
         <div className="skeleton h-8 w-40 mb-4" />
         <div className="skeleton h-32 w-32 rounded-full mx-auto mb-4" />
         <div className="grid grid-cols-3 gap-2 mb-4">
@@ -234,7 +234,7 @@ function ReportPage() {
 
   if (!report) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
         <div className="text-muted">Loading...</div>
       </div>
     );
@@ -263,9 +263,9 @@ function ReportPage() {
         }
       `}</style>
 
-      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
         {/* ═══ HEADER ═══ */}
-        <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#0A0A0F]/90 backdrop-blur-xl">
+        <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#12100E]/90 backdrop-blur-xl">
           <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
               <button
@@ -871,7 +871,7 @@ function ReportPage() {
         </div>
 
         {/* ═══ FLOATING ACTION BAR ═══ */}
-        <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FBF8F3] dark:from-[#0A0A0F] via-[#FBF8F3] dark:via-[#0A0A0F] to-transparent pt-6">
+        <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FBF8F3] dark:from-[#12100E] via-[#FBF8F3] dark:via-[#12100E] to-transparent pt-6">
           <div className="max-w-2xl mx-auto px-4 pb-4 space-y-3">
             <div className="flex gap-3">
               <button

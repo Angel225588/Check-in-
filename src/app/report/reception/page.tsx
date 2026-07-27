@@ -64,7 +64,7 @@ export default function ReceptionReportWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+        <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
           <div className="text-muted">Loading…</div>
         </div>
       }
@@ -164,7 +164,7 @@ function ReceptionReportPage() {
 
   if (!loaded) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
         <div className="text-muted">Loading…</div>
       </div>
     );
@@ -180,9 +180,9 @@ function ReceptionReportPage() {
         }
       `}</style>
 
-      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
         {/* HEADER */}
-        <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#0A0A0F]/90 backdrop-blur-xl">
+        <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#12100E]/90 backdrop-blur-xl">
           <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
               <Button
@@ -430,7 +430,7 @@ function ReceptionReportPage() {
         </div>
 
         {/* FAB */}
-        <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FBF8F3] dark:from-[#0A0A0F] via-[#FBF8F3] dark:via-[#0A0A0F] to-transparent pt-6">
+        <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FBF8F3] dark:from-[#12100E] via-[#FBF8F3] dark:via-[#12100E] to-transparent pt-6">
           <div className="max-w-2xl mx-auto px-4 pb-4">
             <Button
               variant="glass"

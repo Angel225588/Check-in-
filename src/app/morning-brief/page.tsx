@@ -90,14 +90,14 @@ export default function MorningBriefPage() {
 
   if (!brief) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
         <div className="text-muted">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -106,7 +106,7 @@ export default function MorningBriefPage() {
       `}</style>
 
       {/* HEADER */}
-      <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#0A0A0F]/90 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#12100E]/90 backdrop-blur-xl">
         <div className="max-w-3xl mx-auto px-4 pt-3 pb-2">
           <div className="flex items-center justify-between">
             <Button

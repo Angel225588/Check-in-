@@ -75,6 +75,14 @@
   --aur-pm-cash: #b87333;
   --font-aur-serif: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
   --font-aur-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+  /* Radius scale — three steps only. Chips/inputs, cards, hero surfaces.
+     Buttons stay --radius-pill. Keeps one screen from mixing 6 radii. */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  /* Warm elevation: neutral black shadows go muddy over the cream bg. */
+  --shadow-warm-1: 0 1px 2px rgba(74,67,57,0.05), 0 4px 12px -6px rgba(120,84,30,0.14);
+  --shadow-warm-2: 0 1px 2px rgba(74,67,57,0.05), 0 12px 28px -10px rgba(120,84,30,0.18);
   --shadow-aur-1: 0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(42,38,32,0.04);
   --shadow-aur-2: 0 1px 0 rgba(255,255,255,0.7) inset, 0 6px 20px -8px rgba(42,38,32,0.18);
   --shadow-aur-glass: 0 1px 0 rgba(255,255,255,0.55) inset, 0 8px 28px -10px rgba(42,38,32,0.22);
@@ -86,11 +94,11 @@
 }
 
 html.dark {
-  --color-background: #0A0A0F;
+  --color-background: #12100E;
   --color-foreground: #F0F0F5;
-  --color-card: #14141A;
+  --color-card: #1B1815;
   --color-card-foreground: #F0F0F5;
-  --color-popover: #14141A;
+  --color-popover: #1B1815;
   --color-popover-foreground: #F0F0F5;
   --color-primary: #DD9C28;
   --color-primary-foreground: #1C1C1C;
@@ -108,7 +116,7 @@ html.dark {
 
 @layer base {
   html.dark {
-    background-color: #0A0A0F;
+    background-color: #12100E;
   }
 
   body {
@@ -123,7 +131,7 @@ html.dark {
   .dark body,
   html.dark body {
     color: #F0F0F5;
-    background: #0A0A0F;
+    background: #12100E;
   }
 }
 
@@ -208,13 +216,13 @@ html.dark {
   .dark .glass-liquid {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.09) 50%,
-      rgba(255, 255, 255, 0.12) 100%
+      rgba(255, 250, 240, 0.13) 0%,
+      rgba(255, 250, 240, 0.08) 50%,
+      rgba(255, 250, 240, 0.11) 100%
     );
     backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
     -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(221, 156, 40, 0.14);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.14),
       inset 0 0 0 1px rgba(255, 255, 255, 0.04),
@@ -263,8 +271,8 @@ html.dark {
   }
 
   /* Dark mode overrides for common Tailwind colors */
-  .dark .bg-\[\#F2F2F7\] { background-color: #0A0A0F !important; }
-  .dark .bg-\[\#FBF8F3\] { background-color: #0A0A0F !important; }
+  .dark .bg-\[\#F2F2F7\] { background-color: #12100E !important; }
+  .dark .bg-\[\#FBF8F3\] { background-color: #12100E !important; }
   .dark .text-dark { color: #F0F0F5 !important; }
   .dark .text-muted { color: #A0A0A8 !important; }
   .dark .text-slate { color: #B0B0B8 !important; }
@@ -274,7 +282,7 @@ html.dark {
   .dark .bg-brand-light\/15 { background-color: rgba(221, 156, 40, 0.12) !important; }
   .dark .bg-black\/5 { background-color: rgba(255, 255, 255, 0.10) !important; }
   .dark .border-border { border-color: rgba(255, 255, 255, 0.1) !important; }
-  .dark .bg-bg-alt { background-color: #0A0A0F !important; }
+  .dark .bg-bg-alt { background-color: #12100E !important; }
   .dark .bg-white\/50 { background-color: rgba(255, 255, 255, 0.08) !important; }
   .dark .bg-white\/60 { background-color: rgba(255, 255, 255, 0.10) !important; }
   .dark .bg-white\/40 { background-color: rgba(255, 255, 255, 0.08) !important; }
@@ -441,7 +449,7 @@ html.dark {
 }
 html.dark .aur-time-toggle button[aria-pressed="true"] {
   background: var(--aur-gold);
-  color: #0a0a0f;
+  color: #12100e;
 }
 .aur-anomaly {
   display: flex;

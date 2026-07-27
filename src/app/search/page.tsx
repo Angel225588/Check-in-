@@ -117,7 +117,7 @@ export default function SearchPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-3">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3">
         <div className="skeleton h-14 w-full mb-3" />
         <div className="skeleton h-10 w-full mb-3" />
         <div className="space-y-2">
@@ -132,7 +132,7 @@ export default function SearchPage() {
   if (!hasData) {
     router.push("/upload");
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
         <div className="text-muted">Loading...</div>
       </div>
     );
@@ -158,7 +158,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
       <div className="shrink-0 p-2 md:p-3 pt-2 md:pt-3">
         {/* Header row: back button + logo */}
         <div className="flex items-center justify-between mb-2 md:mb-3">

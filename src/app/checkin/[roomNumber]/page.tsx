@@ -151,7 +151,7 @@ export default function CheckInPage({
 
   if (!client) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4">
         <div className="skeleton h-8 w-24 mb-4" />
         <div className="skeleton h-14 w-40 mb-2" />
         <div className="skeleton h-6 w-56 mb-6" />
@@ -238,7 +238,7 @@ export default function CheckInPage({
   const onGold = isVip ? "text-white" : "text-dark";
 
   return (
-    <div className="h-dvh w-full flex overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+    <div className="h-dvh w-full flex overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
       {/* ===== SUCCESS overlay ===== */}
       {checkInSuccess && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
@@ -254,7 +254,7 @@ export default function CheckInPage({
       {/* ===== SAVE-FAILURE overlay ===== */}
       {checkInError && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out] p-6">
-          <div className="w-full max-w-sm bg-[#FBF8F3] dark:bg-[#14141A] rounded-[24px] p-6 shadow-2xl text-center animate-[popIn_0.25s_cubic-bezier(0.175,0.885,0.32,1.4)]">
+          <div className="w-full max-w-sm bg-[#FBF8F3] dark:bg-[#1B1815] rounded-[24px] p-6 shadow-2xl text-center animate-[popIn_0.25s_cubic-bezier(0.175,0.885,0.32,1.4)]">
             <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/40">
               <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
             </div>
@@ -275,10 +275,10 @@ export default function CheckInPage({
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-[248px] max-w-[82vw] shrink-0 p-3 transition-transform ${showDock ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="h-full glass-liquid rounded-[22px] p-4 flex flex-col gap-3 overflow-hidden">
+        <div className="h-full glass-liquid rounded-[24px] p-4 flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center justify-between">
             <b className="text-[15px] text-dark flex items-center gap-1.5"><Clock weight="duotone" size={17} /> Activité</b>
-            <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-8 h-8 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={13} /></button>
+            <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-11 h-11 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={15} /></button>
           </div>
 
           {isFirstVisit ? (
@@ -292,7 +292,7 @@ export default function CheckInPage({
               <div className="flex gap-1.5 bg-black/[0.05] dark:bg-white/[0.06] rounded-full p-1">
                 {(["all", "visites", "notes"] as const).map((tb) => (
                   <button key={tb} onClick={() => setSideTab(tb)}
-                    className={`flex-1 py-2 rounded-full text-[12px] font-extrabold capitalize transition-all ${sideTab === tb ? "bg-white text-dark shadow-sm dark:bg-white/90 dark:text-black" : "text-muted"}`}>
+                    className={`flex-1 min-h-[44px] rounded-full text-[12.5px] font-extrabold capitalize transition-all ${sideTab === tb ? "bg-white text-dark shadow-sm dark:bg-white/90 dark:text-black" : "text-muted"}`}>
                     {tb === "all" ? "Tout" : tb === "visites" ? "Visites" : "Notes"}
                   </button>
                 ))}
@@ -308,7 +308,7 @@ export default function CheckInPage({
                     )}
                     <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
                     {pastStays.map((v, i) => (
-                      <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2.5 px-3 rounded-[13px] bg-black/[0.03] dark:bg-white/[0.04]">
+                      <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2.5 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
                         <span className="text-[13px] font-extrabold text-dark tabular-nums">
                           {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                         </span>
@@ -329,18 +329,18 @@ export default function CheckInPage({
         <div className="flex-1 overflow-y-auto px-3 md:px-4 pt-3 flex flex-col gap-3">
           {/* top row: back + activity toggle (phone) */}
           <div className="flex items-center gap-2">
-            <button onClick={() => router.push("/search")} className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all">
+            <button onClick={() => router.push("/search")} className="flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all">
               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               <span className="text-sm font-medium text-brand">{t("checkin.search")}</span>
             </button>
-            <button onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }} className={`${showDock ? "lg:hidden" : ""} ml-auto flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96]`}>
+            <button onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }} className={`${showDock ? "lg:hidden" : ""} ml-auto flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96]`}>
               <Clock weight="duotone" size={16} className="text-brand" />
               {!isFirstVisit && pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
             </button>
           </div>
 
           {/* IDENTITY CARD — gold when VIP */}
-          <div className={`rounded-[22px] px-5 py-5 relative ${isVip ? "" : "glass-liquid border border-black/[0.07] dark:border-white/[0.12] shadow-sm"}`} style={cardVipStyle}>
+          <div className={`rounded-[24px] px-5 py-5 relative ${isVip ? "" : "glass-liquid border border-black/[0.06] dark:border-white/[0.10]"}`} style={cardVipStyle}>
             <div className="flex items-start gap-4 flex-wrap">
               <div className="min-w-0 flex-1">
                 {isVip && (
@@ -352,7 +352,7 @@ export default function CheckInPage({
                   {editingRoom ? (
                     <div className="flex items-center gap-2">
                       <input type="text" inputMode="numeric" value={editRoom} onChange={(e) => setEditRoom(e.target.value)} autoFocus maxLength={10}
-                        className="w-28 text-5xl font-black font-mono text-dark bg-white/60 rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                        className="w-28 text-5xl font-black font-mono text-dark bg-white/60 rounded-[12px] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand/30" />
                       <button onClick={handleSaveRoom} className={`font-bold text-sm ${onGold}`}>{t("checkin.save")}</button>
                       <button onClick={() => setEditingRoom(false)} className={`text-sm ${isVip ? "text-white/80" : "text-muted"}`}>{t("checkin.cancel")}</button>
                     </div>
@@ -383,12 +383,12 @@ export default function CheckInPage({
 
               {/* Adultes / Enfants chips — tap to edit (no Total; the counter carries it) */}
               {editingPeople ? (
-                <div className="glass-liquid rounded-[14px] p-3 space-y-2 w-full sm:w-auto">
+                <div className="glass-liquid rounded-[12px] p-3 space-y-2 w-full sm:w-auto">
                   <div className="grid grid-cols-2 gap-2">
                     <div><label className="text-[10px] text-muted uppercase">{t("checkin.adults")}</label>
-                      <input type="number" inputMode="numeric" value={editAdults} onChange={(e) => setEditAdults(e.target.value)} min="0" max="20" autoFocus className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/60 text-dark font-mono text-lg text-center focus:outline-none focus:ring-2 focus:ring-brand/30" /></div>
+                      <input type="number" inputMode="numeric" value={editAdults} onChange={(e) => setEditAdults(e.target.value)} min="0" max="20" autoFocus className="w-full mt-1 px-2 py-1.5 rounded-[12px] bg-white/60 text-dark font-mono text-lg text-center focus:outline-none focus:ring-2 focus:ring-brand/30" /></div>
                     <div><label className="text-[10px] text-muted uppercase">{t("checkin.children")}</label>
-                      <input type="number" inputMode="numeric" value={editChildren} onChange={(e) => setEditChildren(e.target.value)} min="0" max="20" className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/60 text-dark font-mono text-lg text-center focus:outline-none focus:ring-2 focus:ring-brand/30" /></div>
+                      <input type="number" inputMode="numeric" value={editChildren} onChange={(e) => setEditChildren(e.target.value)} min="0" max="20" className="w-full mt-1 px-2 py-1.5 rounded-[12px] bg-white/60 text-dark font-mono text-lg text-center focus:outline-none focus:ring-2 focus:ring-brand/30" /></div>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => setEditingPeople(false)} className="flex-1 py-1.5 rounded-full glass-liquid text-muted font-semibold text-xs">{t("checkin.cancel")}</button>
@@ -398,7 +398,7 @@ export default function CheckInPage({
               ) : (
                 <button onClick={() => { setEditAdults(String(client.adults)); setEditChildren(String(client.children)); setEditingPeople(true); }} className="flex gap-2.5 active:opacity-70 transition-opacity">
                   {[{ k: t("checkin.adults"), v: client.adults }, { k: t("checkin.children"), v: client.children }].map((s, i) => (
-                    <div key={i} className={`min-w-[74px] text-center rounded-[16px] px-3 py-2.5 ${isVip ? "bg-white/[0.16] border border-white/25" : "bg-white/60 border border-black/[0.06]"}`}>
+                    <div key={i} className={`min-w-[74px] text-center rounded-[18px] px-3 py-2.5 ${isVip ? "bg-white/[0.16] border border-white/25" : "bg-white/60 border border-black/[0.06]"}`}>
                       <div className={`text-[10px] uppercase tracking-wide ${isVip ? "text-white/85" : "text-muted"}`}>{s.k}</div>
                       <div className={`text-2xl font-extrabold mt-0.5 ${onGold}`}>{s.v}</div>
                     </div>
@@ -429,7 +429,7 @@ export default function CheckInPage({
           {/* Breakfast NOT included — prompt to collect payment */}
           {needsPay && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-[18px]" style={{ background: "linear-gradient(90deg,#FFF4E0,#FFE9C7)", border: "1.5px solid #E7A427", boxShadow: "0 8px 24px -12px rgba(180,110,10,.5)" }}>
-              <span className="grid place-items-center gap-0.5 w-10 h-10 rounded-xl bg-[#E7A427] text-white shrink-0" style={{gridAutoFlow:"column"}}><Coffee weight="duotone" size={17} /><Prohibit weight="bold" size={12} /></span>
+              <span className="grid place-items-center gap-0.5 w-10 h-10 rounded-[12px] bg-[#E7A427] text-white shrink-0" style={{gridAutoFlow:"column"}}><Coffee weight="duotone" size={17} /><Prohibit weight="bold" size={12} /></span>
               <div className="min-w-0">
                 <div className="font-black text-[15px] text-[#9a5b00]">Petit-déjeuner NON inclus — à encaisser</div>
                 <div className="text-[12px] font-semibold text-[#7a5010]">Demandez au client : l&apos;ajouter à la chambre, ou payer maintenant ?</div>

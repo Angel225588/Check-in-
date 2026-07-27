@@ -83,7 +83,7 @@ export default function DebugPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4 max-w-2xl mx-auto">
+    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] p-4 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold text-dark mb-1">Storage Debug</h1>
       <p className="text-sm text-muted mb-4">Total: {totalSize} / 5 MB</p>
 

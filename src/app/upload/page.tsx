@@ -59,7 +59,7 @@ function HistoryDrawer({
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#0A0A0F] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
+      <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         <div className="shrink-0 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-dark">{t("history.pastSessions")}</h2>
           <button onClick={onClose} className="p-2 glass-liquid rounded-full active:scale-95 transition-transform">
@@ -139,7 +139,7 @@ function SessionDetailDrawer({
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="ml-auto relative w-full max-w-lg bg-[#FBF8F3] dark:bg-[#0A0A0F] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
+      <div className="ml-auto relative w-full max-w-lg bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         {/* Header */}
         <div className="shrink-0 p-4">
           <div className="flex items-center justify-between mb-3">
@@ -612,7 +612,7 @@ export default function UploadPage() {
   // ─── HOME VIEW ───
   if (view === "home") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
         {/* Background decorative gradient */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-brand/[0.04] blur-3xl" />
@@ -1033,7 +1033,7 @@ export default function UploadPage() {
   // ─── PROCESSING VIEW: Scanning & processing pages ───
   if (view === "processing") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
         {/* Header */}
         <div className="shrink-0 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-4">
@@ -1108,7 +1108,7 @@ export default function UploadPage() {
     const totalClients = pdfUploads.reduce((s, p) => s + p.clients.length, 0);
 
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
         <div className="shrink-0 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-4">
             <button
@@ -1237,7 +1237,7 @@ export default function UploadPage() {
 
   // ─── REVIEW VIEW: After data is captured ───
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
       {/* Header */}
       <div className="shrink-0 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3" />
@@ -1607,7 +1607,7 @@ export default function UploadPage() {
 
       {/* Bottom confirm bar */}
       {clientsUploaded && !mergeBanner && (
-        <div className="shrink-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#FBF8F3] dark:from-[#0A0A0F] via-[#FBF8F3] dark:via-[#0A0A0F] to-transparent">
+        <div className="shrink-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#FBF8F3] dark:from-[#12100E] via-[#FBF8F3] dark:via-[#12100E] to-transparent">
           <button
             onClick={handleConfirm}
             className="w-full bg-gradient-to-r from-brand to-brand-light text-white py-4 rounded-[52px] text-xl font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25 dark:glow-brand"
