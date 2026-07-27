@@ -38,6 +38,17 @@
   body.light .row.hit{
     background:linear-gradient(180deg,rgba(166,105,20,.15),rgba(166,105,20,.04));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 10px 24px -16px rgba(166,105,20,.4)}
+  /* ── ATTENTION BUDGET ──────────────────────────────────────────────
+     Three tiers, and only tier 1 is allowed to be loud. Adding emphasis to
+     everything is the same as adding it to nothing.
+
+       T1  decide      the guest on screen, the CTA, RESTANTS, an alert
+       T2  scan        room numbers, names, the clock
+       T3  reference   labels, counts, keypad, nav, the other metrics
+
+     The keypad is deliberately T3: nobody READS a number pad, they aim at
+     it. It was the brightest block on the screen and carried no information.
+  ────────────────────────────────────────────────────────────────── */
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     background:var(--bg); color:var(--ink);
@@ -65,10 +76,10 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 34px -22px rgba(0,0,0,.9)}
   .m{flex:1;text-align:center;padding:8px 4px;border-radius:var(--r-md);cursor:pointer}
   .m:hover{background:var(--surface-2)}
-  .m .lab{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--muted);font-weight:800}
-  .m .val{font-size:30px;font-weight:800;line-height:1.05;margin-top:2px;
-    font-variant-numeric:tabular-nums;color:var(--ink)}
+  .m .lab{font-size:10px;letter-spacing:.10em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;opacity:.85}
+  .m .val{font-size:25px;font-weight:700;line-height:1.05;margin-top:2px;
+    font-variant-numeric:tabular-nums;color:var(--ink-2)}
   /* ONE accent: what is still outstanding. Everything else is cream. */
   /* The focal cell was a 1.5px gold ring — a hard outline reads as a cheap
      highlighter pass. It is now a lit pane: warm translucent fill, a bright
@@ -78,26 +89,32 @@
     box-shadow:inset 0 1px 0 rgba(255,222,160,.28),
                inset 0 -1px 0 rgba(0,0,0,.22),
                0 10px 26px -14px rgba(221,156,40,.55)}
-  .m.focal .val{color:var(--gold-ink);font-size:34px}
-  .m.focal .lab{color:var(--gold-ink)}
+  .m.focal .val{color:var(--gold-ink);font-size:36px;font-weight:800}
+  .m.focal .lab{color:var(--gold-ink);opacity:1}
   body.rainbow .m.entered .val{color:var(--good)}
   body.rainbow .m.comp .val{color:var(--violet-ink)}
   body.rainbow .m.vip .val{color:var(--gold-ink)}
   .navbtns{display:flex;gap:8px;width:392px;flex:none}
-  .nav{flex:1;min-height:56px;display:grid;place-items:center;border-radius:var(--r-md);
+  .nav{flex:1;min-height:60px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;border-radius:var(--r-md);
     color:var(--ink-2);cursor:pointer;
     background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
     border:1px solid rgba(255,255,255,.08);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 10px 26px -18px rgba(0,0,0,.9)}
   .nav:hover{background:var(--surface-2)}
-  .nav svg{width:22px;height:22px}
+  .nav svg{width:19px;height:19px;opacity:.72}
+  .nav span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted)}
+  /* Clôture ends the service day and is not easily undone, so it does not get
+     to look like the two controls beside it that are used constantly. */
+  .nav.danger span{color:var(--bad-ink)}
 
   /* ── body split ─────────────────────────────────────── */
   .body{flex:1;display:flex;gap:10px;min-height:0}
   .left{flex:1;display:flex;flex-direction:column;gap:9px;min-width:0}
   .right{width:392px;display:flex;flex-direction:column;gap:9px}
 
-  .sec{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  .sec{font-size:10.5px;opacity:.85;letter-spacing:.09em;text-transform:uppercase;
     color:var(--muted);font-weight:800;padding-left:3px}
 
   /* search bar — the keypad fills it with digits, the on-screen ABC or a
@@ -127,26 +144,41 @@
 
   /* results */
   .list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px}
-  .row{display:flex;align-items:center;gap:14px;padding:11px 12px;border-radius:var(--r-md);
-    cursor:pointer;min-height:66px;
-    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
-    border:1px solid rgba(255,255,255,.06);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .row{display:flex;align-items:center;gap:16px;padding:12px 14px;border-radius:var(--r-md);
+    cursor:pointer;min-height:88px;
+    background:rgba(255,255,255,.028);
+    border:1px solid rgba(255,255,255,.045)}
   .row:hover{background:var(--surface-2)}
   .row.hit{background:linear-gradient(180deg,rgba(221,156,40,.18),rgba(221,156,40,.05));
     box-shadow:inset 0 1px 0 rgba(255,222,160,.24),0 10px 26px -16px rgba(221,156,40,.5)}
-  .rm{font-size:27px;font-weight:800;font-variant-numeric:tabular-nums;min-width:70px}
+  .rm{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;min-width:70px}
   .nm{flex:1;min-width:0}
-  .nm .n{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .nm .s{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .nm .n{font-size:19.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nm .s{font-size:13px;color:var(--muted);margin-top:1px}
   .tags{display:flex;gap:6px;align-items:center}
-  .tag{font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap}
+  .tag{font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap;
+    opacity:.72}
+  .t-alert{opacity:1}   /* the one tag that changes what you do next */
   .t-vip{background:rgba(221,156,40,.16);color:var(--gold-ink)}
   .t-alert{background:rgba(224,104,90,.16);color:var(--bad-ink)}
   .t-comp{background:rgba(185,155,232,.16);color:var(--violet-ink)}
   .t-pay{background:rgba(224,104,90,.16);color:var(--bad-ink)}
-  .go{display:flex;align-items:center;gap:7px;padding:0 17px;min-height:48px;border:none;
-    border-radius:999px;background:var(--good);color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+  /* Adults and children as their own boxes — the same pattern the check-in
+     screen already uses, so the two screens agree on what a room contains.
+     The row no longer carries an Entrer button: tapping the row selects the
+     guest into the preview and the CTA below the keypad commits, which keeps
+     a full keyboard/tap-only path for anyone who cannot swipe. */
+  .paxbox{display:flex;gap:9px;flex:none}
+  .pbox{min-width:68px;text-align:center;border-radius:13px;padding:6px 9px;
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.05)}
+  .pbox span{display:block;font-size:9.5px;letter-spacing:.10em;text-transform:uppercase;
+    font-weight:800;color:var(--muted)}
+  .pbox b{display:block;font-size:20px;font-weight:700;line-height:1.15;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .pbox.zero b{color:var(--muted)}
+  body.light .pbox{background:linear-gradient(180deg,#FFFFFF,#F7F2E9);
+    border:1px solid rgba(42,38,32,.10)}
+  .rowmark{flex:none;min-width:86px;text-align:right;font-size:13px;font-weight:800;
+    color:var(--muted)}
     /* A guest carrying an alert, or one who still owes for breakfast, cannot be
      waved through from the list. The row sends you to the fiche instead. */
   .go.needs{background:transparent;border:1.5px solid var(--key-edge);color:var(--ink-2)}
@@ -210,9 +242,9 @@
   .bar{height:9px;border-radius:999px;background:var(--key);overflow:hidden;margin:11px 0 7px;
     border:1px solid var(--key-edge)}
   .bar i{display:block;height:100%;background:var(--gold);border-radius:999px}
-  .svc{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted);
-    font-weight:700}
-  .svc b{color:var(--ink-2)}
+  .svc{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);
+    font-weight:600}
+  .svc b{color:var(--ink-2);font-weight:700}
 
   /* searching — guest preview, treated as a key card rather than a text block.
      Small-caps labels over large values (Shangri-La Circle), and the VIP
@@ -265,17 +297,17 @@
   .secondary{min-height:44px;border:none;background:none;color:var(--muted);
     font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;
     justify-content:center;gap:7px;text-decoration:underline;text-underline-offset:3px}
-  .secondary[disabled]{opacity:0;pointer-events:none}
-  .enter{min-height:78px;font-size:23px}
+  .secondary[disabled]{display:none}
+  .enter{min-height:96px;font-size:24px}
 
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .k{height:74px;border-radius:var(--r-md);color:var(--ink);font-size:27px;font-weight:700;
-    background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.022));
-    border:1px solid rgba(255,255,255,.09);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 8px 20px -14px rgba(0,0,0,.9);
+  .k{height:74px;border-radius:var(--r-md);color:var(--ink-2);font-size:26px;font-weight:600;
+    background:linear-gradient(180deg,rgba(255,255,255,.038),rgba(255,255,255,.012));
+    border:1px solid rgba(255,255,255,.05);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
     cursor:pointer;display:grid;place-items:center;font-variant-numeric:tabular-nums}
   .k:active{background:var(--key-press)}
-  .k.alt{font-size:15px;font-weight:800;color:var(--muted)}
+  .k.alt{font-size:14px;font-weight:700;color:var(--muted)}
   .enter{min-height:70px;border:none;border-radius:var(--r-md);background:var(--good);
     color:#fff;font-size:21px;font-weight:800;cursor:pointer;display:flex;
     align-items:center;justify-content:center;gap:10px}
@@ -310,9 +342,10 @@
       <div class="m vip"><div class="lab">VIP</div><div class="val">15</div></div>
     </div>
     <div class="navbtns">
-      <div class="nav" title="Récents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-      <div class="nav" title="Rapport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 20V10M12 20V4M19 20v-6"/></svg></div>
-      <div class="nav" title="Clôturer la journée"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg></div>
+      <div class="nav" title="Historique des check-ins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Récents</span></div>
+      <div class="nav" title="Rapport du service"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 20V10M12 20V4M19 20v-6"/></svg><span>Rapport</span></div>
+      <div class="nav" id="sideBtn" title="Passer les commandes à gauche ou à droite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7L4 11l4 4M16 7l4 4-4 4M4 11h16"/></svg><span id="sideLab">Droitier</span></div>
+      <div class="nav danger" title="Clôturer la journée"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg><span>Clôture</span></div>
     </div>
   </div>
 
@@ -339,18 +372,18 @@
 
 <script>
 const ROOMS = [
-  {r:"224", n:"Angel Polanco",      p:3, vip:true,  alert:"Allergie arachide", visits:6},
-  {r:"385", n:"Maria Dupont",       p:2, visits:0},
-  {r:"402", n:"Chen Wei",           p:4, comp:true, visits:2},
-  {r:"418", n:"Sofia Marchand",     p:1, pay:true, visits:0},
-  {r:"501", n:"Julien Fabre",       p:2, vip:true, visits:11},
-  {r:"524", n:"Tete Sedalo",        p:4, pay:true, visits:0},
-  {r:"608", n:"Amira Haddad",       p:2},
-  {r:"619", n:"Julie David",        p:1},
-  {r:"702", n:"Lucas Moreau",       p:2, done:true},
-  {r:"715", n:"Nina Kowalski",      p:3},
-  {r:"801", n:"Omar Benali",        p:2},
-  {r:"822", n:"Claire Lefèvre",     p:1, vip:true},
+  {a:2, c:1, r:"224", n:"Angel Polanco",      p:3, vip:true,  alert:"Allergie arachide", visits:6},
+  {a:2, c:0, r:"385", n:"Maria Dupont",       p:2, visits:0},
+  {a:2, c:2, r:"402", n:"Chen Wei",           p:4, comp:true, visits:2},
+  {a:1, c:0, r:"418", n:"Sofia Marchand",     p:1, pay:true, visits:0},
+  {a:2, c:0, r:"501", n:"Julien Fabre",       p:2, vip:true, visits:11},
+  {a:2, c:2, r:"524", n:"Tete Sedalo",        p:4, pay:true, visits:0},
+  {a:2, c:0, r:"608", n:"Amira Haddad",       p:2},
+  {a:1, c:0, r:"619", n:"Julie David",        p:1},
+  {a:2, c:0, r:"702", n:"Lucas Moreau",       p:2, done:true},
+  {a:2, c:1, r:"715", n:"Nina Kowalski",      p:3},
+  {a:2, c:0, r:"801", n:"Omar Benali",        p:2},
+  {a:1, c:0, r:"822", n:"Claire Lefèvre",     p:1, vip:true},
 ];
 const RECENT = ["224","385","402","501"];
 
@@ -500,15 +533,17 @@ var render = function(){
         <div class="rm">${x.r}</div>
         <div class="nm">
           <div class="n">${x.n}</div>
-          <div class="s">${done ? "tous entrés" : inn ? `${inn}/${x.p} entrés` : `${x.p} personne${x.p>1?"s":""}`}</div>
+          <div class="s">${done ? "tous entrés"
+            : inn ? `${inn}/${x.p} entrés`
+            : x.visits > 0 ? `Habitué · ${x.visits}ᵉ séjour` : "1ʳᵉ visite"}</div>
           ${inn && !done ? `<div class="prog"><i style="width:${(inn/x.p*100)}%"></i></div>` : ""}
         </div>
         <div class="tags">${tagsFor(x)}</div>
-        <button class="go ${locked&&!done?"needs":""}">${
-          done ? "✓ Entré"
-          : x.alert ? "⚠ Ouvrir →"
-          : x.pay   ? "Encaisser →"
-          : "✓ Entrer "+rem}</button>
+        <div class="paxbox">
+          <div class="pbox"><span>Adultes</span><b>${x.a}</b></div>
+          <div class="pbox ${x.c?"":"zero"}"><span>Enfants</span><b>${x.c}</b></div>
+        </div>
+        ${done ? `<div class="rowmark" style="color:var(--good-ink)">✓ Entré</div>` : ""}
       </div>
     </div>`;}).join("");
 };
@@ -562,6 +597,12 @@ let drag = null;
 
 /* keep the visible field authoritative after programmatic changes */
 const _r = render; render = function(){ if(el("q").value !== typed) el("q").value = typed; _r(); };
+
+el("list").addEventListener("click", (e)=>{
+  const w = e.target.closest(".swipe"); if(!w) return;
+  if(drag) return;                    // a swipe already handled it
+  typed = w.dataset.r; el("q").value = typed; render();
+});
 
 el("list").addEventListener("pointerdown", (e)=>{
   const row = e.target.closest(".swipe .row"); if(!row) return;
@@ -642,6 +683,11 @@ new MutationObserver(()=>{
   el("split").style.flexDirection =
     document.body.classList.contains("mirror") ? "row-reverse" : "row";
 }).observe(document.body,{attributes:true,attributeFilter:["class"]});
+
+el("sideBtn").addEventListener("click", ()=>{
+  document.body.classList.toggle("mirror");
+  el("sideLab").textContent = document.body.classList.contains("mirror") ? "Gaucher" : "Droitier";
+});
 
 render();
 
