@@ -233,7 +233,7 @@ export default function CheckInPage({
   };
 
   const cardVipStyle = isVip
-    ? { background: "linear-gradient(135deg,#B9781B,#DD9C28 48%,#A66914)", boxShadow: "0 16px 44px -14px rgba(166,105,20,.55)" }
+    ? { background: "linear-gradient(135deg,#96590F,#B57619 48%,#8A5010)", boxShadow: "0 16px 44px -14px rgba(120,74,12,.55)" }
     : undefined;
   const onGold = isVip ? "text-white" : "text-dark";
 
@@ -355,7 +355,7 @@ export default function CheckInPage({
             <div className="flex items-start gap-4 flex-wrap">
               <div className="min-w-0 flex-1">
                 {isVip && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/25 border border-white/40 px-3 py-1 font-black text-[13px] text-white mb-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-black/25 border border-white/30 px-3 py-1 font-black text-[13px] text-white mb-2">
                     <Star weight="fill" size={13} /> {client.vipLevel || "VIP"}
                   </span>
                 )}
@@ -382,8 +382,8 @@ export default function CheckInPage({
                   {comp && (
                     <span className={`text-[13px] font-extrabold px-3 py-1.5 rounded-full ${isVip ? "bg-white/90 text-purple-600" : "bg-purple-500/10 text-purple-600 dark:text-purple-400"}`}>COMP</span>
                   )}
-                  {client.arrivalDate && <span className={`inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-white/20 text-white" : "bg-black/[0.05] text-dark"}`}><AirplaneLanding weight="duotone" size={14} /> {client.arrivalDate}</span>}
-                  {client.departureDate && <span className={`inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-white/20 text-white" : "bg-black/[0.05] text-dark"}`}><AirplaneTakeoff weight="duotone" size={14} /> {client.departureDate}</span>}
+                  {client.arrivalDate && <span className={`inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-black/25 text-white" : "bg-black/[0.05] text-dark"}`}><AirplaneLanding weight="duotone" size={14} /> {client.arrivalDate}</span>}
+                  {client.departureDate && <span className={`inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-black/25 text-white" : "bg-black/[0.05] text-dark"}`}><AirplaneTakeoff weight="duotone" size={14} /> {client.departureDate}</span>}
                   {needsPay && (
                     <span className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full text-white" style={{ background: "var(--aur-bad)", boxShadow: "0 6px 18px -8px rgba(161,59,44,.6)" }}>
                       <Coffee weight="duotone" size={14} /><Prohibit weight="bold" size={12} /> PETIT-DÉJ NON INCLUS
@@ -409,8 +409,8 @@ export default function CheckInPage({
               ) : (
                 <button onClick={() => { setEditAdults(String(client.adults)); setEditChildren(String(client.children)); setEditingPeople(true); }} className="flex gap-2.5 active:opacity-70 transition-opacity">
                   {[{ k: t("checkin.adults"), v: client.adults }, { k: t("checkin.children"), v: client.children }].map((s, i) => (
-                    <div key={i} className={`min-w-[74px] text-center rounded-[18px] px-3 py-2.5 ${isVip ? "bg-white/[0.16] border border-white/25" : "bg-white/60 border border-black/[0.06]"}`}>
-                      <div className={`text-[10px] uppercase tracking-wide ${isVip ? "text-white/85" : "text-muted"}`}>{s.k}</div>
+                    <div key={i} className={`min-w-[74px] text-center rounded-[18px] px-3 py-2.5 ${isVip ? "bg-black/20 border border-white/20" : "bg-white/60 border border-black/[0.06]"}`}>
+                      <div className={`text-[10px] uppercase tracking-wide ${isVip ? "text-white" : "text-muted"}`}>{s.k}</div>
                       <div className={`text-2xl font-extrabold mt-0.5 ${onGold}`}>{s.v}</div>
                     </div>
                   ))}
