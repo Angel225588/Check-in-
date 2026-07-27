@@ -15,7 +15,7 @@
     --good:#2F6F4F; --bad:#E0685A; --violet:#B99BE8;
     /* "-ink" variants are for text sitting ON a tinted wash of the same hue,
        where the solid colour is far too close to its own background. */
-    --gold-ink:#E9B44C; --bad-ink:#F5A196; --violet-ink:#CDB6F0;
+    --gold-ink:#E9B44C; --bad-ink:#F5A196; --violet-ink:#CDB6F0; --good-ink:#6FD3A0;
     --r-lg:20px; --r-md:14px; --r-sm:11px;
   }
   body.light{
@@ -23,7 +23,7 @@
     --key:#FFFFFF; --key-edge:#D8CBB3; --key-press:#EFE7D9;
     --ink:#241F19; --ink-2:#3C352C; --muted:#6B6355;
     --good:#2F6F4F; --bad:#A13B2C; --violet:#5A3B8F; --gold:#A66914;
-    --gold-ink:#7F4E0E; --bad-ink:#8C2F22; --violet-ink:#4A2E78;
+    --gold-ink:#7F4E0E; --bad-ink:#8C2F22; --violet-ink:#4A2E78; --good-ink:#1F5638;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -97,19 +97,50 @@
   .t-pay{background:rgba(224,104,90,.16);color:var(--bad-ink)}
   .go{display:flex;align-items:center;gap:7px;padding:0 17px;min-height:48px;border:none;
     border-radius:999px;background:var(--good);color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+    /* A guest carrying an alert, or one who still owes for breakfast, cannot be
+     waved through from the list. The row sends you to the fiche instead. */
+  .go.needs{background:transparent;border:1.5px solid var(--key-edge);color:var(--ink-2)}
   .row.done{opacity:.5}
   .row.done .go{background:transparent;color:var(--gold-ink);border:1.5px solid var(--key-edge)}
 
   /* ── right column ───────────────────────────────────── */
+  /* One box, two jobs. Idle it is the service clock; searching it is the
+     guest preview. Height is FIXED so the keypad never shifts under a
+     thumb that is already moving toward it. */
   .detail{background:var(--surface);border:1px solid var(--key-edge);
-    border-radius:var(--r-lg);padding:14px 16px;min-height:132px;display:flex;
-    flex-direction:column;justify-content:center}
-  .typed{font-size:46px;font-weight:800;letter-spacing:.10em;font-variant-numeric:tabular-nums;
+    border-radius:var(--r-lg);padding:13px 16px;height:158px;display:flex;
+    flex-direction:column;justify-content:center;overflow:hidden}
+
+  /* idle — service clock */
+  .clockrow{display:flex;align-items:baseline;gap:10px}
+  .clock{font-size:52px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;
+    letter-spacing:-.01em}
+  .rush{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    padding:4px 9px;border-radius:999px;background:rgba(221,156,40,.16);color:var(--gold-ink)}
+  .bar{height:7px;border-radius:999px;background:var(--key);overflow:hidden;margin:11px 0 7px;
+    border:1px solid var(--key-edge)}
+  .bar i{display:block;height:100%;background:var(--gold);border-radius:999px}
+  .svc{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);
+    font-weight:700}
+  .svc b{color:var(--ink-2)}
+
+  /* searching — guest preview */
+  .typed{font-size:42px;font-weight:800;letter-spacing:.10em;font-variant-numeric:tabular-nums;
     line-height:1}
   .typed .ph{color:var(--muted);opacity:.45}
-  .dname{font-size:19px;font-weight:700;margin-top:5px}
-  .dsub{font-size:13.5px;color:var(--muted);margin-top:3px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-  .dnone{font-size:14px;color:var(--muted);margin-top:6px}
+  .prow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .dname{font-size:19px;font-weight:700;margin-top:6px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  .dsub{font-size:13.5px;color:var(--muted);margin-top:4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .dnone{font-size:14px;color:var(--muted);margin-top:8px}
+  .who-badge{flex:none;font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:999px}
+  .b-first{background:rgba(221,156,40,.16);color:var(--gold-ink)}
+  .b-freq{background:rgba(47,111,79,.20);color:var(--good-ink)}
+
+  .secondary{min-height:52px;border-radius:var(--r-md);background:transparent;
+    border:1.5px solid var(--key-edge);color:var(--ink-2);font-size:15px;font-weight:800;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .secondary[disabled]{opacity:.3;cursor:default}
 
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .k{height:74px;border-radius:var(--r-md);background:var(--key);
@@ -168,24 +199,22 @@
     </div>
 
     <div class="right">
-      <div class="detail">
-        <div class="typed" id="typed"><span class="ph">— — —</span></div>
-        <div id="dbody"><div class="dnone">Tapez un numéro de chambre</div></div>
-      </div>
+      <div class="detail" id="detail"></div>
       <div class="pad" id="pad"></div>
       <button class="enter" id="enter" disabled>⏎ Entrer</button>
+      <button class="secondary" id="openfile" disabled>Ouvrir la fiche →</button>
     </div>
   </div>
 </div>
 
 <script>
 const ROOMS = [
-  {r:"224", n:"Angel Polanco",      p:3, vip:true,  alert:"Allergie arachide"},
-  {r:"385", n:"Maria Dupont",       p:2},
-  {r:"402", n:"Chen Wei",           p:4, comp:true},
-  {r:"418", n:"Sofia Marchand",     p:1, pay:true},
-  {r:"501", n:"Julien Fabre",       p:2, vip:true},
-  {r:"524", n:"Tete Sedalo",        p:4, pay:true},
+  {r:"224", n:"Angel Polanco",      p:3, vip:true,  alert:"Allergie arachide", visits:6},
+  {r:"385", n:"Maria Dupont",       p:2, visits:0},
+  {r:"402", n:"Chen Wei",           p:4, comp:true, visits:2},
+  {r:"418", n:"Sofia Marchand",     p:1, pay:true, visits:0},
+  {r:"501", n:"Julien Fabre",       p:2, vip:true, visits:11},
+  {r:"524", n:"Tete Sedalo",        p:4, pay:true, visits:0},
   {r:"608", n:"Amira Haddad",       p:2},
   {r:"619", n:"Julie David",        p:1},
   {r:"702", n:"Lucas Moreau",       p:2, done:true},
@@ -231,30 +260,80 @@ function tagsFor(x){
   return t;
 }
 
-function render(){
-  /* typed display */
-  el("typed").innerHTML = typed
-    ? typed.split("").join(" ")
-    : `<span class="ph">— — —</span>`;
+function whoBadge(x){
+  // Frequent vs first visit, straight in the preview: it changes how you
+  // greet them, and it is the single thing reception asks for by name.
+  return x.visits > 0
+    ? `<span class="who-badge b-freq">Habitué · ${x.visits}ᵉ séjour</span>`
+    : `<span class="who-badge b-first">1ʳᵉ visite</span>`;
+}
 
-  /* quick detail */
+/* Service window — breakfast runs 06:30 to 10:30. */
+const SVC_START = 6.5, SVC_END = 10.5;
+let clockH = 7, clockM = 12;
+function serviceBox(){
+  const now = clockH + clockM/60;
+  const pct = Math.max(0, Math.min(1, (now - SVC_START) / (SVC_END - SVC_START)));
+  const leftMin = Math.max(0, Math.round((SVC_END - now) * 60));
+  const rush = now >= 7.5 && now <= 9 ? `<span class="rush">Pointe</span>` : "";
+  return `
+    <div class="clockrow">
+      <div class="clock">${String(clockH).padStart(2,"0")}:${String(clockM).padStart(2,"0")}</div>
+      ${rush}
+    </div>
+    <div class="bar"><i style="width:${(pct*100).toFixed(1)}%"></i></div>
+    <div class="svc">
+      <span>Service <b>06:30 – 10:30</b></span>
+      <span><b>${Math.floor(leftMin/60)}h${String(leftMin%60).padStart(2,"0")}</b> restantes</span>
+    </div>`;
+}
+
+function render(){
   const hit = exact();
   const near = match();
-  if(hit){
-    el("dbody").innerHTML =
-      `<div class="dname">${hit.n}</div>
-       <div class="dsub"><b>${hit.p} pers.</b> ${tagsFor(hit)}</div>`;
-    el("enter").disabled = false;
-    el("enter").innerHTML = `⏎ Entrer &nbsp;<b>${hit.p}</b>`;
+
+  /* ── the box: clock when idle, guest preview when searching ── */
+  if(!typed){
+    el("detail").innerHTML = serviceBox();
+  } else if(hit){
+    el("detail").innerHTML = `
+      <div class="prow">
+        <div class="typed">${typed.split("").join(" ")}</div>
+        ${whoBadge(hit)}
+      </div>
+      <div class="dname">${hit.n}</div>
+      <div class="dsub"><b>${hit.p} pers.</b> ${tagsFor(hit)}</div>`;
   } else {
-    el("dbody").innerHTML = typed
-      ? `<div class="dnone">${near.length} chambre(s) commencent par ${typed}</div>`
-      : `<div class="dnone">Tapez un numéro de chambre</div>`;
-    el("enter").disabled = true;
-    el("enter").innerHTML = `⏎ Entrer`;
+    el("detail").innerHTML = `
+      <div class="typed">${typed.split("").join(" ")}</div>
+      <div class="dnone">${near.length} chambre(s) commencent par ${typed}</div>`;
   }
 
-  /* list */
+  /* ── actions ── */
+  const enter = el("enter"), open = el("openfile");
+  enter.disabled = !hit;
+  open.disabled  = !hit;
+  if(hit){
+    // A guest who needs money taken, or carries an alert, must not be
+    // waved through with one tap — the fiche is the primary action there.
+    const mustOpen = !!(hit.alert || hit.pay);
+    enter.innerHTML = mustOpen ? `⏎ Entrer quand même` : `⏎ Entrer &nbsp;<b>${hit.p}</b>`;
+    enter.style.background = mustOpen ? "transparent" : "";
+    enter.style.border     = mustOpen ? "1.5px solid var(--key-edge)" : "";
+    enter.style.color      = mustOpen ? "var(--ink-2)" : "";
+    open.style.background  = mustOpen ? "var(--good)" : "";
+    open.style.color       = mustOpen ? "#fff" : "";
+    open.style.border      = mustOpen ? "none" : "";
+    open.innerHTML = mustOpen
+      ? (hit.alert ? `⚠ Ouvrir la fiche →` : `Encaisser · ouvrir →`)
+      : `Ouvrir la fiche →`;
+  } else {
+    enter.innerHTML = `⏎ Entrer`;
+    enter.style.cssText = ""; open.style.cssText = "";
+    open.innerHTML = `Ouvrir la fiche →`;
+  }
+
+  /* ── list ── */
   const shown = typed ? near : ROOMS;
   el("listLabel").textContent = typed
     ? `Résultats — ${shown.length}`
@@ -267,7 +346,11 @@ function render(){
         <div class="s">${x.p} personne${x.p>1?"s":""}${x.done?" · déjà entré":""}</div>
       </div>
       <div class="tags">${tagsFor(x)}</div>
-      <button class="go">${x.done?"✓ Entré":"✓ Entrer "+x.p}</button>
+      <button class="go ${(x.alert||x.pay)&&!x.done?"needs":""}">${
+        x.done ? "✓ Entré"
+        : x.alert ? "⚠ Ouvrir →"
+        : x.pay   ? "Encaisser →"
+        : "✓ Entrer "+x.p}</button>
     </div>`).join("");
 }
 
@@ -286,6 +369,8 @@ function doEnter(){
   setTimeout(()=>{ typed=""; render(); b.style.background=""; },700);
 }
 el("enter").addEventListener("click", doEnter);
+el("openfile").addEventListener("click", ()=>{ if(exact()) alert("→ fiche client (maquette)"); });
+setInterval(()=>{ clockM=(clockM+1)%60; if(clockM===0) clockH=(clockH+1)%24; if(!typed) render(); }, 60000);
 
 /* handedness mirror */
 new MutationObserver(()=>{

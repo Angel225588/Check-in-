@@ -18,16 +18,15 @@ const shots = [
   ["search-v2-light", ["light"]],
   ["search-v2-typed", []],
   ["search-v2-rainbow", ["rainbow"]],
+  ["search-v2-alert", []],
+  ["search-v2-first", []],
 ];
 for (const [name, classes] of shots) {
   const p = await b.newPage({ viewport: { width: 1230, height: 900 }, deviceScaleFactor: 2 });
   await p.goto(url, { waitUntil: "load" });
   if (classes.length) await p.evaluate((c) => document.body.classList.add(...c), classes);
-  if (name.endsWith("typed")) {
-    await p.keyboard.press("Digit2");
-    await p.keyboard.press("Digit2");
-    await p.keyboard.press("Digit4");
-  }
+  const TYPE = { "search-v2-typed": "501", "search-v2-alert": "224", "search-v2-first": "385" };
+  for (const d of (TYPE[name] || "").split("")) await p.keyboard.press("Digit" + d);
   await p.waitForTimeout(220);
   await p.locator(".frame").screenshot({ path: join(HERE, `${name}.png`) });
   await p.close();
