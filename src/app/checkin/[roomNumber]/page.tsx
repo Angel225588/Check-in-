@@ -14,6 +14,7 @@ import {
   Coffee,
   Prohibit,
   Star,
+  ArrowsLeftRight,
 } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import {
@@ -21,6 +22,8 @@ import {
   addCheckIn,
   updateClient,
   getSessionHistory,
+  getSettings,
+  saveSettings,
 } from "@/lib/storage";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { readSelection, checkinHref } from "@/lib/checkin-nav";
@@ -28,6 +31,9 @@ import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import ClientHistory from "@/components/ClientHistory";
 import RoomEventBadges from "@/components/RoomEventBadges";
+import NotesPanel from "@/components/NotesPanel";
+import PinnedNoteChips from "@/components/PinnedNoteChips";
+import { useGuestNotes } from "@/hooks/useGuestNotes";
 import { getRoomEvents, RoomEvent } from "@/lib/room-events";
 
 function normalizeNameForId(name: string): string {
@@ -81,6 +87,19 @@ export default function CheckInPage({
   const [sidebarOpen, setSidebarOpen] = useState(false); // drawer on small screens
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // manual hide on tablet
   const [sideTab, setSideTab] = useState<"all" | "visites" | "notes">("all");
+  // Which edge the activity panel and its controls live on. Persisted, because
+  // a left-hander should set this once and never think about it again.
+  const [handSide, setHandSide] = useState<"left" | "right">("left");
+
+  useEffect(() => {
+    setHandSide(getSettings().handSide === "right" ? "right" : "left");
+  }, []);
+
+  const flipHandSide = () => {
+    const next = handSide === "left" ? "right" : "left";
+    setHandSide(next);
+    saveSettings({ ...getSettings(), handSide: next });
+  };
 
   useEffect(() => {
     const data = getTodayData();
@@ -149,6 +168,10 @@ export default function CheckInPage({
     return visits.sort((a, b) => b.date.localeCompare(a.date));
   }, [guestId]);
 
+  // Called unconditionally (hook rules); it simply resolves to an empty list
+  // until the guest is loaded.
+  const notesApi = useGuestNotes(client?.roomNumber ?? "", client?.name ?? "", "Réception");
+
   if (!client) {
     return (
       <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4">
@@ -192,9 +215,19 @@ export default function CheckInPage({
   const isVip = !!client.isVip;
   const needsPay = needsPaymentChoice(client);
   const isFirstVisit = pastStays.length === 0; // R2/R5: a new guest has no past stays
-  // Dock the sidebar on tablet ONLY when there's activity worth showing; an
-  // empty first-visit column just wastes horizontal space, so collapse it.
-  const dockSidebar = !isFirstVisit;
+  // Dock the sidebar on tablet ONLY when there's something worth showing; an
+  // empty column just wastes horizontal space, so collapse it. Notes count as
+  // something worth showing — a first-time guest with an allergy is precisely
+  // the case where the column earns its width.
+  const dockSidebar = !isFirstVisit || notesApi.notes.length > 0;
+  const hasAlertNote = notesApi.notes.some((n) => n.tone === "alert");
+
+  /** One tap from anywhere on the card to the notes list. */
+  const openNotes = () => {
+    setSideTab("notes");
+    setSidebarCollapsed(false);
+    setSidebarOpen(true);
+  };
   const showDock = dockSidebar && !sidebarCollapsed; // docked on tablet unless manually hidden
 
   const handleCheckIn = () => {
@@ -238,7 +271,9 @@ export default function CheckInPage({
   const onGold = isVip ? "text-white" : "text-dark";
 
   return (
-    <div className="h-dvh w-full flex overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+    // `flex-row-reverse` mirrors the whole layout when the panel is set to the
+    // right, so the docked column and every control follow the working hand.
+    <div className={`h-dvh w-full flex ${handSide === "right" ? "flex-row-reverse" : ""} overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]`}>
       {/* ===== SUCCESS overlay ===== */}
       {checkInSuccess && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
@@ -273,7 +308,7 @@ export default function CheckInPage({
         <div className={`fixed inset-0 z-30 bg-black/30 backdrop-blur-sm ${showDock ? "lg:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[248px] max-w-[82vw] shrink-0 p-3 transition-transform ${showDock ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 ${handSide === "right" ? "right-0" : "left-0"} z-40 w-[248px] max-w-[82vw] shrink-0 p-3 transition-transform ${showDock ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : handSide === "right" ? "translate-x-full" : "-translate-x-full"}`}
       >
         <div className="h-full glass-liquid rounded-[24px] p-4 flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center justify-between">
@@ -281,56 +316,60 @@ export default function CheckInPage({
             <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-11 h-11 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={15} /></button>
           </div>
 
-          {isFirstVisit ? (
-            <>
-              <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-black text-[12.5px] text-white shadow-[0_6px_16px_-6px] shadow-brand/60"
-                style={{ background: "linear-gradient(135deg,#DD9C28,#A66914)" }}><Star weight="fill" size={13} /> Première visite</span>
-              <div className="text-[13px] text-muted text-center py-8">Aucune activité — nouveau client</div>
-            </>
-          ) : (
-            <>
-              <div className="flex gap-1.5 bg-black/[0.05] dark:bg-white/[0.06] rounded-full p-1">
-                {(["all", "visites", "notes"] as const).map((tb) => (
-                  <button key={tb} onClick={() => setSideTab(tb)}
-                    aria-pressed={sideTab === tb}
-                    className="flex-1 min-h-[44px] rounded-full text-[12.5px] font-extrabold capitalize transition-all"
-                    // The selected pill keeps a light background in dark mode, so its
-                    // label must stay dark. `text-dark` can't be used: globals.css has
-                    // `.dark .text-dark { color:#F0F0F5 !important }`, which would win
-                    // over any dark: variant and render white-on-white.
-                    style={sideTab === tb
-                      ? { background: "#FFFFFF", color: "#1C1C1C", boxShadow: "var(--shadow-warm-1)" }
-                      // Unselected labels sit on a near-background tint; the default
-                      // muted grey only reached 4.24:1 there, under the 4.5 minimum
-                      // for this size. These warm tones clear it in both schemes.
-                      : { color: "var(--tab-idle, #5C564C)" }}>
-                    {tb === "all" ? "Tout" : tb === "visites" ? "Visites" : "Notes"}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex-1 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">
-                {sideTab === "notes" ? (
-                  <div className="text-[12.5px] text-muted text-center py-6">Notes & préférences — bientôt<br />(chiffré · sans fuite)</div>
-                ) : (
-                  <>
-                    {sideTab === "all" && (
-                      <ClientHistory roomNumber={client.roomNumber} clientName={client.name} todayCheckIns={todayCheckIns} onUndo={refreshAfterUndo} />
-                    )}
-                    <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
-                    {pastStays.map((v, i) => (
-                      <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2.5 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
-                        <span className="text-[13px] font-extrabold text-dark tabular-nums">
-                          {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
-                        </span>
-                        <span className="text-[11px]" style={{ color: "var(--tab-idle)" }}>{v.pax} pers · ch. {v.roomNumber}{v.vipLevel ? ` · ${v.vipLevel}` : ""}</span>
-                      </div>
-                    ))}
-                  </>
+          {/* The tab row renders for EVERY guest. It used to be gated on
+              `!isFirstVisit`, which meant a first-time guest had no route to
+              their own notes — so a severe allergy recorded at booking was
+              unreachable from the one screen that decides whether they eat. */}
+          <div className="flex gap-1.5 bg-black/[0.05] dark:bg-white/[0.06] rounded-full p-1">
+            {(["all", "visites", "notes"] as const).map((tb) => (
+              <button key={tb} onClick={() => setSideTab(tb)}
+                aria-pressed={sideTab === tb}
+                data-role={`side-tab-${tb}`}
+                className="flex-1 min-h-[44px] rounded-full text-[12.5px] font-extrabold capitalize transition-all relative"
+                // The selected pill keeps a light background in dark mode, so its
+                // label must stay dark. `text-dark` can't be used: globals.css has
+                // `.dark .text-dark { color:#F0F0F5 !important }`, which would win
+                // over any dark: variant and render white-on-white.
+                style={sideTab === tb
+                  ? { background: "#FFFFFF", color: "#1C1C1C", boxShadow: "var(--shadow-warm-1)" }
+                  // Unselected labels sit on a near-background tint; the default
+                  // muted grey only reached 4.24:1 there, under the 4.5 minimum
+                  // for this size. These warm tones clear it in both schemes.
+                  : { color: "var(--tab-idle, #5C564C)" }}>
+                {tb === "all" ? "Tout" : tb === "visites" ? "Visites" : "Notes"}
+                {tb === "notes" && hasAlertNote && (
+                  <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full" style={{ background: "var(--aur-bad)" }} />
                 )}
-              </div>
-            </>
-          )}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">
+            {sideTab === "notes" ? (
+              <NotesPanel api={notesApi} />
+            ) : isFirstVisit ? (
+              <>
+                <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-black text-[12.5px] text-white shadow-[0_6px_16px_-6px] shadow-brand/60"
+                  style={{ background: "linear-gradient(135deg,#DD9C28,#A66914)" }}><Star weight="fill" size={13} /> Première visite</span>
+                <div className="text-[13px] text-muted text-center py-8">Aucune activité — nouveau client</div>
+              </>
+            ) : (
+              <>
+                {sideTab === "all" && (
+                  <ClientHistory roomNumber={client.roomNumber} clientName={client.name} todayCheckIns={todayCheckIns} onUndo={refreshAfterUndo} />
+                )}
+                <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
+                {pastStays.map((v, i) => (
+                  <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2.5 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
+                    <span className="text-[13px] font-extrabold text-dark tabular-nums">
+                      {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                    </span>
+                    <span className="text-[11px]" style={{ color: "var(--tab-idle)" }}>{v.pax} pers · ch. {v.roomNumber}{v.vipLevel ? ` · ${v.vipLevel}` : ""}</span>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -338,15 +377,45 @@ export default function CheckInPage({
       <main className="flex-1 min-w-0 h-full flex flex-col">
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-3 md:px-4 pt-3 flex flex-col gap-3">
-          {/* top row: back + activity toggle (phone) */}
-          <div className="flex items-center gap-2">
+          {/* Top row. Mirrored with the panel: the control that opens the
+              activity column has to sit on the edge the column slides in from,
+              otherwise you reach across the screen to summon something that
+              then appears under your other hand. */}
+          <div className={`flex items-center gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
+            <button
+              onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }}
+              data-role="activity-toggle"
+              aria-label="Ouvrir l'activité et les notes"
+              className={`${showDock ? "lg:hidden" : ""} flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] relative`}
+            >
+              <Clock weight="duotone" size={16} className="text-brand" />
+              {pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
+              {/* A guest can have an allergy on their very first visit. */}
+              {hasAlertNote && (
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#FBF8F3] dark:border-[#12100E]" style={{ background: "var(--aur-bad)" }} />
+              )}
+            </button>
+
             <button onClick={() => router.push("/search")} className="flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all">
               <svg className="w-4 h-4" style={{ color: "var(--brand-ink)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("checkin.search")}</span>
             </button>
-            <button onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }} className={`${showDock ? "lg:hidden" : ""} ml-auto flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96]`}>
-              <Clock weight="duotone" size={16} className="text-brand" />
-              {!isFirstVisit && pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
+
+            {/* A plain spacer, not `ml-auto` — auto margins resolve against the
+                main axis, so they flip meaning under `flex-row-reverse`. */}
+            <div className="flex-1" />
+
+            <button
+              onClick={flipHandSide}
+              data-role="hand-toggle"
+              aria-label={handSide === "left" ? "Passer les commandes à droite" : "Passer les commandes à gauche"}
+              title={handSide === "left" ? "Commandes à droite (droitier)" : "Commandes à gauche (gaucher)"}
+              className="flex items-center gap-1.5 px-3.5 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
+            >
+              <ArrowsLeftRight weight="bold" size={15} style={{ color: "var(--brand-ink)" }} />
+              <span className="text-[12px] font-extrabold" style={{ color: "var(--brand-ink)" }}>
+                {handSide === "left" ? "Gauche" : "Droite"}
+              </span>
             </button>
           </div>
 
@@ -418,6 +487,10 @@ export default function CheckInPage({
               )}
             </div>
           </div>
+
+          {/* Pinned notes — an allergy has to be readable without opening
+              anything, on the card, before the guest is waved through. */}
+          <PinnedNoteChips notes={notesApi.notes} onOpen={openNotes} onOpenAll={openNotes} />
 
           {/* Morning-brief room events */}
           {roomEvents.length > 0 && <RoomEventBadges events={roomEvents} variant="stack" showReason />}

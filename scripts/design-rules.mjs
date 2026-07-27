@@ -383,6 +383,146 @@ async function main() {
     await ctx.close();
   }
 
+  // ── R10-R12 · Notes ───────────────────────────────────────────────────
+  // These drive the real composer rather than seeding storage: notes are
+  // encrypted under a non-extractable key, so there is no way to plant one
+  // from the outside — and going through the UI is the stronger test anyway.
+
+  const openNotesTab = async (page) => {
+    const toggle = page.locator('[data-role="activity-toggle"]');
+    if (await toggle.isVisible().catch(() => false)) {
+      await toggle.click();
+      await page.waitForTimeout(260);
+    }
+    await page.locator('[data-role="side-tab-notes"]').click();
+    await page.waitForTimeout(200);
+  };
+
+  const addNote = async (page, toneLabel, title) => {
+    await page.getByRole("button", { name: "Ajouter une note" }).click();
+    await page.waitForTimeout(240);
+    await page.getByRole("button", { name: toneLabel, exact: true }).click();
+    await page.locator('input[placeholder^="Titre"]').fill(title);
+    await page.getByRole("button", { name: "Terminé" }).click();
+    await page.waitForTimeout(320);
+  };
+
+  // R10 — the regression that started this build. A first-visit guest (no
+  // history at all) must still have a route to their notes, and an allergy
+  // recorded there must be readable from the card without opening anything.
+  {
+    const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
+    const tabExists = await page.locator('[data-role="side-tab-notes"]').count()
+      .catch(() => 0)
+      .then(async (n) => {
+        if (n > 0) return true;
+        // The tab may live inside the collapsed drawer on this viewport.
+        const toggle = page.locator('[data-role="activity-toggle"]');
+        if (await toggle.isVisible().catch(() => false)) {
+          await toggle.click();
+          await page.waitForTimeout(260);
+          return (await page.locator('[data-role="side-tab-notes"]').count()) > 0;
+        }
+        return false;
+      });
+    record("R10a-first-visit-notes-reachable", "A first-visit guest can reach their notes", tabExists,
+      tabExists ? "notes tab present" : "NO PATH TO NOTES — an allergy would be unreachable");
+
+    if (tabExists) {
+      await openNotesTab(page);
+      await addNote(page, "Alerte", "Allergie arachide");
+      // Close the drawer so we are looking at the check-in card itself.
+      await page.keyboard.press("Escape").catch(() => {});
+      await page.mouse.click(page.viewportSize().width - 8, page.viewportSize().height / 2);
+      await page.waitForTimeout(320);
+      const chip = page.locator('[data-role="pinned-chip"][data-note-tone="alert"]').first();
+      const visible = await chip.isVisible().catch(() => false);
+      const box = visible ? await chip.boundingBox() : null;
+      const onScreen = !!box && box.y >= 0 && box.y + box.height <= page.viewportSize().height;
+      record("R10b-alert-on-card", "An alert note surfaces on the check-in card unopened", visible && onScreen,
+        visible ? `chip at y=${Math.round(box.y)}` : "alert not surfaced on the card");
+    }
+    await ctx.close();
+  }
+
+  // R11 — the fourth chip in the mockup was clipped at 75% behind a scroll
+  // gesture nobody discovers, which reads as "there is nothing more here".
+  {
+    const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
+    await openNotesTab(page);
+    for (let i = 0; i < 5; i++) await addNote(page, "Alerte", `Alerte numéro ${i + 1}`);
+    await page.mouse.click(page.viewportSize().width - 8, page.viewportSize().height / 2);
+    await page.waitForTimeout(320);
+
+    const chips = page.locator('[data-role="pinned-chip"]');
+    const n = await chips.count();
+    const vw = page.viewportSize().width;
+    let clipped = 0;
+    for (let i = 0; i < n; i++) {
+      const b = await chips.nth(i).boundingBox();
+      if (!b || b.x < 0 || b.x + b.width > vw + 0.5) clipped++;
+    }
+    const overflow = await page.locator('[data-role="pinned-overflow"]').count();
+    record("R11-chip-cap", "At most three pinned chips, none clipped, remainder counted",
+      n <= 3 && clipped === 0 && (n < 3 || overflow === 1),
+      `${n} chips, ${clipped} clipped, ${overflow} overflow badge`);
+    await ctx.close();
+  }
+
+  // R12 — delete was the easiest control to hit by accident, on a screen where
+  // the accident erases an allergy. It must sit away from the thumb AND ask.
+  {
+    const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
+    await openNotesTab(page);
+    await addNote(page, "Alerte", "Allergie arachide");
+    await page.locator('[data-note-tone="alert"]').first().click();
+    await page.waitForTimeout(280);
+
+    const del = await page.locator('[data-role="note-delete"]').boundingBox();
+    const edit = await page.locator('[data-role="note-edit"]').boundingBox();
+    const away = !!del && !!edit && del.y + del.height / 2 < edit.y + edit.height / 2;
+    record("R12a-delete-away-from-thumb", "Delete is not the closest control to the thumb", away,
+      del && edit ? `delete y=${Math.round(del.y)}, primary y=${Math.round(edit.y)}` : "controls not found");
+
+    await page.locator('[data-role="note-delete"]').click();
+    await page.waitForTimeout(220);
+    const stillThere = await page.locator('[data-role="note-delete-confirm"]').count();
+    record("R12b-delete-confirms", "Delete asks before destroying a note", stillThere === 1,
+      stillThere === 1 ? "confirmation shown" : "note deleted on a single tap");
+    await ctx.close();
+  }
+
+  // ── R13 · Handedness ──────────────────────────────────────────────────
+  // The control that summons the activity panel has to be on the edge the
+  // panel arrives from; reaching across the screen to open something that
+  // then appears under the other hand is what prompted this.
+  {
+    const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
+    const sideOf = async () => page.evaluate(() => {
+      const btn = document.querySelector('[data-role="activity-toggle"]');
+      const aside = document.querySelector("aside");
+      if (!btn || !aside) return null;
+      const b = btn.getBoundingClientRect();
+      const mid = window.innerWidth / 2;
+      const asideLeft = getComputedStyle(aside).right === "0px" ? false : true;
+      return { btnLeft: b.x + b.width / 2 < mid, asideLeft };
+    });
+
+    const before = await sideOf();
+    const okBefore = before && before.btnLeft === before.asideLeft;
+    await page.locator('[data-role="hand-toggle"]').click();
+    await page.waitForTimeout(340);
+    const after = await sideOf();
+    const okAfter = after && after.btnLeft === after.asideLeft;
+    const flipped = before && after && before.btnLeft !== after.btnLeft;
+
+    record("R13-hand-side-matches", "The activity control sits on the side the panel opens from",
+      !!(okBefore && okAfter), `before ${before ? (before.btnLeft ? "left" : "right") : "?"}, after ${after ? (after.btnLeft ? "left" : "right") : "?"}`);
+    record("R13b-hand-toggle-works", "The side toggle actually moves the controls", !!flipped,
+      flipped ? "sides swapped" : "toggle did not move anything");
+    await ctx.close();
+  }
+
   await closeBrowser();
   stopServer();
 

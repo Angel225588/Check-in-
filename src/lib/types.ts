@@ -64,6 +64,12 @@ export interface SessionRecord {
 export interface AppSettings {
   costPerCover: number; // e.g., 26 (euros)
   localOCR?: boolean;   // when true, skip Gemini and use Tesseract directly (Marriott-confidential mode)
+  /**
+   * Which side the activity panel and its controls live on. Reception staff
+   * hold the tablet in whichever hand is free; a left-hander reaching across
+   * the screen for every control is slower and drops things. Defaults to left.
+   */
+  handSide?: "left" | "right";
 }
 
 // Dashboard analytics types

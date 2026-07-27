@@ -46,7 +46,7 @@ function asHistory(v: unknown): SessionRecord[] {
 const SETTINGS_KEY = "app_settings";
 
 export function getSettings(): AppSettings {
-  const defaults: AppSettings = { costPerCover: 26, localOCR: false };
+  const defaults: AppSettings = { costPerCover: 26, localOCR: false, handSide: "left" };
   if (typeof window === "undefined") return defaults;
   const raw = localStorage.getItem(SETTINGS_KEY);
   if (!raw) return defaults;
