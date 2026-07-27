@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Rapport v2 — maquette</title>
+<style>
+  :root{
+    --bg:#12100E; --surface:#1B1815; --surface-2:#221E1A;
+    --ink:#F4EFE6; --ink-2:#DDD5C7; --muted:#ABA294;
+    --hair:rgba(255,255,255,.07);
+    --gold:#DD9C28; --gold-deep:#A66914; --gold-ink:#E9B44C;
+    --good:#2F6F4F; --good-lit:#4FA97A; --good-ink:#6FD3A0;
+    --warn:#B87333; --warn-lit:#D89A4E; --warn-ink:#EFC07A;
+    --bad:#A13B2C; --bad-lit:#C9564A; --bad-ink:#F5A196;
+    --r:18px;
+  }
+  body.light{
+    --bg:#FBF8F3; --surface:#FFFFFF; --surface-2:#F5F0E7;
+    --ink:#241F19; --ink-2:#3C352C; --muted:#6B6355; --hair:rgba(42,38,32,.11);
+    --gold-ink:#7F4E0E; --good-ink:#1F5638; --warn-ink:#7A4A12; --bad-ink:#8C2F22;
+    --good-lit:#2F6F4F; --warn-lit:#B87333; --bad-lit:#A13B2C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:'Nunito',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .frame{width:1194px;height:834px;margin:16px auto;display:flex;flex-direction:column;gap:10px;
+    padding:12px;border-radius:26px;overflow:hidden;background:var(--bg);
+    box-shadow:0 30px 90px -30px rgba(0,0,0,.6)}
+
+  .pane{border-radius:var(--r);padding:16px 18px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+    border:1px solid var(--hair);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  body.light .pane{background:linear-gradient(180deg,#FFF,#FBF7F0);
+    border:1px solid rgba(42,38,32,.10);box-shadow:inset 0 1px 0 #fff}
+  .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;
+    color:var(--muted);display:flex;justify-content:space-between;align-items:baseline}
+  .cap b{font-size:12px;color:var(--ink-2);letter-spacing:0;text-transform:none}
+
+  .top{display:flex;align-items:center;gap:14px;padding:2px 4px}
+  .top h1{font-size:23px;font-weight:800;letter-spacing:-.02em}
+  .top .d{font-size:14px;color:var(--muted);font-weight:700}
+  .spacer{flex:1}
+  .btn{min-height:46px;padding:0 18px;border:none;border-radius:999px;cursor:pointer;font:inherit;
+    font-size:13.5px;font-weight:800;color:var(--ink-2);background:rgba(255,255,255,.05)}
+  body.light .btn{background:rgba(42,38,32,.06)}
+
+  .body{flex:1;min-height:0;display:flex;gap:10px}
+  .left{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+  .right{width:326px;flex:none;display:flex;flex-direction:column;gap:10px}
+
+  /* 1 · affluence */
+  .peak{height:132px;display:flex;align-items:flex-end;gap:5px;margin-top:12px}
+  .peak i{flex:1;border-radius:5px 5px 2px 2px;position:relative;
+    background:linear-gradient(180deg,var(--gold),var(--gold-deep));font-style:normal}
+  .peak i.now{box-shadow:0 0 0 1.5px var(--gold-ink),0 0 20px -2px rgba(221,156,40,.7)}
+  .peak i span{position:absolute;top:-21px;left:50%;transform:translateX(-50%);
+    font-size:11.5px;font-weight:800;color:var(--gold-ink);
+    background:var(--surface);padding:1px 6px;border-radius:999px;
+    box-shadow:0 0 0 1px var(--hair)}
+  body.light .peak i span{background:#fff}
+  .axis{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;
+    color:var(--muted);font-weight:700}
+
+  /* 2 · heat grid — status is carried by SHAPE as well as colour, so it survives
+     greyscale and red/green colour-blindness (the pair carrying the most weight). */
+  .grid{display:grid;grid-template-columns:repeat(28,1fr);gap:4px;margin-top:12px}
+  .cell{aspect-ratio:1;border-radius:3px;position:relative;cursor:pointer}
+  .cell.in{background:var(--good-lit)}
+  .cell.pa{background:transparent;box-shadow:inset 0 0 0 1.5px var(--warn-lit);overflow:hidden}
+  .cell.pa::after{content:"";position:absolute;left:0;right:0;bottom:0;height:50%;
+    background:var(--warn-lit)}
+  .cell.no{background:transparent;box-shadow:inset 0 0 0 1.5px var(--bad-lit)}
+  .legend{display:flex;gap:18px;margin-top:12px;font-size:12px;font-weight:700;color:var(--muted)}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .sw{width:13px;height:13px;border-radius:3px;position:relative}
+
+  /* 3 · list */
+  .listpane{flex:1;min-height:0;display:flex;flex-direction:column}
+  .search{display:flex;align-items:center;gap:11px;padding:0 15px;min-height:50px;
+    border-radius:13px;margin:12px 0 10px;background:rgba(255,255,255,.05);
+    box-shadow:inset 0 0 0 1px var(--hair)}
+  body.light .search{background:#FBF7F0;box-shadow:inset 0 0 0 1px rgba(42,38,32,.11)}
+  .search svg{width:18px;height:18px;color:var(--muted)}
+  .search input{flex:1;border:none;outline:none;background:none;font:inherit;font-size:16px;
+    font-weight:700;color:var(--ink)}
+  .search input::placeholder{font-family:'Iowan Old Style',Palatino,Georgia,serif;
+    font-style:italic;font-weight:400;color:var(--muted)}
+  .rows{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+  .r{display:flex;align-items:center;gap:14px;padding:9px 12px;border-radius:11px;
+    background:rgba(255,255,255,.028);border:1px solid var(--hair)}
+  body.light .r{background:#fff;border:1px solid rgba(42,38,32,.08)}
+  .r .t{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--muted);
+    min-width:52px}
+  .r .rm{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;min-width:52px}
+  .r .nm{flex:1;min-width:0;font-size:14.5px;font-weight:700;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .st{font-size:12px;font-weight:800;padding:5px 11px;border-radius:999px;white-space:nowrap;
+    display:flex;align-items:center;gap:6px}
+  .st.in{background:rgba(47,111,79,.20);color:var(--good-ink)}
+  .st.pa{background:rgba(184,115,51,.20);color:var(--warn-ink)}
+  .st.no{background:rgba(161,59,44,.20);color:var(--bad-ink)}
+
+  /* 4 · presence + filters */
+  .ring{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 2px}
+  .ring .num{font-size:52px;font-weight:300;letter-spacing:-.04em;line-height:1;
+    font-variant-numeric:tabular-nums}
+  .ring .lab{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted)}
+  .ringwrap{position:relative;width:150px;height:150px;display:grid;place-items:center}
+  .ringwrap svg{position:absolute;inset:0;transform:rotate(-90deg)}
+
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .tile{border-radius:13px;padding:10px 12px;cursor:pointer;text-align:left;border:1px solid var(--hair);
+    background:rgba(255,255,255,.035)}
+  body.light .tile{background:#fff;border:1px solid rgba(42,38,32,.09)}
+  .tile.on{background:linear-gradient(180deg,rgba(221,156,40,.20),rgba(221,156,40,.05));
+    box-shadow:inset 0 1px 0 rgba(255,222,160,.26)}
+  .tile .k{font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;
+    color:var(--muted)}
+  .tile .v{font-size:26px;font-weight:800;line-height:1.1;margin-top:1px;
+    font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .tile.on .v{color:var(--gold-ink)}
+
+  .tools{width:1194px;margin:0 auto 6px;display:flex;gap:8px;font-family:system-ui;font-size:13px}
+  .tools button{padding:7px 13px;border-radius:999px;border:1px solid #55504a;
+    background:#221E1A;color:#DDD5C7;cursor:pointer;font-weight:700}
+  body.light .tools button{background:#fff;color:#3C352C;border-color:#D8CBB3}
+</style>
+</head>
+<body>
+<div class="tools">
+  <button onclick="document.body.classList.toggle('light')">Clair / Sombre</button>
+  <button onclick="document.body.classList.toggle('gray');document.querySelector('.frame').style.filter=document.body.classList.contains('gray')?'grayscale(1)':''">Test daltonisme (niveaux de gris)</button>
+  <span style="color:#8a8175">— cliquez une tuile pour filtrer la liste</span>
+</div>
+
+<div class="frame">
+  <div class="top">
+    <h1>Rapport</h1>
+    <span class="d">lundi 27 juillet · service terminé</span>
+    <span class="spacer"></span>
+    <button class="btn">Semaine</button>
+    <button class="btn">Exporter</button>
+  </div>
+
+  <div class="body">
+    <div class="left">
+      <!-- 1 · affluence -->
+      <div class="pane">
+        <div class="cap"><span>Affluence — heure d'arrivée</span><b id="peaklab">Pointe 08:00 · 34 personnes</b></div>
+        <div class="peak" id="peak"></div>
+        <div class="axis"><span>06:30</span><span>07:30</span><span>08:30</span><span>09:30</span><span>10:30</span></div>
+      </div>
+
+      <!-- 2 · heat grid -->
+      <div class="pane">
+        <div class="cap"><span>État des chambres</span><b>164 chambres</b></div>
+        <div class="grid" id="grid"></div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--good-lit)"></i>Entrés</span>
+          <span><i class="sw" style="box-shadow:inset 0 0 0 1.5px var(--warn-lit);overflow:hidden"><i style="position:absolute;left:0;right:0;bottom:0;height:50%;background:var(--warn-lit)"></i></i>Partiel</span>
+          <span><i class="sw" style="box-shadow:inset 0 0 0 1.5px var(--bad-lit)"></i>Absents</span>
+        </div>
+      </div>
+
+      <!-- 3 · list -->
+      <div class="pane listpane">
+        <div class="cap"><span>Par ordre d'arrivée</span><b id="cnt">164 chambres</b></div>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="q" placeholder="Chambre ou nom du client…">
+        </div>
+        <div class="rows" id="rows"></div>
+      </div>
+    </div>
+
+    <!-- 4 · presence + filters -->
+    <div class="right">
+      <div class="pane">
+        <div class="ring">
+          <div class="ringwrap">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="11"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--good-lit)" stroke-width="11"
+                stroke-linecap="round" stroke-dasharray="326.7" id="arc" />
+            </svg>
+            <div style="text-align:center">
+              <div class="num" id="pct">—<span style="font-size:24px">%</span></div>
+              <div class="lab">présents</div>
+            </div>
+          </div>
+        </div>
+        <div class="tiles" id="tiles"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── data ─────────────────────────────────────────────────────── */
+const FIRST = ["Angel Polanco","Maria Dupont","Chen Wei","Sofia Marchand","Julien Fabre",
+  "Tete Sedalo","Amira Haddad","Julie David","Lucas Moreau","Nina Kowalski","Omar Benali",
+  "Claire Lefèvre","Marc Rousseau","Elena Rossi","Hugo Bonnet","Sabine Morel"];
+const ROOMS = [];
+let seed = 7;
+const rnd = ()=> (seed = (seed*1103515245 + 12345) % 2147483648) / 2147483648;
+for(let i=0;i<164;i++){
+  const r = rnd();
+  const st = r < .62 ? "in" : r < .74 ? "pa" : r < .88 ? "in" : "no";
+  const m = 390 + Math.round((rnd()+rnd()+rnd()-1.5) * 55 + 60);   // minutes since midnight
+  ROOMS.push({
+    rm: String(100 + Math.floor(rnd()*8)*100 + Math.floor(rnd()*40)),
+    nm: FIRST[Math.floor(rnd()*FIRST.length)],
+    st, pax: 1+Math.floor(rnd()*4),
+    t: st==="no" ? null
+      : `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`,
+  });
+}
+const N = {in:ROOMS.filter(r=>r.st==="in").length, pa:ROOMS.filter(r=>r.st==="pa").length,
+           no:ROOMS.filter(r=>r.st==="no").length};
+const PCT = Math.round((N.in + N.pa*0.5) / ROOMS.length * 100);
+
+/* ── 1 · affluence ─────────────────────────────────────────────── */
+const BUCKETS = [4,9,17,26,34,31,22,15,9,5,3,2];
+const peakMax = Math.max(...BUCKETS);
+document.getElementById("peak").innerHTML = BUCKETS.map((v,i)=>
+  `<i class="${v===peakMax?"now":""}" style="height:${(v/peakMax*100).toFixed(1)}%">
+     ${v===peakMax?`<span>${v}</span>`:""}</i>`).join("");
+
+/* ── 2 · heat grid ─────────────────────────────────────────────── */
+document.getElementById("grid").innerHTML =
+  ROOMS.map(r=>`<div class="cell ${r.st}" title="${r.rm} · ${r.nm}"></div>`).join("");
+
+/* ── 4 · tiles double as filters ───────────────────────────────── */
+const TILES = [
+  {k:"in",  lab:"Entrés",   v:N.in},
+  {k:"no",  lab:"Absents",  v:N.no},
+  {k:"pa",  lab:"Partiel",  v:N.pa},
+  {k:"vip", lab:"VIP",      v:30},
+  {k:"comp",lab:"Offert",   v:20},
+  {k:"hors",lab:"Hors chambre", v:8},
+];
+let filter = null, q = "";
+function renderTiles(){
+  document.getElementById("tiles").innerHTML = TILES.map(t=>
+    `<button class="tile ${filter===t.k?"on":""}" onclick="setFilter('${t.k}')">
+       <div class="k">${t.lab}</div><div class="v">${t.v}</div></button>`).join("");
+}
+window.setFilter = (k)=>{ filter = filter===k ? null : k; document.getElementById("pct").innerHTML = PCT + `<span style="font-size:24px">%</span>`;
+document.getElementById("arc").setAttribute("stroke-dashoffset", (326.7 * (1 - PCT/100)).toFixed(1));
+renderTiles(); renderRows(); };
+
+/* ── 3 · list, arrival order by default ────────────────────────── */
+const fold = s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const LABEL = {in:"Entré", pa:"Partiel", no:"Absent"};
+function renderRows(){
+  let list = ROOMS.filter(r=>{
+    if(filter && ["in","pa","no"].includes(filter) && r.st!==filter) return false;
+    if(!q) return true;
+    return r.rm.startsWith(q) || fold(r.nm).includes(fold(q));
+  });
+  // Arrivals in the order they actually walked in; no-shows fall to the end.
+  list = list.sort((a,b)=> (a.t?0:1)-(b.t?0:1) || (a.t||"").localeCompare(b.t||""));
+  document.getElementById("cnt").textContent = `${list.length} chambre${list.length>1?"s":""}`;
+  document.getElementById("rows").innerHTML = list.slice(0,120).map(r=>`
+    <div class="r">
+      <span class="t">${r.t ?? "—"}</span>
+      <span class="rm">${r.rm}</span>
+      <span class="nm">${r.nm}</span>
+      <span class="st ${r.st}">${LABEL[r.st]}${r.st==="pa"?` ${r.pax-1}/${r.pax}`:r.st==="in"?` ${r.pax}`:""}</span>
+    </div>`).join("");
+}
+document.getElementById("q").addEventListener("input", e=>{ q=e.target.value; renderRows(); });
+
+document.getElementById("pct").innerHTML = PCT + `<span style="font-size:24px">%</span>`;
+document.getElementById("arc").setAttribute("stroke-dashoffset", (326.7 * (1 - PCT/100)).toFixed(1));
+renderTiles(); renderRows();
+</script>
+</body>
+</html>

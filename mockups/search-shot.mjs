@@ -21,6 +21,7 @@ const shots = [
   ["search-v2-alert", []],
   ["search-v2-first", []],
   ["search-v2-swipe", []],
+  ["search-v2-expected", []],
 ];
 for (const [name, classes] of shots) {
   const p = await b.newPage({ viewport: { width: 1230, height: 900 }, deviceScaleFactor: 2 });
@@ -28,6 +29,7 @@ for (const [name, classes] of shots) {
   if (classes.length) await p.evaluate((c) => document.body.classList.add(...c), classes);
   const TYPE = { "search-v2-typed": "501", "search-v2-alert": "224", "search-v2-first": "385" };
   for (const d of (TYPE[name] || "").split("")) await p.keyboard.press("Digit" + d);
+  if (name.endsWith("expected")) { await p.getByText("Alterner service ⇄ attendus").click(); }
   if (name.endsWith("swipe")) {
     // drag the 3rd row left past the threshold twice -> 2/4 entrés
     const row = p.locator('.swipe[data-r="402"] .row');

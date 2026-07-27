@@ -262,6 +262,22 @@
     box-shadow:0 0 16px -2px rgba(221,156,40,.8)}
   .svc{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);
     font-weight:600;margin-top:14px}
+  /* The clock never rotates away — it is a glance target, and a glance that
+     lands on something else is a regression. Only the strip beneath it cycles. */
+  .rota{margin-top:14px;min-height:62px;position:relative}
+  .rota > div{position:absolute;inset:0;opacity:0;transition:opacity .45s ease}
+  .rota > div.on{opacity:1}
+  .exp{display:flex;flex-direction:column;gap:6px}
+  .exp .hd{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;
+    color:var(--gold-ink)}
+  .exp .g{display:flex;align-items:baseline;gap:9px;font-size:14.5px;font-weight:700}
+  .exp .g b{font-variant-numeric:tabular-nums}
+  .exp .g em{font-style:normal;margin-left:auto;font-size:13px;color:var(--muted);
+    font-variant-numeric:tabular-nums}
+  .dots{display:flex;gap:5px;justify-content:center;margin-top:8px}
+  .dots i{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.3;
+    transition:opacity .3s}
+  .dots i.on{opacity:.9;background:var(--gold)}
   .svc b{color:var(--ink-2);font-weight:700}
 
   /* searching — guest preview, treated as a key card rather than a text block.
@@ -345,6 +361,7 @@
   <button onclick="document.body.classList.toggle('light')">Clair / Sombre</button>
   <button onclick="document.body.classList.toggle('rainbow')">Comparer : 1 accent ⇄ 5 couleurs</button>
   <button onclick="document.body.classList.toggle('mirror')">Inverser (gaucher / droitier)</button>
+  <button onclick="rota=rota?0:1;render()">Alterner service ⇄ attendus</button>
   <button onclick="clockM=(clockM+1)%60; if(!clockM) clockH=(clockH+1)%24; if(!typed) render();">+1 minute (voir le tic)</button>
   <span>— maquette interactive : tapez au clavier ou sur le pavé</span>
 </div>
@@ -465,7 +482,15 @@ function whoBadge(x){
 
 /* Service window — breakfast runs 06:30 to 10:30. */
 const SVC_START = 6.5, SVC_END = 10.5;
-let clockH = 7, clockM = 12, prev4 = null;
+let clockH = 7, clockM = 12, prev4 = null, rota = 0;
+
+/* Guests whose arrival time is PREDICTABLE — three or more prior stays. One
+   visit is not a pattern, and guessing from it would put a wrong name in
+   someone's mouth, which is worse than saying nothing.
+   Deliberately room-number-led: this panel can be read from across the
+   counter, and a guest list on an idle screen is a leak. */
+const EXPECTED = ROOMS.filter(x => x.visits >= 3).slice(0,3)
+  .map((x,i) => ({ r:x.r, n:x.n.split(" ").slice(-1)[0], t:`07:${15+i*6}` }));
 function serviceBox(){
   const now = clockH + clockM/60;
   const pct = Math.max(0, Math.min(1, (now - SVC_START) / (SVC_END - SVC_START)));
@@ -483,10 +508,21 @@ function serviceBox(){
       <div class="clock">${digits}</div>
       ${rush}
     </div>
-    <div class="svc">
-      <span>Service <b>06:30 – 10:30</b></span>
-      <span><b>${Math.floor(leftMin/60)}h${String(leftMin%60).padStart(2,"0")}</b> restantes</span>
+    <div class="rota">
+      <div class="${rota===0?"on":""}">
+        <div class="svc" style="margin-top:2px">
+          <span>Service <b>06:30 – 10:30</b></span>
+          <span><b>${Math.floor(leftMin/60)}h${String(leftMin%60).padStart(2,"0")}</b> restantes</span>
+        </div>
+      </div>
+      <div class="${rota===1?"on":""}">
+        <div class="exp">
+          <span class="hd">Attendus bientôt</span>
+          ${EXPECTED.map(e=>`<span class="g"><b>${e.r}</b> ${e.n}<em>~${e.t}</em></span>`).join("")}
+        </div>
+      </div>
     </div>
+    <div class="dots"><i class="${rota===0?"on":""}"></i><i class="${rota===1?"on":""}"></i></div>
     <div class="bar"><i style="width:${(pct*100).toFixed(1)}%"></i></div>`;
 }
 
@@ -699,6 +735,8 @@ function toast(msg, undo){
 
 
 setInterval(()=>{ clockM=(clockM+1)%60; if(clockM===0) clockH=(clockH+1)%24; if(!typed) render(); }, 60000);
+/* 10s a pane, and only while nothing is being searched. */
+setInterval(()=>{ if(!typed && EXPECTED.length){ rota = rota ? 0 : 1; render(); } }, 10000);
 
 /* handedness mirror */
 new MutationObserver(()=>{
