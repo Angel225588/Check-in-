@@ -157,6 +157,8 @@
   .detail{background:var(--surface);border:1px solid var(--key-edge);
     border-radius:var(--r-lg);padding:18px 20px;flex:1;min-height:158px;display:flex;
     flex-direction:column;justify-content:center;overflow:hidden}
+  .detail:has(.pcard){padding:0;background:none;border:none}
+  .detail .pcard{flex:1;display:flex;flex-direction:column;justify-content:center}
   .pad,.enter,.secondary{flex:none}
 
   /* idle — service clock */
@@ -171,6 +173,41 @@
   .svc{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted);
     font-weight:700}
   .svc b{color:var(--ink-2)}
+
+  /* searching — guest preview, treated as a key card rather than a text block.
+     Small-caps labels over large values (Shangri-La Circle), and the VIP
+     variant reuses the exact gold gradient from the check-in identity card so
+     the two screens read as the same object. */
+  .pcard{position:relative;overflow:hidden;border-radius:18px;padding:20px 22px;
+    background:linear-gradient(158deg,var(--surface-2),var(--surface));
+    box-shadow:inset 0 0 0 1px var(--key-edge);
+    animation:cardIn .34s cubic-bezier(.2,.9,.25,1)}
+  .pcard.vip{background:linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C);
+    box-shadow:0 16px 44px -14px rgba(120,74,12,.55)}
+  .pcard.vip,.pcard.vip .lab-mini{color:#fff}
+  .pcard::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(105deg,transparent 32%,rgba(255,255,255,.16) 46%,transparent 62%);
+    transform:translateX(-130%);animation:sheen 1.05s .12s ease-out}
+  @keyframes sheen{to{transform:translateX(130%)}}
+  @keyframes cardIn{from{opacity:0;transform:translateY(9px) scale(.985)}to{opacity:1;transform:none}}
+
+  .lab-mini{font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+    font-weight:800;color:var(--muted)}
+  .roomnum{display:flex;font-size:92px;font-weight:800;letter-spacing:-.045em;
+    line-height:.86;font-variant-numeric:tabular-nums;margin:6px 0 2px}
+  .roomnum.txt{font-size:44px;letter-spacing:-.02em;line-height:1}
+  .digit{display:inline-block;animation:rollIn .30s cubic-bezier(.2,.9,.25,1) backwards}
+  @keyframes rollIn{from{opacity:0;transform:translateY(.34em) scale(.86)}to{opacity:1;transform:none}}
+  .pname{font-size:29px;font-weight:700;line-height:1.06;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .pmeta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:9px}
+  /* On the gold card the tinted washes are the wrong ground entirely — they
+     were tuned against the dark neutral surface. A dark scrim with white text
+     is what the check-in identity card already does for the same reason. */
+  .pcard.vip .who-badge,.pcard.vip .tag{background:rgba(0,0,0,.34);color:#fff}
+  .pcard .swipehint{position:absolute;right:16px;bottom:14px;font-size:11px;
+    font-weight:800;color:var(--muted);letter-spacing:.04em}
+  .pcard.vip .swipehint{color:rgba(255,255,255,.92)}
 
   /* searching — guest preview */
   .typed{font-size:50px;font-weight:800;letter-spacing:.10em;font-variant-numeric:tabular-nums;
@@ -361,13 +398,19 @@ var render = function(){
   if(!typed){
     el("detail").innerHTML = serviceBox();
   } else if(hit){
+    const digits = hit.r.split("").map((d,i)=>
+      `<span class="digit" style="animation-delay:${i*55}ms">${d}</span>`).join("");
     el("detail").innerHTML = `
-      <div class="prow">
-        <div class="typed">${isNum(typed)?typed.split("").join(" "):typed}</div>
-        ${whoBadge(hit)}
-      </div>
-      <div class="dname">${hit.n}</div>
-      <div class="dsub"><b>${hit.p} pers.</b> ${tagsFor(hit)}</div>`;
+      <div class="pcard ${hit.vip?"vip":""}" id="pcard">
+        <div class="prow">
+          <span class="lab-mini">Chambre</span>
+          ${whoBadge(hit)}
+        </div>
+        <div class="roomnum">${digits}</div>
+        <div class="pname">${hit.n}</div>
+        <div class="pmeta"><b>${hit.p} pers.</b> ${tagsFor(hit)}</div>
+        ${(hit.alert||hit.pay) ? "" : `<span class="swipehint">glisser →</span>`}
+      </div>`;
   } else {
     el("detail").innerHTML = `
       <div class="typed">${isNum(typed)?typed.split("").join(" "):typed}</div>
@@ -444,6 +487,36 @@ function doEnter(){
    nothing. Every committed swipe is undoable. */
 const THRESHOLD = 88;
 let drag = null;
+
+/* The preview card takes the same gesture as a row, so the hand learns one
+   rule: swipe right finishes the room. On release the card flies out and the
+   guest lands in Récents (the Historique panel). */
+(function(){
+  let d=null;
+  const box = el("detail");
+  box.addEventListener("pointerdown",(e)=>{
+    const c = e.target.closest("#pcard"); if(!c) return;
+    const x = exact(); if(!x || x.alert || x.pay) return;
+    d = {c, x0:e.clientX, dx:0, x};
+    c.style.transition="none"; c.setPointerCapture(e.pointerId);
+  });
+  box.addEventListener("pointermove",(e)=>{
+    if(!d) return;
+    d.dx = e.clientX - d.x0;
+    d.c.style.transform = `translateX(${Math.max(-40,Math.min(200,d.dx))}px) rotate(${d.dx*0.012}deg)`;
+  });
+  const up = ()=>{
+    if(!d) return;
+    const {c,dx,x} = d; d=null;
+    c.style.transition="transform .3s cubic-bezier(.2,.85,.25,1), opacity .3s ease";
+    if(dx >= 92){
+      c.style.transform="translateX(420px) rotate(7deg)"; c.style.opacity="0";
+      setTimeout(()=>{ commit(x, x.p - (x.in||0), null); typed=""; el("q").value=""; render(); },230);
+    } else { c.style.transform="translateX(0)"; }
+  };
+  box.addEventListener("pointerup",up);
+  box.addEventListener("pointercancel",up);
+})();
 
 /* keep the visible field authoritative after programmatic changes */
 const _r = render; render = function(){ if(el("q").value !== typed) el("q").value = typed; _r(); };

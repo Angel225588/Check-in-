@@ -31,23 +31,38 @@ for (const mode of ["dark", "light"]) {
 
   const samples = await p.evaluate(() => {
     const parse = (s) => (s.match(/[\d.]+/g) || []).slice(0, 4).map(Number);
+    // A gradient has many colours behind the same glyph. Reading only
+    // backgroundColor sees "transparent" and composites against whatever is
+    // underneath — which reported white-on-gold as white-on-white. Collect
+    // EVERY stop and let the caller assert the worst one.
+    const stopsOf = (cs) => {
+      const bi = cs.backgroundImage || "";
+      if (!bi.includes("gradient")) return [];
+      return (bi.match(/rgba?\([^)]+\)/g) || []).map(parse).filter((c) => c.length >= 3);
+    };
     const stack = (el) => {
       const out = []; let n = el;
       while (n && n !== document.documentElement) {
-        const c = parse(getComputedStyle(n).backgroundColor);
+        const cs = getComputedStyle(n);
+        const g = stopsOf(cs);
+        if (g.length) out.push({ grad: g });
+        const c = parse(cs.backgroundColor);
         if (c.length >= 3 && (c[3] === undefined || c[3] > 0.02)) out.push(c);
         n = n.parentElement;
       }
       out.push([18, 16, 14]);
       return out;
     };
+    // Returns every plausible backdrop: one per gradient stop encountered.
     const comp = (layers) => {
-      let [r, g, bb] = layers[layers.length - 1].slice(0, 3);
+      let bases = [layers[layers.length - 1].slice(0, 3)];
       for (let i = layers.length - 2; i >= 0; i--) {
-        const L = layers[i], a = L[3] === undefined ? 1 : L[3];
-        r = L[0] * a + r * (1 - a); g = L[1] * a + g * (1 - a); bb = L[2] * a + bb * (1 - a);
+        const L = layers[i];
+        if (L.grad) { bases = L.grad.map((c) => c.slice(0, 3)); continue; }
+        const a = L[3] === undefined ? 1 : L[3];
+        bases = bases.map(([r, g, bb]) => [L[0]*a + r*(1-a), L[1]*a + g*(1-a), L[2]*a + bb*(1-a)]);
       }
-      return [r, g, bb];
+      return bases;
     };
     const res = [];
     for (const el of document.querySelectorAll(".frame *")) {
@@ -60,7 +75,7 @@ for (const mode of ["dark", "light"]) {
       res.push({
         text: el.textContent.trim().slice(0, 26),
         color: parse(cs.color).slice(0, 3),
-        bg: comp(stack(el)),
+        bgs: comp(stack(el)),
         size: parseFloat(cs.fontSize),
         weight: cs.fontWeight,
         w: Math.round(r.width), h: Math.round(r.height),
@@ -74,7 +89,7 @@ for (const mode of ["dark", "light"]) {
     checked++;
     const large = s.size >= 24 || (s.size >= 18.66 && Number(s.weight) >= 700);
     const need = large ? 3 : 4.5;
-    const got = contrast(s.color, s.bg);
+    const got = Math.min(...s.bgs.map((bg) => contrast(s.color, bg)));
     if (got < need) { bad++; console.log(`  [${mode}] LOW ${got.toFixed(2)}:1 (needs ${need}) — "${s.text}" ${s.size}px`); }
   }
 
