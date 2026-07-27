@@ -194,11 +194,19 @@ let _server = null;
 async function startServer() {
   if (await ping(2000)) return; // caller supplied one
   const port = new URL(BASE).port || "3000";
-  _server = spawn("npx", ["next", "start", "-p", port], {
-    cwd: ROOT, stdio: "ignore", detached: true,
+  // `shell: true` so this resolves npx the same way an interactive shell would;
+  // a bare spawn silently fails to launch in some sandboxes and then the whole
+  // suite reports as a design failure.
+  _server = spawn(`npx next start -p ${port}`, {
+    cwd: ROOT, stdio: "ignore", detached: true, shell: true,
   });
   _server.unref();
-  if (!(await ping(90000))) throw new Error(`Could not start a server on ${BASE}`);
+  if (!(await ping(120000))) {
+    throw new Error(
+      `Could not start a server on ${BASE}. Start one yourself (npx next start -p ${port}) ` +
+      `and re-run — the suite will use it instead of spawning its own.`
+    );
+  }
 }
 function stopServer() {
   if (_server) { try { process.kill(-_server.pid, "SIGKILL"); } catch {} _server = null; }
