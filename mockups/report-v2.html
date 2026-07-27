@@ -49,6 +49,17 @@
   .right{width:300px;flex:none;display:flex;flex-direction:column;gap:10px}
 
   /* 1 · affluence */
+  .seg{display:flex;gap:4px;padding:3px;border-radius:999px;background:rgba(255,255,255,.05)}
+  body.light .seg{background:rgba(42,38,32,.06)}
+  .seg button{min-height:44px;padding:0 14px;border:none;border-radius:999px;cursor:pointer;
+    font:inherit;font-size:12px;font-weight:800;color:var(--muted);background:none;
+    font-variant-numeric:tabular-nums}
+  .seg button.on{background:var(--surface);color:var(--gold-ink);
+    box-shadow:0 2px 8px -3px rgba(0,0,0,.6)}
+  body.light .seg button.on{background:#fff;box-shadow:0 2px 8px -4px rgba(90,70,40,.4)}
+  .seg input{width:56px;min-height:44px;border:none;outline:none;border-radius:999px;
+    background:none;font:inherit;font-size:12px;font-weight:800;color:var(--gold-ink);
+    text-align:center;font-variant-numeric:tabular-nums}
   .peak{height:132px;display:flex;align-items:flex-end;gap:5px;margin-top:12px}
   .peak i{flex:1;border-radius:5px 5px 2px 2px;position:relative;
     background:linear-gradient(180deg,var(--gold),var(--gold-deep));font-style:normal}
@@ -169,7 +180,13 @@
     <div class="left">
       <!-- 1 · affluence -->
       <div class="pane">
-        <div class="cap"><span>Affluence — heure d'arrivée</span><b id="peaklab">Pointe 08:00 · 34 personnes</b></div>
+        <div class="cap" style="align-items:center">
+          <span>Affluence — heure d'arrivée</span>
+          <span style="display:flex;align-items:center;gap:12px">
+            <b id="peaklab">—</b>
+            <span class="seg" id="seg"></span>
+          </span>
+        </div>
         <div class="peak" id="peak"></div>
         <div class="axis"><span>06:30</span><span>07:30</span><span>08:30</span><span>09:30</span><span>10:30</span></div>
       </div>
@@ -240,12 +257,43 @@ const N = {in:ROOMS.filter(r=>r.st==="in").length, pa:ROOMS.filter(r=>r.st==="pa
            no:ROOMS.filter(r=>r.st==="no").length};
 const PCT = Math.round((N.in + N.pa*0.5) / ROOMS.length * 100);
 
-/* ── 1 · affluence ─────────────────────────────────────────────── */
-const BUCKETS = [4,9,17,26,34,31,22,15,9,5,3,2];
-const peakMax = Math.max(...BUCKETS);
-document.getElementById("peak").innerHTML = BUCKETS.map((v,i)=>
-  `<i class="${v===peakMax?"now":""}" style="height:${(v/peakMax*100).toFixed(1)}%">
-     ${v===peakMax?`<span>${v}</span>`:""}</i>`).join("");
+/* ── 1 · affluence, re-bucketed on demand ──────────────────────── */
+const OPEN = 390, CLOSE = 630;            // 06:30 → 10:30, in minutes
+const ARRIVALS = ROOMS.filter(r=>r.t).map(r=>{
+  const [h,m] = r.t.split(":").map(Number); return {min:h*60+m, pax:r.pax};
+});
+const GRAINS = [5,10,15,30];
+let grain = 15;
+
+const hhmm = (m)=>`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
+
+function drawPeak(){
+  const n = Math.ceil((CLOSE-OPEN)/grain);
+  const b = new Array(n).fill(0);
+  for(const a of ARRIVALS){
+    const i = Math.floor((a.min-OPEN)/grain);
+    if(i>=0 && i<n) b[i] += a.pax;
+  }
+  const max = Math.max(1, ...b);
+  const peakI = b.indexOf(max);
+  // Below ~8px a bar is a hairline and the label would collide with its
+  // neighbours, so fine grains drop the annotation and keep the shape.
+  const wide = n <= 26;
+  document.getElementById("peak").innerHTML = b.map((v,i)=>
+    `<i class="${i===peakI?"now":""}" style="height:${(v/max*100).toFixed(1)}%"
+        title="${hhmm(OPEN+i*grain)} · ${v}">${i===peakI && wide?`<span>${v}</span>`:""}</i>`).join("");
+  document.getElementById("peak").style.gap = n > 30 ? "2px" : n > 18 ? "3px" : "5px";
+  document.getElementById("peaklab").textContent =
+    `Pointe ${hhmm(OPEN+peakI*grain)} · ${max} personnes`;
+  document.getElementById("seg").innerHTML =
+    GRAINS.map(g=>`<button class="${g===grain?"on":""}" onclick="setGrain(${g})">${g} min</button>`).join("")
+    + `<input id="cg" type="number" min="1" max="120" placeholder="perso"
+         value="${GRAINS.includes(grain)?"":grain}" title="Intervalle personnalisé (min)">`;
+  const ci = document.getElementById("cg");
+  ci.onchange = (e)=>{ const v = Math.max(1, Math.min(120, +e.target.value||15)); setGrain(v); };
+}
+window.setGrain = (g)=>{ grain = g; drawPeak(); };
+drawPeak();
 
 /* ── 2 · treemap ───────────────────────────────────────────────── */
 const T = ROOMS.length;
