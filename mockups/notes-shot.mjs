@@ -1,22 +1,27 @@
 import { chromium } from "playwright";
-import { readdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
-const root="/opt/pw-browsers";
-const d=readdirSync(root).filter(x=>x.startsWith("chromium-")).sort().reverse().find(x=>existsSync(join(root,x,"chrome-linux","chrome")));
-const exe=join(root,d,"chrome-linux","chrome");
-const dir="/home/user/Check-in-/mockups";
-const url="file://"+dir+"/notes-flow.html";
-const b=await chromium.launch({headless:true,executablePath:exe});
-const ctx=await b.newContext({viewport:{width:1194,height:834},deviceScaleFactor:2});
-const p=await ctx.newPage();
-await p.goto(url,{waitUntil:"load"});
-await p.click('.chip[data-f="alerte"]');   // show a gold/colored selected filter
-await p.waitForTimeout(300);
-await p.screenshot({path:dir+"/notes-1-list.png"});
-// tap the pinned Alerte note -> edit mode (delete visible)
-await p.click('#filters .chip[data-f="all"]');
-await p.click('#list .note.alerte');
-await p.waitForTimeout(500);
-await p.screenshot({path:dir+"/notes-3-edit.png"});
-await b.close();
-console.log("done");
+import { readdirSync, existsSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+const HERE = dirname(fileURLToPath(import.meta.url));
+const root = process.env.PLAYWRIGHT_BROWSERS_PATH || "/opt/pw-browsers";
+const dir = readdirSync(root).filter(x=>x.startsWith("chromium-")).sort().reverse()
+  .map(d=>join(root,d,"chrome-linux","chrome")).find(existsSync);
+const b = await chromium.launch({headless:true, executablePath:dir, args:["--no-sandbox","--disable-dev-shm-usage"]});
+const shots = [
+  ["notes-v2-list", async p=>{}],
+  ["notes-v2-compose", async p=>{ await p.getByText("+ Nouvelle note").click(); await p.waitForTimeout(200);
+      await p.fill("#ttl","Allergie arachide"); await p.fill("#bdy","Choc anaphylactique. EpiPen dans le sac.");
+      await p.locator('[data-t="alert"]').click(); }],
+  ["notes-v2-keyboard", async p=>{ await p.getByText("+ Nouvelle note").click(); await p.waitForTimeout(150);
+      await p.getByText("Simuler le clavier iPad").click(); }],
+  ["notes-v2-detail", async p=>{ await p.getByText("Allergie arachide").first().click(); }],
+  ["notes-v2-light", async p=>{ await p.getByText("Clair / Sombre").click(); }],
+];
+for (const [name, act] of shots) {
+  const p = await b.newPage({viewport:{width:1230,height:900}, deviceScaleFactor:2});
+  await p.goto("file://"+join(HERE,"notes-v2.html"), {waitUntil:"load"});
+  await act(p); await p.waitForTimeout(320);
+  await p.locator(".stage").screenshot({path: join(HERE, name+".png")});
+  await p.close();
+}
+await b.close(); console.log("shots written");
