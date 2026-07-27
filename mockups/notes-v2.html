@@ -47,12 +47,13 @@
     animation:pop .24s cubic-bezier(.2,.9,.25,1)}
   @keyframes pop{from{opacity:0;transform:translate(-50%,-46%) scale(.97)}}
 
-  .phead{flex:none;display:flex;align-items:center;gap:14px;padding:16px 20px;
+  .phead{flex:none;display:flex;align-items:center;gap:20px;padding:24px 24px 22px;
     border-bottom:1px solid rgba(255,255,255,.06)}
-  .phead .rm{font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .phead .rm{font-size:46px;font-weight:800;letter-spacing:-.035em;line-height:1;
+    font-variant-numeric:tabular-nums}
   .phead .who{flex:1;min-width:0}
-  .phead .nm{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .phead .sub{font-size:12px;color:var(--muted);font-weight:600}
+  .phead .nm{font-size:22px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .phead .sub{font-size:13px;color:var(--muted);font-weight:600;margin-top:3px}
   .icon{width:46px;height:46px;flex:none;border-radius:50%;border:none;cursor:pointer;
     display:grid;place-items:center;color:var(--ink-2);
     background:rgba(255,255,255,.05)}
@@ -63,11 +64,23 @@
   .pfoot{flex:none;padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,.06)}
 
   /* list */
+  /* A search field only appears once the list is long enough to need one.
+     For a guest with three notes it is furniture that costs height in a panel
+     already competing with the keyboard. */
+  .nsearch{display:flex;align-items:center;gap:11px;padding:0 16px;min-height:52px;
+    border-radius:var(--r-md);margin-bottom:11px;background:rgba(255,255,255,.05);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+  body.light .nsearch{background:#FBF7F0;box-shadow:inset 0 0 0 1px rgba(42,38,32,.12)}
+  .nsearch svg{width:19px;height:19px;color:var(--muted);flex:none}
+  .nsearch input{flex:1;min-width:0;border:none;outline:none;background:none;font:inherit;
+    font-size:16px;font-weight:700;color:var(--ink)}
+  .nsearch input::placeholder{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    font-style:italic;font-weight:400;color:var(--muted)}
   .filters{display:flex;gap:7px;overflow-x:auto;padding-bottom:12px}
-  .fil{flex:none;min-height:44px;padding:0 14px;border-radius:999px;border:none;cursor:pointer;
+  .fil{color:var(--muted);flex:none;min-height:44px;padding:0 14px;border-radius:999px;border:none;cursor:pointer;
     font-size:12.5px;font-weight:800;background:rgba(255,255,255,.04);color:var(--muted)}
   body.light .fil{background:rgba(42,38,32,.05)}
-  .note{position:relative;width:100%;text-align:left;display:flex;gap:13px;align-items:flex-start;
+  .note{color:var(--ink);position:relative;width:100%;text-align:left;display:flex;gap:13px;align-items:flex-start;
     padding:14px 16px 14px 18px;border-radius:var(--r-md);cursor:pointer;margin-bottom:9px;
     background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.05);overflow:hidden}
   body.light .note{background:#FFF;border:1px solid rgba(42,38,32,.09)}
@@ -99,8 +112,17 @@
     font-style:italic;font-weight:400;color:var(--muted);opacity:.8}
   .tlabel{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;
     color:var(--muted);margin:16px 0 8px}
+  /* One scrollable row. Keeping it to a single compact strip is what stops
+     classification outweighing the note, not where it sits on the panel. */
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:14px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{color:var(--muted);flex:none;min-height:46px;padding:0 16px;border:none;border-radius:999px;
+    cursor:pointer;font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.045)}
+  body.light .tab{background:rgba(42,38,32,.055)}
+  .tab .dot{width:9px;height:9px;border-radius:50%}
   .tones{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .tone{min-height:50px;border:none;border-radius:13px;cursor:pointer;font-size:13px;font-weight:800;
+  .tone{color:var(--muted);min-height:50px;border:none;border-radius:13px;cursor:pointer;font-size:13px;font-weight:800;
     display:flex;align-items:center;justify-content:center;gap:7px;
     background:rgba(255,255,255,.04);color:var(--muted)}
   body.light .tone{background:rgba(42,38,32,.05)}
@@ -142,7 +164,7 @@
         <div class="nm" id="hnm">Notes — Angel Polanco</div>
         <div class="sub" id="hsub">Habitué · 6ᵉ séjour · 3 pers.</div>
       </div>
-      <button class="icon" id="back" style="display:none" aria-label="Retour">
+      <button class="icon" id="back" style="visibility:hidden" aria-label="Retour">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></button>
       <button class="icon" aria-label="Fermer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -174,7 +196,7 @@ const PIN=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="c
 function go(v){ view=v; render(); }
 
 function render(){
-  $("back").style.display = view==="list" ? "none" : "grid";
+  $("back").style.visibility = view === "list" ? "hidden" : "visible";
   $("hnm").textContent = view==="compose" ? (editing?"Modifier la note":"Nouvelle note")
                        : view==="detail" ? "Note" : "Notes — Angel Polanco";
   if(view==="list") return renderList();
@@ -182,10 +204,19 @@ function render(){
   renderDetail();
 }
 
+const SEARCH_AFTER = 8;   // below this, the tabs are enough
+let q = "";
 function renderList(){
-  const sorted=[...NOTES].sort((a,b)=>(a.t==="alert"?0:a.pin?1:2)-(b.t==="alert"?0:b.pin?1:2));
+  const fold=(x)=>x.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  const hit=(n)=>!q || fold(n.ti+" "+n.bo).includes(fold(q));
+  const sorted=[...NOTES].filter(hit)
+    .sort((a,b)=>(a.t==="alert"?0:a.pin?1:2)-(b.t==="alert"?0:b.pin?1:2));
   $("pbody").innerHTML =
-    `<div class="filters">${["Tout","Alerte","Préférence","Fidélité","Événement","Info"]
+    (NOTES.length > SEARCH_AFTER ? `<div class="nsearch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="nq" placeholder="Chercher dans les notes…" value="${q}">
+    </div>` : "")
+    + `<div class="filters">${["Tout","Alerte","Préférence","Fidélité","Événement","Info"]
       .map((f,i)=>`<button class="fil" ${i===0?'style="background:rgba(255,255,255,.09);color:var(--ink)"':''}>${f}</button>`).join("")}</div>`
     + (sorted.length ? sorted.map(n=>{
         const T=TONES[n.t];
@@ -200,6 +231,8 @@ function renderList(){
         </button>`;}).join("")
       : `<div class="empty">Aucune note pour ce client.<br>Allergie, préférence, événement…</div>`);
   $("pfoot").innerHTML = `<button class="cta" onclick="newNote()">+ Nouvelle note</button>`;
+  const qi = document.getElementById("nq");
+  if(qi){ qi.oninput = (e)=>{ q = e.target.value; renderList(); qi.focus(); }; }
   fit();
 }
 
@@ -207,26 +240,30 @@ function newNote(){ editing=null; tone="info"; go("compose"); }
 
 function renderCompose(){
   $("pbody").innerHTML = `
-    <input class="fld" id="ttl" placeholder="Titre — ex. Allergie arachide" value="${editing?editing.ti:""}">
-    <textarea class="fld" id="bdy" placeholder="Ce que la réception doit savoir…">${editing?editing.bo:""}</textarea>
-    <div class="tlabel">Type de note</div>
-    <div class="tones">${Object.entries(TONES).map(([k,T])=>`
-      <button class="tone" data-t="${k}" onclick="pick('${k}')"
-        style="${tone===k?`background:color-mix(in srgb,${T.s} 16%,transparent);color:${T.c};box-shadow:inset 0 0 0 1.5px ${T.s}`:""}">
+    <div class="tabs">${Object.entries(TONES).map(([k,T])=>`
+      <button class="tab" data-t="${k}" onclick="pick('${k}')"
+        style="${tone===k?`background:color-mix(in srgb,${T.s} 18%,transparent);color:${T.c};box-shadow:inset 0 0 0 1.5px ${T.s}`:""}">
         <span class="dot" style="background:${tone===k?T.c:"var(--muted)"}"></span>${T.l}</button>`).join("")}
-      <button class="tone" onclick="this.classList.toggle('on');this.style.cssText=this.classList.contains('on')?'background:rgba(221,156,40,.16);color:var(--gold-ink);box-shadow:inset 0 0 0 1.5px var(--gold)':''">${PIN} Épingler</button>
-    </div>`;
+      <button class="tab" id="pinbtn" onclick="togglePin(this)">${PIN} Épingler</button>
+    </div>
+    <input class="fld" id="ttl" placeholder="Titre — ex. Allergie arachide" value="${editing?editing.ti:""}">
+    <textarea class="fld" id="bdy" placeholder="Ce que la réception doit savoir…">${editing?editing.bo:""}</textarea>`;
   $("pfoot").innerHTML = `<button class="cta" onclick="save()">✓ Enregistrer</button>`;
   setTimeout(()=>$("ttl").focus(),60);
   fit();
 }
 
+function togglePin(b){
+  b.classList.toggle("on");
+  b.style.cssText = b.classList.contains("on")
+    ? "background:rgba(221,156,40,.16);color:var(--gold-ink);box-shadow:inset 0 0 0 1.5px var(--gold)" : "";
+}
 function pick(k){
   tone = k;
-  document.querySelectorAll(".tones .tone[data-t]").forEach(btn=>{
+  document.querySelectorAll(".tabs .tab[data-t]").forEach(btn=>{
     const T = TONES[btn.dataset.t], on = btn.dataset.t === k;
     btn.style.cssText = on
-      ? `background:color-mix(in srgb,${T.s} 16%,transparent);color:${T.c};box-shadow:inset 0 0 0 1.5px ${T.s}`
+      ? `background:color-mix(in srgb,${T.s} 18%,transparent);color:${T.c};box-shadow:inset 0 0 0 1.5px ${T.s}`
       : "";
     btn.querySelector(".dot").style.background = on ? T.c : "var(--muted)";
   });

@@ -20,16 +20,18 @@ const contrast = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
+const FILE = process.argv[2] || "search-v2.html";
+const SEL = FILE.includes("notes") ? ".stage" : ".frame";
 const b = await chromium.launch({ headless: true, executablePath: chrome(), args: ["--no-sandbox", "--disable-dev-shm-usage"] });
 let bad = 0, checked = 0, small = 0;
 for (const mode of ["dark", "light"]) {
   const p = await b.newPage({ viewport: { width: 1194, height: 834 }, deviceScaleFactor: 1 });
-  await p.goto("file://" + join(HERE, "search-v2.html"), { waitUntil: "load" });
+  await p.goto("file://" + join(HERE, FILE), { waitUntil: "load" });
   if (mode === "light") await p.evaluate(() => document.body.classList.add("light"));
-  await p.keyboard.press("Digit2"); await p.keyboard.press("Digit2"); await p.keyboard.press("Digit4");
+  if (!FILE.includes("notes")) { await p.keyboard.press("Digit2"); await p.keyboard.press("Digit2"); await p.keyboard.press("Digit4"); }
   await p.waitForTimeout(200);
 
-  const samples = await p.evaluate(() => {
+  const samples = await p.evaluate((SELQ) => {
     const parse = (s) => (s.match(/[\d.]+/g) || []).slice(0, 4).map(Number);
     // A gradient has many colours behind the same glyph. Reading only
     // backgroundColor sees "transparent" and composites against whatever is
@@ -75,7 +77,7 @@ for (const mode of ["dark", "light"]) {
       return bases;
     };
     const res = [];
-    for (const el of document.querySelectorAll(".frame *")) {
+    for (const el of document.querySelectorAll(SELQ + " *")) {
       const direct = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 0);
       if (!direct) continue;
       const r = el.getBoundingClientRect();
@@ -93,7 +95,7 @@ for (const mode of ["dark", "light"]) {
       });
     }
     return res;
-  });
+  }, SEL);
 
   for (const s of samples) {
     checked++;
@@ -103,13 +105,13 @@ for (const mode of ["dark", "light"]) {
     if (got < need) { bad++; console.log(`  [${mode}] LOW ${got.toFixed(2)}:1 (needs ${need}) — "${s.text}" ${s.size}px`); }
   }
 
-  const targets = await p.evaluate(() =>
-    [...document.querySelectorAll(".frame button, .frame .k, .frame .chip, .frame .row, .frame .nav, .frame .m")]
+  const targets = await p.evaluate((SELQ) =>
+    [...document.querySelectorAll(`${SELQ} button`)]
       .map((e) => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim().slice(0, 18), w: Math.round(r.width), h: Math.round(r.height) }; })
-      .filter((x) => x.w > 0 && (x.w < 44 || x.h < 44)));
+      .filter((x) => x.w > 0 && (x.w < 44 || x.h < 44)), SEL);
   for (const t of targets) { small++; console.log(`  [${mode}] SMALL TARGET ${t.w}x${t.h} — "${t.t}"`); }
   await p.close();
 }
 await b.close();
-console.log(`\n${checked} text nodes checked · ${bad} below AA · ${small} tap targets under 44px`);
+console.log(`\n[${FILE}] ${checked} text nodes checked · ${bad} below AA · ${small} tap targets under 44px`);
 process.exit(bad === 0 && small === 0 ? 0 : 1);
