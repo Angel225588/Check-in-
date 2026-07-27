@@ -57,7 +57,7 @@ export default function SuggestionCard({
         {comp && (
           <span className="text-[11.5px] font-black px-2.5 py-1.5 rounded-full"
             style={{ background: "rgba(90,59,143,.16)", color: "var(--aur-pm-points)", opacity: .8 }}>
-            OFFERT
+            COMP
           </span>
         )}
         {client.isVip && (

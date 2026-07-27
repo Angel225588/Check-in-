@@ -47,7 +47,7 @@ const translations = {
   "metrics.total": { fr: "Total", en: "Total" },
   "metrics.entered": { fr: "Entrés", en: "Entered" },
   "metrics.remaining": { fr: "Restants", en: "Remaining" },
-  "metrics.comp": { fr: "Offert", en: "Comp" },
+  "metrics.comp": { fr: "COMP", en: "COMP" },
   "metrics.compHint": { fr: "petit-déjeuner offert · adultes", en: "complimentary breakfast · adults" },
   "report.sourceBreakdownTitle": { fr: "Répartition par source", en: "Breakdown by source" },
   "report.sourceBreakdownDesc": { fr: "Liste · VIP hors liste · Walk-in", en: "List · Off-list VIPs · Walk-ins" },

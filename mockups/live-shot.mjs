@@ -17,7 +17,8 @@ const CLIENTS=[mk("224","POLANCO/ANGEL",2,1,"BKF INC",{isVip:true,vipLevel:"VIP"
 const b = await chromium.launch({headless:true,executablePath:exe,args:["--no-sandbox","--disable-dev-shm-usage"]});
 for (const [name,w,h,act] of [
   ["live-search",1194,834, async p=>{}],
-  ["live-search-typed",1194,834, async p=>{ await p.locator('[data-role="search-field"] input').fill("385"); }],
+  ["live-search-typed",1194,834, async p=>{ await p.locator('[data-role="search-field"] input').fill("224"); }],
+  ["live-search-filter",1194,834, async p=>{ await p.getByText("RESTANTS").click().catch(()=>{}); }],
   ["live-notes",1194,834, async p=>{
      await p.goto(BASE+"/checkin/224",{waitUntil:"networkidle"}); await p.waitForTimeout(500);
      const tog=p.locator('[data-role="activity-toggle"]');

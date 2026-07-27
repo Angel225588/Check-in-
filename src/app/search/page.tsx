@@ -10,6 +10,7 @@ import MetricsBar, { MetricFilter } from "@/components/MetricsBar";
 import RoomSearchField from "@/components/RoomSearchField";
 import ServiceClock, { ExpectedGuest } from "@/components/ServiceClock";
 import SearchNav from "@/components/SearchNav";
+import GuestPreviewCard from "@/components/GuestPreviewCard";
 import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
@@ -36,6 +37,10 @@ export default function SearchPage() {
   const [mergeBanner, setMergeBanner] = useState<{ added: number; skipped: number; total: number } | null>(null);
   const queryRef = useRef<HTMLInputElement>(null);
   const [handSide, setHandSide] = useState<"left" | "right">("left");
+  /** How many of the room are actually walking in. Defaults to everyone still
+   *  expected, because that is the common case; the stepper handles the rest
+   *  without loading the check-in screen. */
+  const [count, setCount] = useState(1);
 
   useEffect(() => {
     setHandSide(getSettings().handSide === "right" ? "right" : "left");
@@ -47,14 +52,6 @@ export default function SearchPage() {
     saveSettings({ ...getSettings(), handSide: next });
   };
 
-  /** Rooms with someone still to come. Declared with the other hooks, above
-   *  every early return — a useMemo below one runs on some renders and not
-   *  others, which is React error #310. */
-  const remaining = useMemo(
-    () => clients.filter((c) => getRemainingForRoom(c, checkIns) > 0),
-    [clients, checkIns]
-  );
-
   /** The single unambiguous target, if there is one: an exact room, or the only
    *  guest a name still matches. Drives the CTA — nothing else may commit. */
   const hit = useMemo(() => {
@@ -63,6 +60,24 @@ export default function SearchPage() {
     if (/^\d+$/.test(q)) return q.length >= 3 ? results.find((c) => c.roomNumber === q) ?? null : null;
     return q.length >= 2 && results.length === 1 ? results[0] : null;
   }, [query, results]);
+
+  const maxCount = hit ? getRemainingForRoom(hit, checkIns) : 0;
+  useEffect(() => { setCount(Math.max(1, maxCount)); }, [hit?.roomNumber, maxCount]);
+
+  /** Prior stays per guest, for the preview's first-visit / regular badge. */
+  const visitCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    const today = new Date().toISOString().split("T")[0];
+    for (const s of getSessionHistory()) {
+      if (s.date === today) continue;
+      for (const c of s.clients) {
+        const k = c.name.trim().toUpperCase();
+        m.set(k, (m.get(k) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, []);
+  const visitsFor = (name: string) => visitCounts.get(name.trim().toUpperCase()) ?? 0;
 
   /** Guests whose arrival time is predictable: three or more prior stays. One
    *  visit is not a pattern, and a wrong prediction puts a wrong name in
@@ -201,7 +216,7 @@ export default function SearchPage() {
   };
 
   const showFiltered = activeFilter && !query;
-  const displayClients = query ? results : showFiltered ? filteredClients : remaining;
+  const displayClients = query ? results : showFiltered ? filteredClients : [];
   const filterLabels: Record<string, string> = {
     total: t("search.allClients"),
     entered: t("search.entered"),
@@ -355,22 +370,46 @@ export default function SearchPage() {
             action slot that never moves. */}
         <div className="w-full lg:w-[392px] shrink-0 flex flex-col gap-2.5 min-h-0">
           <div className="hidden lg:flex flex-col flex-1 min-h-0">
-            <ServiceClock expected={expected} />
+            {hit ? (
+              <GuestPreviewCard client={hit} visits={visitsFor(hit.name)} />
+            ) : (
+              <ServiceClock expected={expected} />
+            )}
           </div>
           <NumericKeypad
             onKeyPress={appendKey}
             onBackspace={backspace}
             onToggleMode={() => queryRef.current?.focus()}
           />
-          <button
-            onClick={() => hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit))}
-            disabled={!hit}
-            data-role="search-cta"
-            className="shrink-0 min-h-[84px] rounded-[20px] text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
-            style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
-          >
-            {hit ? <>Entrer <b className="tabular-nums">{hit.adults + hit.children}</b></> : "Entrer"}
-          </button>
+          {/* − N + so a partial arrival is one tap away instead of a screen
+              away. The middle commits; the sides only change the number. */}
+          <div className="shrink-0 flex gap-2" data-role="search-cta">
+            <button
+              onClick={() => setCount((c) => Math.max(1, c - 1))}
+              disabled={!hit || count <= 1}
+              aria-label="Une personne de moins"
+              className="w-[84px] min-h-[84px] rounded-[20px] text-[34px] font-black grid place-items-center glass-liquid active:scale-[0.96] transition-transform disabled:opacity-30"
+            >
+              −
+            </button>
+            <button
+              onClick={() => hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit))}
+              disabled={!hit}
+              data-role="search-enter"
+              className="flex-1 min-h-[84px] rounded-[20px] text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
+              style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
+            >
+              Entrer {hit && <b className="text-[30px] tabular-nums">{count}</b>}
+            </button>
+            <button
+              onClick={() => setCount((c) => Math.min(Math.max(1, maxCount), c + 1))}
+              disabled={!hit || count >= maxCount}
+              aria-label="Une personne de plus"
+              className="w-[84px] min-h-[84px] rounded-[20px] text-[34px] font-black grid place-items-center glass-liquid active:scale-[0.96] transition-transform disabled:opacity-30"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
 
