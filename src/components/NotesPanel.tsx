@@ -137,6 +137,7 @@ function NoteRow({ note, onOpen }: { note: GuestNote; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
+      data-role="note-row"
       data-note-tone={note.tone}
       className="shrink-0 w-full text-left rounded-[14px] pl-3 pr-3 py-2.5 flex items-start gap-2.5 min-h-[56px] active:scale-[0.99] transition-transform relative overflow-hidden"
       style={{ background: isAlert ? m.soft : "rgba(0,0,0,.035)" }}

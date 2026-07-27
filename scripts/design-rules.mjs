@@ -401,9 +401,12 @@ async function main() {
   const addNote = async (page, toneLabel, title) => {
     await page.getByRole("button", { name: "Ajouter une note" }).click();
     await page.waitForTimeout(240);
-    await page.getByRole("button", { name: toneLabel, exact: true }).click();
-    await page.locator('input[placeholder^="Titre"]').fill(title);
-    await page.getByRole("button", { name: "Terminé" }).click();
+    // Scope to the composer: the same tone labels exist as filter chips in the
+    // list behind it, and an unscoped lookup matches both.
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: toneLabel, exact: true }).click();
+    await dialog.locator('input[placeholder^="Titre"]').fill(title);
+    await dialog.getByRole("button", { name: "Terminé" }).click();
     await page.waitForTimeout(320);
   };
 
@@ -475,7 +478,8 @@ async function main() {
     const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
     await openNotesTab(page);
     await addNote(page, "Alerte", "Allergie arachide");
-    await page.locator('[data-note-tone="alert"]').first().click();
+    // The list row, not the pinned chip on the card — both carry the tone.
+    await page.locator('[data-role="note-row"][data-note-tone="alert"]').first().click();
     await page.waitForTimeout(280);
 
     const del = await page.locator('[data-role="note-delete"]').boundingBox();
