@@ -10,3 +10,5 @@ validation-artifacts/
 # throwaway measurement/probe scripts written at the repo root during
 # design evaluation runs (kept out of history; real tools live in mockups/)
 /_*.mjs
+/.probe-*.mjs
+/.probe-*.js
