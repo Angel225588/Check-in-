@@ -61,18 +61,30 @@
   .axis{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;
     color:var(--muted);font-weight:700}
 
-  /* 2 · heat grid — status is carried by SHAPE as well as colour, so it survives
-     greyscale and red/green colour-blindness (the pair carrying the most weight). */
-  .grid{display:grid;grid-template-columns:repeat(28,1fr);gap:4px;margin-top:12px}
-  .cell{aspect-ratio:1;border-radius:3px;position:relative;cursor:pointer}
-  .cell.in{background:var(--good-lit)}
-  .cell.pa{background:transparent;box-shadow:inset 0 0 0 1.5px var(--warn-lit);overflow:hidden}
-  .cell.pa::after{content:"";position:absolute;left:0;right:0;bottom:0;height:50%;
-    background:var(--warn-lit)}
-  .cell.no{background:transparent;box-shadow:inset 0 0 0 1.5px var(--bad-lit)}
-  .legend{display:flex;gap:18px;margin-top:12px;font-size:12px;font-weight:700;color:var(--muted)}
-  .legend span{display:flex;align-items:center;gap:7px}
-  .sw{width:13px;height:13px;border-radius:3px;position:relative}
+  /* 2 · treemap — area carries the proportion, which is the whole point: you
+     read the split without counting anything. Colour is then only a label, so
+     the red/green problem stops being load-bearing. */
+  .tm{display:flex;gap:6px;height:214px;margin-top:12px}
+  .tm .col{display:flex;flex-direction:column;gap:6px}
+  .blk{position:relative;border-radius:12px;padding:14px 16px;overflow:hidden;cursor:pointer;
+    display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
+  .blk .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;
+    opacity:.92}
+  .blk .v{font-size:38px;font-weight:800;line-height:1;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;margin-top:2px}
+  .blk .p{font-size:15px;font-weight:800;opacity:.95;font-variant-numeric:tabular-nums}
+  .blk.sm{padding:10px 12px}
+  .blk.sm .v{font-size:26px}
+  .blk.sm .p{font-size:13px}
+  .b-in{background:linear-gradient(150deg,#357D58,#255B41)}
+  .b-pa{background:linear-gradient(150deg,#96622A,#77491B)}
+  .b-no{background:linear-gradient(150deg,#A93F32,#802A1F)}
+  /* sub-blocks inside Entrés — a VIP that never showed matters more than a
+     count, so the breakdown is on the map, not buried in the list. */
+  .sub{display:flex;gap:5px;margin-top:10px}
+  .sub div{flex:1;border-radius:8px;padding:6px 9px;background:rgba(0,0,0,.26)}
+  .sub .k{font-size:9.5px;letter-spacing:.09em}
+  .sub .n{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
 
   /* 3 · list */
   .listpane{flex:1;min-height:0;display:flex;flex-direction:column}
@@ -154,13 +166,8 @@
 
       <!-- 2 · heat grid -->
       <div class="pane">
-        <div class="cap"><span>État des chambres</span><b>164 chambres</b></div>
-        <div class="grid" id="grid"></div>
-        <div class="legend">
-          <span><i class="sw" style="background:var(--good-lit)"></i>Entrés</span>
-          <span><i class="sw" style="box-shadow:inset 0 0 0 1.5px var(--warn-lit);overflow:hidden"><i style="position:absolute;left:0;right:0;bottom:0;height:50%;background:var(--warn-lit)"></i></i>Partiel</span>
-          <span><i class="sw" style="box-shadow:inset 0 0 0 1.5px var(--bad-lit)"></i>Absents</span>
-        </div>
+        <div class="cap"><span>Répartition du service</span><b id="tmlab">164 chambres</b></div>
+        <div class="tm" id="tm"></div>
       </div>
 
       <!-- 3 · list -->
@@ -227,9 +234,34 @@ document.getElementById("peak").innerHTML = BUCKETS.map((v,i)=>
   `<i class="${v===peakMax?"now":""}" style="height:${(v/peakMax*100).toFixed(1)}%">
      ${v===peakMax?`<span>${v}</span>`:""}</i>`).join("");
 
-/* ── 2 · heat grid ─────────────────────────────────────────────── */
-document.getElementById("grid").innerHTML =
-  ROOMS.map(r=>`<div class="cell ${r.st}" title="${r.rm} · ${r.nm}"></div>`).join("");
+/* ── 2 · treemap ───────────────────────────────────────────────── */
+const T = ROOMS.length;
+const pc = (n)=> (n/T*100).toFixed(1) + " %";
+// Entrés keeps its own column; the two smaller outcomes share the second,
+// split by their relative weight so the taller one is genuinely the bigger one.
+const rest = N.pa + N.no;
+document.getElementById("tm").innerHTML = `
+  <div class="col" style="flex:${N.in}">
+    <div class="blk b-in" style="flex:1" onclick="setFilter('in')">
+      <div class="k">Entrés</div>
+      <div class="v">${N.in}</div>
+      <div class="p">${pc(N.in)}</div>
+      <div class="sub">
+        <div><div class="k">VIP</div><div class="n">30</div></div>
+        <div><div class="k">Offert</div><div class="n">20</div></div>
+        <div><div class="k">Standard</div><div class="n">${N.in-50}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col" style="flex:${rest}">
+    <div class="blk b-pa sm" style="flex:${N.pa}" onclick="setFilter('pa')">
+      <div class="k">Partiel</div><div class="v">${N.pa}</div><div class="p">${pc(N.pa)}</div>
+    </div>
+    <div class="blk b-no sm" style="flex:${N.no}" onclick="setFilter('no')">
+      <div class="k">Absents</div><div class="v">${N.no}</div><div class="p">${pc(N.no)}</div>
+    </div>
+  </div>`;
+document.getElementById("tmlab").textContent = `${T} chambres`;
 
 /* ── 4 · tiles double as filters ───────────────────────────────── */
 const TILES = [
