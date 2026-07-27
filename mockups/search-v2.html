@@ -25,6 +25,19 @@
     --good:#2F6F4F; --bad:#A13B2C; --violet:#5A3B8F; --gold:#A66914;
     --gold-ink:#7F4E0E; --bad-ink:#8C2F22; --violet-ink:#4A2E78; --good-ink:#1F5638;
   }
+  /* In light mode the same panes are tinted with ink, not light — a white
+     wash on a cream ground has nothing to catch. */
+  body.light .metrics,body.light .searchbar,body.light .detail,
+  body.light .nav,body.light .k,body.light .row{
+    background:linear-gradient(180deg,#FFFFFF,#FBF7F0);
+    border:1px solid rgba(42,38,32,.10);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 10px 26px -18px rgba(90,70,40,.45)}
+  body.light .m.focal{
+    background:linear-gradient(180deg,rgba(166,105,20,.16),rgba(166,105,20,.05));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 10px 24px -14px rgba(166,105,20,.45)}
+  body.light .row.hit{
+    background:linear-gradient(180deg,rgba(166,105,20,.15),rgba(166,105,20,.04));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 10px 24px -16px rgba(166,105,20,.4)}
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     background:var(--bg); color:var(--ink);
@@ -36,12 +49,20 @@
     box-shadow:0 30px 90px -30px rgba(0,0,0,.6)}
 
   /* ── header ─────────────────────────────────────────── */
+  /* The top row uses the SAME two-column split as the body, so the metrics
+     bar ends exactly where the search bar ends and the nav sits above the
+     preview card. Edges that nearly line up read as a mistake. */
   .top{display:flex;align-items:stretch;gap:10px}
   .btn-back{display:flex;align-items:center;gap:7px;padding:0 18px;min-height:56px;
     background:var(--surface);border:1px solid var(--key-edge);border-radius:999px;
     color:var(--gold-ink);font-weight:800;font-size:15px;cursor:pointer}
-  .metrics{flex:1;display:flex;align-items:center;background:var(--surface);
-    border:1px solid var(--key-edge);border-radius:var(--r-lg);padding:6px}
+  /* Glass: a translucent pane with a lit top edge, not a flat fill with a
+     stroke around it. */
+  .metrics{flex:1;min-width:0;display:flex;align-items:center;border-radius:var(--r-lg);padding:6px;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+    backdrop-filter:blur(18px) saturate(1.15);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 34px -22px rgba(0,0,0,.9)}
   .m{flex:1;text-align:center;padding:8px 4px;border-radius:var(--r-md);cursor:pointer}
   .m:hover{background:var(--surface-2)}
   .m .lab{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
@@ -49,15 +70,25 @@
   .m .val{font-size:30px;font-weight:800;line-height:1.05;margin-top:2px;
     font-variant-numeric:tabular-nums;color:var(--ink)}
   /* ONE accent: what is still outstanding. Everything else is cream. */
-  .m.focal{background:rgba(221,156,40,.10);box-shadow:inset 0 0 0 1.5px var(--gold)}
+  /* The focal cell was a 1.5px gold ring — a hard outline reads as a cheap
+     highlighter pass. It is now a lit pane: warm translucent fill, a bright
+     top edge where light would catch, and a soft glow beneath. No stroke. */
+  .m.focal{
+    background:linear-gradient(180deg,rgba(221,156,40,.20),rgba(221,156,40,.055));
+    box-shadow:inset 0 1px 0 rgba(255,222,160,.28),
+               inset 0 -1px 0 rgba(0,0,0,.22),
+               0 10px 26px -14px rgba(221,156,40,.55)}
   .m.focal .val{color:var(--gold-ink);font-size:34px}
   .m.focal .lab{color:var(--gold-ink)}
   body.rainbow .m.entered .val{color:var(--good)}
   body.rainbow .m.comp .val{color:var(--violet-ink)}
   body.rainbow .m.vip .val{color:var(--gold-ink)}
-  .navbtns{display:flex;gap:8px}
-  .nav{width:56px;height:56px;display:grid;place-items:center;background:var(--surface);
-    border:1px solid var(--key-edge);border-radius:var(--r-md);color:var(--ink-2);cursor:pointer}
+  .navbtns{display:flex;gap:8px;width:392px;flex:none}
+  .nav{flex:1;min-height:56px;display:grid;place-items:center;border-radius:var(--r-md);
+    color:var(--ink-2);cursor:pointer;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 10px 26px -18px rgba(0,0,0,.9)}
   .nav:hover{background:var(--surface-2)}
   .nav svg{width:22px;height:22px}
 
@@ -72,7 +103,11 @@
   /* search bar — the keypad fills it with digits, the on-screen ABC or a
      paired keyboard fills it with a name. One field, two ways in. */
   .searchbar{display:flex;align-items:center;gap:13px;padding:0 20px;min-height:70px;
-    background:var(--surface);border:1.5px solid var(--key-edge);border-radius:var(--r-lg)}
+    border-radius:var(--r-lg);
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+    backdrop-filter:blur(18px) saturate(1.15);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 34px -22px rgba(0,0,0,.9)}
   .searchbar svg{width:24px;height:24px;color:var(--muted);flex:none}
   .searchbar input{flex:1;min-width:0;background:none;border:none;outline:none;
     font:inherit;font-size:24px;font-weight:700;color:var(--ink)}
@@ -92,10 +127,14 @@
 
   /* results */
   .list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px}
-  .row{display:flex;align-items:center;gap:14px;padding:11px 12px;background:var(--surface);
-    border:1px solid var(--key-edge);border-radius:var(--r-md);cursor:pointer;min-height:66px}
+  .row{display:flex;align-items:center;gap:14px;padding:11px 12px;border-radius:var(--r-md);
+    cursor:pointer;min-height:66px;
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
   .row:hover{background:var(--surface-2)}
-  .row.hit{box-shadow:inset 0 0 0 2px var(--gold);background:rgba(221,156,40,.08)}
+  .row.hit{background:linear-gradient(180deg,rgba(221,156,40,.18),rgba(221,156,40,.05));
+    box-shadow:inset 0 1px 0 rgba(255,222,160,.24),0 10px 26px -16px rgba(221,156,40,.5)}
   .rm{font-size:27px;font-weight:800;font-variant-numeric:tabular-nums;min-width:70px}
   .nm{flex:1;min-width:0}
   .nm .n{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -154,7 +193,8 @@
   /* The preview/clock takes ALL the space above; the keypad and its CTA are
      pinned to the bottom of the column. Same rule as R1 on the check-in
      screen: the thing you must reach never drifts away from the thumb. */
-  .detail{background:var(--surface);border:1px solid var(--key-edge);
+  .detail{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+    backdrop-filter:blur(18px) saturate(1.15);border:1px solid rgba(255,255,255,.08);
     border-radius:var(--r-lg);padding:18px 20px;flex:1;min-height:158px;display:flex;
     flex-direction:column;justify-content:center;overflow:hidden}
   .detail:has(.pcard){padding:0;background:none;border:none}
@@ -229,8 +269,10 @@
   .enter{min-height:78px;font-size:23px}
 
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .k{height:74px;border-radius:var(--r-md);background:var(--key);
-    border:1.5px solid var(--key-edge);color:var(--ink);font-size:27px;font-weight:700;
+  .k{height:74px;border-radius:var(--r-md);color:var(--ink);font-size:27px;font-weight:700;
+    background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.022));
+    border:1px solid rgba(255,255,255,.09);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 8px 20px -14px rgba(0,0,0,.9);
     cursor:pointer;display:grid;place-items:center;font-variant-numeric:tabular-nums}
   .k:active{background:var(--key-press)}
   .k.alt{font-size:15px;font-weight:800;color:var(--muted)}

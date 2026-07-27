@@ -53,14 +53,24 @@ for (const mode of ["dark", "light"]) {
       out.push([18, 16, 14]);
       return out;
     };
-    // Returns every plausible backdrop: one per gradient stop encountered.
+    // Every plausible backdrop, one per gradient stop. A stop carries its OWN
+    // alpha: rgba(166,105,20,.15) is a pale wash over whatever is beneath, not
+    // solid gold. Dropping that alpha reported 35 false failures.
+    const over = (c, base) => {
+      const a = c[3] === undefined ? 1 : c[3];
+      return [c[0]*a + base[0]*(1-a), c[1]*a + base[1]*(1-a), c[2]*a + base[2]*(1-a)];
+    };
     const comp = (layers) => {
       let bases = [layers[layers.length - 1].slice(0, 3)];
       for (let i = layers.length - 2; i >= 0; i--) {
         const L = layers[i];
-        if (L.grad) { bases = L.grad.map((c) => c.slice(0, 3)); continue; }
-        const a = L[3] === undefined ? 1 : L[3];
-        bases = bases.map(([r, g, bb]) => [L[0]*a + r*(1-a), L[1]*a + g*(1-a), L[2]*a + bb*(1-a)]);
+        if (L.grad) {
+          const next = [];
+          for (const b of bases) for (const st of L.grad) next.push(over(st, b));
+          bases = next;
+          continue;
+        }
+        bases = bases.map((b) => over(L, b));
       }
       return bases;
     };
