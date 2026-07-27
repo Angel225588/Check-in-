@@ -70,6 +70,8 @@ export interface AppSettings {
    * the screen for every control is slower and drops things. Defaults to left.
    */
   handSide?: "left" | "right";
+  /** Wider activity panel, for reading long notes without squinting. */
+  sideWide?: boolean;
 }
 
 // Dashboard analytics types

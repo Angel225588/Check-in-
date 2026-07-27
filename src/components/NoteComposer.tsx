@@ -67,76 +67,98 @@ export default function NoteComposer({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto rounded-[24px] p-5 animate-[notePop_.22s_cubic-bezier(.175,.885,.32,1.35)]"
+        data-role="note-composer"
+        /* dvh, not vh: when the tablet keyboard opens, vh keeps the old height
+           and pushes Terminé off-screen. The body scrolls and the action bar
+           stays put. */
+        className="w-full max-w-[460px] max-h-[86dvh] flex flex-col rounded-[24px] animate-[notePop_.22s_cubic-bezier(.175,.885,.32,1.35)]"
         style={{ background: "var(--color-card,#fff)", boxShadow: "0 28px 70px -20px rgba(60,40,10,.45)" }}
       >
-        {/* Pin + close */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => { setPinned((p) => !p); setPinTouched(true); }}
-            aria-pressed={pinned}
-            className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full text-[13px] font-extrabold transition-all active:scale-[0.97]"
-            style={pinned
-              ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
-              : { background: "rgba(0,0,0,.05)", color: "var(--tab-idle)" }}
-          >
-            <PushPin weight={pinned ? "fill" : "duotone"} size={16} />
-            {pinned ? "Épinglée" : "Épingler"}
-          </button>
+        <div className="shrink-0 flex items-center justify-between px-5 pt-4 pb-2">
+          <span className="text-[13px] font-extrabold" style={{ color: "var(--tab-idle)" }}>
+            {existing ? "Modifier la note" : "Nouvelle note"}
+          </span>
           <button onClick={onCancel} aria-label="Fermer" className="w-11 h-11 rounded-full grid place-items-center glass-liquid">
             <X size={16} />
           </button>
         </div>
 
-        {/* Tone */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {TONES.map((tn) => {
-            const m = toneMeta(tn);
-            const on = tone === tn;
-            return (
-              <button
-                key={tn}
-                onClick={() => pickTone(tn)}
-                aria-pressed={on}
-                className="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-full text-[13px] font-extrabold transition-all active:scale-[0.97]"
-                style={on
-                  ? { background: m.soft, color: m.color, boxShadow: `inset 0 0 0 1.5px ${m.color}` }
-                  : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
-              >
-                <NoteToneIcon tone={tn} size={15} color={on ? m.color : "var(--tab-idle)"} />
-                {m.label}
-              </button>
-            );
-          })}
+        <div className="flex-1 min-h-0 overflow-y-auto px-5">
+          {/* What you came here to write goes first and is the biggest thing on
+              the panel. The tone row used to sit above these fields and wrap to
+              five rows in a narrow column, which made classifying the note look
+              more important than writing it. */}
+          <input
+            ref={titleRef}
+            value={title}
+            onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
+            placeholder="Titre — ex. Allergie arachide"
+            maxLength={MAX_TITLE}
+            data-role="note-title"
+            className="w-full min-h-[58px] px-4 rounded-[16px] text-[20px] font-bold text-dark mb-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40"
+            style={{ background: "rgba(0,0,0,.05)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.07)" }}
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
+            placeholder="Détail — ce que la réception doit savoir"
+            rows={5}
+            maxLength={MAX_BODY}
+            data-role="note-body"
+            className="w-full px-4 py-3.5 rounded-[16px] text-[17px] leading-relaxed text-dark resize-none focus:outline-none focus:ring-2 focus:ring-brand/40"
+            style={{ background: "rgba(0,0,0,.05)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.07)" }}
+          />
+
+          {/* Classification second, and quiet: a fixed 3-column grid so it can
+              never grow into a five-row stack. */}
+          <div className="text-[10px] uppercase tracking-wider font-bold mt-4 mb-2" style={{ color: "var(--tab-idle)" }}>
+            Type de note
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {TONES.map((tn) => {
+              const m = toneMeta(tn);
+              const on = tone === tn;
+              return (
+                <button
+                  key={tn}
+                  onClick={() => pickTone(tn)}
+                  aria-pressed={on}
+                  data-role="note-tone"
+                  className="inline-flex items-center justify-center gap-1.5 min-h-[46px] px-1.5 rounded-[12px] text-[12px] font-bold transition-all active:scale-[0.97]"
+                  style={on
+                    ? { background: m.soft, color: m.color, boxShadow: `inset 0 0 0 1.5px ${m.color}` }
+                    : { background: "rgba(0,0,0,.035)", color: "var(--tab-idle)" }}
+                >
+                  <NoteToneIcon tone={tn} size={14} color={on ? m.color : "var(--tab-idle)"} />
+                  {m.label}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => { setPinned((p) => !p); setPinTouched(true); }}
+              aria-pressed={pinned}
+              className="inline-flex items-center justify-center gap-1.5 min-h-[46px] px-1.5 rounded-[12px] text-[12px] font-bold transition-all active:scale-[0.97]"
+              style={pinned
+                ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
+                : { background: "rgba(0,0,0,.035)", color: "var(--tab-idle)" }}
+            >
+              <PushPin weight={pinned ? "fill" : "duotone"} size={14} />
+              {pinned ? "Épinglée" : "Épingler"}
+            </button>
+          </div>
         </div>
 
-        <input
-          ref={titleRef}
-          value={title}
-          onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
-          placeholder="Titre — ex. Allergie arachide"
-          maxLength={MAX_TITLE}
-          className="w-full min-h-[48px] px-4 rounded-[14px] text-[16px] font-bold text-dark mb-2.5 focus:outline-none focus:ring-2"
-          style={{ background: "rgba(0,0,0,.04)" }}
-        />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-          placeholder="Détail — ce que la réception doit savoir"
-          rows={4}
-          maxLength={MAX_BODY}
-          className="w-full px-4 py-3 rounded-[14px] text-[15px] text-dark resize-none focus:outline-none focus:ring-2"
-          style={{ background: "rgba(0,0,0,.04)" }}
-        />
-
+        <div className="shrink-0 px-5 pt-3 pb-4">
         <button
           onClick={() => canSave && onSave({ tone, title: title.trim(), body: body.trim(), pinned })}
           disabled={!canSave}
-          className="w-full mt-4 min-h-[52px] rounded-[44px] text-white text-[17px] font-black inline-flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-40"
+          data-role="note-save"
+          className="w-full min-h-[54px] rounded-[44px] text-white text-[17px] font-black inline-flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-40"
           style={{ background: "var(--aur-good)", boxShadow: "0 8px 24px -10px rgba(47,111,79,.45)" }}
         >
           <Check weight="bold" size={19} /> Terminé
         </button>
+        </div>
       </div>
 
       <style jsx>{`

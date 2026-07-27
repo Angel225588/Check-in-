@@ -15,6 +15,8 @@ import {
   Prohibit,
   Star,
   ArrowsLeftRight,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import {
@@ -90,10 +92,21 @@ export default function CheckInPage({
   // Which edge the activity panel and its controls live on. Persisted, because
   // a left-hander should set this once and never think about it again.
   const [handSide, setHandSide] = useState<"left" | "right">("left");
+  // Reading a long note in a 248px column is miserable. Two widths, toggled by
+  // the ⟨⟩ control in the panel header, remembered between visits.
+  const [sideWide, setSideWide] = useState(false);
 
   useEffect(() => {
-    setHandSide(getSettings().handSide === "right" ? "right" : "left");
+    const st = getSettings();
+    setHandSide(st.handSide === "right" ? "right" : "left");
+    setSideWide(!!st.sideWide);
   }, []);
+
+  const toggleWidth = () => {
+    const next = !sideWide;
+    setSideWide(next);
+    saveSettings({ ...getSettings(), sideWide: next });
+  };
 
   const flipHandSide = () => {
     const next = handSide === "left" ? "right" : "left";
@@ -308,12 +321,26 @@ export default function CheckInPage({
         <div className={`fixed inset-0 z-30 bg-black/30 backdrop-blur-sm ${showDock ? "lg:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
       )}
       <aside
-        className={`fixed inset-y-0 ${handSide === "right" ? "right-0" : "left-0"} z-40 w-[248px] max-w-[82vw] shrink-0 p-3 transition-transform ${showDock ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : handSide === "right" ? "translate-x-full" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 ${handSide === "right" ? "right-0" : "left-0"} z-40 ${sideWide ? "w-[430px]" : "w-[248px]"} max-w-[92vw] shrink-0 p-3 transition-[transform,width] duration-200 ${showDock ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : handSide === "right" ? "translate-x-full" : "-translate-x-full"}`}
       >
         <div className="h-full glass-liquid rounded-[24px] p-4 flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center justify-between">
             <b className="text-[15px] text-dark flex items-center gap-1.5"><Clock weight="duotone" size={17} /> Activité</b>
-            <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-11 h-11 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={15} /></button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={toggleWidth}
+                data-role="side-width"
+                aria-pressed={sideWide}
+                aria-label={sideWide ? "Réduire le panneau" : "Élargir le panneau"}
+                title={sideWide ? "Réduire" : "Élargir"}
+                className="w-11 h-11 rounded-full grid place-items-center glass-liquid"
+              >
+                {handSide === "right"
+                  ? (sideWide ? <CaretRight size={15} weight="bold" /> : <CaretLeft size={15} weight="bold" />)
+                  : (sideWide ? <CaretLeft size={15} weight="bold" /> : <CaretRight size={15} weight="bold" />)}
+              </button>
+              <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-11 h-11 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={15} /></button>
+            </div>
           </div>
 
           {/* The tab row renders for EVERY guest. It used to be gated on

@@ -527,6 +527,55 @@ async function main() {
     await ctx.close();
   }
 
+  // ── R14-R15 · Notes composer + panel width ────────────────────────────
+  {
+    const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
+    await openNotesTab(page);
+
+    // R15 — the panel can be widened for reading long notes.
+    const widthOf = async () => (await page.locator("aside").boundingBox())?.width ?? 0;
+    const w0 = await widthOf();
+    await page.locator('[data-role="side-width"]').click();
+    await page.waitForTimeout(320);
+    const w1 = await widthOf();
+    record("R15-panel-resize", "The activity panel can be widened and narrowed", w1 > w0 + 80,
+      `${Math.round(w0)}px -> ${Math.round(w1)}px`);
+    await page.locator('[data-role="side-width"]').click();
+    await page.waitForTimeout(320);
+
+    // R14 — in the composer, writing outranks classifying.
+    await page.getByRole("button", { name: "Ajouter une note" }).click();
+    await page.waitForTimeout(280);
+    const title = await page.locator('[data-role="note-title"]').boundingBox();
+    const body = await page.locator('[data-role="note-body"]').boundingBox();
+    const tones = await page.locator('[data-role="note-tone"]').all();
+    const toneBoxes = [];
+    for (const t of tones) toneBoxes.push(await t.boundingBox());
+    const firstTone = toneBoxes.filter(Boolean).sort((a, b) => a.y - b.y)[0];
+
+    const above = !!title && !!firstTone && title.y < firstTone.y;
+    record("R14a-write-before-classify", "The note fields sit above the tone chooser", above,
+      title && firstTone ? `title y=${Math.round(title.y)}, tones y=${Math.round(firstTone.y)}` : "not found");
+
+    const writingArea = (title?.height ?? 0) + (body?.height ?? 0);
+    const toneArea = toneBoxes.filter(Boolean).reduce((a, b) => a + b.height, 0);
+    record("R14b-fields-dominate", "The writing surface is taller than the tone chooser",
+      writingArea > toneArea, `fields ${Math.round(writingArea)}px vs tones ${Math.round(toneArea)}px`);
+
+    // R14c — the tone chooser must not sprawl into a tall stack.
+    const rows = new Set(toneBoxes.filter(Boolean).map((b) => Math.round(b.y)));
+    record("R14c-tone-rows", "The tone chooser stays within two rows", rows.size <= 2,
+      `${rows.size} row(s)`);
+
+    // R14d — Terminé stays on screen (the tablet keyboard is the real risk).
+    const save = await page.locator('[data-role="note-save"]').boundingBox();
+    const vh = page.viewportSize().height;
+    record("R14d-save-reachable", "The composer's save button is within the viewport",
+      !!save && save.y >= 0 && save.y + save.height <= vh,
+      save ? `bottom=${Math.round(save.y + save.height)}/${vh}` : "not found");
+    await ctx.close();
+  }
+
   await closeBrowser();
   stopServer();
 
