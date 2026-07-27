@@ -78,7 +78,22 @@ const PAST_STAY = (c) => [{
   totalRemaining: 2, totalVip: 1, clients: [{ ...c, roomNumber: "210" }], checkIns: [], rawUploadText: "",
 }];
 
-async function open(browser, client, { dark = false, history = null, w = 1194, h = 834 } = {}) {
+// The sandbox runs out of shared memory long before this suite runs out of
+// checks, so the browser is recycled every few contexts instead of being held
+// open for all 22 — a crashed browser midway looks exactly like a failing rule.
+const LAUNCH = { headless: true, executablePath: resolveChromium(), args: ["--disable-dev-shm-usage", "--no-sandbox"] };
+let _browser = null, _uses = 0;
+async function browserFor() {
+  if (_browser && _uses < 6) { _uses++; return _browser; }
+  if (_browser) { try { await _browser.close(); } catch {} }
+  _browser = await chromium.launch(LAUNCH);
+  _uses = 1;
+  return _browser;
+}
+async function closeBrowser() { if (_browser) { try { await _browser.close(); } catch {} _browser = null; } }
+
+async function open(_ignored, client, { dark = false, history = null, w = 1194, h = 834 } = {}) {
+  const browser = await browserFor();
   const ctx = await browser.newContext({
     viewport: { width: w, height: h }, deviceScaleFactor: 1,
     colorScheme: dark ? "dark" : "light",
@@ -111,28 +126,70 @@ async function open(browser, client, { dark = false, history = null, w = 1194, h
 }
 
 // Composite a stack of possibly-translucent backgrounds down to solid RGB.
+// Returns EVERY plausible backdrop for the text, not just one: a gradient has
+// many colours behind the same glyph, and checking only the average would hide
+// the worst spot. Callers assert against the minimum contrast across the set.
 const COMPOSITE = `(el) => {
   const parse = (s) => {
     const n = (s.match(/[\\d.]+/g) || []).map(Number);
     return { rgb: n.slice(0, 3), a: n.length > 3 ? n[3] : 1 };
   };
   const over = (fg, bg) => fg.rgb.map((c, i) => c * fg.a + bg[i] * (1 - fg.a));
+  // Pull the colour stops out of a gradient; each is a real backdrop.
+  const stopsOf = (img) => {
+    if (!img || img === "none") return [];
+    const out = [];
+    const re = /rgba?\\(([^)]+)\\)/g;
+    let m;
+    while ((m = re.exec(img))) {
+      const n = m[1].split(",").map((x) => parseFloat(x));
+      out.push({ rgb: n.slice(0, 3), a: n.length > 3 ? n[3] : 1 });
+    }
+    return out;
+  };
+  // Walk to the root collecting layers, innermost first.
   const layers = [];
   let node = el;
   while (node && node.nodeType === 1) {
-    const bg = getComputedStyle(node).backgroundColor;
-    if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") layers.push(bg);
+    const cs = getComputedStyle(node);
+    const grad = stopsOf(cs.backgroundImage);
+    if (grad.length) layers.push({ kind: "grad", stops: grad });
+    const bg = cs.backgroundColor;
+    if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") layers.push({ kind: "solid", c: parse(bg) });
     node = node.parentElement;
   }
-  let solid = [255, 255, 255];
-  for (const l of layers.reverse()) solid = over(parse(l), solid);
+  // Paint outermost -> innermost. A gradient forks the set of candidate backdrops.
+  let candidates = [[255, 255, 255]];
+  for (const l of layers.reverse()) {
+    if (l.kind === "solid") {
+      candidates = candidates.map((b) => over(l.c, b));
+    } else {
+      const next = [];
+      for (const b of candidates) for (const s of l.stops) next.push(over(s, b));
+      candidates = next;
+    }
+  }
   const cs = getComputedStyle(el);
-  return { color: parse(cs.color).rgb, bg: solid, size: parseFloat(cs.fontSize), weight: cs.fontWeight };
+  return { color: parse(cs.color).rgb, bgs: candidates, size: parseFloat(cs.fontSize), weight: cs.weight || cs.fontWeight };
 }`;
 
+// Wait for the server rather than assuming a fixed sleep was long enough.
+async function waitForServer(timeoutMs = 90000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const r = await fetch(`${BASE}/upload`, { redirect: "manual" });
+      if (r.status < 500) return;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  throw new Error(`No server answering at ${BASE} after ${timeoutMs}ms`);
+}
+
 async function main() {
-  const browser = await chromium.launch({ headless: true, executablePath: resolveChromium() });
   try { mkdirSync(OUT, { recursive: true }); } catch {}
+  await waitForServer();
+  const browser = null; // contexts come from browserFor(); see above
 
   // ── R1 · CTA reachable without scrolling, at every viewport ────────────
   const VIEWPORTS = [
@@ -276,7 +333,8 @@ async function main() {
     for (const s of samples) {
       const large = s.size >= 24 || (s.size >= 18.66 && Number(s.weight) >= 700);
       const need = large ? 3 : 4.5;
-      const got = contrast(s.color, s.bg);
+      // Worst backdrop wins: a gradient must be legible at every stop.
+      const got = Math.min(...s.bgs.map((bg) => contrast(s.color, bg)));
       if (got < need) fails.push(`"${s.text}" ${got.toFixed(2)}:1 (needs ${need})`);
     }
     record(`R9-contrast-${dark ? "dark" : "light"}`, "Text meets WCAG AA contrast", fails.length === 0,
@@ -284,7 +342,7 @@ async function main() {
     await ctx.close();
   }
 
-  await browser.close();
+  await closeBrowser();
 
   const passed = results.filter((r) => r.pass).length;
   const failed = results.length - passed;

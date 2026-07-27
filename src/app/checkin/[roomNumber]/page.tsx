@@ -323,7 +323,7 @@ export default function CheckInPage({
                         <span className="text-[13px] font-extrabold text-dark tabular-nums">
                           {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                         </span>
-                        <span className="text-[11px] text-muted">{v.pax} pers · ch. {v.roomNumber}{v.vipLevel ? ` · ${v.vipLevel}` : ""}</span>
+                        <span className="text-[11px]" style={{ color: "var(--tab-idle)" }}>{v.pax} pers · ch. {v.roomNumber}{v.vipLevel ? ` · ${v.vipLevel}` : ""}</span>
                       </div>
                     ))}
                   </>
@@ -341,8 +341,8 @@ export default function CheckInPage({
           {/* top row: back + activity toggle (phone) */}
           <div className="flex items-center gap-2">
             <button onClick={() => router.push("/search")} className="flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all">
-              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-              <span className="text-sm font-medium text-brand">{t("checkin.search")}</span>
+              <svg className="w-4 h-4" style={{ color: "var(--brand-ink)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+              <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("checkin.search")}</span>
             </button>
             <button onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }} className={`${showDock ? "lg:hidden" : ""} ml-auto flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96]`}>
               <Clock weight="duotone" size={16} className="text-brand" />
@@ -458,9 +458,9 @@ export default function CheckInPage({
                     aria-pressed={active}
                     className="flex flex-col items-center gap-2 py-3.5 rounded-[18px] transition-all active:scale-[0.97]"
                     style={active
-                      ? { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)", color: "var(--color-brand)" }
+                      ? { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)", color: "var(--brand-ink)" }
                       : { background: "var(--color-card, #fff)", boxShadow: "var(--shadow-aur-2)" }}>
-                    <opt.Icon weight="duotone" size={24} color={active ? "var(--color-brand)" : "currentColor"} />
+                    <opt.Icon weight="duotone" size={24} color={active ? "var(--brand-ink)" : "currentColor"} />
                     <span className="text-[13px] font-extrabold leading-none">{opt.label}</span>
                   </button>
                 );

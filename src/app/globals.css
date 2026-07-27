@@ -19,6 +19,11 @@
   --color-bg-alt: #F4F4F4;
   --radius-card: 14px;
   --radius-pill: 52px;
+  /* Brand gold for SMALL text. #A66914 measures 4.44:1 on glass — just under
+     AA — so text-sized gold uses this darker ink. Large/decorative gold
+     keeps --color-brand. */
+  --brand-ink: #8F5A10;
+  --tab-idle: #5C564C;
 
   /* shadcn/ui tokens — Courtyard by Marriott brand mapping */
   --color-background: #FBF8F3;
@@ -94,6 +99,7 @@
 }
 
 html.dark {
+  --brand-ink: #E3AA45;
   --tab-idle: #B4ADA1;
   --color-background: #12100E;
   --color-foreground: #F0F0F5;
