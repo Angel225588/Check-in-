@@ -10,6 +10,7 @@ ClickUp. An entry is only "done" when something automated proves it.
 **Branch** `claude/checkin-landscape-redesign`
 **ClickUp** [Refonte check-in paysage + garde-fous design](https://app.clickup.com/t/wdy2xgx36e) · Live · Marriott
 **Verify** `npm run design-rules` · `npx vitest run` · `npm run build`
+**Result** 22/22 design rules · 243 unit tests · tsc + build clean
 
 ### Why
 
