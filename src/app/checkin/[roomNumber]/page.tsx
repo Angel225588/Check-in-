@@ -2,7 +2,19 @@
 import { useState, useEffect, useMemo, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-import { Clock, X } from "@phosphor-icons/react/dist/ssr";
+import {
+  Clock,
+  X,
+  House,
+  CreditCard,
+  Money,
+  UserGear,
+  AirplaneLanding,
+  AirplaneTakeoff,
+  Coffee,
+  Prohibit,
+  Star,
+} from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import {
   getTodayData,
@@ -33,10 +45,10 @@ function normalizeNameForId(name: string): string {
 // Payment methods shown when breakfast is not covered. Drops "Points" from the
 // legacy set — reception asks room-charge / card / cash / supervisor.
 const PAY_METHODS = [
-  { key: "room", label: "Chambre", icon: "🏨" },
-  { key: "card", label: "Carte", icon: "💳" },
-  { key: "cash", label: "Cash", icon: "💵" },
-  { key: "supervisor", label: "Supervisor", icon: "🧑‍💼" },
+  { key: "room", label: "Chambre", Icon: House },
+  { key: "card", label: "Carte", Icon: CreditCard },
+  { key: "cash", label: "Cash", Icon: Money },
+  { key: "supervisor", label: "Supervisor", Icon: UserGear },
 ];
 
 export default function CheckInPage({
@@ -272,8 +284,8 @@ export default function CheckInPage({
           {isFirstVisit ? (
             <>
               <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-black text-[12.5px] text-white shadow-[0_6px_16px_-6px] shadow-brand/60"
-                style={{ background: "linear-gradient(135deg,#DD9C28,#A66914)" }}>★ Première visite</span>
-              <div className="text-[13px] text-muted text-center py-8">Aucune activité — nouveau client ☕</div>
+                style={{ background: "linear-gradient(135deg,#DD9C28,#A66914)" }}><Star weight="fill" size={13} /> Première visite</span>
+              <div className="text-[13px] text-muted text-center py-8">Aucune activité — nouveau client</div>
             </>
           ) : (
             <>
@@ -288,7 +300,7 @@ export default function CheckInPage({
 
               <div className="flex-1 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">
                 {sideTab === "notes" ? (
-                  <div className="text-[12.5px] text-muted text-center py-6">📝 Notes & préférences — bientôt<br />(chiffré · sans fuite)</div>
+                  <div className="text-[12.5px] text-muted text-center py-6">Notes & préférences — bientôt<br />(chiffré · sans fuite)</div>
                 ) : (
                   <>
                     {sideTab === "all" && (
@@ -333,7 +345,7 @@ export default function CheckInPage({
               <div className="min-w-0 flex-1">
                 {isVip && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white/25 border border-white/40 px-3 py-1 font-black text-[13px] text-white mb-2">
-                    ★ {client.vipLevel || "VIP"}
+                    <Star weight="fill" size={13} /> {client.vipLevel || "VIP"}
                   </span>
                 )}
                 <div className="flex items-baseline gap-4 flex-wrap">
@@ -346,7 +358,8 @@ export default function CheckInPage({
                     </div>
                   ) : (
                     <button onClick={() => { setEditRoom(client.roomNumber); setEditingRoom(true); }}
-                      className={`text-[64px] leading-[0.85] font-black font-mono tracking-tight active:opacity-70 transition-opacity ${isVip ? "text-white" : "text-brand"}`}>
+                      className={`text-[64px] leading-[0.85] tracking-tight active:opacity-70 transition-opacity ${isVip ? "text-white" : "text-brand"}`}
+                      style={{ fontFamily: "var(--font-aur-serif)", fontWeight: 400, fontVariantNumeric: "tabular-nums" }}>
                       {client.roomNumber}
                     </button>
                   )}
@@ -358,9 +371,13 @@ export default function CheckInPage({
                   {comp && (
                     <span className={`text-[13px] font-extrabold px-3 py-1.5 rounded-full ${isVip ? "bg-white/90 text-purple-600" : "bg-purple-500/10 text-purple-600 dark:text-purple-400"}`}>COMP</span>
                   )}
-                  {client.arrivalDate && <span className={`text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-white/20 text-white" : "bg-black/[0.05] text-dark"}`}>🛬 {client.arrivalDate}</span>}
-                  {client.departureDate && <span className={`text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-white/20 text-white" : "bg-black/[0.05] text-dark"}`}>🛫 {client.departureDate}</span>}
-                  {needsPay && <span className="text-[13px] font-black px-3 py-1.5 rounded-full bg-[#E23B3B] text-white shadow-[0_4px_14px_-4px] shadow-red-500/60">☕✕ PETIT-DÉJ NON INCLUS</span>}
+                  {client.arrivalDate && <span className={`inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-white/20 text-white" : "bg-black/[0.05] text-dark"}`}><AirplaneLanding weight="duotone" size={14} /> {client.arrivalDate}</span>}
+                  {client.departureDate && <span className={`inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full ${isVip ? "bg-white/20 text-white" : "bg-black/[0.05] text-dark"}`}><AirplaneTakeoff weight="duotone" size={14} /> {client.departureDate}</span>}
+                  {needsPay && (
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full text-white" style={{ background: "var(--aur-bad)", boxShadow: "0 6px 18px -8px rgba(161,59,44,.6)" }}>
+                      <Coffee weight="duotone" size={14} /><Prohibit weight="bold" size={12} /> PETIT-DÉJ NON INCLUS
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -398,10 +415,12 @@ export default function CheckInPage({
           {!needsPay && (
             <div className="flex-1 grid place-items-center py-8">
               <div className="flex flex-col items-center gap-3 text-center animate-[fadeIn_0.4s_ease]">
-                <span className="w-[68px] h-[68px] rounded-full grid place-items-center text-[32px] bg-green-500/[0.12] dark:bg-green-400/[0.14] ring-1 ring-green-500/20">☕</span>
+                <span className="w-[68px] h-[68px] rounded-full grid place-items-center" style={{ background: "var(--aur-good-soft)", boxShadow: "inset 0 0 0 1px rgba(47,111,79,.18)" }}>
+                  <Coffee weight="duotone" size={32} color="var(--aur-good)" />
+                </span>
                 <div>
-                  <div className="text-[18px] font-black text-green-600 dark:text-green-400">{comp ? "Petit-déjeuner offert" : "Petit-déjeuner inclus"}</div>
-                  <div className="text-[13px] text-muted mt-0.5">Rien à encaisser — bon appétit&nbsp;☀️</div>
+                  <div className="text-[18px] font-black" style={{ color: "var(--aur-good)" }}>{comp ? "Petit-déjeuner offert" : "Petit-déjeuner inclus"}</div>
+                  <div className="text-[13px] text-muted mt-0.5">Rien à encaisser — bon appétit</div>
                 </div>
               </div>
             </div>
@@ -410,7 +429,7 @@ export default function CheckInPage({
           {/* Breakfast NOT included — prompt to collect payment */}
           {needsPay && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-[18px]" style={{ background: "linear-gradient(90deg,#FFF4E0,#FFE9C7)", border: "1.5px solid #E7A427", boxShadow: "0 8px 24px -12px rgba(180,110,10,.5)" }}>
-              <span className="grid place-items-center w-10 h-10 rounded-xl bg-[#E7A427] text-white text-lg shrink-0">☕✕</span>
+              <span className="grid place-items-center gap-0.5 w-10 h-10 rounded-xl bg-[#E7A427] text-white shrink-0" style={{gridAutoFlow:"column"}}><Coffee weight="duotone" size={17} /><Prohibit weight="bold" size={12} /></span>
               <div className="min-w-0">
                 <div className="font-black text-[15px] text-[#9a5b00]">Petit-déjeuner NON inclus — à encaisser</div>
                 <div className="text-[12px] font-semibold text-[#7a5010]">Demandez au client : l&apos;ajouter à la chambre, ou payer maintenant ?</div>
@@ -426,8 +445,11 @@ export default function CheckInPage({
                 return (
                   <button key={opt.key} onClick={() => { setPaymentAction(opt.key); if (clientIndex !== null) updateClient(clientIndex, { pendingPaymentAction: opt.key }); }}
                     aria-pressed={active}
-                    className={`flex flex-col items-center gap-2 py-3 rounded-[18px] transition-all active:scale-[0.95] ${active ? "bg-dark text-white dark:bg-white dark:text-black shadow-lg" : "glass-liquid text-dark"}`}>
-                    <span className={`w-10 h-10 rounded-[13px] grid place-items-center text-lg ${active ? "bg-gradient-to-br from-brand to-brand-light" : "bg-black/[0.04] dark:bg-white/[0.06]"}`}>{opt.icon}</span>
+                    className="flex flex-col items-center gap-2 py-3.5 rounded-[18px] transition-all active:scale-[0.97]"
+                    style={active
+                      ? { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)", color: "var(--color-brand)" }
+                      : { background: "var(--color-card, #fff)", boxShadow: "var(--shadow-aur-2)" }}>
+                    <opt.Icon weight="duotone" size={24} color={active ? "var(--color-brand)" : "currentColor"} />
                     <span className="text-[13px] font-extrabold leading-none">{opt.label}</span>
                   </button>
                 );
@@ -448,8 +470,8 @@ export default function CheckInPage({
               <div className="text-center text-xs text-muted mb-2 font-medium">{remaining} {t("checkin.of")} {total} {t("checkin.remaining")}</div>
               <div className="mb-3"><PeopleCounter value={count} min={1} max={remaining} onChange={setCount} /></div>
               <button onClick={handleCheckIn} disabled={checkInSuccess}
-                className={`w-full text-white py-4 rounded-[44px] text-2xl font-black active:scale-[0.97] transition-all disabled:opacity-60 ${isFirstVisit ? "shadow-lg shadow-brand/30" : "shadow-lg shadow-green-600/25"}`}
-                style={{ background: isFirstVisit ? "linear-gradient(90deg,#A66914,#DD9C28)" : "linear-gradient(90deg,#16a34a,#22c55e)" }}>
+                className="w-full text-white py-4 rounded-[44px] text-2xl font-black active:scale-[0.97] transition-all disabled:opacity-60"
+                style={{ background: "var(--aur-good)", boxShadow: "0 8px 24px -10px rgba(47,111,79,.45)" }}>
                 {t("checkin.button")}
               </button>
             </div>
