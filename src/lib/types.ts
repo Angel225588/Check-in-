@@ -41,11 +41,32 @@ export interface CheckInRecord {
   paymentAction?: string; // 'card' | 'room' | 'points' | 'pass'
 }
 
+/**
+ * A correction to the guest count the reception sheet arrived with.
+ *
+ * The sheet says room 123 has one guest; three turn up; reception confirms
+ * three. Overwriting the number loses the fact that the source data was wrong,
+ * and that error rate is worth watching day to day.
+ */
+export interface PaxDiscrepancy {
+  id: string;
+  roomNumber: string;
+  clientName: string;
+  beforeAdults: number;
+  beforeChildren: number;
+  afterAdults: number;
+  afterChildren: number;
+  /** People gained (positive) or lost (negative) versus the sheet. */
+  delta: number;
+  at: string;
+}
+
 export interface DailyData {
   date: string;
   clients: Client[];
   checkIns: CheckInRecord[];
   rawUploadText?: string;
+  discrepancies?: PaxDiscrepancy[];
 }
 
 export interface SessionRecord {
@@ -59,6 +80,7 @@ export interface SessionRecord {
   clients: Client[];
   checkIns: CheckInRecord[];
   rawUploadText?: string;
+  discrepancies?: PaxDiscrepancy[];
 }
 
 export interface AppSettings {

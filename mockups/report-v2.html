@@ -146,6 +146,12 @@
   .tile .v{font-size:22px;font-weight:800;line-height:1.15;
     font-variant-numeric:tabular-nums;color:var(--ink-2)}
   .tile.on .v,.tile.on .k{color:var(--gold-ink)}
+  .tile .v em{font-style:normal;font-size:12px;font-weight:800;margin-left:7px;
+    color:var(--warn-ink)}
+  /* The sheet was wrong N times today. Distinct from the outcome counts
+     beside it: this measures the source data, not the service. */
+  .tile.ecart{border-color:rgba(184,115,51,.45)}
+  .tile.ecart .k{color:var(--warn-ink)}
   .fbtn{flex:none;width:56px;min-height:50px;border-radius:13px;border:1px solid var(--hair);
     background:rgba(255,255,255,.05);color:var(--ink-2);cursor:pointer;display:grid;
     place-items:center}
@@ -329,12 +335,14 @@ const TILES = [
   {k:"vip", lab:"VIP",      v:30},
   {k:"comp",lab:"Offert",   v:20},
   {k:"hors",lab:"Hors chambre", v:8},
+  {k:"ecart",lab:"Écarts réception", v:"7", sub:"+9 pers."},
 ];
 let filter = null, q = "";
 function renderTiles(){
   document.getElementById("tiles").innerHTML = TILES.map(t=>
-    `<button class="tile ${filter===t.k?"on":""}" onclick="setFilter('${t.k}')">
-       <div class="k">${t.lab}</div><div class="v">${t.v}</div></button>`).join("");
+    `<button class="tile ${filter===t.k?"on":""} ${t.k==="ecart"?"ecart":""}" onclick="setFilter('${t.k}')">
+       <div class="k">${t.lab}</div>
+       <div class="v">${t.v}${t.sub?`<em>${t.sub}</em>`:""}</div></button>`).join("");
 }
 window.setFilter = (k)=>{ filter = filter===k ? null : k; document.getElementById("pct").innerHTML = PCT + `<span style="font-size:24px">%</span>`;
 document.getElementById("arc").setAttribute("stroke-dashoffset", (326.7 * (1 - PCT/100)).toFixed(1));

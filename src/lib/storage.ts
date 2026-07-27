@@ -1,4 +1,4 @@
-import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
+import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry, PaxDiscrepancy } from "./types";
 import { mergeVipIntoClients } from "./vip";
 import { mergeNewClients, MergeResult } from "./merge";
 
@@ -34,6 +34,10 @@ function asDailyData(v: unknown, fallbackDate: string): DailyData | null {
     clients: o.clients as Client[],
     checkIns: o.checkIns as CheckInRecord[],
     rawUploadText: typeof o.rawUploadText === "string" ? o.rawUploadText : "",
+    // Rebuilt field by field, so anything omitted here is silently dropped on
+    // the next read — which is exactly how a new array looks like it works
+    // until the page reloads.
+    discrepancies: Array.isArray(o.discrepancies) ? (o.discrepancies as PaxDiscrepancy[]) : [],
   };
 }
 
@@ -133,6 +137,7 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
     clients: result.merged,
     checkIns: existing?.checkIns ?? [],
     rawUploadText: combinedRaw,
+    discrepancies: existing?.discrepancies ?? [],
   };
   // If the (capped) raw OCR text still pushes us over the localStorage quota
   // (common on iPad Safari / installed PWA), drop it and retry so the rooms
@@ -166,8 +171,68 @@ export function addClient(client: Client): void {
 export function updateClient(index: number, updates: Partial<Client>): void {
   const data = getTodayData();
   if (!data || !data.clients[index]) return;
-  data.clients[index] = { ...data.clients[index], ...updates };
+  const before = data.clients[index];
+  const after = { ...before, ...updates };
+
+  // A corrected guest count means the reception sheet was wrong. Record it
+  // rather than overwriting the evidence: the error rate is a daily figure
+  // worth watching, and every edit keeps its own entry so the trail survives.
+  const bT = before.adults + before.children;
+  const aT = after.adults + after.children;
+  if (after.adults !== before.adults || after.children !== before.children) {
+    if (!Array.isArray(data.discrepancies)) data.discrepancies = [];
+    data.discrepancies.push({
+      id: uid(),
+      roomNumber: before.roomNumber,
+      clientName: before.name,
+      beforeAdults: before.adults,
+      beforeChildren: before.children,
+      afterAdults: after.adults,
+      afterChildren: after.children,
+      delta: aT - bT,
+      at: new Date().toISOString(),
+    });
+  }
+
+  data.clients[index] = after;
   saveTodayData(data);
+}
+
+function uid(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch { /* fall through */ }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Reception count corrections recorded today. */
+export function getDiscrepancies(): PaxDiscrepancy[] {
+  const data = getTodayData();
+  return data && Array.isArray(data.discrepancies) ? data.discrepancies : [];
+}
+
+export interface DiscrepancySummary {
+  /** Distinct rooms touched — a room corrected twice still counts once. */
+  rooms: number;
+  corrections: number;
+  added: number;
+  removed: number;
+  net: number;
+}
+
+export function summarizeDiscrepancies(list: PaxDiscrepancy[]): DiscrepancySummary {
+  const safe = Array.isArray(list) ? list : [];
+  const added = safe.reduce((n, d) => n + Math.max(0, d.delta), 0);
+  const removed = safe.reduce((n, d) => n + Math.max(0, -d.delta), 0);
+  return {
+    rooms: new Set(safe.map((d) => d.roomNumber)).size,
+    corrections: safe.length,
+    added,
+    removed,
+    net: added - removed,
+  };
 }
 
 /**
@@ -391,6 +456,7 @@ export function closeDay(): SessionRecord | null {
     totalEntered,
     totalRemaining: Math.max(0, totalGuests - totalEntered),
     totalVip: data.clients.filter((c) => c.isVip).length,
+    discrepancies: data.discrepancies ?? [],
     clients: data.clients,
     checkIns: data.checkIns,
     rawUploadText: data.rawUploadText,
@@ -491,6 +557,7 @@ export function autoCloseStale(): number {
       totalEntered,
       totalRemaining: Math.max(0, totalGuests - totalEntered),
       totalVip: data.clients.filter((c) => c.isVip).length,
+      discrepancies: data.discrepancies ?? [],
       clients: data.clients,
       checkIns: data.checkIns,
       rawUploadText: data.rawUploadText,
