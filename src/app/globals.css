@@ -19,10 +19,11 @@
   --color-bg-alt: #F4F4F4;
   --radius-card: 14px;
   --radius-pill: 52px;
-  /* Brand gold for SMALL text. #A66914 measures 4.44:1 on glass — just under
+  /* Brand gold for SMALL text. #A66914 measures 4.44:1 on glass, and even a
+     mid gold sat at 4.37:1 on the tinted active-payment chip — both under
      AA — so text-sized gold uses this darker ink. Large/decorative gold
      keeps --color-brand. */
-  --brand-ink: #8F5A10;
+  --brand-ink: #7F4E0E;
   --tab-idle: #5C564C;
 
   /* shadcn/ui tokens — Courtyard by Marriott brand mapping */
