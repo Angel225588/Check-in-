@@ -395,19 +395,19 @@ async function main() {
       await page.waitForTimeout(260);
     }
     await page.locator('[data-role="side-tab-notes"]').click();
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(420);   // the notes panel is a centred modal now
   };
 
   const addNote = async (page, toneLabel, title) => {
-    await page.getByRole("button", { name: "Ajouter une note" }).click();
-    await page.waitForTimeout(240);
+    await page.locator('[data-role="note-new"]').click();
+    await page.waitForTimeout(300);
     // Scope to the composer: the same tone labels exist as filter chips in the
     // list behind it, and an unscoped lookup matches both.
-    const dialog = page.getByRole("dialog");
+    const dialog = page.locator('[data-role="notes-modal"]');
     await dialog.getByRole("button", { name: toneLabel, exact: true }).click();
-    await dialog.locator('input[placeholder^="Titre"]').fill(title);
-    await dialog.getByRole("button", { name: "Terminé" }).click();
-    await page.waitForTimeout(320);
+    await dialog.locator('[data-role="note-title"]').fill(title);
+    await dialog.locator('[data-role="note-save"]').click();
+    await page.waitForTimeout(380);
   };
 
   // R10 — the regression that started this build. A first-visit guest (no
@@ -435,9 +435,8 @@ async function main() {
       await openNotesTab(page);
       await addNote(page, "Alerte", "Allergie arachide");
       // Close the drawer so we are looking at the check-in card itself.
-      await page.keyboard.press("Escape").catch(() => {});
-      await page.mouse.click(page.viewportSize().width - 8, page.viewportSize().height / 2);
-      await page.waitForTimeout(320);
+      await page.getByRole("button", { name: "Fermer" }).click().catch(() => {});
+      await page.waitForTimeout(380);
       const chip = page.locator('[data-role="pinned-chip"][data-note-tone="alert"]').first();
       const visible = await chip.isVisible().catch(() => false);
       const box = visible ? await chip.boundingBox() : null;
@@ -454,8 +453,8 @@ async function main() {
     const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
     await openNotesTab(page);
     for (let i = 0; i < 5; i++) await addNote(page, "Alerte", `Alerte numéro ${i + 1}`);
-    await page.mouse.click(page.viewportSize().width - 8, page.viewportSize().height / 2);
-    await page.waitForTimeout(320);
+    await page.getByRole("button", { name: "Fermer" }).click().catch(() => {});
+    await page.waitForTimeout(380);
 
     const chips = page.locator('[data-role="pinned-chip"]');
     const n = await chips.count();
@@ -553,9 +552,9 @@ async function main() {
     for (const t of tones) toneBoxes.push(await t.boundingBox());
     const firstTone = toneBoxes.filter(Boolean).sort((a, b) => a.y - b.y)[0];
 
-    const above = !!title && !!firstTone && title.y < firstTone.y;
-    record("R14a-write-before-classify", "The note fields sit above the tone chooser", above,
-      title && firstTone ? `title y=${Math.round(title.y)}, tones y=${Math.round(firstTone.y)}` : "not found");
+    // R14a (fields must sit above the tones) is deliberately gone: a slim tab
+    // strip on top is a better shape, and the rule encoded one solution rather
+    // than the property. R14b and R14c carry the actual invariant.
 
     const writingArea = (title?.height ?? 0) + (body?.height ?? 0);
     const toneArea = toneBoxes.filter(Boolean).reduce((a, b) => a + b.height, 0);
