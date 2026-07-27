@@ -96,6 +96,17 @@ async function open(browser, client, { dark = false, history = null, w = 1194, h
   }, { client, history, dark });
   await page.goto(`${BASE}/checkin/${client.roomNumber}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(450);
+  // Guard against a broken harness masquerading as a design failure. If the
+  // server serves a stale chunk manifest (e.g. .next was rebuilt underneath a
+  // running `next start`), assets 500 and the page never hydrates — every rule
+  // would then "fail" for the wrong reason. Blow up instead.
+  const hydrated = await page.evaluate(() => document.body.innerText.trim().length > 0);
+  if (!hydrated) {
+    throw new Error(
+      `Page did not hydrate at ${BASE}/checkin/${client.roomNumber} — the app served an empty body. ` +
+      `This is an environment fault, not a design-rule failure: rebuild, then restart the server.`
+    );
+  }
   return { ctx, page };
 }
 
