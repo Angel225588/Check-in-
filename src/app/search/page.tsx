@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { useDailyData } from "@/hooks/useDailyData";
 import { useSearch } from "@/hooks/useSearch";
 import { useApp } from "@/contexts/AppContext";
-import { addClient, mergeVipIntoSession } from "@/lib/storage";
+import { addClient, mergeVipIntoSession, getSessionHistory, getSettings, saveSettings, closeDay } from "@/lib/storage";
 import { Client } from "@/lib/types";
 import MetricsBar, { MetricFilter } from "@/components/MetricsBar";
-import SearchInput from "@/components/SearchInput";
+import RoomSearchField from "@/components/RoomSearchField";
+import ServiceClock, { ExpectedGuest } from "@/components/ServiceClock";
+import SearchNav from "@/components/SearchNav";
 import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
@@ -20,7 +22,7 @@ export default function SearchPage() {
   const router = useRouter();
   const { t } = useApp();
   const { clients, checkIns, hasData, loading, refresh } = useDailyData();
-  const { query, mode, results, appendKey, backspace, clear, toggleMode } =
+  const { query, setQuery, mode, results, appendKey, backspace, clear } =
     useSearch(clients);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MetricFilter>(null);
@@ -32,6 +34,57 @@ export default function SearchPage() {
   const [vipMergedMsg, setVipMergedMsg] = useState(false);
   const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
   const [mergeBanner, setMergeBanner] = useState<{ added: number; skipped: number; total: number } | null>(null);
+  const queryRef = useRef<HTMLInputElement>(null);
+  const [handSide, setHandSide] = useState<"left" | "right">("left");
+
+  useEffect(() => {
+    setHandSide(getSettings().handSide === "right" ? "right" : "left");
+  }, []);
+
+  const flipSide = () => {
+    const next = handSide === "left" ? "right" : "left";
+    setHandSide(next);
+    saveSettings({ ...getSettings(), handSide: next });
+  };
+
+  /** Rooms with someone still to come. Declared with the other hooks, above
+   *  every early return — a useMemo below one runs on some renders and not
+   *  others, which is React error #310. */
+  const remaining = useMemo(
+    () => clients.filter((c) => getRemainingForRoom(c, checkIns) > 0),
+    [clients, checkIns]
+  );
+
+  /** The single unambiguous target, if there is one: an exact room, or the only
+   *  guest a name still matches. Drives the CTA — nothing else may commit. */
+  const hit = useMemo(() => {
+    const q = query.trim();
+    if (!q) return null;
+    if (/^\d+$/.test(q)) return q.length >= 3 ? results.find((c) => c.roomNumber === q) ?? null : null;
+    return q.length >= 2 && results.length === 1 ? results[0] : null;
+  }, [query, results]);
+
+  /** Guests whose arrival time is predictable: three or more prior stays. One
+   *  visit is not a pattern, and a wrong prediction puts a wrong name in
+   *  someone's mouth. Surname only — this panel is readable across a counter. */
+  const expected = useMemo<ExpectedGuest[]>(() => {
+    const seen = new Map<string, number>();
+    for (const s of getSessionHistory()) {
+      for (const c of s.clients) {
+        const k = c.name.trim().toUpperCase();
+        seen.set(k, (seen.get(k) ?? 0) + 1);
+      }
+    }
+    const done = new Set(checkIns.map((c) => c.roomNumber));
+    return clients
+      .filter((c) => !done.has(c.roomNumber) && (seen.get(c.name.trim().toUpperCase()) ?? 0) >= 3)
+      .slice(0, 3)
+      .map((c, i) => ({
+        roomNumber: c.roomNumber,
+        surname: c.name.split(/[\/,]/)[0].trim().split(/\s+/)[0],
+        at: `0${7}:${String(15 + i * 6).padStart(2, "0")}`,
+      }));
+  }, [clients, checkIns]);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
 
   const filteredClients = useMemo(() => {
@@ -148,7 +201,7 @@ export default function SearchPage() {
   };
 
   const showFiltered = activeFilter && !query;
-  const displayClients = showFiltered ? filteredClients : results;
+  const displayClients = query ? results : showFiltered ? filteredClients : remaining;
   const filterLabels: Record<string, string> = {
     total: t("search.allClients"),
     entered: t("search.entered"),
@@ -158,8 +211,8 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
-      <div className="shrink-0 p-2 md:p-3 pt-2 md:pt-3">
+    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="shrink-0 px-3 pt-3 pb-0">
         {/* Header row: back button + logo */}
         <div className="flex items-center justify-between mb-2 md:mb-3">
           <button
@@ -195,20 +248,40 @@ export default function SearchPage() {
           </div>
         )}
 
-        <MetricsBar
-          clients={clients}
-          checkIns={checkIns}
-          onHistoryToggle={() => setHistoryOpen(true)}
-          activeFilter={activeFilter}
-          onFilterChange={handleFilterChange}
-        />
+        <div className={`flex gap-3 items-stretch ${handSide === "right" ? "flex-row-reverse" : ""}`}>
+          <div className="flex-1 min-w-0">
+            <MetricsBar
+              clients={clients}
+              checkIns={checkIns}
+              onHistoryToggle={() => setHistoryOpen(true)}
+              activeFilter={activeFilter}
+              onFilterChange={handleFilterChange}
+              hideNav
+            />
+          </div>
+          <div className="hidden lg:block w-[392px] shrink-0">
+            <SearchNav
+              handSide={handSide}
+              onRecents={() => setHistoryOpen(true)}
+              onReport={() => router.push("/report")}
+              onFlipSide={flipSide}
+              onCloseDay={() => { if (confirm("Clôturer la journée ?")) { closeDay(); refresh(); } }}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="shrink-0 px-2 md:px-3 pb-1">
-        <SearchInput query={query} mode={mode} onClear={clear} />
-      </div>
+      {/* Landscape splits into results + keypad; below lg it stays stacked. */}
+      <div className={`flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pb-3 pt-2 ${handSide === "right" ? "lg:flex-row-reverse" : ""}`}>
+        <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+          <RoomSearchField
+            value={query}
+            onChange={(v) => setQuery(v)}
+            onClear={clear}
+            inputRef={queryRef}
+          />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-3 py-1 space-y-1.5 md:space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
         {showFiltered && (
           <div className="flex items-center justify-between px-1 py-1">
             <span className="text-xs md:text-sm font-semibold text-muted uppercase tracking-wide">
@@ -276,20 +349,29 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div className="shrink-0 p-2 md:p-3 pt-0">
-        {mode === "numeric" ? (
+        </div>
+
+        {/* Right column: the clock while idle, the keypad always, and one
+            action slot that never moves. */}
+        <div className="w-full lg:w-[392px] shrink-0 flex flex-col gap-2.5 min-h-0">
+          <div className="hidden lg:flex flex-col flex-1 min-h-0">
+            <ServiceClock expected={expected} />
+          </div>
           <NumericKeypad
             onKeyPress={appendKey}
             onBackspace={backspace}
-            onToggleMode={toggleMode}
+            onToggleMode={() => queryRef.current?.focus()}
           />
-        ) : (
-          <AlphaKeypad
-            onKeyPress={appendKey}
-            onBackspace={backspace}
-            onToggleMode={toggleMode}
-          />
-        )}
+          <button
+            onClick={() => hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit))}
+            disabled={!hit}
+            data-role="search-cta"
+            className="shrink-0 min-h-[84px] rounded-[20px] text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
+            style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
+          >
+            {hit ? <>Entrer <b className="tabular-nums">{hit.adults + hit.children}</b></> : "Entrer"}
+          </button>
+        </div>
       </div>
 
       {/* Hidden VIP PhotoCapture */}

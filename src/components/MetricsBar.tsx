@@ -62,7 +62,7 @@ export default function MetricsBar({
         }`}
       >
         <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.entered")}</div>
-        <AnimatedNumber value={entered} className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400" />
+        <AnimatedNumber value={entered} className="text-xl md:text-2xl font-bold text-dark" />
       </button>
       <button
         onClick={() => handleFilter("remaining")}
@@ -73,7 +73,7 @@ export default function MetricsBar({
         }`}
       >
         <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.remaining")}</div>
-        <AnimatedNumber value={total - entered} className="text-xl md:text-2xl font-bold text-brand" />
+        <AnimatedNumber value={total - entered} className="text-2xl md:text-[28px] font-black text-brand" />
       </button>
       <button
         onClick={() => handleFilter("comp")}
@@ -84,7 +84,7 @@ export default function MetricsBar({
         }`}
       >
         <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.comp")}</div>
-        <div className="text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400">
+        <div className="text-xl md:text-2xl font-bold text-dark">
           {comp.total > 0 ? <><AnimatedNumber value={comp.entered} />/<AnimatedNumber value={comp.total} /></> : <AnimatedNumber value={0} />}
         </div>
       </button>
@@ -97,8 +97,8 @@ export default function MetricsBar({
               : "hover:bg-white/30 dark:hover:bg-white/5"
           }`}
         >
-          <div className="text-[10px] md:text-xs text-brand uppercase tracking-wide font-bold">VIP</div>
-          <AnimatedNumber value={vipCount} className="text-xl md:text-2xl font-black text-brand" />
+          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide font-bold">VIP</div>
+          <AnimatedNumber value={vipCount} className="text-xl md:text-2xl font-bold text-dark" />
         </button>
       )}
       {!hideNav && (

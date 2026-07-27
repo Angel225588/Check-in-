@@ -1,0 +1,51 @@
+"use client";
+import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
+
+/**
+ * One field, two ways in: the keypad fills it with digits, the tablet keyboard
+ * fills it with a name.
+ *
+ * It replaces the old read-only display. A real input means tapping it raises
+ * the system keyboard, which is the only way to type an accented name — the
+ * on-screen QWERTY has no è or ç, and half a French guest list is untypeable
+ * without them.
+ */
+export default function RoomSearchField({
+  value,
+  onChange,
+  onClear,
+  inputRef,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onClear: () => void;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+}) {
+  return (
+    <div
+      className="flex items-center gap-4 px-5 min-h-[84px] rounded-[24px] glass-liquid"
+      data-role="search-field"
+    >
+      <MagnifyingGlass size={27} weight="bold" style={{ color: "var(--tab-idle)" }} className="shrink-0" />
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Chambre ou nom du client…"
+        autoComplete="off"
+        aria-label="Chercher une chambre ou un client"
+        className="flex-1 min-w-0 bg-transparent outline-none text-[28px] font-bold text-dark placeholder:font-normal placeholder:italic placeholder:text-[26px]"
+        style={{ fontFamily: "inherit" }}
+      />
+      {value && (
+        <button
+          onClick={onClear}
+          aria-label="Effacer"
+          className="w-12 h-12 shrink-0 rounded-full grid place-items-center bg-black/[0.06] dark:bg-white/[0.08] active:scale-[0.94] transition-transform"
+        >
+          <X size={17} weight="bold" />
+        </button>
+      )}
+    </div>
+  );
+}

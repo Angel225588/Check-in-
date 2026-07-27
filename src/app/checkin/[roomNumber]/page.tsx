@@ -33,7 +33,7 @@ import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import ClientHistory from "@/components/ClientHistory";
 import RoomEventBadges from "@/components/RoomEventBadges";
-import NotesPanel from "@/components/NotesPanel";
+import NotesModal from "@/components/NotesModal";
 import PinnedNoteChips from "@/components/PinnedNoteChips";
 import { useGuestNotes } from "@/hooks/useGuestNotes";
 import { getRoomEvents, RoomEvent } from "@/lib/room-events";
@@ -89,6 +89,9 @@ export default function CheckInPage({
   const [sidebarOpen, setSidebarOpen] = useState(false); // drawer on small screens
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // manual hide on tablet
   const [sideTab, setSideTab] = useState<"all" | "visites" | "notes">("all");
+  // Notes open in a centred panel, not the activity column: a 248px column is
+  // a poor place to read a paragraph and a worse one to write in.
+  const [notesOpen, setNotesOpen] = useState(false);
   // Which edge the activity panel and its controls live on. Persisted, because
   // a left-hander should set this once and never think about it again.
   const [handSide, setHandSide] = useState<"left" | "right">("left");
@@ -235,11 +238,11 @@ export default function CheckInPage({
   const dockSidebar = !isFirstVisit || notesApi.notes.length > 0;
   const hasAlertNote = notesApi.notes.some((n) => n.tone === "alert");
 
-  /** One tap from anywhere on the card to the notes list. */
+  /** One tap from anywhere on the card straight into the notes panel. */
   const openNotes = () => {
     setSideTab("notes");
-    setSidebarCollapsed(false);
-    setSidebarOpen(true);
+    setNotesOpen(true);
+    setSidebarOpen(false);
   };
   const showDock = dockSidebar && !sidebarCollapsed; // docked on tablet unless manually hidden
 
@@ -349,7 +352,7 @@ export default function CheckInPage({
               unreachable from the one screen that decides whether they eat. */}
           <div className="flex gap-1.5 bg-black/[0.05] dark:bg-white/[0.06] rounded-full p-1">
             {(["all", "visites", "notes"] as const).map((tb) => (
-              <button key={tb} onClick={() => setSideTab(tb)}
+              <button key={tb} onClick={() => (tb === "notes" ? openNotes() : setSideTab(tb))}
                 aria-pressed={sideTab === tb}
                 data-role={`side-tab-${tb}`}
                 className="flex-1 min-h-[44px] rounded-full text-[12.5px] font-extrabold capitalize transition-all relative"
@@ -372,9 +375,7 @@ export default function CheckInPage({
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">
-            {sideTab === "notes" ? (
-              <NotesPanel api={notesApi} />
-            ) : isFirstVisit ? (
+            {isFirstVisit ? (
               <>
                 <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-black text-[12.5px] text-white shadow-[0_6px_16px_-6px] shadow-brand/60"
                   style={{ background: "linear-gradient(135deg,#DD9C28,#A66914)" }}><Star weight="fill" size={13} /> Première visite</span>
@@ -399,6 +400,16 @@ export default function CheckInPage({
           </div>
         </div>
       </aside>
+
+      <NotesModal
+        open={notesOpen}
+        onClose={() => { setNotesOpen(false); setSideTab("all"); }}
+        api={notesApi}
+        roomNumber={client.roomNumber}
+        guestName={client.name}
+        visits={pastStays.length}
+        pax={total}
+      />
 
       {/* ===== MAIN ===== */}
       <main className="flex-1 min-w-0 h-full flex flex-col">
