@@ -10,15 +10,13 @@ const b=await chromium.launch({headless:true,executablePath:exe});
 const ctx=await b.newContext({viewport:{width:1194,height:834},deviceScaleFactor:2});
 const p=await ctx.newPage();
 await p.goto(url,{waitUntil:"load"});
+await p.click('.chip[data-f="alerte"]');   // show a gold/colored selected filter
 await p.waitForTimeout(300);
 await p.screenshot({path:dir+"/notes-1-list.png"});
-await p.click(".add");
+// tap the pinned Alerte note -> edit mode (delete visible)
+await p.click('#filters .chip[data-f="all"]');
+await p.click('#list .note.alerte');
 await p.waitForTimeout(500);
-await p.click('.tone[data-c="alerte"]');
-await p.click("#pinbtn");
-await p.fill("#title","Allergie arachides");
-await p.fill("#body","Réaction sévère — prévenir la cuisine avant le service.");
-await p.waitForTimeout(400);
-await p.screenshot({path:dir+"/notes-2-compose.png"});
+await p.screenshot({path:dir+"/notes-3-edit.png"});
 await b.close();
 console.log("done");
