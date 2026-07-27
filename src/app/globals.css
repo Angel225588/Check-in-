@@ -94,6 +94,7 @@
 }
 
 html.dark {
+  --tab-idle: #B4ADA1;
   --color-background: #12100E;
   --color-foreground: #F0F0F5;
   --color-card: #1B1815;

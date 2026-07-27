@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+import { execSync } from 'node:child_process';
+const EXEC=execSync("ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome | head -1").toString().trim();
+const today=new Date().toISOString().split('T')[0];
+const b=await chromium.launch({executablePath:EXEC});
+const ctx=await b.newContext({viewport:{width:1280,height:900}});
+const page=await ctx.newPage();
+page.on('console',m=>console.log('CONSOLE:',m.text().slice(0,120)));
+await page.goto('http://localhost:3611/upload',{waitUntil:'domcontentloaded'});
+await page.evaluate(t=>{localStorage.setItem('dailyData_'+t,JSON.stringify({date:t,clients:[{roomNumber:'412',roomType:'K',rtc:'',confirmationNumber:'1',name:'MARTIN DUBOIS',arrivalDate:'25JUL',departureDate:'29JUL',reservationStatus:'IN',adults:2,children:1,rateCode:'R',packageCode:''}],checkIns:[],rawUploadText:''}));},today);
+await page.goto('http://localhost:3611/checkin/412',{waitUntil:'networkidle'});
+await page.waitForTimeout(1200);
+console.log('URL', page.url());
+console.log('main?', await page.evaluate(()=>!!document.querySelector('main')));
+console.log('buttons', await page.evaluate(()=>document.querySelectorAll('main button').length));
+console.log('today', today);
+await b.close();

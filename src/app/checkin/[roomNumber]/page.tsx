@@ -292,7 +292,18 @@ export default function CheckInPage({
               <div className="flex gap-1.5 bg-black/[0.05] dark:bg-white/[0.06] rounded-full p-1">
                 {(["all", "visites", "notes"] as const).map((tb) => (
                   <button key={tb} onClick={() => setSideTab(tb)}
-                    className={`flex-1 min-h-[44px] rounded-full text-[12.5px] font-extrabold capitalize transition-all ${sideTab === tb ? "bg-white text-dark shadow-sm dark:bg-white/90 dark:text-black" : "text-muted"}`}>
+                    aria-pressed={sideTab === tb}
+                    className="flex-1 min-h-[44px] rounded-full text-[12.5px] font-extrabold capitalize transition-all"
+                    // The selected pill keeps a light background in dark mode, so its
+                    // label must stay dark. `text-dark` can't be used: globals.css has
+                    // `.dark .text-dark { color:#F0F0F5 !important }`, which would win
+                    // over any dark: variant and render white-on-white.
+                    style={sideTab === tb
+                      ? { background: "#FFFFFF", color: "#1C1C1C", boxShadow: "var(--shadow-warm-1)" }
+                      // Unselected labels sit on a near-background tint; the default
+                      // muted grey only reached 4.24:1 there, under the 4.5 minimum
+                      // for this size. These warm tones clear it in both schemes.
+                      : { color: "var(--tab-idle, #5C564C)" }}>
                     {tb === "all" ? "Tout" : tb === "visites" ? "Visites" : "Notes"}
                   </button>
                 ))}
