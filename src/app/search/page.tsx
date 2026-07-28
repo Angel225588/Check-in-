@@ -125,9 +125,11 @@ export default function SearchPage() {
     }
   }, [activeFilter, clients, checkIns]);
 
-  const handleSelectRoom = (roomNumber: string, clientIndex?: number) => {
+  const handleSelectRoom = (roomNumber: string, clientIndex?: number, people?: number) => {
     // PII-free navigation: room number goes to sessionStorage, not the URL.
-    router.push(checkinHref(roomNumber, clientIndex));
+    // The arrival count rides along, so the stepper you just set is the number
+    // waiting on the check-in screen rather than a figure you set twice.
+    router.push(checkinHref(roomNumber, clientIndex, people));
   };
 
   const handleAddClient = () => {
@@ -395,13 +397,20 @@ export default function SearchPage() {
               −
             </button>
             <button
-              onClick={() => hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit))}
+              onClick={() => hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit), maxCount > 0 ? count : undefined)}
               disabled={!hit}
               data-role="search-enter"
               className="flex-1 min-h-[84px] rounded-[20px] text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
               style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
             >
-              Entrer {hit && <b className="text-[30px] tabular-nums">{count}</b>}
+              {/* A room with nobody outstanding is not an "Entrer 1" — offering
+                  it invites a phantom guest on a mis-tap. It opens instead, and
+                  corrections happen on the screen that records them. */}
+              {hit && maxCount === 0 ? (
+                "Ouvrir la fiche"
+              ) : (
+                <>Entrer {hit && <b className="text-[30px] tabular-nums">{count}</b>}</>
+              )}
             </button>
             <button
               onClick={() => setCount((c) => Math.min(Math.max(1, maxCount), c + 1))}

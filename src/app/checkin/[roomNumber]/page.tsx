@@ -144,7 +144,10 @@ export default function CheckInPage({
     setClient(found);
     const rem = getRemainingForRoom(found, data.checkIns);
     setRemaining(rem);
-    setCount(Math.max(1, rem));
+    // The search screen may already have asked how many are walking in; honour
+    // it, bounded by what the room still expects. Otherwise default to all.
+    const asked = sel?.count;
+    setCount(asked ? Math.min(Math.max(1, rem), asked) : Math.max(1, rem));
 
     setRoomEvents(getRoomEvents(roomNumber));
 

@@ -14,6 +14,8 @@
 export interface CheckinSelection {
   roomNumber: string;
   ci?: number;
+  /** How many of the room are walking in, chosen on the search screen. */
+  count?: number;
 }
 
 const KEY_PREFIX = "checkin_sel_";
@@ -54,9 +56,15 @@ export function readSelection(token: string): CheckinSelection | null {
     if (o && typeof o === "object") {
       const rec = o as Record<string, unknown>;
       if (typeof rec.roomNumber === "string") {
+        // A count that is not a positive whole number is dropped, not clamped:
+        // the check-in screen's own default is the safer answer than a guess.
+        const n = rec.count;
+        const count =
+          typeof n === "number" && Number.isInteger(n) && n > 0 ? n : undefined;
         return {
           roomNumber: rec.roomNumber,
           ci: typeof rec.ci === "number" ? rec.ci : undefined,
+          count,
         };
       }
     }
@@ -67,7 +75,7 @@ export function readSelection(token: string): CheckinSelection | null {
 }
 
 /** Build a PII-free check-in href for a selected room/guest. */
-export function checkinHref(roomNumber: string, ci?: number): string {
-  const token = stashSelection({ roomNumber, ci });
+export function checkinHref(roomNumber: string, ci?: number, count?: number): string {
+  const token = stashSelection({ roomNumber, ci, count });
   return `/checkin/${token}`;
 }

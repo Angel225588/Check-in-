@@ -14,9 +14,16 @@
 //   R7  no emoji is used as product iconography
 //   R8  every interactive element is at least 44x44 CSS px
 //   R9  every text/background pair clears WCAG AA (4.5:1, or 3:1 when large)
+//   R10-R12  notes are reachable, capped, and destructive actions are guarded
+//   R13  the activity control sits on the side the panel opens from
+//   R14-R15  writing outranks classifying; the panel can be widened
+//   R16  search: empty until typed, preview in the clock box, bounded stepper
+//   R17  report: figures agree with each other, tiles filter, écarts survive
+//   R18  contrast on the search and report screens, both themes
 //
 // Usage: node scripts/design-rules.mjs            (expects a server on BASE)
 //        BASE_URL=http://localhost:3200 node scripts/design-rules.mjs
+//        NEW_ONLY=1 …                             (skip the check-in pass)
 
 import { chromium } from "playwright";
 import { readdirSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
@@ -706,6 +713,14 @@ async function main() {
     const after = (await enter.innerText()).match(/\d+/)?.[0];
     record("R16c-stepper-bounded", "The stepper cannot commit more people than the room expects",
       Number(after) === 2, `started at ${before}, six taps of + left it at ${after}`);
+
+    // R16e — a room with nobody left outstanding must not offer to enter one
+    // more. 224 is fully checked in on this seed.
+    await page.locator('[data-role="search-field"] input').fill("224");
+    await page.waitForTimeout(420);
+    const fullLabel = (await enter.innerText()).trim();
+    record("R16e-no-phantom-guest", "A fully-entered room does not offer to enter anyone",
+      !/^Entrer/i.test(fullLabel), `CTA reads "${fullLabel}"`);
 
     // R16d — a real input, or the tablet keyboard never opens and half the
     // French guest list becomes untypeable.
