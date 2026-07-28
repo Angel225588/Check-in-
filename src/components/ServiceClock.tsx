@@ -86,9 +86,19 @@ export default function ServiceClock({ expected }: { expected: ExpectedGuest[] }
 
       <div className="relative mt-3.5 min-h-[58px]">
         <div className={`absolute inset-0 transition-opacity duration-500 ${pane === 0 ? "opacity-100" : "opacity-0"}`}>
+          {/* Before 06:30 the "time left" figure is arithmetically true and
+              practically nonsense — reception is often on the floor at 06:00
+              and would read 8h50 as time left of a service that has not
+              started. Say which state the morning is actually in. */}
           <div className="flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
             <span>Service <b style={{ color: "var(--brand-ink)" }}>06:30 – 10:30</b></span>
-            <span><b style={{ color: "var(--brand-ink)" }}>{Math.floor(left / 60)}h{pad(left % 60)}</b> restantes</span>
+            {mins < OPEN ? (
+              <span>ouvre dans <b style={{ color: "var(--brand-ink)" }}>{Math.floor((OPEN - mins) / 60)}h{pad((OPEN - mins) % 60)}</b></span>
+            ) : mins >= CLOSE ? (
+              <span><b style={{ color: "var(--brand-ink)" }}>Service terminé</b></span>
+            ) : (
+              <span><b style={{ color: "var(--brand-ink)" }}>{Math.floor(left / 60)}h{pad(left % 60)}</b> restantes</span>
+            )}
           </div>
         </div>
         <div className={`absolute inset-0 transition-opacity duration-500 ${pane === 1 ? "opacity-100" : "opacity-0"}`}>
