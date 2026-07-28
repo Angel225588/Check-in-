@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useDailyData } from "@/hooks/useDailyData";
 import { useSearch } from "@/hooks/useSearch";
 import { useApp } from "@/contexts/AppContext";
-import { addClient, mergeVipIntoSession, getSessionHistory, getSettings, saveSettings, closeDay } from "@/lib/storage";
+import { addClient, mergeVipIntoSession, getSessionHistory, getSettings, saveSettings, closeDay, addCheckIn } from "@/lib/storage";
+import { v4 as uuidv4 } from "uuid";
+import { Check, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { useGuestNotes } from "@/hooks/useGuestNotes";
 import { Client } from "@/lib/types";
 import MetricsBar, { MetricFilter } from "@/components/MetricsBar";
 import RoomSearchField from "@/components/RoomSearchField";
@@ -16,7 +19,7 @@ import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
 import HistoryPanel from "@/components/HistoryPanel";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
-import { getRemainingForRoom, isComp } from "@/lib/utils";
+import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { checkinHref } from "@/lib/checkin-nav";
 
 export default function SearchPage() {
@@ -63,6 +66,50 @@ export default function SearchPage() {
 
   const maxCount = hit ? getRemainingForRoom(hit, checkIns) : 0;
   useEffect(() => { setCount(Math.max(1, maxCount)); }, [hit?.roomNumber, maxCount]);
+
+  /** Notes for the one resolved room — one decrypt per resolved guest, not per
+   *  row. An alert here is the whole reason the shortcut must not fire. */
+  const hitNotes = useGuestNotes(hit?.roomNumber ?? "", hit?.name ?? "", "reception");
+
+  /**
+   * Can this be committed from here, or does it need the room's own screen?
+   *
+   * The shortcut only fires when nothing on the check-in screen would have
+   * asked the receptionist a question: no payment to take, no flagged
+   * reservation, no alert note, and someone still expected. Everything else
+   * opens the screen that shows what needs deciding — a check-in is not worth
+   * one tap if the tap skips an allergy.
+   */
+  const needsScreen =
+    !hit ||
+    maxCount === 0 ||
+    !hitNotes.ready ||
+    needsPaymentChoice(hit) ||
+    hit.pendingPaymentAction === "alert" ||
+    hitNotes.notes.some((n) => n.tone === "alert");
+
+  const [flash, setFlash] = useState<{ room: string; n: number } | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  /** Commit from the search screen, honestly: a check-in that did not persist
+   *  must say so rather than flash green. */
+  const commitHere = () => {
+    if (!hit) return;
+    const ok = addCheckIn({
+      id: uuidv4(),
+      roomNumber: hit.roomNumber,
+      clientName: hit.name,
+      peopleEntered: count,
+      timestamp: new Date().toISOString(),
+      ...(hit.pendingPaymentAction ? { paymentAction: hit.pendingPaymentAction } : {}),
+    });
+    if (!ok) { setSaveFailed(true); return; }
+    setSaveFailed(false);
+    setFlash({ room: hit.roomNumber, n: count });
+    clear();
+    refresh();
+    setTimeout(() => setFlash(null), 2200);
+  };
 
   /** Prior stays per guest, for the preview's first-visit / regular badge. */
   const visitCounts = useMemo(() => {
@@ -376,10 +423,40 @@ export default function SearchPage() {
           <div className="hidden lg:flex flex-col flex-1 min-h-0">
             {hit ? (
               <GuestPreviewCard client={hit} visits={visitsFor(hit.name)} />
+            ) : flash ? (
+              /* Confirmation lands in the box the eye is already on, and the
+                 field is already cleared for the next guest. */
+              <div
+                data-role="checkin-flash"
+                className="relative flex-1 min-h-[150px] rounded-[24px] px-5 flex flex-col justify-center gap-1 text-white animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
+                style={{ background: "linear-gradient(150deg,#357D58,#255B41)", boxShadow: "0 16px 44px -14px rgba(30,80,55,.55)" }}
+              >
+                <span className="flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] opacity-90">
+                  <Check weight="bold" size={15} /> Enregistré
+                </span>
+                <span className="text-[clamp(40px,5vw,68px)] font-black leading-[0.9] tracking-[-0.045em] tabular-nums">
+                  {flash.room}
+                </span>
+                <span className="text-[17px] font-bold">{flash.n} pers. entrées</span>
+              </div>
             ) : (
               <ServiceClock expected={expected} />
             )}
           </div>
+
+          {saveFailed && (
+            <div
+              data-role="checkin-save-error"
+              className="shrink-0 flex items-start gap-2.5 rounded-[16px] px-4 py-3"
+              style={{ background: "var(--aur-bad-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-bad)" }}
+            >
+              <WarningCircle weight="duotone" size={19} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
+              <div className="text-[13px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
+                NON enregistré — stockage plein. Ouvrez la fiche et réessayez.
+                <button onClick={() => setSaveFailed(false)} className="underline ml-1 font-black">Fermer</button>
+              </div>
+            </div>
+          )}
           <NumericKeypad
             onKeyPress={appendKey}
             onBackspace={backspace}
@@ -396,20 +473,34 @@ export default function SearchPage() {
             >
               −
             </button>
+            {/* Two actions, told apart by colour as well as words. Green
+                commits here and clears for the next guest; gold opens the room,
+                because something on that screen needs a decision — a payment to
+                take, a flagged reservation, an allergy. A room with nobody
+                outstanding also opens rather than offering "Entrer 1", which a
+                mis-tap would turn into a phantom guest. */}
             <button
-              onClick={() => hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit), maxCount > 0 ? count : undefined)}
+              onClick={() =>
+                needsScreen
+                  ? hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit), maxCount > 0 ? count : undefined)
+                  : commitHere()
+              }
               disabled={!hit}
               data-role="search-enter"
+              data-mode={!hit ? "idle" : needsScreen ? "open" : "commit"}
               className="flex-1 min-h-[84px] rounded-[20px] text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
-              style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
+              style={needsScreen
+                ? { background: "linear-gradient(135deg,#A66914,#8A5010)", boxShadow: "0 10px 26px -12px rgba(120,74,12,.6)" }
+                : { background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
             >
-              {/* A room with nobody outstanding is not an "Entrer 1" — offering
-                  it invites a phantom guest on a mis-tap. It opens instead, and
-                  corrections happen on the screen that records them. */}
-              {hit && maxCount === 0 ? (
+              {!hit ? (
+                "Entrer"
+              ) : maxCount === 0 ? (
                 "Ouvrir la fiche"
+              ) : needsScreen ? (
+                <>Vérifier <b className="text-[30px] tabular-nums">{count}</b></>
               ) : (
-                <>Entrer {hit && <b className="text-[30px] tabular-nums">{count}</b>}</>
+                <><Check weight="bold" size={24} /> Entrer <b className="text-[30px] tabular-nums">{count}</b></>
               )}
             </button>
             <button

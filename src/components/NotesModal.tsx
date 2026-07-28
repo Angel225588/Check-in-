@@ -10,6 +10,7 @@ import {
 import { toneMeta } from "@/lib/note-tone";
 import NoteToneIcon from "./NoteToneIcon";
 import type { NotesApi } from "@/hooks/useGuestNotes";
+import type { NoteDraft } from "./NotesPanel";
 
 /** Past this many notes a search field earns its height; below it, the tone
  *  filters are enough and the field only competes with the keyboard. */
@@ -37,6 +38,7 @@ type View = "list" | "compose" | "detail";
  */
 export default function NotesModal({
   open, onClose, api, roomNumber, guestName, visits, pax,
+  initialView = "list", initialNoteId = null, initialDraft = null,
 }: {
   open: boolean;
   onClose: () => void;
@@ -45,6 +47,10 @@ export default function NotesModal({
   guestName: string;
   visits: number;
   pax: number;
+  /** Where the activity column was when it handed over. */
+  initialView?: View;
+  initialNoteId?: string | null;
+  initialDraft?: NoteDraft | null;
 }) {
   const [view, setView] = useState<View>("list");
   const [tone, setTone] = useState<NoteTone | "all">("all");
@@ -62,8 +68,26 @@ export default function NotesModal({
   const [showRev, setShowRev] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
+  // Seed from whatever the panel was showing, so ⤢ enlarges the thing you were
+  // looking at instead of dropping you back at the list. Runs on the open edge
+  // only; typing afterwards must not be overwritten by a re-render.
   useEffect(() => {
-    if (!open) { setView("list"); setSelectedId(null); setQ(""); setConfirmDelete(false); }
+    if (!open) {
+      setView("list"); setSelectedId(null); setQ(""); setConfirmDelete(false);
+      return;
+    }
+    setQ(""); setConfirmDelete(false);
+    setSelectedId(initialNoteId ?? null);
+    if (initialDraft) {
+      setEditingId(initialDraft.editingId);
+      setCTone(initialDraft.tone);
+      setTitle(initialDraft.title);
+      setBody(initialDraft.body);
+      setPinned(initialDraft.pinned);
+      setPinTouched(true);
+    }
+    setView(initialView);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {

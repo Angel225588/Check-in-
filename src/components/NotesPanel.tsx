@@ -1,49 +1,93 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Plus, PushPin, WarningCircle } from "@phosphor-icons/react/dist/ssr";
-import { filterNotes, TONES, type GuestNote, type NoteTone } from "@/lib/notes";
+import { Plus, PushPin, WarningCircle, ArrowsOut, Check, X } from "@phosphor-icons/react/dist/ssr";
+import { filterNotes, TONES, MAX_TITLE, MAX_BODY, shouldPinByDefault, type GuestNote, type NoteTone } from "@/lib/notes";
 import { toneMeta } from "@/lib/note-tone";
 import NoteToneIcon from "./NoteToneIcon";
-import NoteComposer, { type ComposerResult } from "./NoteComposer";
 import NoteDetail from "./NoteDetail";
 import type { NotesApi } from "@/hooks/useGuestNotes";
 
+export interface NoteDraft {
+  tone: NoteTone;
+  title: string;
+  body: string;
+  pinned: boolean;
+  editingId: string | null;
+}
+
+export interface NotesExpandRequest {
+  view: "list" | "detail" | "compose";
+  noteId?: string;
+  draft?: NoteDraft;
+}
+
 /**
- * The Notes tab. Renders for EVERY guest — including a first visit.
+ * The Notes tab, in the activity column.
  *
- * That is the whole point of this build: the previous version only mounted the
- * tab row when a guest had prior stays, so a first-time guest had no path to
- * their own notes at all. For a guest with a severe allergy the note was
- * unreachable from the screen where it mattered.
+ * Opening the tab shows what is already there — a list you can scan — rather
+ * than assuming you came to write. Reading a note opens it here too; ⤢ promotes
+ * whatever you are doing to the centred panel, which is the right place for a
+ * long note or a long paragraph but the wrong place to land by default.
+ *
+ * It renders for EVERY guest, including a first visit. The previous version
+ * mounted the tab row only when a guest had prior stays, so a first-time guest
+ * had no path to their own notes — an allergy recorded at booking was
+ * unreachable from the one screen that decides whether they eat.
  */
-export default function NotesPanel({ api }: { api: NotesApi }) {
+export default function NotesPanel({
+  api,
+  onExpand,
+}: {
+  api: NotesApi;
+  onExpand: (req: NotesExpandRequest) => void;
+}) {
   const [tone, setTone] = useState<NoteTone | "all">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [composing, setComposing] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [draft, setDraft] = useState<NoteDraft | null>(null);
+  const [pinTouched, setPinTouched] = useState(false);
 
   const visible = useMemo(() => filterNotes(api.notes, tone), [api.notes, tone]);
   const selected = api.notes.find((n) => n.id === selectedId) ?? null;
-  const editing = api.notes.find((n) => n.id === editingId) ?? null;
 
-  const save = async (r: ComposerResult) => {
-    if (editing) await api.edit(editing.id, r);
-    else await api.add(r);
-    setComposing(false);
-    setEditingId(null);
+  const startNew = () => {
+    setPinTouched(false);
+    setDraft({ tone: "info", title: "", body: "", pinned: false, editingId: null });
+  };
+  const startEdit = (n: GuestNote) => {
+    setPinTouched(true);
+    setDraft({ tone: n.tone, title: n.title, body: n.body, pinned: n.pinned, editingId: n.id });
+  };
+  const pickTone = (t: NoteTone) => {
+    setDraft((d) => (d ? { ...d, tone: t, pinned: pinTouched ? d.pinned : shouldPinByDefault(t) } : d));
+  };
+  const save = async () => {
+    if (!draft) return;
+    if (!draft.title.trim() && !draft.body.trim()) return;
+    const payload = { tone: draft.tone, title: draft.title.trim(), body: draft.body.trim(), pinned: draft.pinned };
+    if (draft.editingId) await api.edit(draft.editingId, payload);
+    else await api.add(payload);
+    setDraft(null);
+    setSelectedId(null);
   };
 
-  const detail = selected && (
-    <NoteDetail
-      note={selected}
-      expanded={expanded}
-      onToggleExpand={() => setExpanded((v) => !v)}
-      onBack={() => { setSelectedId(null); setExpanded(false); }}
-      onEdit={() => { setEditingId(selected.id); setComposing(true); }}
-      onTogglePin={() => api.pin(selected.id)}
-      onDelete={async () => { await api.remove(selected.id); setSelectedId(null); setExpanded(false); }}
-    />
+  /** Hand the current work to the centred panel and let go of it here, so the
+   *  same draft is never live in two places at once. */
+  const expand = (req: NotesExpandRequest) => {
+    setDraft(null);
+    setSelectedId(null);
+    onExpand(req);
+  };
+
+  const expandBtn = (req: NotesExpandRequest, label: string) => (
+    <button
+      onClick={() => expand(req)}
+      data-role="notes-expand"
+      aria-label={label}
+      title={label}
+      className="w-11 h-11 shrink-0 rounded-full grid place-items-center glass-liquid active:scale-[0.94] transition-transform"
+    >
+      <ArrowsOut size={15} weight="bold" style={{ color: "var(--tab-idle)" }} />
+    </button>
   );
 
   return (
@@ -58,21 +102,112 @@ export default function NotesPanel({ api }: { api: NotesApi }) {
         </div>
       )}
 
-      {/* Detail replaces the list in place; ⤢ promotes it to a centred panel. */}
-      {selected && !expanded && <div className="flex-1 min-h-0">{detail}</div>}
-      {selected && expanded && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md" onClick={() => setExpanded(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[560px] max-h-[86vh] rounded-[24px] p-5 flex flex-col"
-            style={{ background: "var(--color-card,#fff)", boxShadow: "0 28px 70px -20px rgba(60,40,10,.45)" }}>
-            {detail}
+      {/* ── Compose / edit, in place ───────────────────────────────── */}
+      {draft && (
+        <div className="flex-1 min-h-0 flex flex-col gap-2">
+          <div className="shrink-0 flex items-center gap-2">
+            <span className="text-[12.5px] font-black flex-1" style={{ color: "var(--brand-ink)" }}>
+              {draft.editingId ? "Modifier" : "Nouvelle note"}
+            </span>
+            {expandBtn({ view: "compose", draft }, "Agrandir au centre")}
+            <button
+              onClick={() => setDraft(null)}
+              aria-label="Annuler"
+              className="w-11 h-11 shrink-0 rounded-full grid place-items-center glass-liquid active:scale-[0.94] transition-transform"
+            >
+              <X size={15} weight="bold" style={{ color: "var(--tab-idle)" }} />
+            </button>
           </div>
+
+          <div className="shrink-0 flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1">
+            {TONES.map((t) => {
+              const m = toneMeta(t);
+              const on = draft.tone === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => pickTone(t)}
+                  data-role="note-tone"
+                  aria-pressed={on}
+                  className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-2.5 rounded-full text-[11.5px] font-extrabold transition-all"
+                  style={on
+                    ? { background: m.soft, color: m.color, boxShadow: `inset 0 0 0 1.5px ${m.color}` }
+                    : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+                >
+                  <NoteToneIcon tone={t} size={12} color={on ? m.color : "var(--tab-idle)"} />
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <input
+            value={draft.title}
+            onChange={(e) => setDraft({ ...draft, title: e.target.value.slice(0, MAX_TITLE) })}
+            data-role="note-title"
+            placeholder="Titre"
+            aria-label="Titre de la note"
+            autoComplete="off"
+            className="shrink-0 min-h-[52px] px-3.5 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[16px] font-extrabold text-dark"
+          />
+          <textarea
+            value={draft.body}
+            onChange={(e) => setDraft({ ...draft, body: e.target.value.slice(0, MAX_BODY) })}
+            data-role="note-body"
+            placeholder="Détail…"
+            aria-label="Contenu de la note"
+            className="flex-1 min-h-[140px] p-3.5 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[14.5px] leading-relaxed text-dark resize-none"
+          />
+
+          <button
+            onClick={() => { setPinTouched(true); setDraft({ ...draft, pinned: !draft.pinned }); }}
+            aria-pressed={draft.pinned}
+            className="shrink-0 min-h-[44px] rounded-full inline-flex items-center justify-center gap-1.5 text-[12.5px] font-extrabold"
+            style={draft.pinned
+              ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
+              : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+          >
+            <PushPin weight={draft.pinned ? "fill" : "duotone"} size={14} />
+            {draft.pinned ? "Épinglée" : "Épingler"}
+          </button>
+
+          <button
+            onClick={save}
+            data-role="note-save"
+            className="shrink-0 min-h-[52px] rounded-full inline-flex items-center justify-center gap-2 text-white text-[14.5px] font-black active:scale-[0.97] transition-transform"
+            style={{ background: "var(--aur-good)", boxShadow: "0 8px 22px -10px rgba(47,111,79,.6)" }}
+          >
+            <Check weight="bold" size={17} /> Enregistrer
+          </button>
         </div>
       )}
 
-      {!selected && (
+      {/* ── One note, read in place ────────────────────────────────── */}
+      {!draft && selected && (
+        <div className="flex-1 min-h-0">
+          <NoteDetail
+            note={selected}
+            expanded={false}
+            onToggleExpand={() => expand({ view: "detail", noteId: selected.id })}
+            onBack={() => setSelectedId(null)}
+            onEdit={() => startEdit(selected)}
+            onTogglePin={() => api.pin(selected.id)}
+            onDelete={async () => { await api.remove(selected.id); setSelectedId(null); }}
+          />
+        </div>
+      )}
+
+      {/* ── The list, which is what opening the tab should show ────── */}
+      {!draft && !selected && (
         <>
-          {/* Tone filter */}
-          <div className="shrink-0 flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
+          <div className="shrink-0 flex items-center gap-1.5 mb-1.5">
+            <span className="text-[10px] uppercase tracking-wide flex-1" style={{ color: "var(--tab-idle)" }}>
+              {api.notes.length} note{api.notes.length > 1 ? "s" : ""}
+            </span>
+            {expandBtn({ view: "list" }, "Agrandir au centre")}
+          </div>
+
+          <div className="shrink-0 flex gap-1.5 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1">
             {(["all", ...TONES] as const).map((t) => {
               const on = tone === t;
               const m = t === "all" ? null : toneMeta(t as NoteTone);
@@ -107,7 +242,8 @@ export default function NotesPanel({ api }: { api: NotesApi }) {
           </div>
 
           <button
-            onClick={() => { setEditingId(null); setComposing(true); }}
+            onClick={startNew}
+            data-role="note-new"
             className="shrink-0 mt-2 min-h-[48px] rounded-full inline-flex items-center justify-center gap-1.5 text-white text-[14px] font-black active:scale-[0.97] transition-all"
             style={{ background: "var(--color-brand)", boxShadow: "0 8px 22px -10px rgba(166,105,20,.6)" }}
           >
@@ -115,13 +251,6 @@ export default function NotesPanel({ api }: { api: NotesApi }) {
           </button>
         </>
       )}
-
-      <NoteComposer
-        open={composing}
-        existing={editing}
-        onSave={save}
-        onCancel={() => { setComposing(false); setEditingId(null); }}
-      />
     </div>
   );
 }

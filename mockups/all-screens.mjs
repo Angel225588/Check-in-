@@ -94,6 +94,14 @@ const seed = (clients, arrivals, discrepancies) => {
   }));
 };
 
+// Everyone who came, came in full — the case that used to crop "Partiel 0"
+// down its own middle.
+const ALL_OR_NOTHING = ARRIVALS.filter(([room]) => room !== "718" && room !== "310")
+  .map(([room, , h, m]) => {
+    const c = CLIENTS.find((x) => x.roomNumber === room);
+    return [room, c.adults + c.children, h, m];
+  });
+
 const SHOTS = [
   ["search-idle", "/search", async () => {}],
   ["search-typed", "/search", async (p) => {
@@ -106,22 +114,6 @@ const SHOTS = [
     await p.getByText("RESTANTS").click().catch(() => {});
   }],
   ["checkin", "/checkin/224", async () => {}],
-  ["notes-list", "/checkin/224", async (p) => {
-    const tog = p.locator('[data-role="activity-toggle"]');
-    if (await tog.isVisible().catch(() => false)) { await tog.click(); await p.waitForTimeout(260); }
-    await p.locator('[data-role="side-tab-notes"]').click();
-    await p.waitForTimeout(420);
-  }],
-  ["notes-compose", "/checkin/224", async (p) => {
-    const tog = p.locator('[data-role="activity-toggle"]');
-    if (await tog.isVisible().catch(() => false)) { await tog.click(); await p.waitForTimeout(260); }
-    await p.locator('[data-role="side-tab-notes"]').click();
-    await p.waitForTimeout(420);
-    await p.locator('[data-role="note-new"]').click();
-    await p.waitForTimeout(320);
-    await p.locator('[data-role="note-title"]').fill("Allergie arachide");
-    await p.locator('[data-role="note-body"]').fill("Prévenir la cuisine avant le service. Table éloignée du buffet si possible.");
-  }],
   ["report", "/report", async (p) => { await p.waitForTimeout(700); }],
   ["report-grain-5", "/report", async (p) => {
     await p.locator('[data-role="affluence-grain"] button', { hasText: "5 min" }).first().click();
@@ -131,7 +123,42 @@ const SHOTS = [
     await p.locator('[data-role="report-tile"][data-tile="ecart"]').click();
     await p.waitForTimeout(360);
   }],
-  ["report-details", "/report/details", async (p) => { await p.waitForTimeout(500); }],
+  ["report-zero-partial", "/report", async (p) => { await p.waitForTimeout(600); }, ALL_OR_NOTHING],
+  ["notes-panel", "/checkin/224", async (p) => {
+    const tog = p.locator('[data-role="activity-toggle"]');
+    if (await tog.isVisible().catch(() => false)) { await tog.click(); await p.waitForTimeout(260); }
+    await p.locator('[data-role="side-tab-notes"]').click();
+    await p.waitForTimeout(420);
+  }],
+  ["notes-panel-compose", "/checkin/224", async (p) => {
+    const tog = p.locator('[data-role="activity-toggle"]');
+    if (await tog.isVisible().catch(() => false)) { await tog.click(); await p.waitForTimeout(260); }
+    await p.locator('[data-role="side-tab-notes"]').click();
+    await p.waitForTimeout(400);
+    await p.locator('[data-role="note-new"]').click();
+    await p.waitForTimeout(300);
+    await p.locator('[data-role="note-title"]').fill("Allergie arachide");
+    await p.locator('[data-role="note-body"]').fill("Prévenir la cuisine avant le service.");
+  }],
+  ["notes-centre-from-panel", "/checkin/224", async (p) => {
+    const tog = p.locator('[data-role="activity-toggle"]');
+    if (await tog.isVisible().catch(() => false)) { await tog.click(); await p.waitForTimeout(260); }
+    await p.locator('[data-role="side-tab-notes"]').click();
+    await p.waitForTimeout(400);
+    await p.locator('[data-role="note-new"]').click();
+    await p.waitForTimeout(300);
+    await p.locator('[data-role="note-title"]').fill("Allergie arachide");
+    await p.locator('[data-role="notes-expand"]').click();
+    await p.waitForTimeout(420);
+  }],
+  ["search-commit", "/search", async (p) => {
+    await p.locator('[data-role="search-field"] input').fill("619");
+    await p.waitForTimeout(600);
+  }],
+  ["search-verify", "/search", async (p) => {
+    await p.locator('[data-role="search-field"] input').fill("524");
+    await p.waitForTimeout(600);
+  }],
 ];
 
 const b = await chromium.launch({
@@ -141,7 +168,7 @@ const b = await chromium.launch({
 
 const only = process.argv[2];
 for (const dark of [true, false]) {
-  for (const [name, path, act] of SHOTS) {
+  for (const [name, path, act, arrivalsOverride] of SHOTS) {
     if (only && !name.includes(only)) continue;
     const p = await b.newPage({
       viewport: { width: 1194, height: 834 }, deviceScaleFactor: 2,
@@ -168,7 +195,7 @@ for (const dark of [true, false]) {
         }));
         localStorage.setItem("app-dark", isDark ? "true" : "false");
       },
-      [CLIENTS, ARRIVALS, DISCREPANCIES, dark]
+      [CLIENTS, arrivalsOverride ?? ARRIVALS, DISCREPANCIES, dark]
     );
     await p.goto(BASE + path, { waitUntil: "networkidle" });
     await p.waitForTimeout(650);

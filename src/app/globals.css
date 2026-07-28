@@ -420,6 +420,20 @@ html.dark {
   }
 }
 
+/* Cards that swap into a slot that was already occupied — the guest preview,
+   the check-in confirmation. Global because two components share the slot and
+   a styled-jsx keyframe is scoped to whichever one declared it. */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;

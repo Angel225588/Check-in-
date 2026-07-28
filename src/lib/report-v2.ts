@@ -247,6 +247,48 @@ export function outcomeSplit(rows: ArrivalRow[]): OutcomeSplit {
   return { allIn, partial, noShow, total: rows.length };
 }
 
+export interface TreemapShare {
+  /** Fraction of the axis this block gets, 0–1. The set always sums to 1. */
+  share: number;
+  /** True when the block was widened past its real proportion to stay legible. */
+  floored: boolean;
+}
+
+/**
+ * Split an axis between blocks by magnitude, but never below a legibility floor.
+ *
+ * Pure area encoding is the point of the treemap, and it fails at the bottom:
+ * a zero-value block becomes a 12px sliver with "P… 0 0.0 %" clipped down its
+ * middle, which is worse than a slightly wrong area. Blocks under the floor are
+ * raised to it and the rest give up space proportionally; `floored` says which,
+ * so the view can drop to a compact label instead of pretending.
+ */
+export function treemapShares(values: number[], floor = 0.3): TreemapShare[] {
+  const n = values.length;
+  if (n === 0) return [];
+  if (n === 1) return [{ share: 1, floored: false }];
+
+  const safe = values.map((v) => (Number.isFinite(v) && v > 0 ? v : 0));
+  const total = safe.reduce((a, b) => a + b, 0);
+  // No data at all: an even split says "nothing here" without dividing by zero.
+  if (total === 0) return safe.map(() => ({ share: 1 / n, floored: true }));
+
+  // With enough blocks the floor cannot be honoured at all; fall back to even.
+  const f = Math.max(0, Math.min(floor, 1 / n));
+  const raw = safe.map((v) => v / total);
+  const short = raw.map((r) => Math.max(0, f - r));
+  const deficit = short.reduce((a, b) => a + b, 0);
+  if (deficit === 0) return raw.map((share) => ({ share, floored: false }));
+
+  // The surplus above the floor is what can be taken from, proportionally.
+  const surplus = raw.reduce((a, r) => a + Math.max(0, r - f), 0);
+  return raw.map((r) => {
+    if (r < f) return { share: f, floored: true };
+    const give = surplus > 0 ? ((r - f) / surplus) * deficit : 0;
+    return { share: r - give, floored: false };
+  });
+}
+
 /**
  * Presence as a share of people, not rooms — a full family and a lone traveller
  * are not the same amount of breakfast. Capped, because more people can turn up

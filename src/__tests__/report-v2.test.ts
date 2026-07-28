@@ -7,6 +7,7 @@ import {
   filterRows,
   outcomeSplit,
   presencePercent,
+  treemapShares,
   SERVICE_OPEN,
   SERVICE_CLOSE,
 } from "@/lib/report-v2";
@@ -291,5 +292,50 @@ describe("outcomeSplit / presencePercent", () => {
       [{ id: "o", roomNumber: "707", clientName: "OVER, ANNE", peopleEntered: 4, timestamp: at(8, 0) }]
     );
     expect(presencePercent(over)).toBe(100);
+  });
+});
+
+describe("treemapShares", () => {
+  // Area encodes magnitude — until the area gets so small the label inside it
+  // is clipped, at which point the box is lying anyway. A floor keeps every
+  // block readable and flags the ones that were widened.
+  it("keeps exact proportions when every block clears the floor", () => {
+    const s = treemapShares([50, 50], 0.3);
+    expect(s[0].share).toBeCloseTo(0.5);
+    expect(s[1].share).toBeCloseTo(0.5);
+    expect(s.every((x) => !x.floored)).toBe(true);
+  });
+
+  it("widens a block that would otherwise be a sliver, and says so", () => {
+    const s = treemapShares([0, 24], 0.3);
+    expect(s[0].share).toBeCloseTo(0.3);
+    expect(s[1].share).toBeCloseTo(0.7);
+    expect(s[0].floored).toBe(true);
+    expect(s[1].floored).toBe(false);
+  });
+
+  it("still sums to one", () => {
+    for (const vals of [[0, 24], [1, 99], [3, 3, 3], [0, 0, 7]]) {
+      const total = treemapShares(vals, 0.25).reduce((n, x) => n + x.share, 0);
+      expect(total).toBeCloseTo(1);
+    }
+  });
+
+  it("splits evenly when everything is zero rather than dividing by it", () => {
+    const s = treemapShares([0, 0], 0.3);
+    expect(s[0].share).toBeCloseTo(0.5);
+    expect(s[1].share).toBeCloseTo(0.5);
+  });
+
+  it("gives up on the floor when there is no room for it", () => {
+    // Five blocks cannot each have 30%; the floor degrades to an equal split
+    // instead of producing shares that sum past 1.
+    const s = treemapShares([0, 0, 0, 0, 20], 0.3);
+    expect(s.reduce((n, x) => n + x.share, 0)).toBeCloseTo(1);
+    expect(Math.min(...s.map((x) => x.share))).toBeGreaterThan(0);
+  });
+
+  it("handles a single block", () => {
+    expect(treemapShares([9], 0.3)).toEqual([{ share: 1, floored: false }]);
   });
 });

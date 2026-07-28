@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CaretLeft, ListMagnifyingGlass, DownloadSimple, Check } from "@phosphor-icons/react/dist/ssr";
+import { CaretLeft, DownloadSimple, Check } from "@phosphor-icons/react/dist/ssr";
 import { getTodayData, getSessionHistory, getDataForDate, closeDay, summarizeDiscrepancies } from "@/lib/storage";
 import { generateDayReport, exportReportCSV, DayReport } from "@/lib/report";
 import {
@@ -173,10 +173,6 @@ function ReportV2() {
 
         <div className="flex-1" />
 
-        <button onClick={() => router.push(dateParam ? `/report/details?date=${dateParam}` : "/report/details")} className={btn} data-role="report-details">
-          <ListMagnifyingGlass size={17} weight="duotone" style={{ opacity: 0.75 }} />
-          <span style={{ color: "var(--tab-idle)" }}>Détails</span>
-        </button>
         <button onClick={exportCSV} className={btn} data-role="report-export">
           <DownloadSimple size={17} weight="duotone" style={{ opacity: 0.75 }} />
           <span style={{ color: "var(--tab-idle)" }}>Exporter</span>

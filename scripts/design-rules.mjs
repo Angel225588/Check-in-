@@ -398,6 +398,16 @@ async function main() {
   // encrypted under a non-extractable key, so there is no way to plant one
   // from the outside — and going through the UI is the stronger test anyway.
 
+  // The activity column is a drawer on this viewport; leaving it open hides the
+  // very card R10b is about.
+  const closeDrawer = async (page) => {
+    const hide = page.locator('[aria-label="Masquer l\'activité"]');
+    if (await hide.isVisible().catch(() => false)) {
+      await hide.click();
+      await page.waitForTimeout(320);
+    }
+  };
+
   const openNotesTab = async (page) => {
     const toggle = page.locator('[data-role="activity-toggle"]');
     if (await toggle.isVisible().catch(() => false)) {
@@ -405,18 +415,20 @@ async function main() {
       await page.waitForTimeout(260);
     }
     await page.locator('[data-role="side-tab-notes"]').click();
-    await page.waitForTimeout(420);   // the notes panel is a centred modal now
+    await page.waitForTimeout(420);   // notes list, in the activity column
   };
 
+  // Notes are written in the activity column by default; ⤢ promotes the same
+  // work to the centred panel. Both surfaces carry the same data-roles, so the
+  // helper scopes to whichever is on screen.
   const addNote = async (page, toneLabel, title) => {
     await page.locator('[data-role="note-new"]').click();
     await page.waitForTimeout(300);
-    // Scope to the composer: the same tone labels exist as filter chips in the
-    // list behind it, and an unscoped lookup matches both.
     const dialog = page.locator('[data-role="notes-modal"]');
-    await dialog.getByRole("button", { name: toneLabel, exact: true }).click();
-    await dialog.locator('[data-role="note-title"]').fill(title);
-    await dialog.locator('[data-role="note-save"]').click();
+    const scope = (await dialog.count()) ? dialog : page.locator("aside");
+    await scope.getByRole("button", { name: toneLabel, exact: true }).click();
+    await scope.locator('[data-role="note-title"]').fill(title);
+    await scope.locator('[data-role="note-save"]').click();
     await page.waitForTimeout(380);
   };
 
@@ -445,7 +457,7 @@ async function main() {
       await openNotesTab(page);
       await addNote(page, "Alerte", "Allergie arachide");
       // Close the drawer so we are looking at the check-in card itself.
-      await page.getByRole("button", { name: "Fermer" }).click().catch(() => {});
+      await closeDrawer(page);
       await page.waitForTimeout(380);
       const chip = page.locator('[data-role="pinned-chip"][data-note-tone="alert"]').first();
       const visible = await chip.isVisible().catch(() => false);
@@ -463,7 +475,7 @@ async function main() {
     const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
     await openNotesTab(page);
     for (let i = 0; i < 5; i++) await addNote(page, "Alerte", `Alerte numéro ${i + 1}`);
-    await page.getByRole("button", { name: "Fermer" }).click().catch(() => {});
+    await closeDrawer(page);
     await page.waitForTimeout(380);
 
     const chips = page.locator('[data-role="pinned-chip"]');
