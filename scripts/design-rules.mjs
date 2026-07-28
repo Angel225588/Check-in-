@@ -232,6 +232,9 @@ async function main() {
   await startServer();
   const browser = null; // contexts come from browserFor(); see above
 
+  // The check-in rules take ~15 minutes to drive. NEW_ONLY=1 skips them while
+  // iterating on the search/report rules below; CI always runs the whole set.
+  if (!process.env.NEW_ONLY) {
   // ── R1 · CTA reachable without scrolling, at every viewport ────────────
   const VIEWPORTS = [
     ["phone", 390, 844], ["ipad-mini-portrait", 744, 1133],
@@ -483,9 +486,16 @@ async function main() {
 
     const del = await page.locator('[data-role="note-delete"]').boundingBox();
     const edit = await page.locator('[data-role="note-edit"]').boundingBox();
-    const away = !!del && !!edit && del.y + del.height / 2 < edit.y + edit.height / 2;
-    record("R12a-delete-away-from-thumb", "Delete is not the closest control to the thumb", away,
-      del && edit ? `delete y=${Math.round(del.y)}, primary y=${Math.round(edit.y)}` : "controls not found");
+    // The property is separation, not vertical order. The lateral panel stacked
+    // these controls, so "delete sits above the primary action" was the same
+    // statement; the centred modal lays them in a row, where the honest measure
+    // is how far a mis-tap has to travel. 150px is roughly three fingers.
+    const gap = del && edit
+      ? Math.hypot((del.x + del.width / 2) - (edit.x + edit.width / 2),
+                   (del.y + del.height / 2) - (edit.y + edit.height / 2))
+      : 0;
+    record("R12a-delete-away-from-primary", "Delete is not adjacent to the primary action", gap >= 150,
+      del && edit ? `${Math.round(gap)}px between centres` : "controls not found");
 
     await page.locator('[data-role="note-delete"]').click();
     await page.waitForTimeout(220);
@@ -529,9 +539,15 @@ async function main() {
   // ── R14-R15 · Notes composer + panel width ────────────────────────────
   {
     const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
-    await openNotesTab(page);
 
-    // R15 — the panel can be widened for reading long notes.
+    // R15 — the panel can be widened for reading long notes. Measured with the
+    // drawer open but no modal over it: notes now open as a centred dialog, and
+    // clicking a control underneath it is a harness bug, not a design finding.
+    const toggle = page.locator('[data-role="activity-toggle"]');
+    if (await toggle.isVisible().catch(() => false)) {
+      await toggle.click();
+      await page.waitForTimeout(280);
+    }
     const widthOf = async () => (await page.locator("aside").boundingBox())?.width ?? 0;
     const w0 = await widthOf();
     await page.locator('[data-role="side-width"]').click();
@@ -542,8 +558,13 @@ async function main() {
     await page.locator('[data-role="side-width"]').click();
     await page.waitForTimeout(320);
 
-    // R14 — in the composer, writing outranks classifying.
-    await page.getByRole("button", { name: "Ajouter une note" }).click();
+    await page.locator('[data-role="side-tab-notes"]').click();
+    await page.waitForTimeout(420);
+
+    // R14 — in the composer, writing outranks classifying. Addressed by role,
+    // not by label: the wording has changed twice and a renamed button is not
+    // a design regression.
+    await page.locator('[data-role="note-new"]').click();
     await page.waitForTimeout(280);
     const title = await page.locator('[data-role="note-title"]').boundingBox();
     const body = await page.locator('[data-role="note-body"]').boundingBox();
@@ -573,6 +594,241 @@ async function main() {
       !!save && save.y >= 0 && save.y + save.height <= vh,
       save ? `bottom=${Math.round(save.y + save.height)}/${vh}` : "not found");
     await ctx.close();
+  }
+
+  }
+  // ── R16-R18 · Search and report, the two screens the service runs on ──
+  // These need a whole seeded morning rather than a single guest, so they get
+  // their own opener.
+
+  const DAY_CLIENTS = [
+    mk("224", "POLANCO/ANGEL", 2, 1, "BKF INC", { isVip: true, vipLevel: "VIP" }),
+    mk("310", "VANDENBERGHE-MONTGOMERY/ALEXANDRINE", 2, 2, "BKF INC"),
+    mk("385", "DUPONT/MARIA", 2, 0, ""),
+    mk("402", "WEI/CHEN", 2, 2, "BKF COMP"),
+    mk("437", "BENALI/OMAR", 2, 0, "BKF INC"),
+    mk("501", "FABRE/JULIEN", 2, 0, "BKF INC", { isVip: true, vipLevel: "VIP" }),
+    mk("517", "ROSSI/ELENA", 2, 0, "", { isVip: true, vipLevel: "X4", vipSource: "walk_in" }),
+    mk("619", "DAVID/JULIE", 1, 0, "BKF INC"),
+    mk("718", "LEFÈVRE/CLAIRE", 2, 2, "BKF INC"),
+    mk("930", "KOVACS/ISTVAN", 2, 2, "BKF INC"),
+  ];
+  // room, people, hour, minute
+  const DAY_ARRIVALS = [
+    ["402", 4, 6, 55], ["437", 2, 7, 10], ["224", 3, 7, 40], ["501", 2, 7, 50],
+    ["718", 2, 8, 0], ["310", 4, 8, 10], ["517", 2, 8, 40], ["930", 2, 9, 20],
+  ];
+  // room, before adults/children, after adults/children, delta
+  const DAY_ECARTS = [
+    ["310", 2, 0, 2, 2, 2],
+    ["930", 2, 0, 2, 2, 2],
+  ];
+
+  async function openDay(path, { dark = false, w = 1194, h = 834 } = {}) {
+    const browser = await browserFor();
+    const ctx = await browser.newContext({
+      viewport: { width: w, height: h }, deviceScaleFactor: 1,
+      colorScheme: dark ? "dark" : "light",
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/upload`, { waitUntil: "load" });
+    await page.evaluate(({ clients, arrivals, ecarts, dark }) => {
+      const now = new Date();
+      const d = now.toISOString().split("T")[0];
+      const iso = (h, m) => new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m).toISOString();
+      const byRoom = Object.fromEntries(clients.map((c) => [c.roomNumber, c]));
+      localStorage.setItem("dailyData_" + d, JSON.stringify({
+        date: d, clients, rawUploadText: "",
+        checkIns: arrivals.map(([room, pax, h, m], i) => ({
+          id: "ci" + i, roomNumber: room, clientName: byRoom[room].name,
+          peopleEntered: pax, timestamp: iso(h, m),
+        })),
+        discrepancies: ecarts.map(([room, ba, bc, aa, ac, delta], i) => ({
+          id: "dx" + i, roomNumber: room, clientName: byRoom[room].name,
+          beforeAdults: ba, beforeChildren: bc, afterAdults: aa, afterChildren: ac,
+          delta, at: iso(8, 10 + i),
+        })),
+      }));
+      localStorage.setItem("app-dark", dark ? "true" : "false");
+    }, { clients: DAY_CLIENTS, arrivals: DAY_ARRIVALS, ecarts: DAY_ECARTS, dark });
+    await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(700);
+    const hydrated = await page.evaluate(() => document.body.innerText.trim().length > 20);
+    if (!hydrated) {
+      throw new Error(
+        `Page did not hydrate at ${BASE}${path} — empty body. Environment fault, not a design-rule ` +
+        `failure: rebuild, restart the server, re-run.`
+      );
+    }
+    return { ctx, page };
+  }
+
+  // R16 — the search screen. Every rule here is something the user corrected
+  // in review, so a regression is a re-litigation, not a nitpick.
+  {
+    const { ctx, page } = await openDay("/search");
+    const rows = () => page.locator('[data-role="room-row"], [data-role="suggestion-card"]').count();
+
+    // R16a — nothing until you type. A list of every room on arrival is noise
+    // at 07:00 and it is what the screen used to open with.
+    const idle = await rows();
+    record("R16a-empty-until-typed", "The results list is empty until you type or filter", idle === 0,
+      `${idle} row(s) on an untouched screen`);
+
+    // R16b — a resolved room takes over the clock box, so confirming who is in
+    // front of you costs no navigation.
+    await page.locator('[data-role="search-field"] input').fill("224");
+    await page.waitForTimeout(420);
+    const preview = await page.locator('[data-role="guest-preview"]').count();
+    const clock = await page.locator('[data-role="service-clock"]').count();
+    // The room number is drawn one digit per inline-block, so innerText comes
+    // back as "2\n2\n4"; compare on the digits alone.
+    const previewText = preview
+      ? (await page.locator('[data-role="guest-preview"]').innerText()).replace(/\s+/g, "")
+      : "";
+    record("R16b-preview-in-clock-box", "A resolved room shows a preview in the clock's place",
+      preview === 1 && clock === 0 && previewText.includes("224"),
+      preview ? `preview shown, clock ${clock}, text "${previewText.slice(0, 40)}"` : "no preview card");
+
+    // R16c — the CTA is a stepper, and it cannot commit more people than the
+    // room still has outstanding. 385 is two adults with nobody checked in yet,
+    // so the ceiling is 2 — and the + must refuse a third.
+    await page.locator('[data-role="search-field"] input').fill("385");
+    await page.waitForTimeout(420);
+    const stepper = page.locator('[data-role="search-cta"]');
+    const enter = page.locator('[data-role="search-enter"]');
+    const before = (await enter.innerText()).match(/\d+/)?.[0];
+    const plus = stepper.locator("button").last();
+    for (let i = 0; i < 6; i++) {
+      if (await plus.isEnabled().catch(() => false)) await plus.click();
+    }
+    await page.waitForTimeout(220);
+    const after = (await enter.innerText()).match(/\d+/)?.[0];
+    record("R16c-stepper-bounded", "The stepper cannot commit more people than the room expects",
+      Number(after) === 2, `started at ${before}, six taps of + left it at ${after}`);
+
+    // R16d — a real input, or the tablet keyboard never opens and half the
+    // French guest list becomes untypeable.
+    const field = await page.evaluate(() => {
+      const el = document.querySelector('[data-role="search-field"] input');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { tag: el.tagName, readOnly: el.readOnly, h: Math.round(r.height) };
+    });
+    record("R16d-real-input", "The search field is a real, editable input",
+      !!field && field.tag === "INPUT" && !field.readOnly && field.h >= 44,
+      field ? `${field.tag} readOnly=${field.readOnly} h=${field.h}` : "not found");
+    await ctx.close();
+  }
+
+  // R17 — the report. Its whole job is to be believed, so the rules are about
+  // figures agreeing with each other rather than about looks.
+  {
+    const { ctx, page } = await openDay("/report");
+
+    // R17a — the headline percentage is derived, not typed. An earlier build
+    // printed 74% beside tiles that implied 75.6%.
+    const ring = await page.locator('[data-role="report-ring"]').innerText();
+    const shown = Number(ring.match(/(\d+)\s*%/)?.[1]);
+    const [entered, expected] = (ring.match(/(\d+)\s*\/\s*(\d+)/) || []).slice(1).map(Number);
+    const derived = expected ? Math.min(100, Math.round((entered / expected) * 100)) : 0;
+    record("R17a-presence-derived", "The presence figure matches its own arithmetic",
+      shown === derived, `shows ${shown}%, ${entered}/${expected} = ${derived}%`);
+
+    // R17b — a metric is a filter. Reading a number and acting on it should be
+    // the same gesture.
+    const listCount = () => page.locator('[data-role="report-row"]').count();
+    const all = await listCount();
+    const tile = page.locator('[data-role="report-tile"][data-tile="no"]');
+    const tileValue = Number((await tile.innerText()).match(/(\d+)\s*$/m)?.[1] ?? NaN);
+    await tile.click();
+    await page.waitForTimeout(340);
+    const filtered = await listCount();
+    record("R17b-tiles-filter", "A metric tile filters the list to exactly its own count",
+      filtered === tileValue && filtered < all, `all ${all}, tile says ${tileValue}, list shows ${filtered}`);
+    await tile.click();
+    await page.waitForTimeout(280);
+
+    // R17c — outcome is never carried by hue alone: red/green is the one pair
+    // a colour-blind reader loses.
+    const blocks = await page.locator('[data-role="treemap-block"]').all();
+    const shapes = [];
+    for (const b of blocks) {
+      shapes.push({
+        svg: await b.locator("svg").count(),
+        pct: /%/.test(await b.innerText()),
+      });
+    }
+    record("R17c-not-colour-alone", "Every outcome block carries a glyph and a percentage",
+      shapes.length === 3 && shapes.every((s) => s.svg > 0 && s.pct),
+      shapes.map((s, i) => `#${i}:${s.svg}svg/${s.pct ? "%" : "no%"}`).join(" "));
+
+    // R17d — the granularity control actually re-buckets the morning.
+    const bars = () => page.locator('[data-role="affluence-bar"]').count();
+    const at15 = await bars();
+    await page.locator('[data-role="affluence-grain"] button', { hasText: "5 min" }).first().click();
+    await page.waitForTimeout(360);
+    const at5 = await bars();
+    record("R17d-grain-rebuckets", "Changing the interval re-buckets the affluence chart",
+      at5 > at15 * 2, `15 min → ${at15} bars, 5 min → ${at5} bars`);
+
+    // R17e — the reception error count is the figure the user asked for, and it
+    // has to survive the round trip from the check-in screen to this tile.
+    const ecartTile = page.locator('[data-role="report-tile"][data-tile="ecart"]');
+    const ecartText = await ecartTile.innerText();
+    const ecartRooms = Number(ecartText.match(/(\d+)/)?.[1] ?? NaN);
+    await ecartTile.click();
+    await page.waitForTimeout(340);
+    const ecartRowsShown = await listCount();
+    record("R17e-ecarts-tracked", "Reception count errors are counted and filterable",
+      ecartRooms === DAY_ECARTS.length && ecartRowsShown === DAY_ECARTS.length,
+      `tile ${ecartRooms}, list ${ecartRowsShown}, seeded ${DAY_ECARTS.length}`);
+    await ecartTile.click();
+    await page.waitForTimeout(240);
+
+    // R17f — the page must not scroll sideways on the tablet it lives on.
+    const overflow = await page.evaluate(() => ({
+      sw: document.scrollingElement.scrollWidth,
+      cw: document.scrollingElement.clientWidth,
+    }));
+    record("R17f-no-overflow", "The report does not scroll horizontally at 1194x834",
+      overflow.sw <= overflow.cw + 1, `${overflow.sw}/${overflow.cw}`);
+    await ctx.close();
+  }
+
+  // R18 — contrast on the two new screens, in both themes. Three separate
+  // regressions on this project were dark-on-dark text that every other check
+  // was blind to.
+  for (const path of ["/search", "/report"]) {
+    for (const dark of [false, true]) {
+      const { ctx, page } = await openDay(path, { dark });
+      const samples = await page.evaluate((fn) => {
+        const measure = eval(`(${fn})`);
+        const out = [];
+        for (const el of document.querySelectorAll("button, h1, h2, span, div, p, b, em, input")) {
+          const direct = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
+          if (!direct) continue;
+          const r = el.getBoundingClientRect();
+          if (r.width < 4 || r.height < 4) continue;
+          const cs = getComputedStyle(el);
+          if (cs.visibility === "hidden" || cs.opacity === "0") continue;
+          out.push({ text: el.textContent.trim().slice(0, 28), ...measure(el) });
+        }
+        return out;
+      }, COMPOSITE);
+
+      const fails = [];
+      for (const s of samples) {
+        const large = s.size >= 24 || (s.size >= 18.66 && Number(s.weight) >= 700);
+        const need = large ? 3 : 4.5;
+        const got = Math.min(...s.bgs.map((bg) => contrast(s.color, bg)));
+        if (got < need) fails.push(`"${s.text}" ${got.toFixed(2)}:1 (needs ${need})`);
+      }
+      record(`R18-contrast-${path.slice(1)}-${dark ? "dark" : "light"}`,
+        "Text meets WCAG AA contrast", fails.length === 0,
+        fails.length ? fails.slice(0, 6).join(" | ") : `${samples.length} text nodes checked`);
+      await ctx.close();
+    }
   }
 
   await closeBrowser();

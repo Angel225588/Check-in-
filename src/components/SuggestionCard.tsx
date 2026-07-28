@@ -68,7 +68,7 @@ export default function SuggestionCard({
         )}
         {needsPay && (
           <span className="text-[11.5px] font-black px-2.5 py-1.5 rounded-full"
-            style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad)" }}>
+            style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
             À ENCAISSER
           </span>
         )}

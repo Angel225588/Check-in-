@@ -74,6 +74,14 @@
   --aur-bad-soft: rgba(161, 59, 44, 0.10);
   --aur-info: #3b6d8b;
   --aur-info-soft: rgba(59, 109, 139, 0.10);
+  /* Text-on-surface variants of the semantic hues. The plain tokens above are
+     fills that carry white text; these are for type and icons sitting on a
+     page or a -soft wash, where the fill colour is too dark (light theme) or
+     too dark again (dark theme) to read. */
+  --aur-good-ink: #1f5638;
+  --aur-warn-ink: #7a4a12;
+  --aur-bad-ink: #8c2f22;
+  --aur-info-ink: #2b5a72;
   --aur-pm-comp: #7a5d2a;
   --aur-pm-inclus: #2f6f4f;
   --aur-pm-points: #5a3b8f;
@@ -120,6 +128,48 @@ html.dark {
   --color-destructive-foreground: #FFFFFF;
   --color-input: #2A2A35;
   --color-ring: #DD9C28;
+
+  /* The Aurelle palette had no dark half. Anything built on it rendered white
+     slabs on a near-black page in the dark theme — the report's cards and rows
+     were exactly that until this existed. The hues are the same; only the
+     surfaces and the ink invert. */
+  --aur-bg: #12100E;
+  --aur-bg-elev: #1B1815;
+  --aur-surface: #1E1A16;
+  --aur-surface-2: #262019;
+  --aur-border: #2F2822;
+  --aur-border-strong: #3D352C;
+  --aur-hairline: rgba(255, 255, 255, 0.08);
+  --aur-ink: #F4EFE6;
+  --aur-ink-2: #DDD5C7;
+  --aur-muted: #ABA294;
+  --aur-muted-2: #8E8778;
+  /* Deep golds go muddy against near-black; lift them. */
+  --aur-gold: #DD9C28;
+  --aur-gold-2: #C08A3A;
+  --aur-gold-3: #E9B44C;
+  --aur-gold-soft: rgba(221, 156, 40, 0.12);
+  --aur-gold-soft-2: rgba(221, 156, 40, 0.20);
+  /* The semantic hues do NOT move. Each one is a solid fill carrying white
+     text somewhere (the Enregistrer CTA, the NON INCLUS badge), and lifting
+     them for dark mode dropped those pairs to 1.8:1. Text keeps to the -ink
+     tokens below; fills keep to these. */
+  --aur-good-soft: rgba(79, 169, 122, 0.16);
+  --aur-warn-soft: rgba(216, 154, 78, 0.16);
+  --aur-bad-soft: rgba(201, 86, 74, 0.18);
+  --aur-info-soft: rgba(59, 109, 139, 0.20);
+  --aur-good-ink: #6FD3A0;
+  --aur-warn-ink: #EFC07A;
+  --aur-bad-ink: #F5A196;
+  --aur-info-ink: #8FC3DF;
+  --aur-pm-comp: #D8B26A;
+  --aur-pm-inclus: #6FD3A0;
+  --aur-pm-points: #BCA0E8;
+  --aur-pm-chambre: #8FC3DF;
+  --aur-pm-cash: #EFC07A;
+  --shadow-aur-1: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-aur-2: 0 1px 0 rgba(255,255,255,0.05) inset, 0 6px 20px -8px rgba(0,0,0,0.6);
+  --shadow-aur-glass: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 28px -10px rgba(0,0,0,0.65);
 }
 
 @layer base {
@@ -324,6 +374,17 @@ html.dark {
   /* Staggered fade-up for list items */
   .animate-fadeUp {
     animation: fadeUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  /* A scrolling strip whose own scrollbar would eat the row height it needs.
+     Used where the overflow is discoverable by other means (a tile clipped at
+     the edge, a chip that moves under the thumb). */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
   /* Skeleton shimmer for loading states */

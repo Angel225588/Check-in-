@@ -50,8 +50,8 @@ export default function NotesPanel({ api }: { api: NotesApi }) {
     <div className="flex flex-col h-full min-h-0">
       {api.saveError && (
         <div className="shrink-0 mb-2 flex items-start gap-2 rounded-[12px] px-3 py-2.5" style={{ background: "var(--aur-bad-soft)" }}>
-          <WarningCircle weight="duotone" size={16} color="var(--aur-bad)" className="shrink-0 mt-0.5" />
-          <div className="text-[12px] font-bold leading-snug" style={{ color: "var(--aur-bad)" }}>
+          <WarningCircle weight="duotone" size={16} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
+          <div className="text-[12px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
             Note NON enregistrée — stockage plein.
             <button onClick={api.clearError} className="underline ml-1 font-black">Fermer</button>
           </div>

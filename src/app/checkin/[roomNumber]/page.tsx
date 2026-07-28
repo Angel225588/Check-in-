@@ -538,10 +538,10 @@ export default function CheckInPage({
             <div className="flex-1 grid place-items-center py-8">
               <div className="flex flex-col items-center gap-3 text-center animate-[fadeIn_0.4s_ease]">
                 <span className="w-[68px] h-[68px] rounded-full grid place-items-center" style={{ background: "var(--aur-good-soft)", boxShadow: "inset 0 0 0 1px rgba(47,111,79,.18)" }}>
-                  <Coffee weight="duotone" size={32} color="var(--aur-good)" />
+                  <Coffee weight="duotone" size={32} color="var(--aur-good-ink)" />
                 </span>
                 <div>
-                  <div className="text-[18px] font-black" style={{ color: "var(--aur-good)" }}>{comp ? "Petit-déjeuner offert" : "Petit-déjeuner inclus"}</div>
+                  <div className="text-[18px] font-black" style={{ color: "var(--aur-good-ink)" }}>{comp ? "Petit-déjeuner offert" : "Petit-déjeuner inclus"}</div>
                   <div className="text-[13px] text-muted mt-0.5">Rien à encaisser — bon appétit</div>
                 </div>
               </div>

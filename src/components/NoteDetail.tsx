@@ -111,7 +111,7 @@ export default function NoteDetail({
       {/* Thumb zone — the safe, frequent actions. */}
       {confirmDelete ? (
         <div className="shrink-0 mt-3 rounded-[16px] p-3" style={{ background: "var(--aur-bad-soft)" }}>
-          <div className="text-[13px] font-black mb-2.5" style={{ color: "var(--aur-bad)" }}>
+          <div className="text-[13px] font-black mb-2.5" style={{ color: "var(--aur-bad-ink)" }}>
             Supprimer cette note définitivement ?
           </div>
           <div className="flex gap-2">

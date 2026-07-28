@@ -47,8 +47,8 @@ export default function SearchNav({
         </span>
       </button>
       <button onClick={onCloseDay} className={item} title="Clôturer la journée">
-        <Check size={19} weight="bold" style={{ opacity: .75, color: "var(--aur-bad)" }} />
-        <span className={label} style={{ color: "var(--aur-bad)" }}>Clôture</span>
+        <Check size={19} weight="bold" style={{ opacity: .75, color: "var(--aur-bad-ink)" }} />
+        <span className={label} style={{ color: "var(--aur-bad-ink)" }}>Clôture</span>
       </button>
     </div>
   );

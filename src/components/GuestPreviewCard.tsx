@@ -41,7 +41,7 @@ export default function GuestPreviewCard({
           style={vip
             ? { background: "rgba(0,0,0,.34)", color: "#fff" }
             : visits > 0
-              ? { background: "rgba(47,111,79,.20)", color: "var(--aur-good)" }
+              ? { background: "rgba(47,111,79,.20)", color: "var(--aur-good-ink)" }
               : { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}
         >
           {visits > 0 ? `Habitué · ${visits}ᵉ séjour` : "1ʳᵉ visite"}
@@ -68,7 +68,7 @@ export default function GuestPreviewCard({
         </b>
         {needsPay && (
           <span className="inline-flex items-center gap-1.5 text-[11.5px] font-black px-3 py-1.5 rounded-full"
-            style={vip ? { background: "rgba(0,0,0,.34)", color: "#fff" } : { background: "var(--aur-bad-soft)", color: "var(--aur-bad)" }}>
+            style={vip ? { background: "rgba(0,0,0,.34)", color: "#fff" } : { background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
             <Coffee weight="duotone" size={13} /><Prohibit weight="bold" size={11} /> À ENCAISSER
           </span>
         )}
@@ -86,7 +86,7 @@ export default function GuestPreviewCard({
         )}
         {client.pendingPaymentAction === "alert" && (
           <span className="inline-flex items-center gap-1.5 text-[11.5px] font-black px-3 py-1.5 rounded-full"
-            style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad)" }}>
+            style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
             <Warning weight="duotone" size={13} /> ALERTE
           </span>
         )}

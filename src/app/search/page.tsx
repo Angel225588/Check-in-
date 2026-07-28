@@ -237,11 +237,13 @@ export default function SearchPage() {
             <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="text-sm font-medium text-brand">{t("search.upload")}</span>
+            {/* brand-ink, not brand: #A66914 on the cream page measures 4.36:1,
+                just under AA. The ink variant is the same hue, one step deeper. */}
+            <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("search.upload")}</span>
           </button>
 
           <div className="flex flex-col items-end">
-            <span className="text-sm md:text-base font-bold tracking-[0.08em] text-brand leading-tight" style={{ fontFamily: "'Nunito', sans-serif" }}>
+            <span className="text-sm md:text-base font-bold tracking-[0.08em] leading-tight" style={{ fontFamily: "'Nunito', sans-serif", color: "var(--brand-ink)" }}>
               COURTYARD
             </span>
             <span className="text-[10px] md:text-xs text-muted leading-tight">

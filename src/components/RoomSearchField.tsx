@@ -34,7 +34,10 @@ export default function RoomSearchField({
         placeholder="Chambre ou nom du client…"
         autoComplete="off"
         aria-label="Chercher une chambre ou un client"
-        className="flex-1 min-w-0 bg-transparent outline-none text-[28px] font-bold text-dark placeholder:font-normal placeholder:italic placeholder:text-[26px]"
+        // self-stretch, so the tap target is the whole 84px band rather than
+        // the 42px the glyphs happen to occupy: on a tablet you aim at the
+        // field, not at the text inside it.
+        className="flex-1 min-w-0 self-stretch bg-transparent outline-none text-[28px] font-bold text-dark placeholder:font-normal placeholder:italic placeholder:text-[26px]"
         style={{ fontFamily: "inherit" }}
       />
       {value && (

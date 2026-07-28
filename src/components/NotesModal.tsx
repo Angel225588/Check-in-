@@ -156,8 +156,8 @@ export default function NotesModal({
 
         {api.saveError && (
           <div className="shrink-0 mx-6 mt-4 flex items-start gap-2.5 rounded-[14px] px-4 py-3" style={{ background: "var(--aur-bad-soft)" }}>
-            <WarningCircle weight="duotone" size={18} color="var(--aur-bad)" className="shrink-0 mt-0.5" />
-            <div className="text-[13px] font-bold leading-snug" style={{ color: "var(--aur-bad)" }}>
+            <WarningCircle weight="duotone" size={18} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
+            <div className="text-[13px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
               Note NON enregistrée — stockage plein.
               <button onClick={api.clearError} className="underline ml-1.5 font-black">Fermer</button>
             </div>
@@ -382,7 +382,7 @@ export default function NotesModal({
           {view === "detail" && selected && (
             confirmDelete ? (
               <div className="rounded-[18px] p-4" style={{ background: "var(--aur-bad-soft)" }}>
-                <div className="text-[14px] font-black mb-3" style={{ color: "var(--aur-bad)" }}>
+                <div className="text-[14px] font-black mb-3" style={{ color: "var(--aur-bad-ink)" }}>
                   Supprimer cette note définitivement ?
                 </div>
                 <div className="flex gap-2.5">

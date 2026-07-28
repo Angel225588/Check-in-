@@ -1,0 +1,258 @@
+import { CheckInRecord } from "./types";
+import { DayReport, RoomReport } from "./report";
+
+/**
+ * The arithmetic behind the service report, kept away from the rendering.
+ *
+ * Everything here is pure: the same inputs give the same figures whether they
+ * come from today's localStorage, a closed session, or a test. The screen used
+ * to compute several of these inline, and two of them were quietly wrong — a
+ * hand-typed presence percentage that disagreed with the tiles beside it, and
+ * a time built by concatenation that produced "010:05" and then broke the
+ * string-compared arrival sort.
+ */
+
+/** Breakfast service window, in minutes since midnight. */
+export const SERVICE_OPEN = 6 * 60 + 30;
+export const SERVICE_CLOSE = 10 * 60 + 30;
+
+/** The granularities offered on the affluence chart; anything else is custom. */
+export const GRAINS = [5, 10, 15, 30] as const;
+
+const DEFAULT_GRAIN = 15;
+const MIN_GRAIN = 1;
+const MAX_GRAIN = 120;
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** Minutes since midnight → "HH:MM", wrapping rather than overflowing. */
+export function hhmm(minutes: number): string {
+  if (!Number.isFinite(minutes)) return "00:00";
+  const m = ((Math.round(minutes) % 1440) + 1440) % 1440;
+  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+}
+
+/** Local wall-clock minutes for an ISO timestamp, or null if it is unusable. */
+export function minutesOfDay(iso: string): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const t = d.getTime();
+  if (!Number.isFinite(t)) return null;
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+export interface AffluenceBucket {
+  /** Minutes since midnight at the bucket's left edge. */
+  start: number;
+  /** People — not check-ins. Four people through one door is a queue of four. */
+  count: number;
+}
+
+export interface Affluence {
+  buckets: AffluenceBucket[];
+  grain: number;
+  open: number;
+  close: number;
+  /** Index of the busiest bucket, or -1 when nobody came. */
+  peakIndex: number;
+  peakCount: number;
+  total: number;
+}
+
+function clampGrain(grain: number): number {
+  if (!Number.isFinite(grain) || grain < MIN_GRAIN) return DEFAULT_GRAIN;
+  return Math.min(MAX_GRAIN, Math.round(grain));
+}
+
+/**
+ * Arrivals bucketed for the affluence chart.
+ *
+ * The window stretches to cover the data. Somebody who walks in at 06:05 is a
+ * real person, and a chart that silently drops them disagrees with the totals
+ * printed next to it — which is worse than an ugly axis.
+ */
+export function buildAffluence(checkIns: CheckInRecord[], grain: number): Affluence {
+  const g = clampGrain(grain);
+  const arrivals: Array<{ min: number; pax: number }> = [];
+  for (const c of checkIns ?? []) {
+    const min = minutesOfDay(c.timestamp);
+    if (min === null) continue;
+    arrivals.push({ min, pax: Math.max(0, c.peopleEntered || 0) });
+  }
+
+  let open = SERVICE_OPEN;
+  let close = SERVICE_CLOSE;
+  for (const a of arrivals) {
+    if (a.min < open) open = Math.floor(a.min / g) * g;
+    if (a.min >= close) close = (Math.floor(a.min / g) + 1) * g;
+  }
+
+  const n = Math.max(1, Math.ceil((close - open) / g));
+  const buckets: AffluenceBucket[] = Array.from({ length: n }, (_, i) => ({
+    start: open + i * g,
+    count: 0,
+  }));
+
+  let total = 0;
+  for (const a of arrivals) {
+    const i = Math.min(n - 1, Math.max(0, Math.floor((a.min - open) / g)));
+    buckets[i].count += a.pax;
+    total += a.pax;
+  }
+
+  let peakIndex = -1;
+  let peakCount = 0;
+  buckets.forEach((b, i) => {
+    if (b.count > peakCount) {
+      peakCount = b.count;
+      peakIndex = i;
+    }
+  });
+
+  return { buckets, grain: g, open, close, peakIndex, peakCount, total };
+}
+
+export interface ArrivalRow {
+  roomNumber: string;
+  name: string;
+  status: RoomReport["status"];
+  entered: number;
+  totalGuests: number;
+  extras: number;
+  isVip: boolean;
+  vipLevel: string;
+  isComp: boolean;
+  /** VIP who was not on the breakfast list — reception cares who these were. */
+  offList: boolean;
+  /** Minutes since midnight of the first arrival, or null for a no-show. */
+  minutes: number | null;
+  time: string;
+}
+
+function firstArrivalMinutes(
+  room: RoomReport,
+  checkIns: CheckInRecord[]
+): number | null {
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  let best: number | null = null;
+  for (const c of checkIns) {
+    if (c.roomNumber !== room.roomNumber) continue;
+    if (norm(c.clientName) !== norm(room.name)) continue;
+    const m = minutesOfDay(c.timestamp);
+    if (m === null) continue;
+    if (best === null || m < best) best = m;
+  }
+  return best;
+}
+
+/** Rooms in the order people actually walked in; no-shows fall to the end. */
+export function buildArrivalRows(report: DayReport): ArrivalRow[] {
+  const rows: ArrivalRow[] = report.rooms.map((r) => {
+    const minutes = firstArrivalMinutes(r, report.checkIns);
+    return {
+      roomNumber: r.roomNumber,
+      name: r.name,
+      status: r.status,
+      entered: r.entered,
+      totalGuests: r.totalGuests,
+      extras: r.extras,
+      isVip: r.isVip,
+      vipLevel: r.vipLevel,
+      isComp: r.isComp,
+      offList: !!r.isVip && (r.vipSource === "list_only" || r.vipSource === "walk_in"),
+      minutes,
+      time: minutes === null ? "—" : hhmm(minutes),
+    };
+  });
+
+  return rows.sort((a, b) => {
+    if (a.minutes === null && b.minutes === null) {
+      return a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true });
+    }
+    if (a.minutes === null) return 1;
+    if (b.minutes === null) return -1;
+    if (a.minutes !== b.minutes) return a.minutes - b.minutes;
+    return a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true });
+  });
+}
+
+export type ReportFilter =
+  | "all"
+  | "in"
+  | "partial"
+  | "no"
+  | "vip"
+  | "comp"
+  | "offlist"
+  | "ecart";
+
+/** Accent-blind, case-blind. "lefevre" has to find "LEFÈVRE". */
+const fold = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+export function filterRows(
+  rows: ArrivalRow[],
+  filter: ReportFilter,
+  query: string,
+  ecartRooms: Set<string>
+): ArrivalRow[] {
+  const q = fold((query ?? "").trim());
+  return rows.filter((r) => {
+    switch (filter) {
+      case "in":
+        if (r.status !== "all-in") return false;
+        break;
+      case "partial":
+        if (r.status !== "partial") return false;
+        break;
+      case "no":
+        if (r.status !== "no-show") return false;
+        break;
+      case "vip":
+        if (!r.isVip) return false;
+        break;
+      case "comp":
+        if (!r.isComp) return false;
+        break;
+      case "offlist":
+        if (!r.offList) return false;
+        break;
+      case "ecart":
+        if (!ecartRooms.has(r.roomNumber)) return false;
+        break;
+      default:
+        break;
+    }
+    if (!q) return true;
+    return r.roomNumber.startsWith(q) || fold(r.name).includes(q);
+  });
+}
+
+export interface OutcomeSplit {
+  allIn: number;
+  partial: number;
+  noShow: number;
+  total: number;
+}
+
+export function outcomeSplit(rows: ArrivalRow[]): OutcomeSplit {
+  let allIn = 0;
+  let partial = 0;
+  let noShow = 0;
+  for (const r of rows) {
+    if (r.status === "all-in") allIn++;
+    else if (r.status === "partial") partial++;
+    else noShow++;
+  }
+  return { allIn, partial, noShow, total: rows.length };
+}
+
+/**
+ * Presence as a share of people, not rooms — a full family and a lone traveller
+ * are not the same amount of breakfast. Capped, because more people can turn up
+ * than the sheet expected and "112 %" reads as a bug.
+ */
+export function presencePercent(report: DayReport): number {
+  if (!report.totalGuests) return 0;
+  return Math.min(100, Math.round((report.totalEntered / report.totalGuests) * 100));
+}
