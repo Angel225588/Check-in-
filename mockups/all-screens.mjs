@@ -159,6 +159,22 @@ const SHOTS = [
     await p.locator('[data-role="search-field"] input').fill("524");
     await p.waitForTimeout(600);
   }],
+  ["preview-notes-pane", "/search", async (p) => {
+    await p.locator('[data-role="search-field"] input').fill("224");
+    await p.waitForTimeout(500);
+    await p.locator('[data-role="preview-dots"] button').nth(1).click();
+    await p.waitForTimeout(360);
+  }],
+  ["preview-history-pane", "/search", async (p) => {
+    await p.locator('[data-role="search-field"] input').fill("224");
+    await p.waitForTimeout(500);
+    await p.locator('[data-role="preview-dots"] button').nth(2).click();
+    await p.waitForTimeout(360);
+  }],
+  ["preview-idle-recents", "/search", async (p) => {
+    await p.locator('[data-role="preview-dots"] button').nth(2).click();
+    await p.waitForTimeout(360);
+  }],
 ];
 
 const b = await chromium.launch({

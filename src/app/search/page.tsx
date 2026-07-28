@@ -14,6 +14,8 @@ import RoomSearchField from "@/components/RoomSearchField";
 import ServiceClock, { ExpectedGuest } from "@/components/ServiceClock";
 import SearchNav from "@/components/SearchNav";
 import GuestPreviewCard from "@/components/GuestPreviewCard";
+import PreviewCarousel, { type Pane } from "@/components/PreviewCarousel";
+import { ExpectedPane, RecentsPane, NotesPane, HistoryPane, type RecentEntry, type StayEntry } from "@/components/PreviewPanes";
 import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
@@ -110,6 +112,19 @@ export default function SearchPage() {
     refresh();
     setTimeout(() => setFlash(null), 2200);
   };
+
+  /** The last people through the door — the "did I already do 224?" check. */
+  const recents = useMemo<RecentEntry[]>(() => {
+    return [...checkIns]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 4)
+      .map((c) => ({
+        roomNumber: c.roomNumber,
+        name: c.clientName,
+        pax: c.peopleEntered,
+        at: new Date(c.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      }));
+  }, [checkIns]);
 
   /** Prior stays per guest, for the preview's first-visit / regular badge. */
   const visitCounts = useMemo(() => {
@@ -263,6 +278,50 @@ export default function SearchPage() {
       setTimeout(() => setVipMergedMsg(false), 3000);
     }
   };
+
+  /* ── The preview slot's faces ──────────────────────────────────────────
+     Idle rotates on its own; a resolved room never does. Both are reachable
+     by swipe or by tapping a dot — see PreviewCarousel. */
+  const idlePanes: Pane[] = [
+    { key: "clock", label: "Heure", node: <ServiceClock /> },
+    { key: "expected", label: "Attendus bientôt", node: <ExpectedPane expected={expected} /> },
+    { key: "recents", label: "Récents", node: <RecentsPane recents={recents} /> },
+  ];
+
+  const hitStays: StayEntry[] = hit
+    ? getSessionHistory()
+        .filter((sess) => sess.date !== new Date().toISOString().split("T")[0])
+        .flatMap((sess) =>
+          sess.clients
+            .filter((c) => c.name.trim().toUpperCase() === hit.name.trim().toUpperCase())
+            .slice(0, 1)
+            .map((c) => ({ date: sess.date, roomNumber: c.roomNumber, pax: c.adults + c.children }))
+        )
+        .sort((a, b) => b.date.localeCompare(a.date))
+    : [];
+
+  const hitToday: RecentEntry[] = hit
+    ? checkIns
+        .filter((c) => c.roomNumber === hit.roomNumber)
+        .map((c) => ({
+          roomNumber: c.roomNumber,
+          name: c.clientName,
+          pax: c.peopleEntered,
+          at: new Date(c.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        }))
+    : [];
+
+  const hitPanes: Pane[] = hit
+    ? [
+        {
+          key: "apercu",
+          label: "Aperçu",
+          node: <GuestPreviewCard client={hit} visits={visitsFor(hit.name)} notes={hitNotes.notes} />,
+        },
+        { key: "notes", label: "Notes", node: <NotesPane notes={hitNotes.notes} ready={hitNotes.ready} /> },
+        { key: "historique", label: "Historique", node: <HistoryPane stays={hitStays} today={hitToday} /> },
+      ]
+    : [];
 
   const showFiltered = activeFilter && !query;
   const displayClients = query ? results : showFiltered ? filteredClients : [];
@@ -422,7 +481,7 @@ export default function SearchPage() {
         <div className="w-full lg:w-[392px] shrink-0 flex flex-col gap-2.5 min-h-0">
           <div className="hidden lg:flex flex-col flex-1 min-h-0">
             {hit ? (
-              <GuestPreviewCard client={hit} visits={visitsFor(hit.name)} />
+              <PreviewCarousel panes={hitPanes} auto={false} resetKey={hit.roomNumber} />
             ) : flash ? (
               /* Confirmation lands in the box the eye is already on, and the
                  field is already cleared for the next guest. */
@@ -440,7 +499,7 @@ export default function SearchPage() {
                 <span className="text-[17px] font-bold">{flash.n} pers. entrées</span>
               </div>
             ) : (
-              <ServiceClock expected={expected} />
+              <PreviewCarousel panes={idlePanes} auto resetKey="idle" />
             )}
           </div>
 
@@ -489,7 +548,9 @@ export default function SearchPage() {
               data-role="search-enter"
               data-mode={!hit ? "idle" : needsScreen ? "open" : "commit"}
               className="flex-1 min-h-[84px] rounded-[20px] text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
-              style={needsScreen
+              /* Idle keeps the resting green: gold means "this one needs you",
+                 and an empty field needs nothing. */
+              style={hit && needsScreen
                 ? { background: "linear-gradient(135deg,#A66914,#8A5010)", boxShadow: "0 10px 26px -12px rgba(120,74,12,.6)" }
                 : { background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
             >

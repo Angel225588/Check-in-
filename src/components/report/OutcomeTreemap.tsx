@@ -10,11 +10,12 @@ import { OutcomeSplit, ReportFilter, treemapShares } from "@/lib/report-v2";
  * the one pair a colour-blind reader loses, and every block also carries a
  * glyph and a percentage, so nothing is encoded in hue alone.
  *
- * Blocks are floored at a legible size (see treemapShares). A zero-value block
- * used to collapse to a sliver with its own label clipped down the middle,
- * which is a worse lie than a slightly generous rectangle — and a block that
- * has been widened drops to a one-line layout so it never has more type than
- * it has room for.
+ * An outcome that did not happen gets no block at all — a day with no partial
+ * arrivals should not draw an empty "Partiel" rectangle, and the tiles above
+ * the list still carry the 0 for anyone who wonders. Outcomes that DID happen
+ * but are tiny are floored to a legible size instead (see treemapShares) and
+ * drop to a compact layout, so a real 1-of-117 is never invisible and never
+ * clipped down its own middle.
  */
 export default function OutcomeTreemap({
   split,
@@ -144,7 +145,9 @@ export default function OutcomeTreemap({
         )}
       </button>
 
+      {rest > 0 && (
       <div className="flex gap-[7px] min-h-[72px]" style={{ flex: `${restS.share} 1 0` }}>
+        {split.partial > 0 && (
         <Small
           label="Partiel"
           Icon={CircleHalf}
@@ -156,6 +159,8 @@ export default function OutcomeTreemap({
           onClick={() => onFilter(filter === "partial" ? "all" : "partial")}
           flex={paS.share}
         />
+        )}
+        {split.noShow > 0 && (
         <Small
           label="Absents"
           Icon={X}
@@ -167,7 +172,9 @@ export default function OutcomeTreemap({
           onClick={() => onFilter(filter === "no" ? "all" : "no")}
           flex={noS.share}
         />
+        )}
       </div>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   outcomeSplit,
   presencePercent,
   treemapShares,
+  formuleOf,
   SERVICE_OPEN,
   SERVICE_CLOSE,
 } from "@/lib/report-v2";
@@ -307,7 +308,7 @@ describe("treemapShares", () => {
   });
 
   it("widens a block that would otherwise be a sliver, and says so", () => {
-    const s = treemapShares([0, 24], 0.3);
+    const s = treemapShares([1, 24], 0.3);
     expect(s[0].share).toBeCloseTo(0.3);
     expect(s[1].share).toBeCloseTo(0.7);
     expect(s[0].floored).toBe(true);
@@ -330,12 +331,74 @@ describe("treemapShares", () => {
   it("gives up on the floor when there is no room for it", () => {
     // Five blocks cannot each have 30%; the floor degrades to an equal split
     // instead of producing shares that sum past 1.
-    const s = treemapShares([0, 0, 0, 0, 20], 0.3);
+    const s = treemapShares([1, 1, 1, 1, 20], 0.3);
     expect(s.reduce((n, x) => n + x.share, 0)).toBeCloseTo(1);
     expect(Math.min(...s.map((x) => x.share))).toBeGreaterThan(0);
   });
 
   it("handles a single block", () => {
     expect(treemapShares([9], 0.3)).toEqual([{ share: 1, floored: false }]);
+  });
+});
+
+describe("treemapShares — a zero outcome gets no box", () => {
+  // "Partiel 0" is not a small partial; it is a partial that did not happen.
+  it("gives a zero block no space and splits the rest by magnitude", () => {
+    // Floor low enough that both survivors clear it, so the split is exact.
+    const s = treemapShares([90, 0, 27], 0.2);
+    expect(s[1].share).toBe(0);
+    expect(s[0].share).toBeCloseTo(90 / 117);
+    expect(s[2].share).toBeCloseTo(27 / 117);
+    expect(s.reduce((n, x) => n + x.share, 0)).toBeCloseTo(1);
+  });
+
+  it("still floors a small-but-real block", () => {
+    const s = treemapShares([116, 1], 0.3);
+    expect(s[1].share).toBeCloseTo(0.3);
+    expect(s[1].floored).toBe(true);
+  });
+
+  it("keeps the even split when everything is zero", () => {
+    const s = treemapShares([0, 0, 0], 0.3);
+    expect(s.every((x) => x.share > 0)).toBe(true);
+  });
+});
+
+describe("formuleOf", () => {
+  const base = { isComp: false, hasBreakfast: false, entered: 1 };
+
+  it("reads COMP and INCLUS off the reservation", () => {
+    expect(formuleOf({ ...base, isComp: true })).toBe("comp");
+    expect(formuleOf({ ...base, hasBreakfast: true })).toBe("inclus");
+  });
+
+  // COMP wins: a comped breakfast is not billed even when the package also
+  // says INC, and the briefing needs to see which one it was.
+  it("puts COMP ahead of INCLUS", () => {
+    expect(formuleOf({ ...base, isComp: true, hasBreakfast: true })).toBe("comp");
+  });
+
+  it("otherwise reports what reception chose at the door", () => {
+    expect(formuleOf({ ...base, paymentAction: "points" })).toBe("points");
+    expect(formuleOf({ ...base, paymentAction: "card" })).toBe("carte");
+    expect(formuleOf({ ...base, paymentAction: "cash" })).toBe("cash");
+    expect(formuleOf({ ...base, paymentAction: "supervisor" })).toBe("supervisor");
+  });
+
+  it("normalises the legacy aliases rather than dropping them", () => {
+    expect(formuleOf({ ...base, paymentAction: "pay_onsite" })).toBe("cash");
+    expect(formuleOf({ ...base, paymentAction: "room_charge" })).toBe("chambre");
+    expect(formuleOf({ ...base, paymentAction: "pass" })).toBe("supervisor");
+  });
+
+  it("calls an unresolved one à encaisser, not a guess", () => {
+    expect(formuleOf(base)).toBe("a-encaisser");
+    expect(formuleOf({ ...base, paymentAction: "wat" })).toBe("a-encaisser");
+  });
+
+  it("lands on every arrival row", () => {
+    const rows = buildArrivalRows(REPORT);
+    expect(rows.find((r) => r.roomNumber === "505")?.formule).toBe("comp");
+    expect(rows.find((r) => r.roomNumber === "404")?.formule).toBe("a-encaisser");
   });
 });

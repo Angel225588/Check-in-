@@ -112,6 +112,54 @@ export function buildAffluence(checkIns: CheckInRecord[], grain: number): Afflue
   return { buckets, grain: g, open, close, peakIndex, peakCount, total };
 }
 
+/** How the breakfast was covered — what the F&B briefing reads down the list. */
+export type Formule =
+  | "inclus"
+  | "comp"
+  | "points"
+  | "chambre"
+  | "carte"
+  | "cash"
+  | "supervisor"
+  | "a-encaisser";
+
+export const FORMULE_LABEL: Record<Formule, string> = {
+  inclus: "Inclus",
+  comp: "COMP",
+  points: "Points",
+  chambre: "Chambre",
+  carte: "Carte",
+  cash: "Cash",
+  supervisor: "Superviseur",
+  "a-encaisser": "À encaisser",
+};
+
+/**
+ * COMP and INCLUS come from the reservation; everything else comes from what
+ * reception actually chose at the door. A guest with no package who has not
+ * been through yet is "à encaisser" — the open question, not a decision.
+ */
+export function formuleOf(room: {
+  isComp: boolean;
+  hasBreakfast: boolean;
+  entered: number;
+  paymentAction?: string;
+}): Formule {
+  if (room.isComp) return "comp";
+  if (room.hasBreakfast) return "inclus";
+  switch (room.paymentAction) {
+    case "points": return "points";
+    case "cash":
+    case "pay_onsite": return "cash";
+    case "room":
+    case "room_charge": return "chambre";
+    case "card": return "carte";
+    case "supervisor":
+    case "pass": return "supervisor";
+    default: return "a-encaisser";
+  }
+}
+
 export interface ArrivalRow {
   roomNumber: string;
   name: string;
@@ -124,6 +172,7 @@ export interface ArrivalRow {
   isComp: boolean;
   /** VIP who was not on the breakfast list — reception cares who these were. */
   offList: boolean;
+  formule: Formule;
   /** Minutes since midnight of the first arrival, or null for a no-show. */
   minutes: number | null;
   time: string;
@@ -160,6 +209,7 @@ export function buildArrivalRows(report: DayReport): ArrivalRow[] {
       vipLevel: r.vipLevel,
       isComp: r.isComp,
       offList: !!r.isVip && (r.vipSource === "list_only" || r.vipSource === "walk_in"),
+      formule: formuleOf(r),
       minutes,
       time: minutes === null ? "—" : hhmm(minutes),
     };
@@ -269,6 +319,16 @@ export function treemapShares(values: number[], floor = 0.3): TreemapShare[] {
   if (n === 1) return [{ share: 1, floored: false }];
 
   const safe = values.map((v) => (Number.isFinite(v) && v > 0 ? v : 0));
+  // A zero block is not a small block: the day had none of that outcome, and
+  // drawing an empty rectangle invents a category. It gets no space at all —
+  // the caller drops it — and the floor is left to handle small-but-real.
+  const present = safe.filter((v) => v > 0).length;
+  if (present > 0 && present < n) {
+    const inner = treemapShares(safe.filter((v) => v > 0), floor);
+    let i = 0;
+    return safe.map((v) => (v > 0 ? inner[i++] : { share: 0, floored: false }));
+  }
+
   const total = safe.reduce((a, b) => a + b, 0);
   // No data at all: an even split says "nothing here" without dividing by zero.
   if (total === 0) return safe.map(() => ({ share: 1 / n, floored: true }));

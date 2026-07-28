@@ -16,16 +16,14 @@ function pad(n: number): string {
 }
 
 /**
- * The idle state of the right column: the time, how much service is left, and
- * — alternating — the guests due shortly.
+ * The clock face of the idle carousel: the time, and how much service is left.
  *
- * The clock itself never rotates away. It is a glance target, and a glance that
- * lands on something else is a regression, so only the strip beneath it cycles.
+ * Rotation belongs to the carousel around it, and only while idle — the moment
+ * a room resolves, nothing in this column is allowed to move on its own.
  */
-export default function ServiceClock({ expected }: { expected: ExpectedGuest[] }) {
+export default function ServiceClock() {
   const [now, setNow] = useState<Date | null>(null);
   const [prev, setPrev] = useState<string | null>(null);
-  const [pane, setPane] = useState(0);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -33,12 +31,6 @@ export default function ServiceClock({ expected }: { expected: ExpectedGuest[] }
     const id = setInterval(tick, 15_000);
     return () => clearInterval(id);
   }, []);
-
-  useEffect(() => {
-    if (!expected.length) return;
-    const id = setInterval(() => setPane((p) => (p ? 0 : 1)), 10_000);
-    return () => clearInterval(id);
-  }, [expected.length]);
 
   // Rendered only after mount, so the server and client never disagree on time.
   if (!now) return <div className="flex-1 min-h-[158px]" />;
@@ -84,45 +76,20 @@ export default function ServiceClock({ expected }: { expected: ExpectedGuest[] }
         )}
       </div>
 
-      <div className="relative mt-3.5 min-h-[58px]">
-        <div className={`absolute inset-0 transition-opacity duration-500 ${pane === 0 ? "opacity-100" : "opacity-0"}`}>
-          {/* Before 06:30 the "time left" figure is arithmetically true and
-              practically nonsense — reception is often on the floor at 06:00
-              and would read 8h50 as time left of a service that has not
-              started. Say which state the morning is actually in. */}
-          <div className="flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
-            <span>Service <b style={{ color: "var(--brand-ink)" }}>06:30 – 10:30</b></span>
-            {mins < OPEN ? (
-              <span>ouvre dans <b style={{ color: "var(--brand-ink)" }}>{Math.floor((OPEN - mins) / 60)}h{pad((OPEN - mins) % 60)}</b></span>
-            ) : mins >= CLOSE ? (
-              <span><b style={{ color: "var(--brand-ink)" }}>Service terminé</b></span>
-            ) : (
-              <span><b style={{ color: "var(--brand-ink)" }}>{Math.floor(left / 60)}h{pad(left % 60)}</b> restantes</span>
-            )}
-          </div>
-        </div>
-        <div className={`absolute inset-0 transition-opacity duration-500 ${pane === 1 ? "opacity-100" : "opacity-0"}`}>
-          <div className="text-[10.5px] font-black uppercase tracking-[0.13em] mb-1.5" style={{ color: "var(--brand-ink)" }}>
-            Attendus bientôt
-          </div>
-          {expected.slice(0, 2).map((e) => (
-            <div key={e.roomNumber} className="flex items-baseline gap-2.5 text-[14px] font-bold">
-              <b className="tabular-nums">{e.roomNumber}</b>
-              <span className="truncate">{e.surname}</span>
-              <em className="ml-auto not-italic text-[13px] tabular-nums" style={{ color: "var(--tab-idle)" }}>~{e.at}</em>
-            </div>
-          ))}
-        </div>
+      {/* Before 06:30 the "time left" figure is arithmetically true and
+          practically nonsense — reception is often on the floor at 06:00 and
+          would read 8h50 as time left of a service that has not started. Say
+          which state the morning is actually in. */}
+      <div className="mt-3.5 flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+        <span>Service <b style={{ color: "var(--brand-ink)" }}>06:30 – 10:30</b></span>
+        {mins < OPEN ? (
+          <span>ouvre dans <b style={{ color: "var(--brand-ink)" }}>{Math.floor((OPEN - mins) / 60)}h{pad((OPEN - mins) % 60)}</b></span>
+        ) : mins >= CLOSE ? (
+          <span><b style={{ color: "var(--brand-ink)" }}>Service terminé</b></span>
+        ) : (
+          <span><b style={{ color: "var(--brand-ink)" }}>{Math.floor(left / 60)}h{pad(left % 60)}</b> restantes</span>
+        )}
       </div>
-
-      {expected.length > 0 && (
-        <div className="flex gap-1.5 justify-center mt-2">
-          {[0, 1].map((i) => (
-            <i key={i} className="w-[5px] h-[5px] rounded-full transition-opacity"
-              style={{ background: i === pane ? "var(--color-brand)" : "var(--tab-idle)", opacity: i === pane ? .9 : .3 }} />
-          ))}
-        </div>
-      )}
 
       <div className="absolute left-0 right-0 bottom-0 h-[7px] bg-black/[0.06] dark:bg-white/[0.06]">
         <div className="h-full rounded-r-full" style={{

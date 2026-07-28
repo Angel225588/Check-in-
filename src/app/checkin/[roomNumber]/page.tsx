@@ -265,7 +265,12 @@ export default function CheckInPage({
     if (!saved) { setCheckInError(true); return; }
     setCheckInError(false);
     setCheckInSuccess(true);
-    setTimeout(() => router.push("/search"), 800);
+    // 350ms, not 800. During a rush this animation is paid a hundred times,
+    // and the confirmation only has to register — it does not have to be
+    // watched. The failure path deliberately does NOT auto-dismiss: a
+    // check-in that failed and then vanished is the silent loss we already
+    // fixed once.
+    setTimeout(() => router.push("/search"), 350);
   };
 
   const refreshAfterUndo = () => {
@@ -296,8 +301,8 @@ export default function CheckInPage({
     <div className={`h-dvh w-full flex ${handSide === "right" ? "flex-row-reverse" : ""} overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]`}>
       {/* ===== SUCCESS overlay ===== */}
       {checkInSuccess && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
-          <div className="flex flex-col items-center gap-3 animate-[popIn_0.25s_cubic-bezier(0.175,0.885,0.32,1.4)]">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.09s_ease-out] pointer-events-none">
+          <div className="flex flex-col items-center gap-3 animate-[popIn_0.18s_cubic-bezier(0.175,0.885,0.32,1.4)]">
             <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center shadow-2xl shadow-green-500/40">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
             </div>

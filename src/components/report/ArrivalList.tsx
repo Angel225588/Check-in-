@@ -1,6 +1,20 @@
 "use client";
 import { MagnifyingGlass, X, Star, Check, CircleHalf, XCircle } from "@phosphor-icons/react/dist/ssr";
-import { ArrivalRow } from "@/lib/report-v2";
+import { ArrivalRow, FORMULE_LABEL, type Formule } from "@/lib/report-v2";
+
+/* How the breakfast was covered. Quiet by default — it is a column you read
+   down, not a status. Only "à encaisser" is tinted, because it is the one that
+   is still an open question at the briefing. */
+const FORMULE_STYLE: Record<Formule, { bg: string; fg: string }> = {
+  inclus: { bg: "var(--aur-hairline)", fg: "var(--tab-idle)" },
+  comp: { bg: "rgba(90,59,143,.16)", fg: "var(--aur-pm-points)" },
+  points: { bg: "rgba(90,59,143,.16)", fg: "var(--aur-pm-points)" },
+  chambre: { bg: "var(--aur-info-soft)", fg: "var(--aur-info-ink)" },
+  carte: { bg: "var(--aur-info-soft)", fg: "var(--aur-info-ink)" },
+  cash: { bg: "var(--aur-warn-soft)", fg: "var(--aur-warn-ink)" },
+  supervisor: { bg: "var(--aur-hairline)", fg: "var(--tab-idle)" },
+  "a-encaisser": { bg: "var(--aur-bad-soft)", fg: "var(--aur-bad-ink)" },
+};
 
 const STATUS = {
   "all-in": { label: "Entré", fg: "var(--aur-good-ink)", bg: "rgba(47,111,79,.20)", Icon: Check },
@@ -83,10 +97,10 @@ export default function ArrivalList({
                 {r.isVip && (
                   <Star weight="fill" size={13} style={{ color: "var(--aur-gold)" }} aria-label="VIP" className="shrink-0" />
                 )}
-                {r.isComp && (
+                {r.offList && (
                   <span className="shrink-0 text-[9.5px] font-black px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(90,59,143,.16)", color: "var(--aur-pm-points)" }}>
-                    COMP
+                    style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}>
+                    HORS LISTE
                   </span>
                 )}
                 {ecartRooms.has(r.roomNumber) && (
@@ -95,6 +109,14 @@ export default function ArrivalList({
                     ÉCART
                   </span>
                 )}
+              </span>
+              <span
+                data-role="report-formule"
+                data-formule={r.formule}
+                className="shrink-0 w-[104px] text-center text-[11px] font-black px-2 py-1 rounded-[8px] whitespace-nowrap"
+                style={{ background: FORMULE_STYLE[r.formule].bg, color: FORMULE_STYLE[r.formule].fg }}
+              >
+                {FORMULE_LABEL[r.formule]}
               </span>
               <span
                 className="shrink-0 flex items-center gap-1.5 text-[12px] font-black px-3 py-1.5 rounded-full whitespace-nowrap"
