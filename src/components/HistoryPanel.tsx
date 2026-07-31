@@ -89,13 +89,13 @@ export default function HistoryPanel({
                 <div className="text-sm text-muted truncate">{record.clientName}</div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="glass-brand text-brand px-2.5 py-1 rounded-full text-sm font-bold">
+                <span className="glass-brand text-brand px-2 py-1 rounded-full text-sm font-bold">
                   {record.peopleEntered}
                 </span>
                 <span
                   role="button"
                   onClick={(e) => { e.stopPropagation(); setConfirmUndo(record); }}
-                  className="p-2.5 -m-1 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
+                  className="p-2 -m-1 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
                   aria-label={`${t("undo.confirm")} ${record.clientName}`}
                   title={t("undo.confirm")}
                 >
@@ -157,7 +157,7 @@ export default function HistoryPanel({
 
       {/* Undo success toast */}
       {undoToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-full shadow-lg animate-[slideDown_0.2s_ease-out]">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full shadow-lg animate-[slideDown_0.2s_ease-out]">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>

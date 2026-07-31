@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Où va le bouton d'entrée — 3 options</title>
+<style>
+  :root{
+    --page:#FBF8F3; --ink:#241F19; --muted:#7A6E5F;
+    --gold:#A66914; --gold-l:#DD9C28; --green:#2F6F4F;
+    --glass:rgba(255,255,255,.62); --line:rgba(36,31,25,.10);
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --page:#12100E; --ink:#F2EDE5; --muted:#9C8F7E;
+           --glass:rgba(255,255,255,.07); --line:rgba(255,255,255,.10); }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);
+       font-family:'Nunito',-apple-system,system-ui,Arial,sans-serif;
+       padding:var(--sp-6);-webkit-font-smoothing:antialiased}
+  h1{font-size:22px;font-weight:900;letter-spacing:-.02em;margin:0 0 var(--sp-2)}
+  .lede{color:var(--muted);font-size:14px;font-weight:600;max-width:70ch;margin:0 0 var(--sp-6);line-height:1.5}
+  .row{display:flex;gap:var(--sp-6);flex-wrap:wrap;align-items:flex-start}
+  .opt{flex:1 1 300px;min-width:300px;max-width:392px}
+  .tag{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.14em;
+       color:var(--muted);display:block;margin-bottom:var(--sp-2)}
+  .tag b{color:var(--gold)}
+  /* the column, at the real proportions of the right-hand side of the screen */
+  .col{display:flex;flex-direction:column;gap:var(--sp-3);height:560px}
+  .card{height:170px;border-radius:24px;padding:20px;display:flex;flex-direction:column;
+        justify-content:center;gap:var(--sp-1);
+        background:linear-gradient(150deg,#C98A2A,#A66914);color:#fff;
+        box-shadow:0 16px 44px -18px rgba(120,74,12,.6)}
+  .card .eyebrow{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.14em;opacity:.85}
+  .card .room{font-size:58px;font-weight:900;line-height:.9;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+  .card .name{font-size:19px;font-weight:800}
+  .pad{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2);
+       background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .k{border-radius:12px;background:var(--glass);border:1px solid var(--line);color:var(--ink);
+     font-size:26px;font-weight:800;display:grid;place-items:center}
+  .cta{display:flex;gap:var(--sp-2)}
+  .step{width:84px;height:76px;border-radius:20px;background:var(--glass);border:1px solid var(--line);
+        color:var(--ink);font-size:32px;font-weight:900;display:grid;place-items:center}
+  .go{flex:1;height:76px;border-radius:20px;background:var(--green);color:#fff;
+      font-size:22px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:10px;
+      box-shadow:0 10px 26px -12px rgba(47,111,79,.6)}
+  .go b{font-size:30px;font-variant-numeric:tabular-nums}
+  /* option B/C: pad + a tall commit column */
+  .split{flex:1;min-height:0;display:flex;gap:var(--sp-2)}
+  .split .pad{flex:1}
+  .tall{width:96px;border-radius:20px;background:var(--green);color:#fff;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+        box-shadow:0 10px 26px -12px rgba(47,111,79,.6)}
+  .tall .n{font-size:44px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+  .tall .w{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;opacity:.9}
+  .stack{width:96px;display:flex;flex-direction:column;gap:var(--sp-2)}
+  .stack .step{width:100%;height:64px;font-size:28px}
+  .stack .tall{width:100%;flex:1}
+  .note{margin-top:var(--sp-3);font-size:13px;line-height:1.5;color:var(--muted);font-weight:600}
+  .note em{font-style:normal;color:var(--ink);font-weight:800}
+  .verdict{margin-top:var(--sp-6);padding:var(--sp-4);border-radius:16px;
+           background:var(--glass);border:1px solid var(--line);font-size:14px;line-height:1.6;max-width:80ch}
+  .verdict h2{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;
+              color:var(--muted);margin:0 0 var(--sp-2)}
+</style>
+</head>
+<body>
+
+<h1>Où va le bouton d'entrée</h1>
+<p class="lede">La même colonne de droite, à l'échelle réelle (392&nbsp;px de large). Seule la position de la
+validation change. À comparer sur l'iPad, la main posée comme au comptoir.</p>
+
+<div class="row">
+
+  <!-- A ─────────────────────────────────────────────── -->
+  <div class="opt">
+    <span class="tag"><b>A</b> — barre sous l'aperçu (en place)</span>
+    <div class="col">
+      <div class="card">
+        <span class="eyebrow">Chambre · 3ᵉ visite</span>
+        <span class="room">224</span>
+        <span class="name">POLANCO / ANGEL</span>
+      </div>
+      <div class="cta">
+        <div class="step">−</div>
+        <div class="go">✓ Entrer <b>3</b></div>
+        <div class="step">+</div>
+      </div>
+      <div class="pad">
+        <div class="k">1</div><div class="k">2</div><div class="k">3</div>
+        <div class="k">4</div><div class="k">5</div><div class="k">6</div>
+        <div class="k">7</div><div class="k">8</div><div class="k">9</div>
+        <div class="k">ABC</div><div class="k">0</div><div class="k">⌫</div>
+      </div>
+    </div>
+    <p class="note"><em>Pour :</em> collé à ce qu'on valide. Position fixe, courte distance depuis les touches.
+      <br><em>Contre :</em> la cible reste de taille moyenne, et le clavier pousse la barre plus haut sur un grand écran.</p>
+  </div>
+
+  <!-- B ─────────────────────────────────────────────── -->
+  <div class="opt">
+    <span class="tag"><b>B</b> — colonne haute à droite du clavier</span>
+    <div class="col">
+      <div class="card">
+        <span class="eyebrow">Chambre · 3ᵉ visite</span>
+        <span class="room">224</span>
+        <span class="name">POLANCO / ANGEL</span>
+      </div>
+      <div class="cta">
+        <div class="step">−</div>
+        <div class="go" style="background:var(--glass);color:var(--ink);box-shadow:none;border:1px solid var(--line)">
+          <b>3</b> pers.
+        </div>
+        <div class="step">+</div>
+      </div>
+      <div class="split">
+        <div class="pad">
+          <div class="k">1</div><div class="k">2</div><div class="k">3</div>
+          <div class="k">4</div><div class="k">5</div><div class="k">6</div>
+          <div class="k">7</div><div class="k">8</div><div class="k">9</div>
+          <div class="k">ABC</div><div class="k">0</div><div class="k">⌫</div>
+        </div>
+        <div class="tall">
+          <span style="font-size:30px">✓</span>
+          <span class="n">3</span>
+          <span class="w">Entrer</span>
+        </div>
+      </div>
+    </div>
+    <p class="note"><em>Pour :</em> la plus grande cible de l'écran, la main ne quitte jamais le pavé — le geste des caisses.
+      <br><em>Contre :</em> elle touche le <em>3</em>, le <em>6</em>, le <em>9</em>. Une erreur de colonne enregistre une entrée.</p>
+  </div>
+
+  <!-- C ─────────────────────────────────────────────── -->
+  <div class="opt">
+    <span class="tag"><b>C</b> — colonne haute, compteur intégré</span>
+    <div class="col">
+      <div class="card">
+        <span class="eyebrow">Chambre · 3ᵉ visite</span>
+        <span class="room">224</span>
+        <span class="name">POLANCO / ANGEL</span>
+      </div>
+      <div class="split">
+        <div class="pad">
+          <div class="k">1</div><div class="k">2</div><div class="k">3</div>
+          <div class="k">4</div><div class="k">5</div><div class="k">6</div>
+          <div class="k">7</div><div class="k">8</div><div class="k">9</div>
+          <div class="k">ABC</div><div class="k">0</div><div class="k">⌫</div>
+        </div>
+        <div class="stack">
+          <div class="step">+</div>
+          <div class="tall">
+            <span style="font-size:26px">✓</span>
+            <span class="n">3</span>
+            <span class="w">Entrer</span>
+          </div>
+          <div class="step">−</div>
+        </div>
+      </div>
+    </div>
+    <p class="note"><em>Pour :</em> tout le geste dans une seule colonne, et la validation est la plus grosse surface.
+      <br><em>Contre :</em> <em>+</em> et <em>−</em> encadrent la validation : viser le compteur et valider par erreur devient facile.</p>
+  </div>
+
+</div>
+
+<div class="verdict">
+  <h2>Ce que j'en pense</h2>
+  <p><b>A</b> est en place et je le garderais par défaut. <b>B</b> est plus rapide — c'est le geste des caisses, la main
+  reste sur le pavé — mais il met la validation à une colonne du <em>3</em>, du <em>6</em> et du <em>9</em>. Pendant le
+  coup de feu, une erreur de colonne enregistre une entrée que personne n'a vue passer.</p>
+  <p>Le compromis honnête : garder <b>A</b>, et rendre la validation plus grande plutôt que plus proche des touches —
+  c'est bien « le plus important est le plus gros », sans le mettre à portée d'un doigt qui visait un chiffre.
+  Si tu veux essayer <b>B</b>, il faut un écart réel entre le pavé et la colonne, pas 8&nbsp;px.</p>
+  <p>À tester au comptoir : entre 20 chambres avec chaque option et compte les fois où tu dois annuler.
+  C'est la seule mesure qui compte.</p>
+</div>
+
+</body>
+</html>

@@ -456,7 +456,7 @@ function ReportPage() {
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="rounded-[10px] bg-black/[0.03] dark:bg-white/[0.04] p-2.5">
+                <div className="rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04] p-2">
                   <div className="text-[8px] text-muted uppercase font-semibold">
                     {t("report.sourceList")}
                   </div>
@@ -467,7 +467,7 @@ function ReportPage() {
                     {report.sourceBreakdown.listRooms} {t("upload.rooms")}
                   </div>
                 </div>
-                <div className="rounded-[10px] bg-brand/[0.06] p-2.5">
+                <div className="rounded-[12px] bg-brand/[0.06] p-2">
                   <div className="text-[8px] text-brand uppercase font-semibold">
                     {t("report.sourceVipOnly")}
                   </div>
@@ -478,7 +478,7 @@ function ReportPage() {
                     {report.sourceBreakdown.vipListOnlyRooms} {t("upload.rooms")}
                   </div>
                 </div>
-                <div className="rounded-[10px] bg-amber-500/[0.08] p-2.5">
+                <div className="rounded-[12px] bg-amber-500/[0.08] p-2">
                   <div className="text-[8px] text-amber-700 dark:text-amber-400 uppercase font-semibold">
                     {t("report.sourceWalkIn")}
                   </div>
@@ -585,7 +585,7 @@ function ReportPage() {
                     return (
                       <div
                         key={`offlist-${room.roomNumber}-${i}`}
-                        className="flex items-center justify-between bg-brand/[0.06] dark:bg-brand/[0.10] rounded-[10px] px-3 py-2"
+                        className="flex items-center justify-between bg-brand/[0.06] dark:bg-brand/[0.10] rounded-[12px] px-3 py-2"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-sm font-bold font-mono text-dark shrink-0">
@@ -635,7 +635,7 @@ function ReportPage() {
             ) : (
               <div className="space-y-1.5">
                 {extrasRooms.map((room) => (
-                  <div key={`extra-${room.roomNumber}-${room.name}`} className="flex items-center justify-between bg-amber-500/8 dark:bg-amber-500/10 rounded-[10px] px-3 py-2">
+                  <div key={`extra-${room.roomNumber}-${room.name}`} className="flex items-center justify-between bg-amber-500/8 dark:bg-amber-500/10 rounded-[12px] px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold font-mono text-dark">{room.roomNumber}</span>
                       <span className="text-xs text-dark truncate max-w-[160px]">{room.name}</span>
@@ -715,7 +715,7 @@ function ReportPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("report.searchPlaceholder")}
-                className="w-full pl-9 pr-3 py-2.5 rounded-[12px] glass-liquid text-sm text-dark placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-brand/30"
+                className="w-full pl-9 pr-3 py-2 rounded-[12px] glass-liquid text-sm text-dark placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-brand/30"
               />
               {searchQuery && (
                 <button
@@ -759,7 +759,7 @@ function ReportPage() {
                   return (
                     <div
                       key={`${room.roomNumber}-${i}`}
-                      className={`grid grid-cols-[46px_1fr_40px_42px_52px_48px] min-w-[380px] px-3 py-2.5 items-center border-b border-black/3 dark:border-white/5 last:border-0 ${
+                      className={`grid grid-cols-[46px_1fr_40px_42px_52px_48px] min-w-[380px] px-3 py-2 items-center border-b border-black/3 dark:border-white/5 last:border-0 ${
                         room.extras > 0 ? "bg-amber-500/8 dark:bg-amber-500/10" :
                         room.isComp ? "bg-green-500/5 dark:bg-green-500/8" :
                         room.isVip ? "bg-brand/5" :
@@ -843,11 +843,11 @@ function ReportPage() {
               </summary>
               <div className="glass-liquid rounded-[14px] divide-y divide-black/5 dark:divide-white/8 overflow-hidden">
                 {report.checkIns.map((record) => (
-                  <div key={record.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <div key={record.id} className="flex items-center gap-3 px-4 py-2">
                     <span className="font-mono text-muted text-xs w-14 shrink-0">{formatTime(record.timestamp)}</span>
                     <span className="font-bold font-mono text-sm text-dark w-12 shrink-0">{record.roomNumber}</span>
                     <span className="text-xs text-muted truncate flex-1">{record.clientName}</span>
-                    <span className="glass-brand text-brand px-2.5 py-0.5 rounded-full text-xs font-bold">
+                    <span className="glass-brand text-brand px-2 py-0.5 rounded-full text-xs font-bold">
                       {record.peopleEntered}
                     </span>
                   </div>

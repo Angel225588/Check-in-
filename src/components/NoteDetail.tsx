@@ -66,7 +66,7 @@ export default function NoteDetail({
 
       <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1">
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-black mb-2.5"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-black mb-2"
           style={{ background: m.soft, color: m.color }}
         >
           <NoteToneIcon tone={note.tone} size={14} /> {m.label}
@@ -96,7 +96,7 @@ export default function NoteDetail({
               <CaretDown size={13} style={{ transform: showRevisions ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
             </button>
             {showRevisions && (
-              <div className="px-3 pb-2.5 flex flex-col gap-1.5">
+              <div className="px-3 pb-2 flex flex-col gap-1.5">
                 {[...note.revisions].reverse().map((r, i) => (
                   <div key={i} className="text-[11.5px] leading-snug" style={{ color: "var(--tab-idle)" }}>
                     <b className="text-dark/70">{r.author || "—"}</b> · {r.summary} · {fmt(r.at)}
@@ -111,7 +111,7 @@ export default function NoteDetail({
       {/* Thumb zone — the safe, frequent actions. */}
       {confirmDelete ? (
         <div className="shrink-0 mt-3 rounded-[16px] p-3" style={{ background: "var(--aur-bad-soft)" }}>
-          <div className="text-[13px] font-black mb-2.5" style={{ color: "var(--aur-bad-ink)" }}>
+          <div className="text-[13px] font-black mb-2" style={{ color: "var(--aur-bad-ink)" }}>
             Supprimer cette note définitivement ?
           </div>
           <div className="flex gap-2">

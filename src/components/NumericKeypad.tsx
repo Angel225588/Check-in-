@@ -18,9 +18,9 @@ export default function NumericKeypad({
   ];
 
   return (
-    <div className="glass-surface rounded-[14px] p-1.5 md:p-2.5 flex flex-col gap-1.5 md:gap-2 h-full" role="group" aria-label="Numeric keypad" style={{ touchAction: "manipulation" }}>
+    <div className="glass-surface rounded-[14px] p-2 md:p-3 flex flex-col gap-2 h-full" role="group" aria-label="Numeric keypad" style={{ touchAction: "manipulation" }}>
       {keys.map((row, i) => (
-        <div key={i} className="grid grid-cols-3 gap-1.5 md:gap-2 flex-1 min-h-0">
+        <div key={i} className="grid grid-cols-3 gap-2 flex-1 min-h-0">
           {row.map((key) => (
             <button
               key={key}
@@ -32,7 +32,7 @@ export default function NumericKeypad({
           ))}
         </div>
       ))}
-      <div className="grid grid-cols-3 gap-1.5 md:gap-2 flex-1 min-h-0">
+      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
         <button
           onClick={onToggleMode}
           className="bg-teal/90 backdrop-blur-sm text-white rounded-xl min-h-[clamp(44px,7.4vh,64px)] text-sm md:text-lg font-bold active:scale-95 active:opacity-80 transition-all"

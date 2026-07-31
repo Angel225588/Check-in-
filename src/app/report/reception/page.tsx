@@ -351,7 +351,7 @@ function ReceptionReportPage() {
           ) : (
             <Card className="py-0 overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[44px_1fr_64px_56px_88px] px-4 py-2.5 bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/8">
+              <div className="grid grid-cols-[44px_1fr_64px_56px_88px] px-4 py-2 bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/8">
                 <span className="text-[7px] text-muted uppercase font-bold tracking-wider">
                   {t("reception.colRoom")}
                 </span>

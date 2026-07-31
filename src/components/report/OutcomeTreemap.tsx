@@ -67,7 +67,7 @@ export default function OutcomeTreemap({
       data-role="treemap-block"
       aria-pressed={on}
       aria-label={`${label} ${value} (${pct})`}
-      className={`${block} ${tight ? "px-2.5 py-2 justify-center" : "px-3 py-2.5"}`}
+      className={`${block} ${tight ? "px-2 py-2 justify-center" : "px-3 py-2"}`}
       style={{
         flex: `${flex} 1 0`,
         background: bg,
@@ -100,12 +100,12 @@ export default function OutcomeTreemap({
   );
 
   return (
-    <div className="flex flex-col gap-[7px] flex-1 min-h-0" data-role="report-treemap">
+    <div className="flex flex-col gap-2 flex-1 min-h-0" data-role="report-treemap">
       <button
         onClick={() => onFilter(filter === "in" ? "all" : "in")}
         data-role="treemap-block"
         aria-pressed={filter === "in"}
-        className={`${block} ${inS.floored ? "px-3 py-2.5 justify-center" : "px-4 py-3.5"}`}
+        className={`${block} ${inS.floored ? "px-3 py-2 justify-center" : "px-4 py-3"}`}
         style={{
           flex: `${inS.share} 1 0`,
           background: "linear-gradient(150deg,#357D58,#255B41)",
@@ -126,14 +126,14 @@ export default function OutcomeTreemap({
             <span className="text-[34px] font-black leading-none tracking-[-0.03em] tabular-nums mt-0.5">{split.allIn}</span>
             <span className="text-[15px] font-black tabular-nums opacity-95">{pc(split.allIn)}</span>
             {(vip > 0 || comp > 0) && (
-              <span className="flex gap-[5px] mt-2.5">
-                <span className="flex-1 rounded-[8px] px-2.5 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
+              <span className="flex gap-1 mt-2">
+                <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
                   <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
                     <Star weight="fill" size={10} /> VIP
                   </span>
                   <span className="block text-[16px] font-black tabular-nums">{vip}</span>
                 </span>
-                <span className="flex-1 rounded-[8px] px-2.5 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
+                <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
                   <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
                     <Gift weight="fill" size={10} /> COMP
                   </span>
@@ -146,7 +146,7 @@ export default function OutcomeTreemap({
       </button>
 
       {rest > 0 && (
-      <div className="flex gap-[7px] min-h-[72px]" style={{ flex: `${restS.share} 1 0` }}>
+      <div className="flex gap-2 min-h-[72px]" style={{ flex: `${restS.share} 1 0` }}>
         {split.partial > 0 && (
         <Small
           label="Partiel"

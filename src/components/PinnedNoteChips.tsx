@@ -40,7 +40,7 @@ export default function PinnedNoteChips({
               onClick={() => onOpen(n.id)}
               data-role="pinned-chip"
               data-note-tone={n.tone}
-              className="inline-flex items-center gap-1.5 min-h-[44px] max-w-full px-3.5 rounded-full text-[13px] font-extrabold active:scale-[0.97] transition-transform"
+              className="inline-flex items-center gap-1.5 min-h-[44px] max-w-full px-3 rounded-full text-[13px] font-extrabold active:scale-[0.97] transition-transform"
               style={{
                 background: m.soft,
                 color: m.color,
@@ -56,7 +56,7 @@ export default function PinnedNoteChips({
           <button
             onClick={onOpenAll}
             data-role="pinned-overflow"
-            className="inline-flex items-center min-h-[44px] px-3.5 rounded-full text-[13px] font-extrabold"
+            className="inline-flex items-center min-h-[44px] px-3 rounded-full text-[13px] font-extrabold"
             style={{ background: "rgba(0,0,0,.05)", color: "var(--tab-idle)" }}
           >
             +{overflow}

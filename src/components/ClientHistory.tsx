@@ -56,7 +56,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
       {hasTodayEntries && (
         <div className="space-y-1.5">
           {todayCheckIns.map((ci) => (
-            <div key={ci.id} className="flex items-center gap-2 glass rounded-[10px] px-3 py-2">
+            <div key={ci.id} className="flex items-center gap-2 glass rounded-[12px] px-3 py-2">
               <span className="text-xs text-muted font-mono w-12 shrink-0">{formatTime(ci.timestamp)}</span>
               <span className="text-xs font-semibold text-dark flex-1">
                 {ci.peopleEntered} {ci.peopleEntered === 1 ? t("undo.person") : t("undo.people")}
@@ -67,7 +67,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
               <button
                 onClick={() => setConfirmUndo(ci)}
                 aria-label={`Undo check-in at ${ci.timestamp}`}
-                className="p-2.5 -m-1.5 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
+                className="p-2 -m-1.5 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
               >
                 <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H7" />

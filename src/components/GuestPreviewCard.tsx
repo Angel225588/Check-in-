@@ -66,7 +66,7 @@ export default function GuestPreviewCard({
           style={{ color: vip ? "rgba(255,255,255,.9)" : "var(--tab-idle)" }}>
           Chambre
         </span>
-        <span className="shrink-0 text-[11px] font-black px-2.5 py-1 rounded-full" style={glass}>
+        <span className="shrink-0 text-[11px] font-black px-2 py-1 rounded-full" style={glass}>
           {visits > 0 ? `Habitué · ${visits}ᵉ séjour` : "1ʳᵉ visite"}
         </span>
       </div>
@@ -94,7 +94,7 @@ export default function GuestPreviewCard({
                 key={n.id}
                 data-role="preview-note"
                 data-note-tone={n.tone}
-                className="flex items-center gap-1.5 text-[12.5px] font-bold px-2.5 py-1.5 rounded-[10px] truncate"
+                className="flex items-center gap-1.5 text-[12.5px] font-bold px-2 py-1.5 rounded-[12px] truncate"
                 style={alert
                   ? {
                       background: vip ? "rgba(0,0,0,.34)" : "var(--aur-bad-soft)",

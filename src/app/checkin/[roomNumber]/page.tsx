@@ -321,7 +321,7 @@ export default function CheckInPage({
             <div className="text-lg font-black text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">{t("checkin.saveFailed")}</div>
             <p className="text-sm text-dark/80 leading-relaxed mb-5">{t("checkin.saveFailedDesc")}</p>
             <button onClick={() => { setCheckInError(false); handleCheckIn(); }} className="w-full bg-brand text-white py-3 rounded-full text-base font-bold active:scale-[0.97] transition-all mb-2">{t("checkin.retry")}</button>
-            <button onClick={() => setCheckInError(false)} className="w-full py-2.5 rounded-full glass-liquid text-muted font-semibold text-sm">{t("checkin.cancel")}</button>
+            <button onClick={() => setCheckInError(false)} className="w-full py-2 rounded-full glass-liquid text-muted font-semibold text-sm">{t("checkin.cancel")}</button>
           </div>
         </div>
       )}
@@ -401,7 +401,7 @@ export default function CheckInPage({
               <>
                 {/* Dark ink on the gold, not white: white on #DD9C28 measures
                     2.37:1, which is unreadable at this size. */}
-                <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-black text-[12.5px] shadow-[0_6px_16px_-6px] shadow-brand/60"
+                <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-black text-[12.5px] shadow-[0_6px_16px_-6px] shadow-brand/60"
                   style={{ background: "linear-gradient(135deg,#E9B44C,#C08A3A)", color: "#241F19" }}><Star weight="fill" size={13} /> Première visite</span>
                 <div className="text-[13px] text-muted text-center py-8">Aucune activité — nouveau client</div>
               </>
@@ -412,7 +412,7 @@ export default function CheckInPage({
                 )}
                 <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
                 {pastStays.map((v, i) => (
-                  <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2.5 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
+                  <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
                     <span className="text-[13px] font-extrabold text-dark tabular-nums">
                       {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                     </span>
@@ -476,7 +476,7 @@ export default function CheckInPage({
               data-role="hand-toggle"
               aria-label={handSide === "left" ? "Passer les commandes à droite" : "Passer les commandes à gauche"}
               title={handSide === "left" ? "Commandes à droite (droitier)" : "Commandes à gauche (gaucher)"}
-              className="flex items-center gap-1.5 px-3.5 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
+              className="flex items-center gap-1.5 px-3 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
             >
               <ArrowsLeftRight weight="bold" size={15} style={{ color: "var(--brand-ink)" }} />
               <span className="text-[12px] font-extrabold" style={{ color: "var(--brand-ink)" }}>
@@ -542,9 +542,9 @@ export default function CheckInPage({
                   </div>
                 </div>
               ) : (
-                <button onClick={() => { setEditAdults(String(client.adults)); setEditChildren(String(client.children)); setEditingPeople(true); }} className="flex gap-2.5 active:opacity-70 transition-opacity">
+                <button onClick={() => { setEditAdults(String(client.adults)); setEditChildren(String(client.children)); setEditingPeople(true); }} className="flex gap-2 active:opacity-70 transition-opacity">
                   {[{ k: t("checkin.adults"), v: client.adults }, { k: t("checkin.children"), v: client.children }].map((s, i) => (
-                    <div key={i} className={`min-w-[74px] text-center rounded-[18px] px-3 py-2.5 ${isVip ? "bg-black/20 border border-white/20" : "bg-white/60 border border-black/[0.06]"}`}>
+                    <div key={i} className={`min-w-[74px] text-center rounded-[18px] px-3 py-2 ${isVip ? "bg-black/20 border border-white/20" : "bg-white/60 border border-black/[0.06]"}`}>
                       <div className={`text-[10px] uppercase tracking-wide ${isVip ? "text-white" : "text-muted"}`}>{s.k}</div>
                       <div className={`text-2xl font-extrabold mt-0.5 ${onGold}`}>{s.v}</div>
                     </div>
@@ -589,13 +589,13 @@ export default function CheckInPage({
 
           {/* Payment methods — only when needed */}
           {needsPay && (
-            <div className="grid grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-4 gap-2">
               {PAY_METHODS.map((opt) => {
                 const active = paymentAction === opt.key;
                 return (
                   <button key={opt.key} onClick={() => { setPaymentAction(opt.key); if (clientIndex !== null) updateClient(clientIndex, { pendingPaymentAction: opt.key }); }}
                     aria-pressed={active}
-                    className="flex flex-col items-center gap-2 py-3.5 rounded-[18px] transition-all active:scale-[0.97]"
+                    className="flex flex-col items-center gap-2 py-3 rounded-[18px] transition-all active:scale-[0.97]"
                     style={active
                       ? { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)", color: "var(--brand-ink)" }
                       : { background: "var(--color-card, #fff)", boxShadow: "var(--shadow-aur-2)" }}>
@@ -620,7 +620,7 @@ export default function CheckInPage({
               <div className="text-center text-xs text-muted mb-2 font-medium">{remaining} {t("checkin.of")} {total} {t("checkin.remaining")}</div>
               <div className="mb-3"><PeopleCounter value={count} min={1} max={remaining} onChange={setCount} /></div>
               <button onClick={handleCheckIn} disabled={checkInSuccess}
-                className="w-full text-white py-4 rounded-[44px] text-2xl font-black active:scale-[0.97] transition-all disabled:opacity-60"
+                className="w-full text-white py-4 rounded-[52px] text-2xl font-black active:scale-[0.97] transition-all disabled:opacity-60"
                 style={{ background: "var(--aur-good)", boxShadow: "0 8px 24px -10px rgba(47,111,79,.45)" }}>
                 {t("checkin.button")}
               </button>

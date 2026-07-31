@@ -20,6 +20,7 @@ import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import CsvImporter from "@/components/CsvImporter";
 import DataTable from "@/components/DataTable";
 import SettingsToggle from "@/components/SettingsToggle";
+import TestDataSheet from "@/components/TestDataSheet";
 
 interface PdfUploadStatus {
   file: File;
@@ -622,7 +623,7 @@ export default function UploadPage() {
         <div className="relative flex-1 flex flex-col px-5 pt-6 pb-5">
           {/* Add-mode banner */}
           {isAddMode && (
-            <div className="mb-3 flex items-center gap-2 bg-brand/10 dark:bg-brand/15 rounded-[14px] px-4 py-2.5">
+            <div className="mb-3 flex items-center gap-2 bg-brand/10 dark:bg-brand/15 rounded-[14px] px-4 py-2">
               <svg className="w-5 h-5 text-brand shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -646,14 +647,19 @@ export default function UploadPage() {
                 MARRIOTT
               </span>
             </div>
-            <button
-              onClick={() => setHistoryOpen(true)}
-              className="p-2 glass-liquid rounded-full active:scale-95 transition-transform"
-            >
-              <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setHistoryOpen(true)}
+                className="p-2 glass-liquid rounded-full active:scale-95 transition-transform"
+              >
+                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              {/* Installed to the home screen there is no address bar, so this
+                  is the only way back to /debug and the mock data. */}
+              <TestDataSheet />
+            </div>
           </div>
 
           {/* Greeting */}
@@ -764,7 +770,7 @@ export default function UploadPage() {
             {!activeSession && (
               <button
                 onClick={() => setActionSheetOpen(true)}
-                className="w-full glass-liquid rounded-[16px] p-3.5 flex items-center gap-3 active:scale-[0.97] transition-all"
+                className="w-full glass-liquid rounded-[16px] p-3 flex items-center gap-3 active:scale-[0.97] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
                   <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -925,7 +931,7 @@ export default function UploadPage() {
               {/* Cancel */}
               <button
                 onClick={() => setActionSheetOpen(false)}
-                className="w-full mt-4 py-3.5 rounded-[52px] glass-liquid text-muted font-semibold text-[15px] active:scale-[0.97] transition-all"
+                className="w-full mt-4 py-3 rounded-[52px] glass-liquid text-muted font-semibold text-[15px] active:scale-[0.97] transition-all"
               >
                 {t("checkin.cancel")}
               </button>
@@ -951,7 +957,7 @@ export default function UploadPage() {
                     inputMode="numeric"
                     value={newRoom}
                     onChange={(e) => setNewRoom(e.target.value)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                     placeholder="101"
                     maxLength={10}
                     autoFocus
@@ -963,7 +969,7 @@ export default function UploadPage() {
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                     placeholder="Dupont"
                     maxLength={100}
                   />
@@ -980,7 +986,7 @@ export default function UploadPage() {
                     onChange={(e) => setNewAdults(e.target.value)}
                     min="0"
                     max="20"
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                   />
                 </div>
                 <div>
@@ -992,7 +998,7 @@ export default function UploadPage() {
                     onChange={(e) => setNewChildren(e.target.value)}
                     min="0"
                     max="20"
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                   />
                 </div>
               </div>

@@ -40,6 +40,7 @@ export default function PreviewCarousel({
   const [i, setI] = useState(0);
   const [pausedUntil, setPausedUntil] = useState(0);
   const startX = useRef<number | null>(null);
+  const startY = useRef(0);
 
   useEffect(() => { setI(0); }, [resetKey]);
 
@@ -71,6 +72,7 @@ export default function PreviewCarousel({
       style={{ touchAction: "pan-y" }}
       onPointerDown={(e) => {
         startX.current = e.clientX;
+        startY.current = e.clientY;
         // Capture, so the release still reaches this element even when the
         // finger has travelled off the card by then.
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
@@ -81,7 +83,11 @@ export default function PreviewCarousel({
         try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
         if (x0 === null || panes.length < 2) return;
         const dx = e.clientX - x0;
+        const dy = e.clientY - startY.current;
         if (Math.abs(dx) < SWIPE_PX) return;
+        // Panes scroll now, so a drag that is mostly vertical belongs to the
+        // list inside the pane, not to the carousel.
+        if (Math.abs(dy) > Math.abs(dx)) return;
         go(i + (dx < 0 ? 1 : -1));
       }}
       onPointerCancel={() => { startX.current = null; }}

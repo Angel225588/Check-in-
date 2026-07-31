@@ -25,8 +25,13 @@ export default function SearchNav({
     "flex-1 min-h-[60px] rounded-[16px] flex flex-col items-center justify-center gap-1 glass-liquid active:scale-[0.96] transition-transform";
   const label = "text-[10px] font-black uppercase tracking-[0.06em]";
 
+  /* h-full, because this row shares a line with the metrics bar and the metrics
+     bar is taller. Left at content height the buttons sat at the top of a
+     stretched box and left a band of dead air between them and the preview card
+     below — the gap Angel circled. Filling the line closes it and makes the
+     targets bigger at the same time. */
   return (
-    <div className="flex gap-2" data-role="search-nav">
+    <div className="flex gap-2 h-full" data-role="search-nav">
       <button onClick={onRecents} className={item} title="Historique des check-ins">
         <Clock size={19} weight="duotone" style={{ opacity: .75 }} />
         <span className={label} style={{ color: "var(--tab-idle)" }}>Récents</span>

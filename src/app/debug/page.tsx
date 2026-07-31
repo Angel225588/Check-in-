@@ -97,7 +97,7 @@ export default function DebugPage() {
         </p>
         <button
           onClick={handleLocalOCRToggle}
-          className={`w-full py-2.5 rounded-full font-bold text-sm active:scale-[0.97] transition-all ${
+          className={`w-full py-2 rounded-full font-bold text-sm active:scale-[0.97] transition-all ${
             localOCR
               ? "bg-green-500 text-white"
               : "bg-brand/15 text-brand"
@@ -118,14 +118,14 @@ export default function DebugPage() {
           <button
             onClick={handleSeed}
             disabled={!!busy}
-            className="flex-1 py-2.5 rounded-full bg-brand text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
+            className="flex-1 py-2 rounded-full bg-brand text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
           >
             {busy === "seed" ? "Seeding…" : "🌱 Seed Mock Data"}
           </button>
           <button
             onClick={handleWipe}
             disabled={!!busy}
-            className="flex-1 py-2.5 rounded-full bg-red-500/90 text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
+            className="flex-1 py-2 rounded-full bg-red-500/90 text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
           >
             {busy === "wipe" ? "Wiping…" : "🧹 Clear All"}
           </button>

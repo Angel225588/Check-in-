@@ -60,7 +60,7 @@ export default function ServiceClock() {
               {/* Drawn, because the ':' glyph is square-dotted in several
                   fallback faces and renders as two blocks. */}
               {i === 1 && (
-                <span className="inline-flex flex-col justify-center gap-[0.16em] px-[0.10em] align-middle">
+                <span className="inline-flex flex-col justify-center gap-[2px] px-[2px] align-middle">
                   <i className="block w-[0.085em] h-[0.085em] rounded-full bg-current opacity-40 animate-[blink_2s_ease-in-out_infinite]" />
                   <i className="block w-[0.085em] h-[0.085em] rounded-full bg-current opacity-40 animate-[blink_2s_ease-in-out_infinite]" />
                 </span>
@@ -69,7 +69,7 @@ export default function ServiceClock() {
           ))}
         </div>
         {rush && (
-          <span className="text-[11px] font-black uppercase tracking-[0.07em] px-2.5 py-1 rounded-full"
+          <span className="text-[11px] font-black uppercase tracking-[0.07em] px-2 py-1 rounded-full"
             style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}>
             Pointe
           </span>
@@ -80,7 +80,7 @@ export default function ServiceClock() {
           practically nonsense — reception is often on the floor at 06:00 and
           would read 8h50 as time left of a service that has not started. Say
           which state the morning is actually in. */}
-      <div className="mt-3.5 flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+      <div className="mt-3 flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
         <span>Service <b style={{ color: "var(--brand-ink)" }}>06:30 – 10:30</b></span>
         {mins < OPEN ? (
           <span>ouvre dans <b style={{ color: "var(--brand-ink)" }}>{Math.floor((OPEN - mins) / 60)}h{pad((OPEN - mins) % 60)}</b></span>

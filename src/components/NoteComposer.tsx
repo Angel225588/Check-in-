@@ -95,7 +95,7 @@ export default function NoteComposer({
             placeholder="Titre — ex. Allergie arachide"
             maxLength={MAX_TITLE}
             data-role="note-title"
-            className="w-full min-h-[58px] px-4 rounded-[16px] text-[20px] font-bold text-dark mb-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40"
+            className="w-full min-h-[58px] px-4 rounded-[16px] text-[20px] font-bold text-dark mb-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
             style={{ background: "rgba(0,0,0,.05)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.07)" }}
           />
           <textarea
@@ -108,7 +108,7 @@ export default function NoteComposer({
             /* Tall enough that the writing surface visibly outweighs the tone
                chooser — R14b measured 224px of fields against 230px of chips
                and failed, which is precisely the complaint that started this. */
-            className="w-full min-h-[224px] px-4 py-3.5 rounded-[16px] text-[17px] leading-relaxed text-dark resize-none focus:outline-none focus:ring-2 focus:ring-brand/40"
+            className="w-full min-h-[224px] px-4 py-3 rounded-[16px] text-[17px] leading-relaxed text-dark resize-none focus:outline-none focus:ring-2 focus:ring-brand/40"
             style={{ background: "rgba(0,0,0,.05)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.07)" }}
           />
 
@@ -156,7 +156,7 @@ export default function NoteComposer({
           onClick={() => canSave && onSave({ tone, title: title.trim(), body: body.trim(), pinned })}
           disabled={!canSave}
           data-role="note-save"
-          className="w-full min-h-[54px] rounded-[44px] text-white text-[17px] font-black inline-flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-40"
+          className="w-full min-h-[54px] rounded-[52px] text-white text-[17px] font-black inline-flex items-center justify-center gap-2 transition-all active:scale-[0.97] disabled:opacity-40"
           style={{ background: "var(--aur-good)", boxShadow: "0 8px 24px -10px rgba(47,111,79,.45)" }}
         >
           <Check weight="bold" size={19} /> Terminé

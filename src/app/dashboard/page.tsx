@@ -231,7 +231,7 @@ function TimeToggle({
           aria-pressed={value === o}
           onClick={() => onChange(o)}
           className={cn(
-            "appearance-none border-0 text-[11px] font-mono font-bold px-2.5 py-1.5 rounded-full transition-all",
+            "appearance-none border-0 text-[11px] font-mono font-bold px-2 py-1.5 rounded-full transition-all",
             value === o
               ? "bg-dark text-white dark:bg-white dark:text-black"
               : "bg-transparent text-muted hover:text-dark"
@@ -724,7 +724,7 @@ export default function DashboardPage() {
         )}
 
         {/* ZONE 1 — KPI STRIP */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
           <div className="glass-liquid rounded-[14px] p-4">
             <div className="flex items-center justify-between mb-2">
               <span className={EYEBROW}>Service</span>
@@ -897,7 +897,7 @@ export default function DashboardPage() {
             </span>
           </div>
           {showDemoBanner && (
-            <div className="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-brand/10 border border-brand/20">
+            <div className="mb-3 flex items-center gap-3 px-3 py-2 rounded-[12px] bg-brand/10 border border-brand/20">
               <span className="text-xs text-dark flex-1">
                 Données insuffisantes pour la vue <b>{range}</b>. Générer 6 mois
                 de données de démonstration (variation hebdo + saisonnière) ?
@@ -1062,7 +1062,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
               {gss.map((g) => {
                 const mtd = g.mtd ?? 0;
                 const goal = g.goal;
@@ -1147,7 +1147,7 @@ export default function DashboardPage() {
                   Aucun commentaire chargé.
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {comments.map((c, i) => {
                     const rating = extractRating(c.text);
                     const ratingCls =
@@ -1159,7 +1159,7 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={i}
-                        className="rounded-[10px] p-2.5 bg-black/[0.02] dark:bg-white/[0.03]"
+                        className="rounded-[12px] p-2 bg-black/[0.02] dark:bg-white/[0.03]"
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-1.5 min-w-0">
@@ -1210,7 +1210,7 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div className="glass-liquid rounded-[12px] p-3">
               <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wider font-bold">
                 <Users size={10} weight="duotone" />

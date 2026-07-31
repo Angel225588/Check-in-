@@ -177,7 +177,7 @@ export default function RushHourChart({
                 {/* Bars */}
                 <div
                   className={cn(
-                    "flex items-end gap-[3px] relative z-0",
+                    "flex items-end gap-1 relative z-0",
                     chartHeightClass
                   )}
                 >
@@ -216,7 +216,7 @@ export default function RushHourChart({
                 </div>
 
                 {/* X-axis labels — same min-width grid */}
-                <div className="flex items-start gap-[3px] mt-1.5">
+                <div className="flex items-start gap-1 mt-1.5">
                   {slots.map((slot, i) => (
                     <div
                       key={slot.time}

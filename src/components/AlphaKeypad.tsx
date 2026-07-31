@@ -25,7 +25,7 @@ export default function AlphaKeypad({
             <button
               key={key}
               onClick={() => onKeyPress(key.toLowerCase())}
-              className="glass-key rounded-lg px-2.5 md:px-4 py-3 md:py-4 text-base md:text-xl font-bold active:scale-90 active:bg-white/60 dark:active:bg-white/10 transition-all min-w-[28px] md:min-w-[40px]"
+              className="glass-key rounded-lg px-2 md:px-4 py-3 md:py-4 text-base md:text-xl font-bold active:scale-90 active:bg-white/60 dark:active:bg-white/10 transition-all min-w-[28px] md:min-w-[40px]"
             >
               {key}
             </button>

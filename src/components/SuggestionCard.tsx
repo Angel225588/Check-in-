@@ -55,19 +55,19 @@ export default function SuggestionCard({
       {/* Only the states that change what reception does next carry colour. */}
       <span className="flex items-center gap-2 shrink-0">
         {comp && (
-          <span className="text-[11.5px] font-black px-2.5 py-1.5 rounded-full"
+          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
             style={{ background: "rgba(90,59,143,.16)", color: "var(--aur-pm-points)", opacity: .8 }}>
             COMP
           </span>
         )}
         {client.isVip && (
-          <span className="text-[11.5px] font-black px-2.5 py-1.5 rounded-full"
+          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
             style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", opacity: .85 }}>
             {client.vipLevel || "VIP"}
           </span>
         )}
         {needsPay && (
-          <span className="text-[11.5px] font-black px-2.5 py-1.5 rounded-full"
+          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
             style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
             À ENCAISSER
           </span>
@@ -81,7 +81,7 @@ export default function SuggestionCard({
           { k: "Adultes", v: client.adults },
           { k: "Enfants", v: client.children },
         ].map((b) => (
-          <span key={b.k} className="min-w-[70px] text-center rounded-[13px] px-2.5 py-1.5"
+          <span key={b.k} className="min-w-[70px] text-center rounded-[14px] px-2 py-1.5"
             style={{ background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.05)" }}>
             <span className="block text-[9.5px] font-black uppercase tracking-[0.10em]"
               style={{ color: "var(--tab-idle)" }}>{b.k}</span>

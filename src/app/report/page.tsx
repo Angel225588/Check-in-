@@ -22,14 +22,14 @@ export default function ReportPageWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="h-dvh w-full bg-[#FBF8F3] dark:bg-[#12100E] p-3 flex flex-col gap-2.5">
+        <div className="h-dvh w-full bg-[#FBF8F3] dark:bg-[#12100E] p-3 flex flex-col gap-3">
           <div className="skeleton h-10 w-56" />
-          <div className="flex-1 flex gap-2.5 min-h-0">
-            <div className="flex-1 flex flex-col gap-2.5">
+          <div className="flex-1 flex gap-3 min-h-0">
+            <div className="flex-1 flex flex-col gap-3">
               <div className="skeleton h-[200px]" />
               <div className="skeleton flex-1" />
             </div>
-            <div className="w-[300px] hidden lg:flex flex-col gap-2.5">
+            <div className="w-[300px] hidden lg:flex flex-col gap-3">
               <div className="skeleton h-[210px]" />
               <div className="skeleton flex-1" />
             </div>
@@ -152,7 +152,7 @@ function ReportV2() {
       <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2 flex-wrap">
         <button
           onClick={() => router.push(isHistorical ? "/reports" : "/search")}
-          className="min-h-[46px] px-3.5 rounded-full flex items-center gap-1.5 glass-liquid active:scale-[0.96] transition-transform"
+          className="min-h-[46px] px-4 rounded-full flex items-center gap-1.5 glass-liquid active:scale-[0.96] transition-transform"
           data-role="report-back"
         >
           <CaretLeft size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />
@@ -161,7 +161,7 @@ function ReportV2() {
           </span>
         </button>
 
-        <div className="flex items-baseline gap-2.5 min-w-0">
+        <div className="flex items-baseline gap-3 min-w-0">
           <h1 className="text-[23px] font-black tracking-[-0.02em]" style={{ color: "var(--brand-ink)" }}>
             Rapport
           </h1>
@@ -195,8 +195,8 @@ function ReportV2() {
       </div>
 
       {/* ── Body: chart + list on the left, presence + treemap on the right ── */}
-      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-2.5 px-3 pb-3 overflow-y-auto lg:overflow-hidden">
-        <div className="flex-1 min-w-0 flex flex-col gap-2.5 lg:min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pb-3 overflow-y-auto lg:overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col gap-3 lg:min-h-0">
           <AffluenceChart checkIns={report.checkIns} />
 
           <div className="glass-liquid rounded-[20px] px-4 pt-3 pb-3 flex flex-col lg:flex-1 lg:min-h-0">
@@ -209,7 +209,7 @@ function ReportV2() {
               </b>
             </div>
 
-            <div className="mt-2.5">
+            <div className="mt-3">
               <ReportTiles tiles={tiles} filter={filter} onFilter={setFilter} />
             </div>
 
@@ -217,7 +217,7 @@ function ReportV2() {
           </div>
         </div>
 
-        <div className="w-full lg:w-[300px] shrink-0 flex flex-col gap-2.5 lg:min-h-0">
+        <div className="w-full lg:w-[300px] shrink-0 flex flex-col gap-3 lg:min-h-0">
           <PresenceRing percent={percent} entered={report.totalEntered} expected={report.totalGuests} />
 
           <div className="glass-liquid rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 lg:flex-1 lg:min-h-0 min-h-[280px]">

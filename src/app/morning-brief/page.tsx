@@ -163,7 +163,7 @@ export default function MorningBriefPage() {
               ambassadeurs, événements et plus. Tout est sauvegardé localement.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 pt-1">
-              <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-brand text-white text-sm font-bold cursor-pointer active:scale-[0.97] transition-all">
+              <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-brand text-white text-sm font-bold cursor-pointer active:scale-[0.97] transition-all">
                 {uploading ? "Extraction en cours…" : "Téléverser PDF / photo(s)"}
                 <input
                   type="file"
@@ -311,7 +311,7 @@ export default function MorningBriefPage() {
                 {brief.specialEvents.map((e, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 px-3 py-2 rounded-[10px] bg-amber-500/[0.06]"
+                    className="flex items-start gap-3 px-3 py-2 rounded-[12px] bg-amber-500/[0.06]"
                   >
                     {e.type === "honeymoon" ? (
                       <Heart weight="duotone" className="size-5 text-pink-500 shrink-0" />
@@ -359,7 +359,7 @@ export default function MorningBriefPage() {
                 {brief.ambassadors.map((a, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-brand/[0.05]"
+                    className="flex items-center gap-2 px-3 py-2 rounded-[12px] bg-brand/[0.05]"
                   >
                     <span className="text-xs font-bold font-mono text-dark">
                       {a.roomNumber}
@@ -394,7 +394,7 @@ export default function MorningBriefPage() {
                 {brief.topVips.map((v, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-gradient-to-r from-brand/10 to-brand-light/10"
+                    className="flex items-center gap-2 px-3 py-2 rounded-[12px] bg-gradient-to-r from-brand/10 to-brand-light/10"
                   >
                     <span className="text-xs font-bold font-mono text-dark">
                       {v.roomNumber}
@@ -456,7 +456,7 @@ export default function MorningBriefPage() {
                 {brief.complaints.map((c, i) => (
                   <div
                     key={i}
-                    className="px-3 py-2 rounded-[10px] bg-error/[0.05]"
+                    className="px-3 py-2 rounded-[12px] bg-error/[0.05]"
                   >
                     <div className="flex items-center gap-2 mb-0.5">
                       {c.roomNumber && (

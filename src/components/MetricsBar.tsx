@@ -38,7 +38,7 @@ export default function MetricsBar({
   };
 
   const pillBase =
-    "flex-1 text-center py-1.5 md:py-2.5 px-1 rounded-xl transition-all cursor-pointer active:scale-[0.96]";
+    "flex-1 text-center py-1.5 md:py-2 px-1 rounded-xl transition-all cursor-pointer active:scale-[0.96]";
 
   return (
     <div className="flex items-center gap-1 md:gap-1.5 p-1.5 md:p-2 glass-liquid rounded-[14px]" role="group" aria-label="Guest metrics">

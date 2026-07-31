@@ -131,7 +131,7 @@ export default function RoomEventBadges({
           <div
             key={`${e.type}-${i}`}
             className={cn(
-              "flex items-start gap-2 px-3 py-2 rounded-[10px]",
+              "flex items-start gap-2 px-3 py-2 rounded-[12px]",
               e.bgClass
             )}
           >

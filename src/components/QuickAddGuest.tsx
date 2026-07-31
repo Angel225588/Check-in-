@@ -79,7 +79,7 @@ export default function QuickAddGuest({ roomNumber, isOpen, onClose, onAdded }: 
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+            className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
             placeholder={t("quickAdd.guestPlaceholder")}
             maxLength={100}
             autoFocus

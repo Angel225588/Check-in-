@@ -117,7 +117,9 @@ export default function SearchPage() {
   const recents = useMemo<RecentEntry[]>(() => {
     return [...checkIns]
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 4)
+      // The pane scrolls, so this is not "the last three" any more — it is the
+      // whole service, newest first, for the "did I already do 224?" question.
+      .slice(0, 40)
       .map((c) => ({
         roomNumber: c.roomNumber,
         name: c.clientName,
@@ -361,7 +363,7 @@ export default function SearchPage() {
         </div>
 
         {mergeBanner && (
-          <div className="mb-2 p-2.5 glass-liquid rounded-[12px] flex items-center gap-2 animate-fadeUp">
+          <div className="mb-2 p-2 glass-liquid rounded-[12px] flex items-center gap-2 animate-fadeUp">
             <div className="w-7 h-7 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
             </div>
@@ -397,8 +399,8 @@ export default function SearchPage() {
       </div>
 
       {/* Landscape splits into results + keypad; below lg it stays stacked. */}
-      <div className={`flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pb-3 pt-2 ${handSide === "right" ? "lg:flex-row-reverse" : ""}`}>
-        <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+      <div className={`flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pb-3 pt-3 ${handSide === "right" ? "lg:flex-row-reverse" : ""}`}>
+        <div className="flex-1 min-w-0 flex flex-col gap-3">
           <RoomSearchField
             value={query}
             onChange={(v) => setQuery(v)}
@@ -476,9 +478,16 @@ export default function SearchPage() {
 
         </div>
 
-        {/* Right column: the clock while idle, the keypad always, and one
-            action slot that never moves. */}
-        <div className="w-full lg:w-[392px] shrink-0 flex flex-col gap-2.5 min-h-0">
+        {/* Right column, top to bottom: what you are looking at, what you are
+            about to do, and the keys you do it with.
+
+            The commit row used to sit under the keypad. On a 13" screen that put
+            it at the far bottom edge — the longest reach on the screen, and the
+            furthest point from both the number just read and the keys just
+            pressed. Directly under the preview it is next to the thing being
+            confirmed and a short move from the pad. Its position never changes
+            between states, so the hand can learn it. */}
+        <div className="w-full lg:w-[392px] shrink-0 flex flex-col gap-3 min-h-0">
           {/* Capped, not greedy: with flex-1 the preview swallowed every spare
               pixel and then centred its content, manufacturing a band of air
               above the keypad. Spare height goes to the keys instead. */}
@@ -509,7 +518,7 @@ export default function SearchPage() {
           {saveFailed && (
             <div
               data-role="checkin-save-error"
-              className="shrink-0 flex items-start gap-2.5 rounded-[16px] px-4 py-3"
+              className="shrink-0 flex items-start gap-2 rounded-[16px] px-4 py-3"
               style={{ background: "var(--aur-bad-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-bad)" }}
             >
               <WarningCircle weight="duotone" size={19} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
@@ -519,13 +528,6 @@ export default function SearchPage() {
               </div>
             </div>
           )}
-          <div className="flex-1 min-h-[196px]">
-            <NumericKeypad
-              onKeyPress={appendKey}
-              onBackspace={backspace}
-              onToggleMode={() => queryRef.current?.focus()}
-            />
-          </div>
           {/* − N + so a partial arrival is one tap away instead of a screen
               away. The middle commits; the sides only change the number. */}
           <div className="shrink-0 flex gap-2" data-role="search-cta">
@@ -578,6 +580,16 @@ export default function SearchPage() {
               +
             </button>
           </div>
+
+          {/* The pad takes whatever height is left, so the keys grow on a big
+              screen instead of the layout growing a gap. */}
+          <div className="flex-1 min-h-[196px]">
+            <NumericKeypad
+              onKeyPress={appendKey}
+              onBackspace={backspace}
+              onToggleMode={() => queryRef.current?.focus()}
+            />
+          </div>
         </div>
       </div>
 
@@ -588,7 +600,7 @@ export default function SearchPage() {
 
       {/* VIP merged success toast */}
       {vipMergedMsg && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-500 text-white px-4 py-2.5 rounded-full shadow-lg shadow-green-500/30 animate-[slideDown_0.2s_ease-out]">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg shadow-green-500/30 animate-[slideDown_0.2s_ease-out]">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
@@ -667,7 +679,7 @@ export default function SearchPage() {
                   inputMode="numeric"
                   value={newRoom}
                   onChange={(e) => setNewRoom(e.target.value)}
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="101"
                   maxLength={10}
                   autoFocus
@@ -679,7 +691,7 @@ export default function SearchPage() {
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Dupont"
                   maxLength={100}
                 />
@@ -696,7 +708,7 @@ export default function SearchPage() {
                   onChange={(e) => setNewAdults(e.target.value)}
                   min="0"
                   max="20"
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
               <div>
@@ -708,7 +720,7 @@ export default function SearchPage() {
                   onChange={(e) => setNewChildren(e.target.value)}
                   min="0"
                   max="20"
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
             </div>

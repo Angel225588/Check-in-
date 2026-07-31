@@ -41,9 +41,9 @@ export default function ArrivalList({
 }) {
   return (
     <>
-      <div className="flex gap-2 items-stretch my-2.5">
+      <div className="flex gap-2 items-stretch my-2">
         <div
-          className="flex-1 flex items-center gap-3 px-4 min-h-[50px] rounded-[13px]"
+          className="flex-1 flex items-center gap-3 px-4 min-h-[50px] rounded-[14px]"
           style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
         >
           <MagnifyingGlass size={18} weight="bold" style={{ color: "var(--tab-idle)" }} className="shrink-0" />
@@ -69,7 +69,7 @@ export default function ArrivalList({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-[5px]" data-role="report-list">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1" data-role="report-list">
         {rows.length === 0 && (
           <div className="py-10 text-center text-[14px] font-semibold" style={{ color: "var(--tab-idle)" }}>
             Aucune chambre ne correspond.
@@ -81,7 +81,7 @@ export default function ArrivalList({
             <div
               key={`${r.roomNumber}-${r.name}`}
               data-role="report-row"
-              className="flex items-center gap-3.5 px-3 py-2.5 rounded-[11px]"
+              className="flex items-center gap-3 px-3 py-2 rounded-[12px]"
               style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
             >
               <span className="text-[14px] font-black tabular-nums min-w-[52px]" style={{ color: "var(--tab-idle)" }}>

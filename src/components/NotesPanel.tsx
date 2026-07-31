@@ -93,7 +93,7 @@ export default function NotesPanel({
   return (
     <div className="flex flex-col h-full min-h-0">
       {api.saveError && (
-        <div className="shrink-0 mb-2 flex items-start gap-2 rounded-[12px] px-3 py-2.5" style={{ background: "var(--aur-bad-soft)" }}>
+        <div className="shrink-0 mb-2 flex items-start gap-2 rounded-[12px] px-3 py-2" style={{ background: "var(--aur-bad-soft)" }}>
           <WarningCircle weight="duotone" size={16} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
           <div className="text-[12px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
             Note NON enregistrée — stockage plein.
@@ -129,7 +129,7 @@ export default function NotesPanel({
                   onClick={() => pickTone(t)}
                   data-role="note-tone"
                   aria-pressed={on}
-                  className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-2.5 rounded-full text-[11.5px] font-extrabold transition-all"
+                  className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-2 rounded-full text-[11.5px] font-extrabold transition-all"
                   style={on
                     ? { background: m.soft, color: m.color, boxShadow: `inset 0 0 0 1.5px ${m.color}` }
                     : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
@@ -148,7 +148,7 @@ export default function NotesPanel({
             placeholder="Titre"
             aria-label="Titre de la note"
             autoComplete="off"
-            className="shrink-0 min-h-[52px] px-3.5 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[16px] font-extrabold text-dark"
+            className="shrink-0 min-h-[52px] px-3 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[16px] font-extrabold text-dark"
           />
           <textarea
             value={draft.body}
@@ -156,7 +156,7 @@ export default function NotesPanel({
             data-role="note-body"
             placeholder="Détail…"
             aria-label="Contenu de la note"
-            className="flex-1 min-h-[140px] p-3.5 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[14.5px] leading-relaxed text-dark resize-none"
+            className="flex-1 min-h-[140px] p-3 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[14.5px] leading-relaxed text-dark resize-none"
           />
 
           <button
@@ -268,7 +268,7 @@ function NoteRow({ note, onOpen }: { note: GuestNote; onOpen: () => void }) {
       onClick={onOpen}
       data-role="note-row"
       data-note-tone={note.tone}
-      className="shrink-0 w-full text-left rounded-[14px] pl-3 pr-3 py-2.5 flex items-start gap-2.5 min-h-[56px] active:scale-[0.99] transition-transform relative overflow-hidden"
+      className="shrink-0 w-full text-left rounded-[14px] pl-3 pr-3 py-2 flex items-start gap-2 min-h-[56px] active:scale-[0.99] transition-transform relative overflow-hidden"
       style={{ background: isAlert ? m.soft : "rgba(0,0,0,.035)" }}
     >
       <span className="absolute left-0 top-0 bottom-0 w-[3.5px]" style={{ background: m.color }} />

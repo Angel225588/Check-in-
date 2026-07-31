@@ -58,7 +58,7 @@ function ClientRow({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+      className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
     >
       {/* Room number */}
       <div className="shrink-0 w-14 text-center">
@@ -282,7 +282,7 @@ export default function ClientsPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("clients.searchPlaceholder")}
             aria-label={t("clients.searchPlaceholder")}
-            className="w-full pl-10 pr-10 py-2.5 glass-liquid rounded-[14px] text-sm text-dark placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+            className="w-full pl-10 pr-10 py-2 glass-liquid rounded-[14px] text-sm text-dark placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
           />
           {search && (
             <button
@@ -393,7 +393,7 @@ export default function ClientsPage() {
                     return (
                       <div
                         key={`past-${session.date}-${client.roomNumber}-${i}`}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 glass-liquid rounded-[14px] opacity-80"
+                        className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-[14px] opacity-80"
                       >
                         <div className="shrink-0 w-14 text-center">
                           <span className="font-mono font-bold text-base text-dark">{client.roomNumber}</span>

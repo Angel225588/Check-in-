@@ -144,7 +144,7 @@ export default function NotesModal({
         data-role="notes-modal"
         /* dvh so the tablet keyboard shrinks the panel instead of pushing the
            action bar off-screen. */
-        className="w-full max-w-[760px] max-h-[88dvh] flex flex-col rounded-[26px] overflow-hidden animate-[nPop_.26s_cubic-bezier(.2,.9,.25,1)]"
+        className="w-full max-w-[760px] max-h-[88dvh] flex flex-col rounded-[24px] overflow-hidden animate-[nPop_.26s_cubic-bezier(.2,.9,.25,1)]"
         style={{
           background: "var(--color-card,#fff)",
           boxShadow: "0 40px 90px -24px rgba(40,26,6,.55), inset 0 1px 0 rgba(255,255,255,.07)",
@@ -179,7 +179,7 @@ export default function NotesModal({
         </div>
 
         {api.saveError && (
-          <div className="shrink-0 mx-6 mt-4 flex items-start gap-2.5 rounded-[14px] px-4 py-3" style={{ background: "var(--aur-bad-soft)" }}>
+          <div className="shrink-0 mx-6 mt-4 flex items-start gap-2 rounded-[14px] px-4 py-3" style={{ background: "var(--aur-bad-soft)" }}>
             <WarningCircle weight="duotone" size={18} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
             <div className="text-[13px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
               Note NON enregistrée — stockage plein.
@@ -204,7 +204,7 @@ export default function NotesModal({
                 </div>
               )}
 
-              <div className="flex gap-2 overflow-x-auto pb-3.5 -mx-1 px-1">
+              <div className="flex gap-2 overflow-x-auto pb-3 -mx-1 px-1">
                 {(["all", ...TONES] as const).map((t) => {
                   const on = tone === t;
                   const m = t === "all" ? null : toneMeta(t as NoteTone);
@@ -235,7 +235,7 @@ export default function NotesModal({
                 </div>
               )}
 
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2">
                 {visible.map((n) => {
                   const m = toneMeta(n.tone);
                   const isAlert = n.tone === "alert";
@@ -364,7 +364,7 @@ export default function NotesModal({
                     <CaretDown size={14} style={{ transform: showRev ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
                   </button>
                   {showRev && (
-                    <div className="px-4 pb-3.5 flex flex-col gap-2">
+                    <div className="px-4 pb-3 flex flex-col gap-2">
                       {[...selected.revisions].reverse().map((r, i) => (
                         <div key={i} className="text-[12px] leading-snug" style={{ color: "var(--tab-idle)" }}>
                           <b className="text-dark/70">{r.author || "—"}</b> · {r.summary} · {fmt(r.at)}
@@ -384,7 +384,7 @@ export default function NotesModal({
             <button
               onClick={startNew}
               data-role="note-new"
-              className="w-full min-h-[58px] rounded-[44px] inline-flex items-center justify-center gap-2.5 text-white text-[17px] font-black active:scale-[0.98] transition-transform"
+              className="w-full min-h-[58px] rounded-[52px] inline-flex items-center justify-center gap-2 text-white text-[17px] font-black active:scale-[0.98] transition-transform"
               style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
             >
               <Plus weight="bold" size={19} /> Nouvelle note
@@ -396,7 +396,7 @@ export default function NotesModal({
               onClick={save}
               disabled={!title.trim() && !body.trim()}
               data-role="note-save"
-              className="w-full min-h-[58px] rounded-[44px] inline-flex items-center justify-center gap-2.5 text-white text-[17px] font-black active:scale-[0.98] transition-transform disabled:opacity-40"
+              className="w-full min-h-[58px] rounded-[52px] inline-flex items-center justify-center gap-2 text-white text-[17px] font-black active:scale-[0.98] transition-transform disabled:opacity-40"
               style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
             >
               <Check weight="bold" size={19} /> Enregistrer
@@ -409,7 +409,7 @@ export default function NotesModal({
                 <div className="text-[14px] font-black mb-3" style={{ color: "var(--aur-bad-ink)" }}>
                   Supprimer cette note définitivement ?
                 </div>
-                <div className="flex gap-2.5">
+                <div className="flex gap-2">
                   <button onClick={() => setConfirmDelete(false)} className="flex-1 min-h-[48px] rounded-full bg-black/[0.06] dark:bg-white/[0.08] text-[14px] font-bold">
                     Annuler
                   </button>
@@ -424,7 +424,7 @@ export default function NotesModal({
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2.5 items-center">
+              <div className="flex gap-2 items-center">
                 {/* Destructive action sits away from the thumb-line of the two
                     controls used constantly, and still asks before acting. */}
                 <button

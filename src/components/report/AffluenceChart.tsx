@@ -37,7 +37,7 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
               : `Pointe ${hhmm(a.buckets[a.peakIndex].start)} · ${a.peakCount} pers.`}
           </b>
           <div
-            className="flex items-center gap-1 p-[3px] rounded-full"
+            className="flex items-center gap-1 p-1 rounded-full"
             style={{ background: "var(--aur-hairline)" }}
             data-role="affluence-grain"
           >
@@ -76,8 +76,8 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
       {/* The bars production already had: rounded, wide, a count over each one,
           and a minimum width so a 5-minute grain scrolls rather than shrinking
           into hairlines. */}
-      <div className="overflow-x-auto no-scrollbar -mx-1 px-1 mt-3.5">
-        <div className="flex items-end gap-[3px] h-[132px]" style={{ minWidth: "100%" }}>
+      <div className="overflow-x-auto no-scrollbar -mx-1 px-1 mt-3">
+        <div className="flex items-end gap-1 h-[132px]" style={{ minWidth: "100%" }}>
           {a.buckets.map((b, i) => {
             const h = a.peakCount ? (b.count / a.peakCount) * 100 : 0;
             const peak = i === a.peakIndex;
@@ -97,7 +97,7 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
                 </span>
                 <div className="w-full relative flex-1 min-h-0">
                   <div
-                    className="absolute bottom-0 w-full rounded-t-[10px] transition-[height] duration-500"
+                    className="absolute bottom-0 w-full rounded-t-[12px] transition-[height] duration-500"
                     style={{
                       height: `${h}%`,
                       minHeight: b.count > 0 ? 20 : 0,

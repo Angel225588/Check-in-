@@ -905,6 +905,56 @@ async function main() {
     }
   }
 
+  // R20 — the spacing and radius scale is a rule, not a suggestion.
+  //
+  // Tokens written in a stylesheet that nothing enforces are a suggestion, and a
+  // suggestion loses every time someone is in a hurry. This reads the RENDERED
+  // page and fails on any padding, gap or corner that is off the scale — which
+  // is the only version of a design system that survives contact with a
+  // deadline.
+  //
+  // The scale: 4pt above 8px, with 2 and 6 allowed below it for optical
+  // alignment inside a component (an icon next to a label). What this outlaws is
+  // the drift that actually shows — the 10px that should be 8 or 12, the 14px
+  // that should be 12 or 16, the 13px corner sitting next to a 14px one.
+  const SPACING_OK = [0, 2, 4, 6, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 72, 80];
+  const RADIUS_OK = [0, 8, 12, 14, 16, 18, 20, 24];
+  for (const path of ["/search", "/report"]) {
+    const { ctx, page } = await openDay(path);
+    const off = await page.evaluate(({ SPACING_OK, RADIUS_OK }) => {
+      const sp = new Set(SPACING_OK), rd = new Set(RADIUS_OK);
+      const px = (v) => Math.round(parseFloat(v) || 0);
+      const bad = new Map();
+      const name = (el) =>
+        el.dataset.role ||
+        `${el.tagName.toLowerCase()}.${(el.getAttribute("class") || "").split(/\s+/).filter(Boolean).slice(0, 2).join(".")}`;
+      for (const el of document.querySelectorAll("body *")) {
+        if (el.closest("svg")) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 4 || r.height < 4) continue;
+        const cs = getComputedStyle(el);
+        const hits = [];
+        for (const p of ["rowGap", "columnGap", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"]) {
+          const v = px(cs[p]);
+          if (cs[p] !== "normal" && !sp.has(v)) hits.push(`${p}:${v}`);
+        }
+        for (const p of ["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"]) {
+          const v = px(cs[p]);
+          // A pill is a shape, not a size — anything from 40px up is one.
+          if (v < 40 && !rd.has(v)) hits.push(`radius:${v}`);
+        }
+        if (hits.length) {
+          const k = `${name(el)} ${[...new Set(hits)].join(",")}`;
+          bad.set(k, (bad.get(k) || 0) + 1);
+        }
+      }
+      return [...bad.entries()].map(([k, n]) => (n > 1 ? `${k} ×${n}` : k));
+    }, { SPACING_OK, RADIUS_OK });
+    record(`R20-scale-${path.slice(1)}`, "Every gap, padding and corner is on the scale",
+      off.length === 0, off.length ? off.slice(0, 8).join(" | ") : "on scale");
+    await ctx.close();
+  }
+
   await closeBrowser();
   stopServer();
 

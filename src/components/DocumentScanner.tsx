@@ -359,13 +359,13 @@ export default function DocumentScanner({
           <div className="flex items-center justify-center gap-6">
             <button
               onClick={handleRetake}
-              className="flex-1 py-3.5 rounded-full bg-white/10 text-white font-semibold text-base active:bg-white/20 transition-colors"
+              className="flex-1 py-3 rounded-full bg-white/10 text-white font-semibold text-base active:bg-white/20 transition-colors"
             >
               {t("scanner.retake")}
             </button>
             <button
               onClick={handleUse}
-              className="flex-1 py-3.5 rounded-full bg-green-500 text-white font-bold text-base active:bg-green-600 transition-colors shadow-lg shadow-green-500/30"
+              className="flex-1 py-3 rounded-full bg-green-500 text-white font-bold text-base active:bg-green-600 transition-colors shadow-lg shadow-green-500/30"
             >
               {t("scanner.use")}
             </button>

@@ -25,7 +25,7 @@ export default function ReportTiles({
   onFilter: (f: ReportFilter) => void;
 }) {
   return (
-    <div className="flex gap-[7px] overflow-x-auto no-scrollbar" data-role="report-tiles">
+    <div className="flex gap-2 overflow-x-auto no-scrollbar" data-role="report-tiles">
       {tiles.map((tile) => {
         const on = filter === tile.key;
         return (
@@ -38,7 +38,7 @@ export default function ReportTiles({
             /* Every tile the same width. A row that sizes each box to its own
                label reads as assembled rather than designed, and the labels are
                short enough now that nothing has to be squeezed. */
-            className="shrink-0 w-[104px] min-h-[56px] px-3 py-1.5 rounded-[13px] text-left transition-transform active:scale-[0.97]"
+            className="shrink-0 w-[104px] min-h-[56px] px-3 py-1.5 rounded-[14px] text-left transition-transform active:scale-[0.97]"
             style={
               on
                 ? {
