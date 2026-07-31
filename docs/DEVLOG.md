@@ -236,9 +236,7 @@ That is a safety defect, not a polish item.
 
 
 
----
 
-# Log
 
 ## [2026-07-21] Market-validation framework built + run · ClickUp: Sale·Roadmap
 Situation: is this a business, for whom, and at what price? Founder had no pricing
