@@ -35,7 +35,10 @@ export default function ReportTiles({
             data-tile={tile.key}
             aria-pressed={on}
             onClick={() => onFilter(on ? "all" : tile.key)}
-            className="shrink-0 min-h-[56px] px-4 py-1.5 rounded-[13px] text-left transition-transform active:scale-[0.97]"
+            /* Every tile the same width. A row that sizes each box to its own
+               label reads as assembled rather than designed, and the labels are
+               short enough now that nothing has to be squeezed. */
+            className="shrink-0 w-[104px] min-h-[56px] px-3 py-1.5 rounded-[13px] text-left transition-transform active:scale-[0.97]"
             style={
               on
                 ? {

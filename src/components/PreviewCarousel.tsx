@@ -21,6 +21,10 @@ const SWIPE_PX = 44;
  * by tapping a dot as well as by swiping: a swipe is fast for whoever learns
  * it, the dots are why a new hire on their second shift can still find the
  * notes.
+ *
+ * The dots sit ON the card rather than under it. As a separate row they added a
+ * band of dead space between the preview and the keypad, on a screen where
+ * vertical space is the scarcest thing there is.
  */
 export default function PreviewCarousel({
   panes,
@@ -58,25 +62,43 @@ export default function PreviewCarousel({
 
   return (
     <div
-      className="relative flex-1 min-h-[158px] flex flex-col"
+      className="relative flex-1 min-h-0 flex flex-col select-none"
       data-role="preview-carousel"
       data-pane={active.key}
-      onPointerDown={(e) => { startX.current = e.clientX; }}
+      /* pan-y, or the browser claims a horizontal drag as a scroll gesture and
+         fires pointercancel — which is why swiping did nothing at all before
+         while the dots worked fine. */
+      style={{ touchAction: "pan-y" }}
+      onPointerDown={(e) => {
+        startX.current = e.clientX;
+        // Capture, so the release still reaches this element even when the
+        // finger has travelled off the card by then.
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+      }}
       onPointerUp={(e) => {
         const x0 = startX.current;
         startX.current = null;
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
         if (x0 === null || panes.length < 2) return;
         const dx = e.clientX - x0;
         if (Math.abs(dx) < SWIPE_PX) return;
         go(i + (dx < 0 ? 1 : -1));
       }}
+      onPointerCancel={() => { startX.current = null; }}
     >
       <div key={active.key} className="flex-1 min-h-0 flex flex-col animate-[cardIn_.24s_cubic-bezier(.2,.9,.25,1)]">
         {active.node}
       </div>
 
+      {/* A scrim behind the dots, because they now sit ON the card: gold dots
+          on the gold VIP card were invisible, and white ones would vanish on
+          the light theme. This reads on every background. */}
       {panes.length > 1 && (
-        <div className="shrink-0 flex justify-center items-center gap-1 pt-1.5" data-role="preview-dots">
+        <div
+          className="absolute left-1/2 -translate-x-1/2 bottom-1.5 flex justify-center items-center gap-0.5 pointer-events-none rounded-full px-0.5"
+          data-role="preview-dots"
+          style={{ background: "rgba(0,0,0,.26)", backdropFilter: "blur(4px)" }}
+        >
           {panes.map((p, n) => (
             <button
               key={p.key}
@@ -84,15 +106,15 @@ export default function PreviewCarousel({
               aria-label={p.label}
               aria-current={n === i}
               /* The dot is 6px; the target around it is 44. */
-              className="w-11 h-8 grid place-items-center"
+              className="w-10 h-7 grid place-items-center pointer-events-auto"
             >
               <i
                 className="block rounded-full transition-all duration-200"
                 style={{
                   width: n === i ? 18 : 6,
                   height: 6,
-                  background: n === i ? "var(--color-brand)" : "var(--tab-idle)",
-                  opacity: n === i ? 0.95 : 0.35,
+                  background: "#fff",
+                  opacity: n === i ? 0.95 : 0.4,
                 }}
               />
             </button>

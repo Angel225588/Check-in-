@@ -16,8 +16,9 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
   const [custom, setCustom] = useState("");
   const a = useMemo(() => buildAffluence(checkIns, grain), [checkIns, grain]);
 
-  const wide = a.buckets.length <= 26;
-  const gap = a.buckets.length > 30 ? 2 : a.buckets.length > 18 ? 3 : 5;
+  // Production's per-bucket minimums: a bar you can aim at, and a chart that
+  // scrolls instead of collapsing when the grain gets fine.
+  const barWidth = a.grain <= 5 ? 28 : a.grain <= 10 ? 36 : a.grain <= 15 ? 44 : 56;
   const axis = [0, 0.25, 0.5, 0.75, 1].map((f) => hhmm(a.open + (a.close - a.open) * f));
 
   return (
@@ -72,35 +73,47 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
         </div>
       </div>
 
-      <div className="h-[128px] flex items-end mt-3.5" style={{ gap: `${gap}px` }}>
-        {a.buckets.map((b, i) => {
-          const h = a.peakCount ? (b.count / a.peakCount) * 100 : 0;
-          const peak = i === a.peakIndex;
-          return (
-            <div
-              key={b.start}
-              data-role="affluence-bar"
-              title={`${hhmm(b.start)} · ${b.count}`}
-              className="flex-1 relative rounded-t-[5px] rounded-b-[2px] transition-[height] duration-300"
-              style={{
-                height: `${Math.max(b.count ? 3 : 0.8, h)}%`,
-                background: b.count
-                  ? "linear-gradient(180deg,var(--aur-gold-3),var(--aur-gold))"
-                  : "var(--aur-hairline)",
-                boxShadow: peak ? "0 0 0 1.5px var(--brand-ink), 0 0 20px -2px rgba(221,156,40,.55)" : undefined,
-              }}
-            >
-              {peak && wide && b.count > 0 && (
+      {/* The bars production already had: rounded, wide, a count over each one,
+          and a minimum width so a 5-minute grain scrolls rather than shrinking
+          into hairlines. */}
+      <div className="overflow-x-auto no-scrollbar -mx-1 px-1 mt-3.5">
+        <div className="flex items-end gap-[3px] h-[132px]" style={{ minWidth: "100%" }}>
+          {a.buckets.map((b, i) => {
+            const h = a.peakCount ? (b.count / a.peakCount) * 100 : 0;
+            const peak = i === a.peakIndex;
+            return (
+              <div
+                key={b.start}
+                data-role="affluence-bar"
+                title={`${hhmm(b.start)} · ${b.count}`}
+                className="flex flex-col items-center gap-1 shrink-0 h-full"
+                style={{ width: `${barWidth}px`, flex: "1 0 auto" }}
+              >
                 <span
-                  className="absolute -top-[21px] left-1/2 -translate-x-1/2 text-[11.5px] font-black px-1.5 py-[1px] rounded-full whitespace-nowrap"
-                  style={{ background: "var(--aur-surface)", color: "var(--brand-ink)", boxShadow: "0 0 0 1px var(--aur-hairline)" }}
+                  className="text-[10.5px] font-black tabular-nums leading-none"
+                  style={{ color: peak ? "var(--brand-ink)" : "var(--tab-idle)", opacity: peak ? 1 : 0.7 }}
                 >
-                  {b.count}
+                  {b.count > 0 ? b.count : ""}
                 </span>
-              )}
-            </div>
-          );
-        })}
+                <div className="w-full relative flex-1 min-h-0">
+                  <div
+                    className="absolute bottom-0 w-full rounded-t-[10px] transition-[height] duration-500"
+                    style={{
+                      height: `${h}%`,
+                      minHeight: b.count > 0 ? 20 : 0,
+                      background: b.count
+                        ? peak
+                          ? "linear-gradient(180deg,var(--aur-gold-3),var(--aur-gold))"
+                          : "linear-gradient(180deg,rgba(221,156,40,.62),rgba(166,105,20,.62))"
+                        : "var(--aur-hairline)",
+                      boxShadow: peak ? "0 0 18px -2px rgba(221,156,40,.55)" : undefined,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex justify-between mt-2 text-[11px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>

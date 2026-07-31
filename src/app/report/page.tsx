@@ -114,7 +114,7 @@ function ReportV2() {
     ...(offList > 0 ? [{ key: "offlist" as const, label: "Hors liste", value: offList }] : []),
     {
       key: "ecart",
-      label: "Écarts réception",
+      label: "Écarts",
       value: ecart.rooms,
       sub: ecart.net !== 0 ? `${ecart.net > 0 ? "+" : ""}${ecart.net} pers.` : undefined,
       warn: true,

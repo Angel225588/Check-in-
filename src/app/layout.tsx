@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import InstallPrompt from "@/components/InstallPrompt";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
 import AnalyticsSafe from "@/components/AnalyticsSafe";
@@ -44,6 +45,7 @@ export default function RootLayout({
         </Script>
         <AppProvider>
           {children}
+          <InstallPrompt />
         </AppProvider>
         <AnalyticsSafe />
       </body>

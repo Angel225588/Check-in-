@@ -369,6 +369,36 @@ export function reclaimStorageSpace(): number {
     }
   }
 
+  // 3) Drop whole days that have fallen out of the retention window. The
+  //    tablet is a cache; anything older lives in the report exports and,
+  //    later, in Supabase.
+  const todayIso = new Date().toISOString().split("T")[0];
+  const cutoff = Date.parse(todayIso + "T00:00:00Z") - RETENTION_DAYS * 86_400_000;
+  for (const key of dailyKeys) {
+    const day = key.slice("dailyData_".length);
+    const t = Date.parse(day + "T00:00:00Z");
+    if (!Number.isFinite(t) || t >= cutoff) continue;
+    const raw = localStorage.getItem(key);
+    localStorage.removeItem(key);
+    reclaimed += raw ? raw.length : 0;
+  }
+
+  // 4) Same window for the closed sessions.
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw) as SessionRecord[];
+      const kept = pruneByAge(history.map(compactSession), todayIso);
+      if (kept.length !== history.length) {
+        const next = JSON.stringify(kept);
+        reclaimed += raw.length - next.length;
+        localStorage.setItem(HISTORY_KEY, next);
+      }
+    }
+  } catch {
+    // Corrupt history — the normal paths rebuild it.
+  }
+
   return reclaimed;
 }
 
@@ -435,6 +465,72 @@ export function freeUpSpace(): number {
   return freed;
 }
 
+/**
+ * How long a closed service stays on the tablet.
+ *
+ * The device is a cache, not the archive — Supabase will hold the real history.
+ * Thirty days is what the afternoon briefing and a month-end glance need; past
+ * that the data is dead weight competing with tomorrow's service for a very
+ * small localStorage quota.
+ */
+export const RETENTION_DAYS = 30;
+
+/**
+ * Strip a closed session down to what anything actually reads.
+ *
+ * The raw OCR dump is debugging output and by far the biggest thing we store;
+ * dropping it is the difference between a day costing kilobytes and costing
+ * megabytes.
+ */
+export function compactSession(s: SessionRecord): SessionRecord {
+  return { ...s, rawUploadText: "" };
+}
+
+/** Days within the retention window, newest first. */
+export function pruneByAge(
+  history: SessionRecord[],
+  todayIso: string,
+  days: number = RETENTION_DAYS
+): SessionRecord[] {
+  const today = Date.parse(todayIso + "T00:00:00Z");
+  const safe = Array.isArray(history) ? history : [];
+  const dated = safe
+    .map((s) => ({ s, t: Date.parse(s.date + "T00:00:00Z") }))
+    // A junk date can never age out, so it would live forever. Drop it.
+    .filter(({ t }) => Number.isFinite(t))
+    // Future dates are kept: a tablet with a skewed clock still recorded a
+    // real service, and deleting it would be the worse error.
+    // Inclusive at the far edge: "keep 30 days" should keep day 30.
+    .filter(({ t }) => t >= today - days * 86_400_000);
+  dated.sort((a, b) => b.t - a.t);
+  return dated.map((d) => d.s);
+}
+
+/**
+ * Write the history, evicting the oldest day at a time until it fits.
+ *
+ * A new session must ALWAYS be storable. Losing this morning because last
+ * month is still on disk is the wrong trade in every case — the old day is a
+ * convenience, the new one is the job.
+ */
+function saveHistoryEvictingOldest(history: SessionRecord[]): boolean {
+  const list = [...history];
+  while (list.length > 0) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      return true;
+    } catch {
+      list.pop(); // oldest, since the list is newest-first
+    }
+  }
+  try {
+    localStorage.setItem(HISTORY_KEY, "[]");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function closeDay(): SessionRecord | null {
   const data = getTodayData();
   if (!data) return null;
@@ -470,32 +566,9 @@ export function closeDay(): SessionRecord | null {
   } else {
     history.unshift(record);
   }
-  if (history.length > 30) history.length = 30;
-
-  // Try saving — if quota exceeded, trim rawUploadText and retry
-  let saved = false;
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    saved = true;
-  } catch {
-    // Quota exceeded — strip rawUploadText from older sessions to free space
-    for (let i = history.length - 1; i >= 1; i--) {
-      history[i].rawUploadText = "";
-    }
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      saved = true;
-    } catch {
-      // Still failing — reduce to 15 sessions
-      if (history.length > 15) history.length = 15;
-      try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-        saved = true;
-      } catch {
-        // Cannot save — do NOT clear daily data
-      }
-    }
-  }
+  // Compact everything on the way in, then keep only the retention window.
+  const kept = pruneByAge(history.map(compactSession), record.date);
+  const saved = saveHistoryEvictingOldest(kept);
 
   // ONLY clear today's data if history was saved successfully
   if (saved) {

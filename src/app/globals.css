@@ -89,6 +89,16 @@
   --aur-pm-cash: #b87333;
   --font-aur-serif: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
   --font-aur-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+  /* Spacing scale — 4pt, and nothing off it.
+     Two rules do the work: things that belong together sit closer than the
+     space around them, and every vertical gap is a multiple of 4. Ad-hoc
+     values are what made the same app look assembled by different people. */
+  --sp-1: 4px;   /* inside a chip */
+  --sp-2: 8px;   /* between related lines */
+  --sp-3: 12px;  /* between panels */
+  --sp-4: 16px;  /* screen gutter, panel padding */
+  --sp-5: 20px;
+  --sp-6: 24px;  /* between unrelated groups */
   /* Radius scale — three steps only. Chips/inputs, cards, hero surfaces.
      Buttons stay --radius-pill. Keeps one screen from mixing 6 radii. */
   --r-sm: 12px;

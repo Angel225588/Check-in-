@@ -823,6 +823,53 @@ async function main() {
     await ctx.close();
   }
 
+  // R19 — nothing clips, at any screen the app is actually opened on. A
+  // laptop at 100% zoom cut the room number out of the preview card, and the
+  // report's right column ran off the edge; "that can't happen" only holds if
+  // something checks it on every run.
+  for (const [label, w, h] of [
+    ["laptop", 1280, 720],
+    ["macbook", 1440, 810],
+    ["ipad-landscape", 1194, 834],
+    ["ipad-safari-chrome", 1194, 640],   // browser UI eating the top
+  ]) {
+    for (const path of ["/search", "/report"]) {
+      const { ctx, page } = await openDay(path, { w, h });
+      if (path === "/search") {
+        await page.locator('[data-role="search-field"] input').fill("224");
+        await page.waitForTimeout(420);
+      }
+      const m = await page.evaluate(() => {
+        const se = document.scrollingElement;
+        const out = {
+          hOverflow: se.scrollWidth > se.clientWidth + 1,
+          sw: se.scrollWidth, cw: se.clientWidth,
+          clipped: [],
+        };
+        // Anything whose own content overflows its box, among the elements we
+        // care about being readable.
+        const roles = ["guest-preview", "report-treemap", "report-ring", "search-cta", "preview-carousel"];
+        for (const role of roles) {
+          for (const el of document.querySelectorAll(`[data-role="${role}"]`)) {
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 && r.height === 0) continue;
+            const offBottom = r.bottom > window.innerHeight + 1;
+            const offRight = r.right > window.innerWidth + 1;
+            const selfClipped = el.scrollHeight > el.clientHeight + 2;
+            if (offBottom || offRight || selfClipped) {
+              out.clipped.push(`${role}${offBottom ? " below-fold" : ""}${offRight ? " off-right" : ""}${selfClipped ? " content-cut" : ""}`);
+            }
+          }
+        }
+        return out;
+      });
+      record(`R19-${label}-${path.slice(1)}`, "Nothing clips at this viewport",
+        !m.hOverflow && m.clipped.length === 0,
+        m.hOverflow ? `h-overflow ${m.sw}/${m.cw}` : m.clipped.length ? m.clipped.join(" | ") : "clean");
+      await ctx.close();
+    }
+  }
+
   // R18 — contrast on the two new screens, in both themes. Three separate
   // regressions on this project were dark-on-dark text that every other check
   // was blind to.

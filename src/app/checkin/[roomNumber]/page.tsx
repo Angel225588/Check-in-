@@ -399,8 +399,10 @@ export default function CheckInPage({
           <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">
             {isFirstVisit ? (
               <>
-                <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-black text-[12.5px] text-white shadow-[0_6px_16px_-6px] shadow-brand/60"
-                  style={{ background: "linear-gradient(135deg,#DD9C28,#A66914)" }}><Star weight="fill" size={13} /> Première visite</span>
+                {/* Dark ink on the gold, not white: white on #DD9C28 measures
+                    2.37:1, which is unreadable at this size. */}
+                <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-black text-[12.5px] shadow-[0_6px_16px_-6px] shadow-brand/60"
+                  style={{ background: "linear-gradient(135deg,#E9B44C,#C08A3A)", color: "#241F19" }}><Star weight="fill" size={13} /> Première visite</span>
                 <div className="text-[13px] text-muted text-center py-8">Aucune activité — nouveau client</div>
               </>
             ) : (
