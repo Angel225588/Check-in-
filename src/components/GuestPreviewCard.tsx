@@ -1,5 +1,5 @@
 "use client";
-import { Warning, Star, Coffee, Prohibit, PushPin } from "@phosphor-icons/react/dist/ssr";
+import { Warning, Star, Coffee, Prohibit, PushPin, AirplaneLanding, AirplaneTakeoff } from "@phosphor-icons/react/dist/ssr";
 import { Client } from "@/lib/types";
 import { isComp, needsPaymentChoice } from "@/lib/utils";
 import type { GuestNote } from "@/lib/notes";
@@ -18,6 +18,16 @@ import type { GuestNote } from "@/lib/notes";
  * chips step back to glass so the alert is the only thing shouting. The box
  * keeps its size in every state so nothing under it jumps.
  */
+/**
+ * "27/07/26" → "27/07". Anything that is not day/month/year is passed through
+ * untouched: the report is OCR'd, and a date we cannot parse is still a date
+ * reception can read.
+ */
+function shortDate(d: string): string {
+  const m = d.trim().match(/^(\d{1,2})[/.-](\d{1,2})[/.-]\d{2,4}$/);
+  return m ? `${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}` : d;
+}
+
 export default function GuestPreviewCard({
   client,
   visits,
@@ -122,6 +132,30 @@ export default function GuestPreviewCard({
         <b className="text-[14px]" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
           {pax} pers.
         </b>
+        {/* The stay, in the same landing/takeoff shorthand the check-in card
+            already uses. Reception asks "vous partez quand ?" every morning;
+            it was on the room's own screen but not on the card you decide
+            from. The year is dropped — nobody is checking in for 2027. */}
+        {(client.arrivalDate || client.departureDate) && (
+          <span
+            data-role="preview-stay"
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-black px-3 py-1.5 rounded-full tabular-nums"
+            style={glass}
+          >
+            {client.arrivalDate && (
+              <>
+                <AirplaneLanding weight="duotone" size={13} />
+                {shortDate(client.arrivalDate)}
+              </>
+            )}
+            {client.departureDate && (
+              <>
+                <AirplaneTakeoff weight="duotone" size={13} className={client.arrivalDate ? "ml-1" : ""} />
+                {shortDate(client.departureDate)}
+              </>
+            )}
+          </span>
+        )}
         {needsPay && (
           <span className="inline-flex items-center gap-1.5 text-[11.5px] font-black px-3 py-1.5 rounded-full"
             style={hasAlert || vip ? glass : { background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
