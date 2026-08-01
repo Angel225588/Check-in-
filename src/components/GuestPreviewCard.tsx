@@ -66,7 +66,7 @@ export default function GuestPreviewCard({
   return (
     <div
       data-role="guest-preview"
-      className="relative flex-1 min-h-[150px] rounded-[24px] px-5 py-4 flex flex-col justify-center gap-0.5 overflow-hidden"
+      className="relative flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-7 flex flex-col justify-center gap-0.5 overflow-hidden"
       style={vip
         ? { background: "linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C)", boxShadow: "0 16px 44px -14px rgba(120,74,12,.55)" }
         : { background: "linear-gradient(158deg,rgba(255,255,255,.07),rgba(255,255,255,.02))", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}

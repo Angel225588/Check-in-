@@ -6,7 +6,7 @@ import type { GuestNote } from "@/lib/notes";
 import type { ExpectedGuest } from "./ServiceClock";
 
 const shell =
-  "flex-1 min-h-[150px] rounded-[24px] px-5 py-4 flex flex-col overflow-hidden glass-liquid";
+  "flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-7 flex flex-col overflow-hidden glass-liquid";
 
 const cap = "text-[10.5px] font-black uppercase tracking-[0.14em] shrink-0";
 
