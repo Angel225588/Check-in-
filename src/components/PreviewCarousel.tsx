@@ -58,6 +58,20 @@ export default function PreviewCarousel({
     setPausedUntil(Date.now() + PAUSE_MS);
   };
 
+  const begin = (x: number, y: number) => { startX.current = x; startY.current = y; };
+  const end = (x: number, y: number) => {
+    const x0 = startX.current;
+    startX.current = null;
+    if (x0 === null || panes.length < 2) return;
+    const dx = x - x0;
+    const dy = y - startY.current;
+    if (Math.abs(dx) < SWIPE_PX) return;
+    // The panes scroll, so a drag that is mostly vertical belongs to the list
+    // inside the pane rather than to the carousel.
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    go(i + (dx < 0 ? 1 : -1));
+  };
+
   if (panes.length === 0) return null;
   const active = panes[Math.min(i, panes.length - 1)];
 
@@ -70,26 +84,16 @@ export default function PreviewCarousel({
          fires pointercancel — which is why swiping did nothing at all before
          while the dots worked fine. */
       style={{ touchAction: "pan-y" }}
-      onPointerDown={(e) => {
-        startX.current = e.clientX;
-        startY.current = e.clientY;
-        // Capture, so the release still reaches this element even when the
-        // finger has travelled off the card by then.
-        try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-      }}
-      onPointerUp={(e) => {
-        const x0 = startX.current;
-        startX.current = null;
-        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
-        if (x0 === null || panes.length < 2) return;
-        const dx = e.clientX - x0;
-        const dy = e.clientY - startY.current;
-        if (Math.abs(dx) < SWIPE_PX) return;
-        // Panes scroll now, so a drag that is mostly vertical belongs to the
-        // list inside the pane, not to the carousel.
-        if (Math.abs(dy) > Math.abs(dx)) return;
-        go(i + (dx < 0 ? 1 : -1));
-      }}
+      /* Touch events, not pointer events with setPointerCapture. Capture is
+         what broke this on the iPad: iOS hands the gesture to its own scroll
+         machinery and the captured pointerup never arrives, so the swipe was
+         simply lost. Touch events still fire. The mouse keeps the pointer path,
+         which is what the desktop and the test driver use. */
+      onTouchStart={(e) => { begin(e.touches[0].clientX, e.touches[0].clientY); }}
+      onTouchEnd={(e) => { end(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }}
+      onTouchCancel={() => { startX.current = null; }}
+      onPointerDown={(e) => { if (e.pointerType === "mouse") begin(e.clientX, e.clientY); }}
+      onPointerUp={(e) => { if (e.pointerType === "mouse") end(e.clientX, e.clientY); }}
       onPointerCancel={() => { startX.current = null; }}
     >
       <div key={active.key} className="flex-1 min-h-0 flex flex-col animate-[cardIn_.24s_cubic-bezier(.2,.9,.25,1)]">

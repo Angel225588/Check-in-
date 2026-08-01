@@ -6,55 +6,84 @@ interface AlphaKeypadProps {
   onToggleMode: () => void;
 }
 
+/**
+ * Letters, in the app rather than from the system.
+ *
+ * The old ABC key focused the search field, which raised the iPad keyboard —
+ * half the screen gone, the layout shoved around, and no reliable way back. It
+ * was there because the on-screen QWERTY had no accented characters. That
+ * reason does not hold: search is accent-insensitive (`searchClients` folds
+ * diacritics, see search-accents.test.ts), so "lefevre" finds LEFÈVRE and
+ * nobody needs an È key.
+ *
+ * Alphabetical, six wide, rather than QWERTY. A 392px column cannot give ten
+ * columns a 44px target — QWERTY here would be 29px keys — and reception is
+ * hunting for a letter, not touch-typing, which alphabetical order serves
+ * better anyway.
+ *
+ * Six columns by five rows rather than five by six: on the short iPad viewport
+ * a sixth row squeezed every key to 27px tall. Trading a row for a column
+ * keeps both dimensions above the 44px target.
+ */
 export default function AlphaKeypad({
   onKeyPress,
   onBackspace,
   onToggleMode,
 }: AlphaKeypadProps) {
-  const rows = [
-    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-    ["Z", "X", "C", "V", "B", "N", "M"],
-  ];
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWX".split("");
+
+  const press = (fn: () => void) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault();
+      fn();
+    },
+  });
+
+  const key =
+    "glass-key rounded-xl min-h-0 text-lg md:text-2xl font-bold active:scale-95 transition-transform select-none";
 
   return (
-    <div className="glass-surface rounded-[14px] p-2 md:p-3 space-y-1.5 md:space-y-2" role="group" aria-label="Letter keypad" style={{ touchAction: "manipulation" }}>
-      {rows.map((row, i) => (
-        <div key={i} className="flex justify-center gap-1 md:gap-1.5">
-          {row.map((key) => (
-            <button
-              key={key}
-              onClick={() => onKeyPress(key.toLowerCase())}
-              className="glass-key rounded-lg px-2 md:px-4 py-3 md:py-4 text-base md:text-xl font-bold active:scale-90 active:bg-white/60 dark:active:bg-white/10 transition-all min-w-[28px] md:min-w-[40px]"
-            >
-              {key}
-            </button>
-          ))}
-        </div>
+    <div
+      className="glass-surface rounded-[14px] p-2 md:p-3 grid grid-cols-6 grid-rows-5 gap-2 h-full"
+      role="group"
+      aria-label="Letter keypad"
+      style={{ touchAction: "manipulation" }}
+      data-role="alpha-keypad"
+    >
+      {letters.map((k) => (
+        <button key={k} {...press(() => onKeyPress(k.toLowerCase()))} className={key}>
+          {k}
+        </button>
       ))}
-      <div className="flex justify-center gap-2 md:gap-3">
-        <button
-          onClick={onToggleMode}
-          className="bg-teal/90 backdrop-blur-sm text-white rounded-xl px-4 md:px-6 py-3 md:py-4 text-sm md:text-lg font-bold active:scale-95 active:opacity-80 transition-all"
-        >
-          123
-        </button>
-        <button
-          onClick={() => onKeyPress(" ")}
-          className="glass-key rounded-xl px-12 py-3 md:py-4 text-sm md:text-base font-bold active:scale-95 active:bg-white/60 dark:active:bg-white/10 transition-all flex-1"
-        >
-          space
-        </button>
-        <button
-          onClick={onBackspace}
-          aria-label="Backspace"
-          className="bg-slate/90 backdrop-blur-sm text-white rounded-xl px-4 md:px-6 py-3 md:py-4 text-xl active:scale-95 active:opacity-80 transition-all"
-        >
-          <svg className="w-6 h-6 md:w-8 md:h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l7-7 12 0v14H10L3 12z" />
-          </svg>
-        </button>
-      </div>
+      <button {...press(() => onKeyPress("y"))} className={key}>
+        Y
+      </button>
+      <button {...press(() => onKeyPress("z"))} className={key}>
+        Z
+      </button>
+      <button
+        {...press(onToggleMode)}
+        data-role="pad-123"
+        className="bg-teal/90 text-white rounded-xl min-h-0 text-sm md:text-base font-bold active:scale-95 transition-transform select-none"
+      >
+        123
+      </button>
+      <button
+        {...press(() => onKeyPress(" "))}
+        aria-label="Espace"
+        className={`${key} col-span-2 text-[13px] md:text-[15px] uppercase tracking-[0.1em]`}
+      >
+        Espace
+      </button>
+      <button
+        {...press(onBackspace)}
+        aria-label="Backspace"
+        className="bg-slate/90 text-white rounded-xl min-h-0 active:scale-95 transition-transform select-none"
+      >
+        <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l7-7 12 0v14H10L3 12z" />
+        </svg>
+      </button>
     </div>
   );
 }

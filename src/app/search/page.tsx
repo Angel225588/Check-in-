@@ -46,6 +46,8 @@ export default function SearchPage() {
    *  expected, because that is the common case; the stepper handles the rest
    *  without loading the check-in screen. */
   const [count, setCount] = useState(1);
+  /** Which pad is showing. Digits by default — most guests are found by room. */
+  const [pad, setPad] = useState<"num" | "abc">("num");
 
   useEffect(() => {
     setHandSide(getSettings().handSide === "right" ? "right" : "left");
@@ -582,13 +584,25 @@ export default function SearchPage() {
           </div>
 
           {/* The pad takes whatever height is left, so the keys grow on a big
-              screen instead of the layout growing a gap. */}
+              screen instead of the layout growing a gap.
+
+              ABC swaps in the app's own letter pad. It used to focus the search
+              field, which raised the iPad keyboard over half the screen with no
+              reliable way back out. */}
           <div className="flex-1 min-h-[196px]">
-            <NumericKeypad
-              onKeyPress={appendKey}
-              onBackspace={backspace}
-              onToggleMode={() => queryRef.current?.focus()}
-            />
+            {pad === "abc" ? (
+              <AlphaKeypad
+                onKeyPress={appendKey}
+                onBackspace={backspace}
+                onToggleMode={() => { clear(); setPad("num"); }}
+              />
+            ) : (
+              <NumericKeypad
+                onKeyPress={appendKey}
+                onBackspace={backspace}
+                onToggleMode={() => { clear(); setPad("abc"); }}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -2,13 +2,15 @@
 import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
 
 /**
- * One field, two ways in: the keypad fills it with digits, the tablet keyboard
- * fills it with a name.
+ * One field, filled by the app's own pads.
  *
- * It replaces the old read-only display. A real input means tapping it raises
- * the system keyboard, which is the only way to type an accented name — the
- * on-screen QWERTY has no è or ç, and half a French guest list is untypeable
- * without them.
+ * It is a real input, so a Bluetooth keyboard at the desk types straight into
+ * it — but inputMode="none" keeps iOS from raising the on-screen keyboard when
+ * it takes focus. That keyboard covered half a landscape iPad and left the
+ * layout wedged.
+ *
+ * The accented-name argument for the system keyboard does not hold: search
+ * folds diacritics, so "lefevre" finds LEFÈVRE (search-accents.test.ts).
  */
 export default function RoomSearchField({
   value,
@@ -33,6 +35,9 @@ export default function RoomSearchField({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Chambre ou nom du client…"
         autoComplete="off"
+        inputMode="none"
+        enterKeyHint="search"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }}
         aria-label="Chercher une chambre ou un client"
         // self-stretch, so the tap target is the whole 84px band rather than
         // the 42px the glyphs happen to occupy: on a tablet you aim at the

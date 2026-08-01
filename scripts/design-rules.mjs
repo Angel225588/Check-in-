@@ -955,6 +955,61 @@ async function main() {
     await ctx.close();
   }
 
+  // R21 — the input surfaces belong to the app.
+  //
+  // All three of these were reported from a real iPad in the same breath: the
+  // pad felt unresponsive, ABC raised the system keyboard over half the screen,
+  // and the swipe did nothing. Each one is now a check.
+  {
+    const { ctx, page } = await openDay("/search");
+    const field = page.locator('[data-role="search-field"] input');
+
+    // a — a press on the pad enters a digit. The pad fires on pointerdown to
+    // skip iOS's click delay, which is exactly the kind of change that silently
+    // stops working.
+    await page.locator('[data-role="numeric-keypad"] button', { hasText: /^2$/ }).first().click();
+    await page.locator('[data-role="numeric-keypad"] button', { hasText: /^2$/ }).first().click();
+    await page.locator('[data-role="numeric-keypad"] button', { hasText: /^4$/ }).first().click();
+    const typed = await field.inputValue();
+    record("R21a-pad-enters-digits", "Pressing the pad enters digits", typed === "224", `field reads "${typed}"`);
+
+    // b — ABC swaps in the app's own letters instead of asking iOS for a
+    // keyboard. inputMode=none is what keeps the system one down.
+    await page.locator('[data-role="pad-abc"]').click();
+    await page.waitForTimeout(200);
+    const alpha = await page.locator('[data-role="alpha-keypad"]').isVisible();
+    const im = await field.getAttribute("inputmode");
+    record("R21b-letters-in-app", "ABC opens the app's letter pad, not the system keyboard",
+      alpha && im === "none", `alpha pad ${alpha ? "shown" : "MISSING"}, inputmode=${im}`);
+
+    // c — and those letters reach the field.
+    await page.locator('[data-role="alpha-keypad"] button', { hasText: /^L$/ }).first().click();
+    await page.locator('[data-role="alpha-keypad"] button', { hasText: /^E$/ }).first().click();
+    const letters = await field.inputValue();
+    record("R21c-letters-type", "The letter pad types into the field", letters === "le", `field reads "${letters}"`);
+    await ctx.close();
+  }
+
+  // d — the letter pad has to fit the same slot as the digits, including on the
+  // short iPad viewport where Safari's own chrome eats the bottom.
+  for (const [label, w, h] of [["ipad-landscape", 1194, 834], ["ipad-safari-chrome", 1194, 640]]) {
+    const { ctx, page } = await openDay("/search", { w, h });
+    await page.locator('[data-role="pad-abc"]').click();
+    await page.waitForTimeout(250);
+    const bad = await page.evaluate(() => {
+      const out = [];
+      for (const el of document.querySelectorAll('[data-role="alpha-keypad"], [data-role="alpha-keypad"] button, [data-role="search-cta"] button')) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom > window.innerHeight + 1) out.push(`${el.textContent?.trim().slice(0, 8) || el.dataset.role} below fold`);
+        if (r.height > 0 && r.height < 34) out.push(`${el.textContent?.trim().slice(0, 8)} only ${Math.round(r.height)}px tall`);
+      }
+      return [...new Set(out)];
+    });
+    record(`R21d-${label}-letters-fit`, "The letter pad fits, with usable targets",
+      bad.length === 0, bad.length ? bad.slice(0, 4).join(" | ") : "fits");
+    await ctx.close();
+  }
+
   await closeBrowser();
   stopServer();
 
