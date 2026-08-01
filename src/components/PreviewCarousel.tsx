@@ -5,6 +5,9 @@ export interface Pane {
   key: string;
   label: string;
   node: React.ReactNode;
+  /** True when this face is a dark fill in BOTH themes — the gold VIP card.
+   *  Everything else is a surface-card, which follows the theme. */
+  onDark?: boolean;
 }
 
 const AUTO_MS = 8000;
@@ -96,18 +99,30 @@ export default function PreviewCarousel({
       onPointerUp={(e) => { if (e.pointerType === "mouse") end(e.clientX, e.clientY); }}
       onPointerCancel={() => { startX.current = null; }}
     >
-      <div key={active.key} className="flex-1 min-h-0 flex flex-col animate-[cardIn_.24s_cubic-bezier(.2,.9,.25,1)]">
+      {/* The deck. Two card edges peeking out, on the axis the swipe runs
+          along, so the slot reads as a stack rather than a single panel. The
+          dots say which card you are on; these say there is more than one.
+          Inset vertically so they read as edges, not as a border. */}
+      {panes.length > 1 && (
+        <>
+          <span aria-hidden className="deck-edge absolute inset-y-4 -left-1.5 w-5 rounded-[18px] z-0 pointer-events-none" />
+          <span aria-hidden className="deck-edge absolute inset-y-4 -right-1.5 w-5 rounded-[18px] z-0 pointer-events-none" />
+        </>
+      )}
+
+      <div key={active.key} className="relative z-10 flex-1 min-h-0 flex flex-col animate-[cardIn_.24s_cubic-bezier(.2,.9,.25,1)]">
         {active.node}
       </div>
 
-      {/* A scrim behind the dots, because they now sit ON the card: gold dots
-          on the gold VIP card were invisible, and white ones would vanish on
-          the light theme. This reads on every background. */}
+      {/* No scrim. It existed because white dots vanish on a light card, but a
+          translucent black pill on a white card is a grey blob — and the card
+          is a proper surface now. The dots take the theme's idle ink instead,
+          which reads on the light card and on the dark one; only the gold VIP
+          face, which is dark in both themes, forces white. */}
       {panes.length > 1 && (
         <div
-          className="absolute left-1/2 -translate-x-1/2 bottom-1.5 flex justify-center items-center gap-0.5 pointer-events-none rounded-full px-0.5"
+          className="absolute left-1/2 -translate-x-1/2 bottom-1 z-20 flex justify-center items-center gap-0.5 pointer-events-none"
           data-role="preview-dots"
-          style={{ background: "rgba(0,0,0,.26)", backdropFilter: "blur(4px)" }}
         >
           {panes.map((p, n) => (
             <button
@@ -123,8 +138,8 @@ export default function PreviewCarousel({
                 style={{
                   width: n === i ? 18 : 6,
                   height: 6,
-                  background: "#fff",
-                  opacity: n === i ? 0.95 : 0.4,
+                  background: active.onDark ? "#fff" : "var(--tab-idle)",
+                  opacity: n === i ? 0.95 : 0.35,
                 }}
               />
             </button>

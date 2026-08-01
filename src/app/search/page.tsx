@@ -321,6 +321,8 @@ export default function SearchPage() {
           key: "apercu",
           label: "Aperçu",
           node: <GuestPreviewCard client={hit} visits={visitsFor(hit.name)} notes={hitNotes.notes} />,
+          // The VIP card is a gold fill in both themes, so its dots stay white.
+          onDark: !!hit.isVip,
         },
         { key: "notes", label: "Notes", node: <NotesPane notes={hitNotes.notes} ready={hitNotes.ready} /> },
         { key: "historique", label: "Historique", node: <HistoryPane stays={hitStays} today={hitToday} /> },

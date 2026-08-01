@@ -66,10 +66,15 @@ export default function GuestPreviewCard({
   return (
     <div
       data-role="guest-preview"
-      className="relative flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-7 flex flex-col justify-center gap-0.5 overflow-hidden"
+      /* surface-card, not a hand-rolled fill. The old non-VIP style was a 7%
+         white gradient with an 8% white ring — invisible on a cream page,
+         because it had only ever been looked at in the dark theme. The card
+         now uses the same tier as every other card in the app and is a card in
+         both themes. */
+      className={`relative flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-7 flex flex-col justify-center gap-0.5 overflow-hidden ${vip ? "" : "surface-card"}`}
       style={vip
         ? { background: "linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C)", boxShadow: "0 16px 44px -14px rgba(120,74,12,.55)" }
-        : { background: "linear-gradient(158deg,rgba(255,255,255,.07),rgba(255,255,255,.02))", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}
+        : undefined}
     >
       <div className="flex items-start justify-between gap-3">
         <span className="text-[10.5px] font-black uppercase tracking-[0.15em]"

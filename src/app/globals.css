@@ -380,6 +380,20 @@ html.dark {
       0 8px 22px -10px rgba(0, 0, 0, 0.6);
   }
 
+  /* The edges of the cards behind the one you are looking at.
+     The preview slot holds several faces and swaps between them; two slivers
+     peeking left and right say so without a caption, and they point along the
+     axis the gesture runs. The dots say which one you are on; the deck says
+     there is more than one. */
+  .deck-edge {
+    background: rgba(36, 31, 25, 0.09);
+    box-shadow: inset 0 0 0 1px rgba(36, 31, 25, 0.05);
+  }
+  .dark .deck-edge {
+    background: rgba(255, 250, 240, 0.085);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
   /* Dark mode floating settings pill */
   .glass-dark-float {
     background: rgba(20, 20, 28, 0.85);
