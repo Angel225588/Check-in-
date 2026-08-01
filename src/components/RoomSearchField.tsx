@@ -25,7 +25,7 @@ export default function RoomSearchField({
 }) {
   return (
     <div
-      className="flex items-center gap-4 px-5 min-h-[84px] rounded-[24px] glass-liquid"
+      className="flex items-center gap-4 px-5 min-h-[84px] rounded-[24px] surface-field"
       data-role="search-field"
     >
       <MagnifyingGlass size={27} weight="bold" style={{ color: "var(--tab-idle)" }} className="shrink-0" />

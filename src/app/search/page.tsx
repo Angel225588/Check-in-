@@ -537,7 +537,10 @@ export default function SearchPage() {
               onClick={() => setCount((c) => Math.max(1, c - 1))}
               disabled={!hit || count <= 1}
               aria-label="Une personne de moins"
-              className="w-[84px] min-h-[clamp(64px,9vh,84px)] rounded-[20px] text-[34px] font-black grid place-items-center glass-liquid active:scale-[0.96] transition-transform disabled:opacity-30"
+              /* Bubbles, like the counter on the check-in screen. Round reads
+                 as "adjusts a number"; the square slabs read as another
+                 commit button sitting either side of the real one. */
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-[34px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
             >
               −
             </button>
@@ -556,7 +559,7 @@ export default function SearchPage() {
               disabled={!hit}
               data-role="search-enter"
               data-mode={!hit ? "idle" : needsScreen ? "open" : "commit"}
-              className="flex-1 min-h-[clamp(64px,9vh,84px)] rounded-[20px] text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
+              className="flex-1 min-h-[clamp(64px,9vh,84px)] rounded-full text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
               /* Idle keeps the resting green: gold means "this one needs you",
                  and an empty field needs nothing. */
               style={hit && needsScreen
@@ -577,7 +580,7 @@ export default function SearchPage() {
               onClick={() => setCount((c) => Math.min(Math.max(1, maxCount), c + 1))}
               disabled={!hit || count >= maxCount}
               aria-label="Une personne de plus"
-              className="w-[84px] min-h-[clamp(64px,9vh,84px)] rounded-[20px] text-[34px] font-black grid place-items-center glass-liquid active:scale-[0.96] transition-transform disabled:opacity-30"
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-[34px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
             >
               +
             </button>

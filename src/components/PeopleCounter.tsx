@@ -18,7 +18,7 @@ export default function PeopleCounter({
       <button
         onClick={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
-        className="w-16 h-16 rounded-full glass text-3xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
+        className="w-16 h-16 rounded-full surface-chrome text-3xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
       >
         −
       </button>
@@ -26,7 +26,7 @@ export default function PeopleCounter({
       <button
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
-        className="w-16 h-16 rounded-full glass text-3xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
+        className="w-16 h-16 rounded-full surface-chrome text-3xl font-bold flex items-center justify-center disabled:opacity-30 active:scale-90 transition-all"
       >
         +
       </button>

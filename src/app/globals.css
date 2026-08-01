@@ -187,6 +187,15 @@ html.dark {
     background-color: #12100E;
   }
 
+  /* The frames do not move; only what is inside them does.
+     Without this, a swipe on the preview that drifted a few degrees off
+     horizontal panned the whole document — iOS rubber-banding the page under a
+     gesture aimed at a card. Inner scrollers set overscroll-behavior: contain
+     so their own bounce stops at their own edge too. */
+  html, body {
+    overscroll-behavior: none;
+  }
+
   body {
     font-family: 'MuseoSans', 'Nunito', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
     color: var(--color-dark);
@@ -321,6 +330,54 @@ html.dark {
       0 0 0 0.5px rgba(221, 156, 40, 0.15) inset,
       0 2px 12px rgba(166, 105, 20, 0.2),
       0 0 24px rgba(221, 156, 40, 0.1) inset;
+  }
+
+  /* ── Surface tiers ────────────────────────────────────────────────────
+     Everything on a screen is one of three things, and it should look like
+     which one it is: furniture you look past, the one field you act in, or a
+     card carrying data. Before this, the metrics bar, the search field and a
+     result row were all `glass-liquid` at the same weight and the same radius,
+     so the eye had nothing to sort them by. Use these instead of reaching for
+     glass-liquid on anything structural. */
+
+  /* Furniture. Recessed, no lift — it is a container, not a thing to press. */
+  .surface-chrome {
+    background: rgba(36, 31, 25, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(36, 31, 25, 0.06);
+  }
+  .dark .surface-chrome {
+    background: rgba(255, 250, 240, 0.045);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  /* The live field. A well you type into, ringed in brand so it is obviously
+     the one place on the screen that takes input. */
+  .surface-field {
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow:
+      inset 0 2px 5px rgba(36, 31, 25, 0.07),
+      inset 0 0 0 1.5px rgba(166, 105, 20, 0.22);
+  }
+  .dark .surface-field {
+    background: rgba(255, 250, 240, 0.055);
+    box-shadow:
+      inset 0 2px 6px rgba(0, 0, 0, 0.4),
+      inset 0 0 0 1.5px rgba(221, 156, 40, 0.24);
+  }
+
+  /* Data. Lifts off the page, because these are the things you act on. */
+  .surface-card {
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow:
+      inset 0 0 0 1px rgba(36, 31, 25, 0.05),
+      0 1px 2px rgba(28, 28, 28, 0.05),
+      0 8px 20px -10px rgba(40, 40, 45, 0.18);
+  }
+  .dark .surface-card {
+    background: rgba(255, 250, 240, 0.075);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+      0 8px 22px -10px rgba(0, 0, 0, 0.6);
   }
 
   /* Dark mode floating settings pill */

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   makeNote,
   sortNotes,
-  pinnedChips,
+  pinnedStrip,
   compactNotes,
   applyEdit,
   filterNotes,
@@ -11,7 +11,6 @@ import {
   MAX_BODY,
   MAX_NOTES_PER_GUEST,
   MAX_REVISIONS,
-  MAX_PINNED_CHIPS,
   type GuestNote,
   type NoteTone,
 } from "@/lib/notes";
@@ -89,50 +88,39 @@ describe("sort order", () => {
   });
 });
 
-describe("pinned chips on the check-in card", () => {
-  // The mockup showed a 4th chip clipped at 75% behind a scroll nobody
-  // discovers. Cap at 3 and say how many are hidden.
-  it("shows at most three and reports the overflow", () => {
+describe("the pinned strip on the check-in card", () => {
+  it("carries every pinned note — the row scrolls, so nothing is dropped", () => {
     const notes = Array.from({ length: 5 }, (_, i) =>
       note({ id: `n${i}`, tone: "info", pinned: true, updatedAt: `2026-07-0${i + 1}T08:00:00.000Z` })
     );
-    const { shown, overflow } = pinnedChips(notes);
-    expect(shown).toHaveLength(MAX_PINNED_CHIPS);
-    expect(overflow).toBe(2);
-  });
-
-  it("reports no overflow when everything fits", () => {
-    const { shown, overflow } = pinnedChips([note({ tone: "info", pinned: true })]);
-    expect(shown).toHaveLength(1);
-    expect(overflow).toBe(0);
+    expect(pinnedStrip(notes)).toHaveLength(5);
   });
 
   it("excludes unpinned notes", () => {
-    const { shown, overflow } = pinnedChips([note({ tone: "info", pinned: false })]);
-    expect(shown).toHaveLength(0);
-    expect(overflow).toBe(0);
+    expect(pinnedStrip([note({ tone: "info", pinned: false })])).toHaveLength(0);
   });
 
-  // The safety property that matters: with more pinned notes than slots, the
-  // allergy must still be one of the three on screen.
-  it("never hides an alert behind the overflow counter", () => {
+  // The safety property the old cap existed to protect, and the only one this
+  // function still owes: an allergy is on screen before anyone scrolls.
+  it("puts an alert first however many preferences precede it", () => {
     const notes = [
       ...Array.from({ length: 6 }, (_, i) =>
         note({ id: `p${i}`, tone: "preference", pinned: true, updatedAt: `2026-07-1${i}T08:00:00.000Z` })
       ),
       note({ id: "allergy", tone: "alert", pinned: true, updatedAt: "2026-07-01T08:00:00.000Z" }),
     ];
-    const { shown } = pinnedChips(notes);
-    expect(shown.map((n) => n.id)).toContain("allergy");
+    expect(pinnedStrip(notes)[0].id).toBe("allergy");
   });
 
-  it("keeps every alert visible when alerts alone exceed the cap", () => {
-    const notes = Array.from({ length: 4 }, (_, i) =>
-      note({ id: `a${i}`, tone: "alert", pinned: true, updatedAt: `2026-07-0${i + 1}T08:00:00.000Z` })
-    );
-    const { shown, overflow } = pinnedChips(notes);
-    expect(shown.every((n) => n.tone === "alert")).toBe(true);
-    expect(shown.length + overflow).toBe(4);
+  it("keeps every alert ahead of every non-alert", () => {
+    const notes = [
+      note({ id: "i1", tone: "info", pinned: true, updatedAt: "2026-07-20T08:00:00.000Z" }),
+      ...Array.from({ length: 4 }, (_, i) =>
+        note({ id: `a${i}`, tone: "alert", pinned: true, updatedAt: `2026-07-0${i + 1}T08:00:00.000Z` })
+      ),
+    ];
+    const tones = pinnedStrip(notes).map((n) => n.tone);
+    expect(tones.lastIndexOf("alert")).toBeLessThan(tones.indexOf("info"));
   });
 });
 

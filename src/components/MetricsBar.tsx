@@ -41,7 +41,7 @@ export default function MetricsBar({
     "flex-1 text-center py-1.5 md:py-2 px-1 rounded-xl transition-all cursor-pointer active:scale-[0.96]";
 
   return (
-    <div className="flex items-center gap-1 md:gap-1.5 p-1.5 md:p-2 glass-liquid rounded-[14px]" role="group" aria-label="Guest metrics">
+    <div className="flex items-center gap-1 md:gap-1.5 p-2 surface-chrome rounded-[14px]" role="group" aria-label="Guest metrics">
       <button
         onClick={() => handleFilter("total")}
         className={`${pillBase} ${

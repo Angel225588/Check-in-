@@ -45,7 +45,6 @@ export const MAX_TITLE = 80;
 export const MAX_BODY = 2000;
 export const MAX_NOTES_PER_GUEST = 60;
 export const MAX_REVISIONS = 20;
-export const MAX_PINNED_CHIPS = 3;
 
 /**
  * Alert and Event are the tones that change what reception *does* in the next
@@ -115,19 +114,18 @@ export function sortNotes(notes: GuestNote[]): GuestNote[] {
 }
 
 /**
- * The chips shown on the check-in card itself. Capped, because a fourth chip
- * clipped at 75% behind an undiscoverable horizontal scroll reads as "there is
- * nothing more here". Anything hidden is counted out loud instead.
+ * The chips shown on the check-in card itself, in the order they appear.
  *
- * Because `sortNotes` places alerts first, an alert can never be the note that
- * falls into the overflow — which is the property that makes this cap safe.
+ * There is no cap any more: the row scrolls sideways and carries every pinned
+ * note. A cap needed the receptionist to notice a "+2" and decide to open a
+ * panel; a scroller only needs a thumb.
+ *
+ * What the cap was protecting still holds, and now it is the only thing this
+ * function guarantees: `sortNotes` puts alerts first, so the note that must not
+ * be missed is the one already on screen before anyone scrolls.
  */
-export function pinnedChips(
-  notes: GuestNote[],
-  max: number = MAX_PINNED_CHIPS
-): { shown: GuestNote[]; overflow: number } {
-  const pinned = sortNotes(notes.filter((n) => n.pinned));
-  return { shown: pinned.slice(0, max), overflow: Math.max(0, pinned.length - max) };
+export function pinnedStrip(notes: GuestNote[]): GuestNote[] {
+  return sortNotes(notes.filter((n) => n.pinned));
 }
 
 export function filterNotes(notes: GuestNote[], tone: NoteTone | "all"): GuestNote[] {

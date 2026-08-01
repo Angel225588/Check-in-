@@ -326,14 +326,14 @@ export default function CheckInPage({
         </div>
       )}
 
-      {/* ===== ACTIVITY SIDEBAR (left) — docked on tablet only when there's
+      {/* ===== ACTIVITY SIDEBAR (left) — docked from md up whenever there is
            history to show; a first-visit guest has nothing to display, so it
            auto-collapses to a drawer and the card gets the full width. ===== */}
       {sidebarOpen && (
-        <div className={`fixed inset-0 z-30 bg-black/45 backdrop-blur-sm ${showDock ? "lg:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
+        <div className={`fixed inset-0 z-30 bg-black/45 backdrop-blur-sm ${showDock ? "md:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
       )}
       <aside
-        className={`fixed inset-y-0 ${handSide === "right" ? "right-0" : "left-0"} z-40 ${sideWide ? "w-[430px]" : "w-[248px]"} max-w-[92vw] shrink-0 p-3 transition-[transform,width] duration-200 ${showDock ? "lg:static lg:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : handSide === "right" ? "translate-x-full" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 ${handSide === "right" ? "right-0" : "left-0"} z-40 ${sideWide ? "w-[430px] md:w-[300px] lg:w-[430px]" : "w-[248px]"} max-w-[92vw] shrink-0 p-3 transition-[transform,width] duration-200 ${showDock ? "md:static md:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : handSide === "right" ? "translate-x-full" : "-translate-x-full"}`}
       >
         {/* An opaque surface, not glass. As a drawer this sits over the gold
             guest card, and a translucent panel turned note titles into
@@ -443,46 +443,54 @@ export default function CheckInPage({
       <main className="flex-1 min-w-0 h-full flex flex-col">
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-3 md:px-4 pt-3 flex flex-col gap-3">
-          {/* Top row. Mirrored with the panel: the control that opens the
-              activity column has to sit on the edge the column slides in from,
-              otherwise you reach across the screen to summon something that
-              then appears under your other hand. */}
-          <div className={`flex items-center gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
+          {/* Top row.
+              Back sits outside the mirroring, at the leading edge, on every
+              screen. Everything else on this row follows the working hand — but
+              a way out that moves depending on a handedness setting is a way
+              out you have to look for, and it is the one control that must
+              always be where you last left it. */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }}
-              data-role="activity-toggle"
-              aria-label="Ouvrir l'activité et les notes"
-              className={`${showDock ? "lg:hidden" : ""} flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] relative`}
+              onClick={() => router.push("/search")}
+              data-role="back"
+              className="shrink-0 flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
             >
-              <Clock weight="duotone" size={16} className="text-brand" />
-              {pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
-              {/* A guest can have an allergy on their very first visit. */}
-              {hasAlertNote && (
-                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#FBF8F3] dark:border-[#12100E]" style={{ background: "var(--aur-bad)" }} />
-              )}
-            </button>
-
-            <button onClick={() => router.push("/search")} className="flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all">
               <svg className="w-4 h-4" style={{ color: "var(--brand-ink)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("checkin.search")}</span>
             </button>
 
-            {/* A plain spacer, not `ml-auto` — auto margins resolve against the
-                main axis, so they flip meaning under `flex-row-reverse`. */}
-            <div className="flex-1" />
+            <div className={`flex-1 min-w-0 flex items-center gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
+              <button
+                onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }}
+                data-role="activity-toggle"
+                aria-label="Ouvrir l'activité et les notes"
+                className={`${showDock ? "md:hidden" : ""} flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] relative`}
+              >
+                <Clock weight="duotone" size={16} className="text-brand" />
+                {pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
+                {/* A guest can have an allergy on their very first visit. */}
+                {hasAlertNote && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#FBF8F3] dark:border-[#12100E]" style={{ background: "var(--aur-bad)" }} />
+                )}
+              </button>
 
-            <button
-              onClick={flipHandSide}
-              data-role="hand-toggle"
-              aria-label={handSide === "left" ? "Passer les commandes à droite" : "Passer les commandes à gauche"}
-              title={handSide === "left" ? "Commandes à droite (droitier)" : "Commandes à gauche (gaucher)"}
-              className="flex items-center gap-1.5 px-3 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
-            >
-              <ArrowsLeftRight weight="bold" size={15} style={{ color: "var(--brand-ink)" }} />
-              <span className="text-[12px] font-extrabold" style={{ color: "var(--brand-ink)" }}>
-                {handSide === "left" ? "Gauche" : "Droite"}
-              </span>
-            </button>
+              {/* A plain spacer, not `ml-auto` — auto margins resolve against
+                  the main axis, so they flip meaning under `flex-row-reverse`. */}
+              <div className="flex-1" />
+
+              <button
+                onClick={flipHandSide}
+                data-role="hand-toggle"
+                aria-label={handSide === "left" ? "Passer les commandes à droite" : "Passer les commandes à gauche"}
+                title={handSide === "left" ? "Commandes à droite (droitier)" : "Commandes à gauche (gaucher)"}
+                className="flex items-center gap-1.5 px-3 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
+              >
+                <ArrowsLeftRight weight="bold" size={15} style={{ color: "var(--brand-ink)" }} />
+                <span className="text-[12px] font-extrabold" style={{ color: "var(--brand-ink)" }}>
+                  {handSide === "left" ? "Gauche" : "Droite"}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* IDENTITY CARD — gold when VIP */}

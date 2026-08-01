@@ -1,36 +1,52 @@
 "use client";
-import { pinnedChips, type GuestNote } from "@/lib/notes";
+import { pinnedStrip, type GuestNote } from "@/lib/notes";
 import { toneMeta } from "@/lib/note-tone";
 import NoteToneIcon from "./NoteToneIcon";
 
 /**
- * "À retenir pour ce client" — the pinned notes, surfaced on the check-in card
- * itself so an allergy is visible without opening anything.
+ * "À retenir pour ce client" — the notes, on the check-in card itself, so an
+ * allergy is visible without opening anything.
  *
- * Capped at three by `pinnedChips`, with the remainder counted out loud. The
- * mockup's scrolling row left a fourth chip clipped at 75% behind a gesture
- * nobody discovers, which reads as "there is nothing more here".
+ * Two lines per chip: the title in the tone's colour, the note under it. A
+ * one-line chip reading "Fried eggs proposition Wann…" told you a note existed
+ * and nothing about what it said, which is the one thing that matters when
+ * someone is standing in front of you.
  *
- * Alerts sort first, so the cap can never be what hides an allergy.
+ * The row scrolls sideways and carries every note rather than three plus a
+ * "+2". A cap needs the receptionist to notice a counter and decide to open a
+ * panel; a scroller only needs a thumb. Alerts sort first either way, so the
+ * one that must not be missed is the one already on screen.
  */
 export default function PinnedNoteChips({
   notes,
   onOpen,
-  onOpenAll,
 }: {
   notes: GuestNote[];
   onOpen: (id: string) => void;
-  onOpenAll: () => void;
+  /** Kept for callers that still pass it; the row no longer overflows. */
+  onOpenAll?: () => void;
 }) {
-  const { shown, overflow } = pinnedChips(notes);
+  const shown = pinnedStrip(notes);
   if (shown.length === 0) return null;
 
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide mb-1.5 font-bold" style={{ color: "var(--tab-idle)" }}>
-        À retenir pour ce client
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-wide font-bold" style={{ color: "var(--tab-idle)" }}>
+          À retenir pour ce client
+        </span>
+        {shown.length > 2 && (
+          <span className="text-[10px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
+            {shown.length} notes
+          </span>
+        )}
       </div>
-      <div className="flex flex-wrap gap-2">
+
+      <div
+        className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1"
+        data-role="pinned-strip"
+        style={{ touchAction: "pan-x", overscrollBehavior: "contain" }}
+      >
         {shown.map((n) => {
           const m = toneMeta(n.tone);
           const isAlert = n.tone === "alert";
@@ -40,28 +56,38 @@ export default function PinnedNoteChips({
               onClick={() => onOpen(n.id)}
               data-role="pinned-chip"
               data-note-tone={n.tone}
-              className="inline-flex items-center gap-1.5 min-h-[44px] max-w-full px-3 rounded-full text-[13px] font-extrabold active:scale-[0.97] transition-transform"
+              className="shrink-0 w-[228px] min-h-[60px] text-left px-3 py-2 rounded-[14px] flex items-start gap-2 active:scale-[0.97] transition-transform"
               style={{
                 background: m.soft,
-                color: m.color,
-                boxShadow: isAlert ? `inset 0 0 0 1.5px ${m.color}` : "var(--shadow-warm-1)",
+                // An alert gets a ring; the others get their tint and nothing
+                // else, so one thing on the card is loud at a time.
+                boxShadow: isAlert
+                  ? `inset 0 0 0 1.5px ${m.color}`
+                  : `inset 0 0 0 1px rgba(128,128,128,.14)`,
               }}
             >
-              <NoteToneIcon tone={n.tone} size={15} />
-              <span className="truncate max-w-[190px]">{n.title || n.body.slice(0, 40)}</span>
+              <span className="mt-0.5 shrink-0">
+                <NoteToneIcon tone={n.tone} size={15} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className="block text-[13px] font-extrabold leading-tight truncate"
+                  style={{ color: m.color }}
+                >
+                  {n.title || m.label}
+                </span>
+                {n.body && n.body !== n.title && (
+                  <span
+                    className="block text-[11.5px] font-semibold leading-snug line-clamp-2"
+                    style={{ color: "var(--aur-ink-2)" }}
+                  >
+                    {n.body}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
-        {overflow > 0 && (
-          <button
-            onClick={onOpenAll}
-            data-role="pinned-overflow"
-            className="inline-flex items-center min-h-[44px] px-3 rounded-full text-[13px] font-extrabold"
-            style={{ background: "rgba(0,0,0,.05)", color: "var(--tab-idle)" }}
-          >
-            +{overflow}
-          </button>
-        )}
       </div>
     </div>
   );

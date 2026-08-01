@@ -35,7 +35,7 @@ export default function SuggestionCard({
       data-role="room-row"
       data-room={client.roomNumber}
       className={`w-full text-left rounded-[16px] px-4 py-3 flex items-center gap-4 min-h-[88px]
-        glass-liquid active:scale-[0.995] transition-transform ${allCheckedIn ? "opacity-50" : ""}`}
+        surface-card active:scale-[0.995] transition-transform ${allCheckedIn ? "opacity-50" : ""}`}
     >
       <span className="text-[34px] font-black tabular-nums leading-none min-w-[86px]">
         {client.roomNumber}
