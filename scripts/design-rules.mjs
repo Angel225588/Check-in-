@@ -421,13 +421,14 @@ async function main() {
   // Notes are written in the activity column by default; ⤢ promotes the same
   // work to the centred panel. Both surfaces carry the same data-roles, so the
   // helper scopes to whichever is on screen.
-  const addNote = async (page, toneLabel, title) => {
+  const addNote = async (page, toneLabel, title, body) => {
     await page.locator('[data-role="note-new"]').click();
     await page.waitForTimeout(300);
     const dialog = page.locator('[data-role="notes-modal"]');
     const scope = (await dialog.count()) ? dialog : page.locator("aside");
     await scope.getByRole("button", { name: toneLabel, exact: true }).click();
     await scope.locator('[data-role="note-title"]').fill(title);
+    if (body) await scope.locator('[data-role="note-body"]').fill(body);
     await scope.locator('[data-role="note-save"]').click();
     await page.waitForTimeout(380);
   };
@@ -469,27 +470,41 @@ async function main() {
     await ctx.close();
   }
 
-  // R11 — the fourth chip in the mockup was clipped at 75% behind a scroll
-  // gesture nobody discovers, which reads as "there is nothing more here".
+  // R11 — the pinned strip.
+  //
+  // This used to assert a cap of three plus a "+N" badge. The cap is gone: the
+  // row scrolls sideways and carries every pinned note, because a counter needs
+  // the receptionist to notice it and decide to open a panel, while a scroller
+  // only needs a thumb.
+  //
+  // What the cap was protecting is what this now checks, and it is the part
+  // that was never about layout: the first chip — the one on screen before
+  // anyone scrolls — must be the alert.
   {
     const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
     await openNotesTab(page);
-    for (let i = 0; i < 5; i++) await addNote(page, "Alerte", `Alerte numéro ${i + 1}`);
+    for (let i = 0; i < 4; i++) await addNote(page, "Événement", `Événement numéro ${i + 1}`);
+    await addNote(page, "Alerte", "Allergie", "Arachides — cuisine prévenue");
     await closeDrawer(page);
     await page.waitForTimeout(380);
 
     const chips = page.locator('[data-role="pinned-chip"]');
     const n = await chips.count();
-    const vw = page.viewportSize().width;
-    let clipped = 0;
-    for (let i = 0; i < n; i++) {
-      const b = await chips.nth(i).boundingBox();
-      if (!b || b.x < 0 || b.x + b.width > vw + 0.5) clipped++;
-    }
-    const overflow = await page.locator('[data-role="pinned-overflow"]').count();
-    record("R11-chip-cap", "At most three pinned chips, none clipped, remainder counted",
-      n <= 3 && clipped === 0 && (n < 3 || overflow === 1),
-      `${n} chips, ${clipped} clipped, ${overflow} overflow badge`);
+    const firstTone = n > 0 ? await chips.nth(0).getAttribute("data-note-tone") : "(none)";
+    // Overflow has to be reachable, not merely off-screen: the strip is only
+    // honest if it actually scrolls.
+    const strip = await page.locator('[data-role="pinned-strip"]').evaluate((el) => ({
+      scrollable: el.scrollWidth > el.clientWidth + 1,
+      overflowX: getComputedStyle(el).overflowX,
+    }));
+    record("R11-strip-carries-all", "Every pinned note is on the strip, alert first, overflow reachable",
+      n === 5 && firstTone === "alert" && (!strip.scrollable || strip.overflowX === "auto" || strip.overflowX === "scroll"),
+      `${n} chips, first=${firstTone}, overflow-x=${strip.overflowX}, scrolls=${strip.scrollable}`);
+
+    // And a chip has to say what the note says, not just that one exists.
+    const body = await chips.nth(0).innerText();
+    record("R11b-chip-shows-body", "A chip carries the note's text, not only its title",
+      /arachides/i.test(body) && /allergie/i.test(body), JSON.stringify(body.replace(/\n/g, " · ").slice(0, 60)));
     await ctx.close();
   }
 
