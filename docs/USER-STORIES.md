@@ -187,6 +187,99 @@ Roles, so we stop saying "the user":
 
 ---
 
+## Proposed — tomorrow's covers (not built)
+
+The question behind these: *how many people will come down tomorrow, and
+when?* Written as stories first so we build the decision, not the number.
+
+Before anything: three tiers, and the UI must never blur them.
+
+| | source | example |
+|---|---|---|
+| **Fact** | tonight's report | 212 people sleep here tonight; 3 groups; 62 of them leave tomorrow |
+| **Measured** | our own 30 days | groups attend at 94%, individuals on a paying rate at 31% |
+| **Guess** | anything else | one specific guest's habits with 2 observations |
+
+A forecast that is wrong is worse than no forecast, because someone staffs to
+it. So every predicted figure carries how many days it is based on, and with
+too little history the app says so instead of inventing.
+
+### US-10 — Know how many to prepare for tomorrow
+
+    As      F&B / manager
+    I need  tomorrow's expected covers, with a range and its basis
+    So that I order and staff to something better than last week's guess
+
+    Scenario: Sunday evening, ordering for Monday
+      Given  the day is closed and 30 days of history exist
+      When   I open the daily detail
+      Then   I see eligible covers (fact), an expected range (measured), the
+             number of days that range is built from, and the expected peak
+
+    Never:  a single confident-looking number with no basis. Never a forecast
+            at all before there is enough history to make one.
+    Proof:  — to be written
+
+### US-11 — See the groups, because the groups are the morning
+
+    As      F&B / manager
+    I need  how many groups, how big, and when they come down
+    So that I staff the peak rather than the average
+
+    Scenario: three coaches on Tuesday
+      Given  tomorrow has 3 group blocks totalling 62 people
+      When   I open the daily detail
+      Then   I see each group's size, its rooms, and the time band its people
+             came down on previous mornings
+
+    Never:  62 people in one group counted the same way as 62 individuals.
+    Proof:  — to be written
+
+    Why this one first: a tour has a coach at a fixed hour, so it attends near
+    100% and arrives inside twenty minutes. The most operationally important
+    part of the morning is also the most predictable part — which is not
+    usually how forecasting goes. An individual-level prediction changes no
+    decision; a group of 40 at 07:00 changes every decision.
+
+### US-12 — See the cliff, not just the level
+
+    As      F&B / manager
+    I need  tomorrow's departures and the day after's drop
+    So that I do not order Tuesday's volume for a Wednesday when the tour left
+
+    Scenario: the group checks out Wednesday morning
+      Given  62 people share a departure date
+      When   I read the detail page
+      Then   Wednesday shows a large early peak AND Thursday shows the drop
+
+    Never:  a departure day looks like an ordinary day.
+    Proof:  — to be written
+
+### US-13 — Find out whether the forecast is any good
+
+    As      F&B / manager
+    I need  yesterday's forecast shown against what actually happened
+    So that I learn whether to trust it
+
+    Scenario: the morning after
+      Given  the app predicted 180–200 and 174 came
+      When   I open the detail page
+      Then   I see the prediction, the actual, and the running accuracy
+
+    Never:  a forecast that is never scored. Without this the number is
+            decoration with a good font.
+    Proof:  — to be written
+
+**What we can already compute, with no new data:** who sleeps here tomorrow
+(departure dates), which rooms carry breakfast, group blocks (`BKF GRP` plus a
+shared rate code and stay window), per-segment attendance rates and arrival
+curves (30 days of `clients` + `checkIns`), and the last-morning effect —
+guests departing that day come down earlier and more reliably.
+
+**What we cannot, yet:** the coach's actual departure time. Everything above
+infers timing from history; a rooming list with the pickup time would beat all
+of it.
+
 ## Open — stories without proof yet
 
 These are the honest gaps. Each is a rule waiting to be written.
