@@ -15,8 +15,6 @@ import {
   Prohibit,
   Star,
   ArrowsLeftRight,
-  CaretLeft,
-  CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import {
@@ -36,6 +34,7 @@ import RoomEventBadges from "@/components/RoomEventBadges";
 import NotesModal from "@/components/NotesModal";
 import NotesPanel, { type NotesExpandRequest } from "@/components/NotesPanel";
 import PinnedNoteChips from "@/components/PinnedNoteChips";
+import SideNotesDigest from "@/components/SideNotesDigest";
 import { useGuestNotes } from "@/hooks/useGuestNotes";
 import { getRoomEvents, RoomEvent } from "@/lib/room-events";
 
@@ -97,21 +96,11 @@ export default function CheckInPage({
   // Which edge the activity panel and its controls live on. Persisted, because
   // a left-hander should set this once and never think about it again.
   const [handSide, setHandSide] = useState<"left" | "right">("left");
-  // Reading a long note in a 248px column is miserable. Two widths, toggled by
-  // the ⟨⟩ control in the panel header, remembered between visits.
-  const [sideWide, setSideWide] = useState(false);
 
   useEffect(() => {
     const st = getSettings();
     setHandSide(st.handSide === "right" ? "right" : "left");
-    setSideWide(!!st.sideWide);
   }, []);
-
-  const toggleWidth = () => {
-    const next = !sideWide;
-    setSideWide(next);
-    saveSettings({ ...getSettings(), sideWide: next });
-  };
 
   const flipHandSide = () => {
     const next = handSide === "left" ? "right" : "left";
@@ -298,7 +287,7 @@ export default function CheckInPage({
   return (
     // `flex-row-reverse` mirrors the whole layout when the panel is set to the
     // right, so the docked column and every control follow the working hand.
-    <div className={`h-dvh w-full flex ${handSide === "right" ? "flex-row-reverse" : ""} overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]`}>
+    <div className="h-dvh w-full flex flex-col overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
       {/* ===== SUCCESS overlay ===== */}
       {checkInSuccess && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.09s_ease-out] pointer-events-none">
@@ -326,6 +315,56 @@ export default function CheckInPage({
         </div>
       )}
 
+      {/* The screen's own top bar, above both columns. Back lived inside the
+          main column, so opening the activity rail pushed it 300px to the
+          right — the one control that has to be in the same place every time
+          was the one moving most. */}
+      <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 h-[68px]">
+
+            <button
+              onClick={() => router.push("/search")}
+              data-role="back"
+              className="shrink-0 flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
+            >
+              <svg className="w-4 h-4" style={{ color: "var(--brand-ink)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+              <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("checkin.search")}</span>
+            </button>
+
+            <div className={`flex-1 min-w-0 flex items-center gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
+              <button
+                onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }}
+                data-role="activity-toggle"
+                aria-label="Ouvrir l'activité et les notes"
+                className={`${showDock ? "md:hidden" : ""} flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] relative`}
+              >
+                <Clock weight="duotone" size={16} className="text-brand" />
+                {pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
+                {/* A guest can have an allergy on their very first visit. */}
+                {hasAlertNote && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#FBF8F3] dark:border-[#12100E]" style={{ background: "var(--aur-bad)" }} />
+                )}
+              </button>
+
+              {/* A plain spacer, not `ml-auto` — auto margins resolve against
+                  the main axis, so they flip meaning under `flex-row-reverse`. */}
+              <div className="flex-1" />
+
+              <button
+                onClick={flipHandSide}
+                data-role="hand-toggle"
+                aria-label={handSide === "left" ? "Passer les commandes à droite" : "Passer les commandes à gauche"}
+                title={handSide === "left" ? "Commandes à droite (droitier)" : "Commandes à gauche (gaucher)"}
+                className="flex items-center gap-1.5 px-3 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
+              >
+                <ArrowsLeftRight weight="bold" size={15} style={{ color: "var(--brand-ink)" }} />
+                <span className="text-[12px] font-extrabold" style={{ color: "var(--brand-ink)" }}>
+                  {handSide === "left" ? "Gauche" : "Droite"}
+                </span>
+              </button>
+            </div>
+      </div>
+
+      <div className={`flex-1 min-h-0 flex ${handSide === "right" ? "flex-row-reverse" : ""}`}>
       {/* ===== ACTIVITY SIDEBAR (left) — docked from md up whenever there is
            history to show; a first-visit guest has nothing to display, so it
            auto-collapses to a drawer and the card gets the full width. ===== */}
@@ -333,7 +372,7 @@ export default function CheckInPage({
         <div className={`fixed inset-0 z-30 bg-black/45 backdrop-blur-sm ${showDock ? "md:hidden" : ""}`} onClick={() => setSidebarOpen(false)} />
       )}
       <aside
-        className={`fixed inset-y-0 ${handSide === "right" ? "right-0" : "left-0"} z-40 ${sideWide ? "w-[430px] md:w-[300px] lg:w-[430px]" : "w-[248px]"} max-w-[92vw] shrink-0 p-3 transition-[transform,width] duration-200 ${showDock ? "md:static md:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : handSide === "right" ? "translate-x-full" : "-translate-x-full"}`}
+        className={`fixed bottom-0 top-[68px] ${handSide === "right" ? "right-0" : "left-0"} z-40 w-[300px] lg:w-[398px] max-w-[92vw] shrink-0 pb-3 px-3 transition-[transform,width] duration-200 ${showDock ? "md:static md:translate-x-0" : ""} ${sidebarOpen ? "translate-x-0" : handSide === "right" ? "translate-x-full" : "-translate-x-full"}`}
       >
         {/* An opaque surface, not glass. As a drawer this sits over the gold
             guest card, and a translucent panel turned note titles into
@@ -345,18 +384,6 @@ export default function CheckInPage({
           <div className="flex items-center justify-between">
             <b className="text-[15px] text-dark flex items-center gap-1.5"><Clock weight="duotone" size={17} /> Activité</b>
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={toggleWidth}
-                data-role="side-width"
-                aria-pressed={sideWide}
-                aria-label={sideWide ? "Réduire le panneau" : "Élargir le panneau"}
-                title={sideWide ? "Réduire" : "Élargir"}
-                className="w-11 h-11 rounded-full grid place-items-center glass-liquid"
-              >
-                {handSide === "right"
-                  ? (sideWide ? <CaretRight size={15} weight="bold" /> : <CaretLeft size={15} weight="bold" />)
-                  : (sideWide ? <CaretLeft size={15} weight="bold" /> : <CaretRight size={15} weight="bold" />)}
-              </button>
               <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-11 h-11 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={15} /></button>
             </div>
           </div>
@@ -403,18 +430,27 @@ export default function CheckInPage({
                     2.37:1, which is unreadable at this size. */}
                 <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-black text-[12.5px] shadow-[0_6px_16px_-6px] shadow-brand/60"
                   style={{ background: "linear-gradient(135deg,#E9B44C,#C08A3A)", color: "#241F19" }}><Star weight="fill" size={13} /> Première visite</span>
-                <div className="text-[13px] text-muted text-center py-8">Aucune activité — nouveau client</div>
+                <div className="text-[13px] text-muted text-center py-6">Aucune visite précédente</div>
+                <SideNotesDigest notes={notesApi.notes} onOpen={() => setSideTab("notes")} />
               </>
             ) : (
               <>
                 {sideTab === "all" && (
-                  <ClientHistory roomNumber={client.roomNumber} clientName={client.name} todayCheckIns={todayCheckIns} onUndo={refreshAfterUndo} />
+                  <>
+                    <ClientHistory roomNumber={client.roomNumber} clientName={client.name} todayCheckIns={todayCheckIns} onUndo={refreshAfterUndo} />
+                    <SideNotesDigest notes={notesApi.notes} onOpen={() => setSideTab("notes")} />
+                  </>
                 )}
                 <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
                 {pastStays.map((v, i) => (
                   <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
-                    <span className="text-[13px] font-extrabold text-dark tabular-nums">
-                      {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                    <span className="leading-tight">
+                      <span className="block text-[13px] font-extrabold text-dark tabular-nums">
+                        {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                      </span>
+                      <span className="block text-[10.5px] first-letter:uppercase" style={{ color: "var(--tab-idle)" }}>
+                        {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long" })}
+                      </span>
                     </span>
                     <span className="text-[11px]" style={{ color: "var(--tab-idle)" }}>{v.pax} pers · ch. {v.roomNumber}{v.vipLevel ? ` · ${v.vipLevel}` : ""}</span>
                   </div>
@@ -440,59 +476,9 @@ export default function CheckInPage({
       />
 
       {/* ===== MAIN ===== */}
-      <main className="flex-1 min-w-0 h-full flex flex-col">
+      <main className="flex-1 min-w-0 min-h-0 flex flex-col">
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-3 md:px-4 pt-3 flex flex-col gap-3">
-          {/* Top row.
-              Back sits outside the mirroring, at the leading edge, on every
-              screen. Everything else on this row follows the working hand — but
-              a way out that moves depending on a handedness setting is a way
-              out you have to look for, and it is the one control that must
-              always be where you last left it. */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push("/search")}
-              data-role="back"
-              className="shrink-0 flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
-            >
-              <svg className="w-4 h-4" style={{ color: "var(--brand-ink)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-              <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("checkin.search")}</span>
-            </button>
-
-            <div className={`flex-1 min-w-0 flex items-center gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
-              <button
-                onClick={() => { setSidebarCollapsed(false); setSidebarOpen(true); }}
-                data-role="activity-toggle"
-                aria-label="Ouvrir l'activité et les notes"
-                className={`${showDock ? "md:hidden" : ""} flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] relative`}
-              >
-                <Clock weight="duotone" size={16} className="text-brand" />
-                {pastStays.length > 0 && <span className="text-[11px] font-black text-brand tabular-nums">{pastStays.length}</span>}
-                {/* A guest can have an allergy on their very first visit. */}
-                {hasAlertNote && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#FBF8F3] dark:border-[#12100E]" style={{ background: "var(--aur-bad)" }} />
-                )}
-              </button>
-
-              {/* A plain spacer, not `ml-auto` — auto margins resolve against
-                  the main axis, so they flip meaning under `flex-row-reverse`. */}
-              <div className="flex-1" />
-
-              <button
-                onClick={flipHandSide}
-                data-role="hand-toggle"
-                aria-label={handSide === "left" ? "Passer les commandes à droite" : "Passer les commandes à gauche"}
-                title={handSide === "left" ? "Commandes à droite (droitier)" : "Commandes à gauche (gaucher)"}
-                className="flex items-center gap-1.5 px-3 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
-              >
-                <ArrowsLeftRight weight="bold" size={15} style={{ color: "var(--brand-ink)" }} />
-                <span className="text-[12px] font-extrabold" style={{ color: "var(--brand-ink)" }}>
-                  {handSide === "left" ? "Gauche" : "Droite"}
-                </span>
-              </button>
-            </div>
-          </div>
-
           {/* IDENTITY CARD — gold when VIP */}
           <div className={`rounded-[24px] px-5 py-5 relative ${isVip ? "" : "glass-liquid border border-black/[0.06] dark:border-white/[0.10]"}`} style={cardVipStyle}>
             <div className="flex items-start gap-4 flex-wrap">
@@ -636,6 +622,7 @@ export default function CheckInPage({
           )}
         </div>
       </main>
+      </div>
 
       <style jsx>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

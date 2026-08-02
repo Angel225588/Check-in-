@@ -402,8 +402,12 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Landscape splits into results + keypad; below lg it stays stacked. */}
-      <div className={`flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pb-3 pt-3 ${handSide === "right" ? "lg:flex-row-reverse" : ""}`}>
+      {/* Landscape splits into results + keypad; below lg it stays stacked.
+          In letter mode the keyboard leaves the column and claims the full
+          width underneath — AZERTY needs ten columns, and ten columns inside
+          392px would be 29px keys. */}
+      <div className="flex-1 min-h-0 flex flex-col">
+      <div className={`flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pt-3 ${pad === "abc" ? "pb-0" : "pb-3"} ${handSide === "right" ? "lg:flex-row-reverse" : ""}`}>
         <div className="flex-1 min-w-0 flex flex-col gap-3">
           <RoomSearchField
             value={query}
@@ -594,22 +598,27 @@ export default function SearchPage() {
               ABC swaps in the app's own letter pad. It used to focus the search
               field, which raised the iPad keyboard over half the screen with no
               reliable way back out. */}
-          <div className="flex-1 min-h-[196px]">
-            {pad === "abc" ? (
-              <AlphaKeypad
-                onKeyPress={appendKey}
-                onBackspace={backspace}
-                onToggleMode={() => { clear(); setPad("num"); }}
-              />
-            ) : (
+          {pad === "num" && (
+            <div className="flex-1 min-h-[196px]">
               <NumericKeypad
                 onKeyPress={appendKey}
                 onBackspace={backspace}
                 onToggleMode={() => { clear(); setPad("abc"); }}
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
+      </div>
+
+      {pad === "abc" && (
+        <div className="shrink-0 px-3 pb-3 pt-3">
+          <AlphaKeypad
+            onKeyPress={appendKey}
+            onBackspace={backspace}
+            onToggleMode={() => { clear(); setPad("num"); }}
+          />
+        </div>
+      )}
       </div>
 
       {/* Hidden VIP PhotoCapture */}

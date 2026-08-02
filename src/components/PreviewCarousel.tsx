@@ -99,17 +99,6 @@ export default function PreviewCarousel({
       onPointerUp={(e) => { if (e.pointerType === "mouse") end(e.clientX, e.clientY); }}
       onPointerCancel={() => { startX.current = null; }}
     >
-      {/* The deck. Two card edges peeking out, on the axis the swipe runs
-          along, so the slot reads as a stack rather than a single panel. The
-          dots say which card you are on; these say there is more than one.
-          Inset vertically so they read as edges, not as a border. */}
-      {panes.length > 1 && (
-        <>
-          <span aria-hidden className="deck-edge absolute inset-y-4 -left-1.5 w-5 rounded-[18px] z-0 pointer-events-none" />
-          <span aria-hidden className="deck-edge absolute inset-y-4 -right-1.5 w-5 rounded-[18px] z-0 pointer-events-none" />
-        </>
-      )}
-
       <div key={active.key} className="relative z-10 flex-1 min-h-0 flex flex-col animate-[cardIn_.24s_cubic-bezier(.2,.9,.25,1)]">
         {active.node}
       </div>

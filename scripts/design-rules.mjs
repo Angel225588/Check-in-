@@ -16,10 +16,13 @@
 //   R9  every text/background pair clears WCAG AA (4.5:1, or 3:1 when large)
 //   R10-R12  notes are reachable, capped, and destructive actions are guarded
 //   R13  the activity control sits on the side the panel opens from
-//   R14-R15  writing outranks classifying; the panel can be widened
+//   R14-R15  writing outranks classifying; the panel is readable and back is fixed
 //   R16  search: empty until typed, preview in the clock box, bounded stepper
 //   R17  report: figures agree with each other, tiles filter, écarts survive
 //   R18  contrast on the search and report screens, both themes
+//   R19  nothing clips at any viewport the app is opened on
+//   R20  every gap, padding and corner is on the spacing/radius scale
+//   R21  the pad and the letters belong to the app, not to iOS
 //
 // Usage: node scripts/design-rules.mjs            (expects a server on BASE)
 //        BASE_URL=http://localhost:3200 node scripts/design-rules.mjs
@@ -574,26 +577,31 @@ async function main() {
   {
     const { ctx, page } = await open(browser, CLIENTS.included, { history: null });
 
-    // R15 — the panel can be widened for reading long notes. Measured with the
-    // drawer open but no modal over it: notes now open as a centred dialog, and
-    // clicking a control underneath it is a harness bug, not a design finding.
+    // R15 — the panel is wide enough to read a note in, without being asked.
+    //
+    // It used to have a ⟨⟩ width toggle and this rule proved the toggle worked.
+    // The toggle is gone: two controls (narrow/wide, plus open/collapse) were
+    // doing one job, and the default was the narrow one — so the common case
+    // was a column too tight for the thing it exists to show. The panel is now
+    // wide by default and this checks the default, which is what a receptionist
+    // actually gets.
     const toggle = page.locator('[data-role="activity-toggle"]');
     if (await toggle.isVisible().catch(() => false)) {
       await toggle.click();
       await page.waitForTimeout(280);
     }
-    const widthOf = async () => (await page.locator("aside").boundingBox())?.width ?? 0;
-    const w0 = await widthOf();
-    await page.locator('[data-role="side-width"]').click();
-    await page.waitForTimeout(320);
-    const w1 = await widthOf();
-    record("R15-panel-resize", "The activity panel can be widened and narrowed", w1 > w0 + 80,
-      `${Math.round(w0)}px -> ${Math.round(w1)}px`);
-    await page.locator('[data-role="side-width"]').click();
-    await page.waitForTimeout(320);
+    const w0 = (await page.locator("aside").boundingBox())?.width ?? 0;
+    record("R15-panel-readable-width", "The activity panel is readable without being resized",
+      w0 >= 296, `${Math.round(w0)}px wide by default`);
 
+    // R15b — back does not move when the activity panel opens. It used to sit
+    // inside the main column, so opening the rail pushed it 300px sideways.
+    const backOpen = (await page.locator('[data-role="back"]').boundingBox())?.x ?? -1;
     await page.locator('[data-role="side-tab-notes"]').click();
     await page.waitForTimeout(420);
+    const backNotes = (await page.locator('[data-role="back"]').boundingBox())?.x ?? -2;
+    record("R15b-back-is-fixed", "The back control stays put when the panel opens",
+      backOpen >= 0 && Math.abs(backOpen - backNotes) < 2, `x=${Math.round(backOpen)} then ${Math.round(backNotes)}`);
 
     // R14 — in the composer, writing outranks classifying. Addressed by role,
     // not by label: the wording has changed twice and a renamed button is not
