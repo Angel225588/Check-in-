@@ -508,7 +508,7 @@ export default function SearchPage() {
           {/* Capped, not greedy: with flex-1 the preview swallowed every spare
               pixel and then centred its content, manufacturing a band of air
               above the keypad. Spare height goes to the keys instead. */}
-          <div className="hidden lg:flex flex-col shrink-0 h-[clamp(124px,24vh,252px)]">
+          <div className="hidden lg:flex flex-col shrink-0 h-[clamp(150px,26vh,240px)]">
             {hit ? (
               <PreviewCarousel panes={hitPanes} auto={false} resetKey={hit.roomNumber} />
             ) : flash ? (

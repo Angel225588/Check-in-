@@ -71,12 +71,13 @@ export default function GuestPreviewCard({
          because it had only ever been looked at in the dark theme. The card
          now uses the same tier as every other card in the app and is a card in
          both themes. */
-      className={`relative flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-7 flex flex-col justify-center gap-0.5 overflow-hidden ${vip ? "" : "surface-card"}`}
+      className={`relative flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-6 flex flex-col overflow-hidden ${vip ? "" : "surface-card"}`}
       style={vip
         ? { background: "linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C)", boxShadow: "0 16px 44px -14px rgba(120,74,12,.55)" }
         : undefined}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-0.5">
+      <div className="shrink-0 flex items-start justify-between gap-3">
         <span className="text-[10.5px] font-black uppercase tracking-[0.15em]"
           style={{ color: vip ? "rgba(255,255,255,.9)" : "var(--tab-idle)" }}>
           Chambre
@@ -87,7 +88,7 @@ export default function GuestPreviewCard({
       </div>
 
       <div
-        className="flex text-[clamp(38px,4.6vw,66px)] font-black leading-[0.88] tracking-[-0.045em] tabular-nums"
+        className="shrink-0 flex text-[clamp(34px,min(4.6vw,7.4vh),66px)] font-black leading-[0.88] tracking-[-0.045em] tabular-nums"
         style={{ color: vip ? "#fff" : undefined }}
       >
         {client.roomNumber.split("").map((d, i) => (
@@ -96,12 +97,12 @@ export default function GuestPreviewCard({
         ))}
       </div>
 
-      <div className="text-[20px] font-bold leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
+      <div data-role="preview-name" className="shrink-0 text-[20px] font-bold leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
         {client.name}
       </div>
 
       {shown.length > 0 && (
-        <div className="flex flex-col gap-1 mt-1.5" data-role="preview-notes">
+        <div className="shrink-0 flex flex-col gap-1 mt-1" data-role="preview-notes">
           {shown.map((n) => {
             const alert = n.tone === "alert";
             return (
@@ -109,7 +110,7 @@ export default function GuestPreviewCard({
                 key={n.id}
                 data-role="preview-note"
                 data-note-tone={n.tone}
-                className="flex items-center gap-1.5 text-[12.5px] font-bold px-2 py-1.5 rounded-[12px] truncate"
+                className="flex items-center gap-1.5 text-[12.5px] font-bold px-2 py-1 rounded-[12px] truncate"
                 style={alert
                   ? {
                       background: vip ? "rgba(0,0,0,.34)" : "var(--aur-bad-soft)",
@@ -133,7 +134,7 @@ export default function GuestPreviewCard({
         </div>
       )}
 
-      <div className="flex items-center gap-2 flex-wrap mt-2 min-h-0">
+      <div className={`flex items-center gap-2 flex-wrap mt-auto pt-2 min-h-0 overflow-hidden ${shown.length > 0 ? "max-[720px]:hidden" : ""}`}>
         <b className="text-[14px]" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
           {pax} pers.
         </b>
@@ -178,6 +179,8 @@ export default function GuestPreviewCard({
             <Star weight="fill" size={12} /> {client.vipLevel || "VIP"}
           </span>
         )}
+      </div>
+
       </div>
 
       <style jsx>{`

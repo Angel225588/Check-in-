@@ -1033,6 +1033,59 @@ async function main() {
     await ctx.close();
   }
 
+  // R22 — the preview card never eats its own contents.
+  //
+  // Flex children shrink by default. In a fixed-height card that meant the
+  // guest's name was squeezed below its own line box, its glyphs spilled out of
+  // a container crushed to nothing, and the allergy chip underneath was drawn
+  // straight through them: "Lambert Théo" cut in half by "Nuts allergy".
+  //
+  // Two things are asserted, at the tall viewport and the short one. The name
+  // occupies at least its own line box, and the alert chip sits fully inside
+  // the card. An allergy clipped in half is the exact failure this card exists
+  // to prevent, so it is checked rather than trusted.
+  for (const [label, w, h] of [["ipad-landscape", 1194, 834], ["ipad-safari-chrome", 1194, 640]]) {
+    const { ctx, page } = await openDay("/checkin/224", { w, h });
+    const tog = page.locator('[data-role="activity-toggle"]');
+    if (await tog.isVisible().catch(() => false)) { await tog.click(); await page.waitForTimeout(300); }
+    await page.locator('[data-role="side-tab-notes"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('[data-role="note-new"]').click();
+    await page.waitForTimeout(300);
+    const dlg = page.locator('[data-role="notes-modal"]');
+    const scope = (await dlg.count()) ? dlg : page.locator("aside");
+    await scope.getByRole("button", { name: "Alerte", exact: true }).click();
+    await scope.locator('[data-role="note-title"]').fill("Allergie arachides");
+    await scope.locator('[data-role="note-save"]').click();
+    await page.waitForTimeout(500);
+
+    await page.goto(`${BASE}/search`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(700);
+    for (const k of ["2", "2", "4"]) {
+      await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${k}$`) }).first().click();
+    }
+    await page.waitForTimeout(900);
+
+    const m = await page.evaluate(() => {
+      const card = document.querySelector('[data-role="guest-preview"]');
+      const name = document.querySelector('[data-role="preview-name"]');
+      const note = document.querySelector('[data-role="preview-note"]');
+      if (!card || !name) return { fail: "card or name missing" };
+      if (!note) return { fail: "the alert never reached the card" };
+      const cb = card.getBoundingClientRect();
+      const nb = note.getBoundingClientRect();
+      const squeezed = name.scrollHeight > name.clientHeight + 1;
+      const spill = Math.round(nb.bottom - cb.bottom);
+      return { squeezed, spill, fail: null };
+    });
+
+    record(`R22-${label}-card-holds-its-content`,
+      "The name is not squeezed and the alert is not clipped",
+      !m.fail && !m.squeezed && m.spill <= 0,
+      m.fail ? m.fail : `name squeezed=${m.squeezed}, alert spill=${m.spill}px`);
+    await ctx.close();
+  }
+
   await closeBrowser();
   stopServer();
 
