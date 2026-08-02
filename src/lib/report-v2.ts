@@ -170,6 +170,9 @@ export interface ArrivalRow {
   isVip: boolean;
   vipLevel: string;
   isComp: boolean;
+  /** Children expected in the room. The report is where the afternoon team
+   *  finds out a high chair was needed. */
+  children: number;
   /** VIP who was not on the breakfast list — reception cares who these were. */
   offList: boolean;
   formule: Formule;
@@ -208,6 +211,7 @@ export function buildArrivalRows(report: DayReport): ArrivalRow[] {
       isVip: r.isVip,
       vipLevel: r.vipLevel,
       isComp: r.isComp,
+      children: Math.max(0, (r.totalGuests || 0) - (r.adults || 0)),
       offList: !!r.isVip && (r.vipSource === "list_only" || r.vipSource === "walk_in"),
       formule: formuleOf(r),
       minutes,
@@ -234,7 +238,9 @@ export type ReportFilter =
   | "vip"
   | "comp"
   | "offlist"
-  | "ecart";
+  | "ecart"
+  | "groupe"
+  | "enfants";
 
 /** Accent-blind, case-blind. "lefevre" has to find "LEFÈVRE". */
 const fold = (s: string) =>
@@ -244,7 +250,12 @@ export function filterRows(
   rows: ArrivalRow[],
   filter: ReportFilter,
   query: string,
-  ecartRooms: Set<string>
+  ecartRooms: Set<string>,
+  /** Rooms belonging to a group block. Handed in like ecartRooms, because a
+   *  room cannot tell you which tour it is on — every tour in the house shares
+   *  the same BKF GRP package code, so the block is resolved from the original
+   *  client list and passed down. */
+  groupRooms: Set<string> = new Set()
 ): ArrivalRow[] {
   const q = fold((query ?? "").trim());
   return rows.filter((r) => {
@@ -269,6 +280,12 @@ export function filterRows(
         break;
       case "ecart":
         if (!ecartRooms.has(r.roomNumber)) return false;
+        break;
+      case "groupe":
+        if (!groupRooms.has(r.roomNumber)) return false;
+        break;
+      case "enfants":
+        if (r.children <= 0) return false;
         break;
       default:
         break;

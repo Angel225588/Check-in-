@@ -17,6 +17,9 @@ import PresenceRing from "@/components/report/PresenceRing";
 import OutcomeTreemap from "@/components/report/OutcomeTreemap";
 import ReportTiles, { ReportTile } from "@/components/report/ReportTiles";
 import ArrivalList from "@/components/report/ArrivalList";
+import DayGroups from "@/components/report/DayGroups";
+import { groupBlocks, getChildrenCount } from "@/lib/groups";
+import type { Client } from "@/lib/types";
 
 export default function ReportPageWrapper() {
   return (
@@ -47,6 +50,7 @@ function ReportV2() {
   const searchParams = useSearchParams();
   const [report, setReport] = useState<DayReport | null>(null);
   const [discrepancies, setDiscrepancies] = useState<PaxDiscrepancy[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [isHistorical, setIsHistorical] = useState(false);
   const [filter, setFilter] = useState<ReportFilter>("all");
   const [query, setQuery] = useState("");
@@ -60,9 +64,11 @@ function ReportV2() {
       if (session) {
         setReport(generateDayReport(session.clients, session.checkIns));
         setDiscrepancies(session.discrepancies ?? []);
+        setClients(session.clients);
       } else if (unclosed && unclosed.clients.length > 0) {
         setReport(generateDayReport(unclosed.clients, unclosed.checkIns));
         setDiscrepancies(unclosed.discrepancies ?? []);
+        setClients(unclosed.clients);
       } else {
         router.push("/reports");
         return;
@@ -77,6 +83,7 @@ function ReportV2() {
     }
     setReport(generateDayReport(data.clients, data.checkIns));
     setDiscrepancies(data.discrepancies ?? []);
+    setClients(data.clients);
     setIsHistorical(false);
   }, [router, dateParam]);
 
@@ -87,9 +94,15 @@ function ReportV2() {
     [discrepancies]
   );
   const ecart = useMemo(() => summarizeDiscrepancies(discrepancies), [discrepancies]);
+  const blocks = useMemo(() => groupBlocks(clients), [clients]);
+  const groupRooms = useMemo(
+    () => new Set(blocks.flatMap((b) => b.roomNumbers)),
+    [blocks]
+  );
+  const children = useMemo(() => getChildrenCount(clients), [clients]);
   const visible = useMemo(
-    () => filterRows(rows, filter, query, ecartRooms),
-    [rows, filter, query, ecartRooms]
+    () => filterRows(rows, filter, query, ecartRooms, groupRooms),
+    [rows, filter, query, ecartRooms, groupRooms]
   );
 
   if (!report) {
@@ -111,6 +124,10 @@ function ReportV2() {
     { key: "partial", label: "Partiel", value: split.partial },
     { key: "vip", label: "VIP", value: vipRooms },
     { key: "comp", label: "COMP", value: compRooms },
+    ...(children > 0 ? [{ key: "enfants" as const, label: "Enfants", value: children }] : []),
+    ...(blocks.length > 0
+      ? [{ key: "groupe" as const, label: "Groupes", value: groupRooms.size, sub: `${blocks.length} bloc${blocks.length > 1 ? "s" : ""}` }]
+      : []),
     ...(offList > 0 ? [{ key: "offlist" as const, label: "Hors liste", value: offList }] : []),
     {
       key: "ecart",
@@ -120,6 +137,18 @@ function ReportV2() {
       warn: true,
     },
   ];
+
+  /** dd/mm/yy, the shape the reservation dates arrive in, for spotting a block
+   *  that leaves this morning. */
+  const todayShort = (() => {
+    try {
+      const d = new Date(report.date + "T12:00:00");
+      const p = (n: number) => String(n).padStart(2, "0");
+      return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
+    } catch {
+      return "";
+    }
+  })();
 
   const dateLabel = (() => {
     try {
@@ -173,6 +202,15 @@ function ReportV2() {
 
         <div className="flex-1" />
 
+        <div className="flex flex-col items-end leading-tight mr-1">
+          <span className="text-[13px] font-bold tracking-[0.08em]" style={{ fontFamily: "'Nunito', sans-serif", color: "var(--brand-ink)" }}>
+            COURTYARD
+          </span>
+          <span className="text-[9.5px] text-muted">
+            by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
+          </span>
+        </div>
+
         <button onClick={exportCSV} className={btn} data-role="report-export">
           <DownloadSimple size={17} weight="duotone" style={{ opacity: 0.75 }} />
           <span style={{ color: "var(--tab-idle)" }}>Exporter</span>
@@ -199,7 +237,7 @@ function ReportV2() {
         <div className="flex-1 min-w-0 flex flex-col gap-3 lg:min-h-0">
           <AffluenceChart checkIns={report.checkIns} />
 
-          <div className="glass-liquid rounded-[20px] px-4 pt-3 pb-3 flex flex-col lg:flex-1 lg:min-h-0">
+          <div className="surface-card rounded-[20px] px-4 pt-3 pb-3 flex flex-col lg:flex-1 lg:min-h-0">
             <div className="flex items-baseline justify-between">
               <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Par ordre d&apos;arrivée
@@ -217,10 +255,17 @@ function ReportV2() {
           </div>
         </div>
 
-        <div className="w-full lg:w-[300px] shrink-0 flex flex-col gap-3 lg:min-h-0">
+        <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-3 lg:min-h-0">
           <PresenceRing percent={percent} entered={report.totalEntered} expected={report.totalGuests} />
 
-          <div className="glass-liquid rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 lg:flex-1 lg:min-h-0 min-h-[280px]">
+          <DayGroups
+            blocks={blocks}
+            today={todayShort}
+            active={filter === "groupe"}
+            onFilter={() => setFilter(filter === "groupe" ? "all" : "groupe")}
+          />
+
+          <div className="surface-card rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 lg:flex-1 lg:min-h-0 min-h-[220px]">
             <div className="flex items-baseline justify-between">
               <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Répartition

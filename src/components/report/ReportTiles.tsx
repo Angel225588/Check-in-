@@ -25,7 +25,7 @@ export default function ReportTiles({
   onFilter: (f: ReportFilter) => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto no-scrollbar" data-role="report-tiles">
+    <div className="flex flex-wrap gap-2" data-role="report-tiles">
       {tiles.map((tile) => {
         const on = filter === tile.key;
         return (

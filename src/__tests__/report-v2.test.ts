@@ -247,6 +247,26 @@ describe("filterRows", () => {
     expect(filterRows(rows, "ecart", "", ecart).map((r) => r.roomNumber)).toEqual(["202"]);
   });
 
+  it("filters to the rooms of a group block", () => {
+    // Group membership cannot be read off a room on its own: every tour in the
+    // house carries the same BKF GRP code. The block is resolved from the
+    // original clients and handed in, the way écarts are.
+    const groupRooms = new Set(["101", "202"]);
+    expect(filterRows(rows, "groupe", "", ecart, groupRooms).map((r) => r.roomNumber).sort())
+      .toEqual(["101", "202"]);
+  });
+
+  it("shows nothing under the group filter when no block was passed", () => {
+    expect(filterRows(rows, "groupe", "", ecart)).toEqual([]);
+  });
+
+  it("filters to the rooms that have children in them", () => {
+    // Not cosmetic: high chairs and the children's table are set before
+    // service, and the report is where the afternoon team reads it back.
+    const withKids = filterRows(rows, "enfants", "", ecart, new Set());
+    expect(withKids.every((r) => r.children > 0)).toBe(true);
+  });
+
   it("matches a room by prefix", () => {
     expect(filterRows(rows, "all", "20", ecart).map((r) => r.roomNumber)).toEqual(["202"]);
   });
