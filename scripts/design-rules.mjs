@@ -855,6 +855,11 @@ async function main() {
     ["macbook", 1440, 810],
     ["ipad-landscape", 1194, 834],
     ["ipad-safari-chrome", 1194, 640],   // browser UI eating the top
+    // Browser zoom is just a smaller viewport in CSS pixels. 125% and 150% on
+    // a landscape iPad land here, and pinch-zooming to read is the first thing
+    // anyone does on a screen full of small numbers.
+    ["zoom-125", 955, 667],
+    ["zoom-150", 796, 556],
   ]) {
     for (const path of ["/search", "/report"]) {
       const { ctx, page } = await openDay(path, { w, h });

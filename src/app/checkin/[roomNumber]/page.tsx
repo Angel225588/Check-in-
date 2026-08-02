@@ -15,6 +15,7 @@ import {
   Prohibit,
   Star,
   ArrowsLeftRight,
+  NotePencil,
 } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import {
@@ -89,6 +90,9 @@ export default function CheckInPage({
   const [sidebarOpen, setSidebarOpen] = useState(false); // drawer on small screens
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // manual hide on tablet
   const [sideTab, setSideTab] = useState<"all" | "visites" | "notes">("all");
+  // Bumping this starts a note from wherever you are. Writing one used to mean
+  // finding the notes tab first and then the button under the list.
+  const [composeSignal, setComposeSignal] = useState(0);
   // Notes open in the activity column first — a list you can scan — and only
   // move to the centred panel when you ask for the room, via ⤢. Landing in a
   // composer assumes you came to write; usually you came to check.
@@ -384,6 +388,15 @@ export default function CheckInPage({
           <div className="flex items-center justify-between">
             <b className="text-[15px] text-dark flex items-center gap-1.5"><Clock weight="duotone" size={17} /> Activité</b>
             <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => { setSideTab("notes"); setComposeSignal((n) => n + 1); }}
+                data-role="side-compose"
+                aria-label="Écrire une note"
+                title="Écrire une note"
+                className="w-11 h-11 rounded-full grid place-items-center glass-liquid active:scale-[0.94] transition-transform"
+              >
+                <NotePencil size={17} weight="duotone" style={{ color: "var(--brand-ink)" }} />
+              </button>
               <button onClick={() => { setSidebarOpen(false); setSidebarCollapsed(true); }} className="w-11 h-11 rounded-full grid place-items-center glass-liquid" aria-label="Masquer l'activité"><X size={15} /></button>
             </div>
           </div>
@@ -420,7 +433,7 @@ export default function CheckInPage({
               guest is exactly the one whose allergy is easiest to lose. */}
           {sideTab === "notes" ? (
             <div className="flex-1 min-h-0 -mx-1 px-1">
-              <NotesPanel api={notesApi} onExpand={setNotesCentre} />
+              <NotesPanel api={notesApi} onExpand={setNotesCentre} composeSignal={composeSignal} />
             </div>
           ) : (
           <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">

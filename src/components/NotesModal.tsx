@@ -39,6 +39,7 @@ type View = "list" | "compose" | "detail";
 export default function NotesModal({
   open, onClose, api, roomNumber, guestName, visits, pax,
   initialView = "list", initialNoteId = null, initialDraft = null,
+  closeOnSave = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -51,6 +52,11 @@ export default function NotesModal({
   initialView?: View;
   initialNoteId?: string | null;
   initialDraft?: NoteDraft | null;
+  /** Close once the note is written instead of falling back to the list.
+   *  True when the composer was opened as a one-shot errand — from the search
+   *  screen you came to jot one thing and get back to the queue, and a panel
+   *  still sitting there costs a tap in the middle of the rush. */
+  closeOnSave?: boolean;
 }) {
   const [view, setView] = useState<View>("list");
   const [tone, setTone] = useState<NoteTone | "all">("all");
@@ -123,6 +129,7 @@ export default function NotesModal({
     const payload = { tone: cTone, title: title.trim(), body: body.trim(), pinned };
     if (editingId) await api.edit(editingId, payload);
     else await api.add(payload);
+    if (closeOnSave) { onClose(); return; }
     setView("list");
   };
 

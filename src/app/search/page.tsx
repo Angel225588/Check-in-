@@ -6,7 +6,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useApp } from "@/contexts/AppContext";
 import { addClient, mergeVipIntoSession, getSessionHistory, getSettings, saveSettings, closeDay, addCheckIn } from "@/lib/storage";
 import { v4 as uuidv4 } from "uuid";
-import { Check, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { Check, WarningCircle, NotePencil } from "@phosphor-icons/react/dist/ssr";
 import { useGuestNotes } from "@/hooks/useGuestNotes";
 import { Client } from "@/lib/types";
 import MetricsBar, { MetricFilter } from "@/components/MetricsBar";
@@ -20,6 +20,7 @@ import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
 import HistoryPanel from "@/components/HistoryPanel";
+import NotesModal from "@/components/NotesModal";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { checkinHref } from "@/lib/checkin-nav";
@@ -49,6 +50,10 @@ export default function SearchPage() {
   const [count, setCount] = useState(1);
   /** Which pad is showing. Digits by default — most guests are found by room. */
   const [pad, setPad] = useState<"num" | "abc">("num");
+  // Writing a note about the guest in front of you used to mean opening their
+  // room first. The slot is where the eye already is, so it is where the pencil
+  // goes.
+  const [noteFor, setNoteFor] = useState<Client | null>(null);
 
   useEffect(() => {
     setHandSide(getSettings().handSide === "right" ? "right" : "left");
@@ -510,7 +515,24 @@ export default function SearchPage() {
               above the keypad. Spare height goes to the keys instead. */}
           <div className="hidden lg:flex flex-col shrink-0 h-[clamp(150px,26vh,240px)]">
             {hit ? (
-              <PreviewCarousel panes={hitPanes} auto={false} resetKey={hit.roomNumber} />
+              <PreviewCarousel
+                panes={hitPanes}
+                auto={false}
+                resetKey={hit.roomNumber}
+                action={
+                  <button
+                    onClick={() => setNoteFor(hit)}
+                    data-role="preview-compose"
+                    aria-label={`Écrire une note pour la chambre ${hit.roomNumber}`}
+                    className="w-11 h-11 rounded-[14px] grid place-items-center active:scale-[0.92] transition-transform"
+                    style={hit.isVip
+                      ? { background: "rgba(0,0,0,.34)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.22)" }
+                      : { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
+                  >
+                    <NotePencil size={19} weight="duotone" style={{ color: hit.isVip ? "#fff" : "var(--brand-ink)" }} />
+                  </button>
+                }
+              />
             ) : flash ? (
               /* Confirmation lands in the box the eye is already on, and the
                  field is already cleared for the next guest. */
@@ -779,6 +801,21 @@ export default function SearchPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* The composer, for the guest resolved in the slot. */}
+      {noteFor && (
+        <NotesModal
+          open
+          onClose={() => setNoteFor(null)}
+          initialView="compose"
+          closeOnSave
+          api={hitNotes}
+          roomNumber={noteFor.roomNumber}
+          guestName={noteFor.name}
+          visits={visitsFor(noteFor.name)}
+          pax={noteFor.adults + noteFor.children}
+        />
       )}
 
       <HistoryPanel

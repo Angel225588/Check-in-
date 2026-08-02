@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, PushPin, WarningCircle, ArrowsOut, Check, X } from "@phosphor-icons/react/dist/ssr";
 import { filterNotes, TONES, MAX_TITLE, MAX_BODY, shouldPinByDefault, type GuestNote, type NoteTone } from "@/lib/notes";
 import { toneMeta } from "@/lib/note-tone";
@@ -37,14 +37,25 @@ export interface NotesExpandRequest {
 export default function NotesPanel({
   api,
   onExpand,
+  composeSignal = 0,
 }: {
   api: NotesApi;
   onExpand: (req: NotesExpandRequest) => void;
+  /** Bumped by the panel header's ✎ so a note can be started from any tab,
+   *  not only after scrolling to the button at the bottom of the notes list. */
+  composeSignal?: number;
 }) {
   const [tone, setTone] = useState<NoteTone | "all">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<NoteDraft | null>(null);
   const [pinTouched, setPinTouched] = useState(false);
+
+  useEffect(() => {
+    if (composeSignal > 0) {
+      setPinTouched(false);
+      setDraft({ tone: "info", title: "", body: "", pinned: false, editingId: null });
+    }
+  }, [composeSignal]);
 
   const visible = useMemo(() => filterNotes(api.notes, tone), [api.notes, tone]);
   const selected = api.notes.find((n) => n.id === selectedId) ?? null;

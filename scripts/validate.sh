@@ -44,6 +44,18 @@ step "4/4 End-to-end (Playwright, real browser)"
 if [[ "$FAILED" -eq 1 ]]; then
   bad "skipping E2E — an earlier stage failed"
 else
+  # Refuse to run against someone else's server. A leftover `next start` on
+  # this port answers every request from a build made hours ago, so ours fails
+  # to bind, the suite tests the stale bundle, and the failure looks like a
+  # product regression. That cost two full runs before it was caught — the
+  # E2E was reporting on code that had since changed underneath it.
+  if command -v fuser >/dev/null 2>&1 && fuser "${PORT}/tcp" >/dev/null 2>&1; then
+    bad "port ${PORT} is already in use — kill the stale server first (fuser -k ${PORT}/tcp)"
+    bad "refusing to validate against a build we did not just make"
+    cleanup
+    exit 1
+  fi
+
   npx next start -p "$PORT" >/tmp/checkin-validate-server.log 2>&1 &
   SERVER_PID=$!
 

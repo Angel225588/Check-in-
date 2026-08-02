@@ -33,11 +33,16 @@ export default function ArrivalList({
   query,
   onQuery,
   ecartRooms,
+  onOpen,
 }: {
   rows: ArrivalRow[];
   query: string;
   onQuery: (v: string) => void;
   ecartRooms: Set<string>;
+  /** Open the guest's own screen. Reading the report and finding a note or
+   *  fixing a count are the same errand — the row is where you notice, so the
+   *  row is where you should be able to act. */
+  onOpen?: (row: ArrivalRow) => void;
 }) {
   return (
     <>
@@ -78,10 +83,13 @@ export default function ArrivalList({
         {rows.map((r) => {
           const s = STATUS[r.status];
           return (
-            <div
+            <button
               key={`${r.roomNumber}-${r.name}`}
               data-role="report-row"
-              className="flex items-center gap-3 px-3 py-2 rounded-[12px]"
+              onClick={() => onOpen?.(r)}
+              disabled={!onOpen}
+              aria-label={`Ouvrir la chambre ${r.roomNumber}`}
+              className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-[12px] min-h-[44px] enabled:active:scale-[0.995] transition-transform"
               style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
             >
               <span className="text-[14px] font-black tabular-nums min-w-[52px]" style={{ color: "var(--tab-idle)" }}>
@@ -132,7 +140,7 @@ export default function ArrivalList({
                       : ""}
                 </b>
               </span>
-            </div>
+            </button>
           );
         })}
       </div>

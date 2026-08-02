@@ -33,12 +33,17 @@ export default function PreviewCarousel({
   panes,
   auto,
   resetKey,
+  action,
 }: {
   panes: Pane[];
   /** Idle only. Never true while a guest is on screen. */
   auto: boolean;
   /** Changing this snaps back to the first pane — e.g. a new room. */
   resetKey: string;
+  /** A control pinned to the frame, above every face. The slot is the one
+   *  place the eye already is once a room resolves, so the fastest way to
+   *  write a note is from here rather than two screens away. */
+  action?: React.ReactNode;
 }) {
   const [i, setI] = useState(0);
   const [pausedUntil, setPausedUntil] = useState(0);
@@ -102,6 +107,12 @@ export default function PreviewCarousel({
       <div key={active.key} className="relative z-10 flex-1 min-h-0 flex flex-col animate-[cardIn_.24s_cubic-bezier(.2,.9,.25,1)]">
         {active.node}
       </div>
+
+      {action && (
+        <div className="absolute right-2.5 bottom-2 z-30" data-role="preview-action">
+          {action}
+        </div>
+      )}
 
       {/* No scrim. It existed because white dots vanish on a light card, but a
           translucent black pill on a white card is a grey blob — and the card

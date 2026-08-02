@@ -18,6 +18,7 @@ import OutcomeTreemap from "@/components/report/OutcomeTreemap";
 import ReportTiles, { ReportTile } from "@/components/report/ReportTiles";
 import ArrivalList from "@/components/report/ArrivalList";
 import DayGroups from "@/components/report/DayGroups";
+import { checkinHref } from "@/lib/checkin-nav";
 import { groupBlocks, getChildrenCount } from "@/lib/groups";
 import type { Client } from "@/lib/types";
 
@@ -32,7 +33,7 @@ export default function ReportPageWrapper() {
               <div className="skeleton h-[200px]" />
               <div className="skeleton flex-1" />
             </div>
-            <div className="w-[300px] hidden lg:flex flex-col gap-3">
+            <div className="w-[300px] hidden md:flex flex-col gap-3">
               <div className="skeleton h-[210px]" />
               <div className="skeleton flex-1" />
             </div>
@@ -233,11 +234,11 @@ function ReportV2() {
       </div>
 
       {/* ── Body: chart + list on the left, presence + treemap on the right ── */}
-      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pb-3 overflow-y-auto lg:overflow-hidden">
-        <div className="flex-1 min-w-0 flex flex-col gap-3 lg:min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-3 px-3 pb-3 overflow-y-auto md:overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col gap-3 md:min-h-0">
           <AffluenceChart checkIns={report.checkIns} />
 
-          <div className="surface-card rounded-[20px] px-4 pt-3 pb-3 flex flex-col lg:flex-1 lg:min-h-0">
+          <div className="surface-card rounded-[20px] px-4 pt-3 pb-3 flex flex-col md:flex-1 md:min-h-0">
             <div className="flex items-baseline justify-between">
               <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Par ordre d&apos;arrivée
@@ -251,11 +252,24 @@ function ReportV2() {
               <ReportTiles tiles={tiles} filter={filter} onFilter={setFilter} />
             </div>
 
-            <ArrivalList rows={visible} query={query} onQuery={setQuery} ecartRooms={ecartRooms} />
+            <ArrivalList
+              rows={visible}
+              query={query}
+              onQuery={setQuery}
+              ecartRooms={ecartRooms}
+              /* Historical days are read-only: their guests are long gone and
+                 the check-in screen would act on today's session. */
+              onOpen={isHistorical ? undefined : (r) => {
+                const i = clients.findIndex(
+                  (c) => c.roomNumber === r.roomNumber && c.name === r.name
+                );
+                router.push(checkinHref(r.roomNumber, i >= 0 ? i : undefined));
+              }}
+            />
           </div>
         </div>
 
-        <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-3 lg:min-h-0">
+        <div className="w-full md:w-[300px] lg:w-[320px] shrink-0 flex flex-col gap-3 md:min-h-0">
           <PresenceRing percent={percent} entered={report.totalEntered} expected={report.totalGuests} />
 
           <DayGroups
@@ -265,7 +279,7 @@ function ReportV2() {
             onFilter={() => setFilter(filter === "groupe" ? "all" : "groupe")}
           />
 
-          <div className="surface-card rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 lg:flex-1 lg:min-h-0 min-h-[220px]">
+          <div className="surface-card rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 md:flex-1 md:min-h-0 min-h-[220px]">
             <div className="flex items-baseline justify-between">
               <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Répartition
