@@ -23,6 +23,7 @@ import HistoryPanel from "@/components/HistoryPanel";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { checkinHref } from "@/lib/checkin-nav";
+import { groupBlocks, isInGroupBlock } from "@/lib/groups";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -186,6 +187,12 @@ export default function SearchPage() {
         return clients.filter((c) => isComp(c));
       case "vip":
         return clients.filter((c) => c.isVip);
+      case "children":
+        return clients.filter((c) => (c.children || 0) > 0);
+      case "groups": {
+        const blocks = groupBlocks(clients);
+        return clients.filter((c) => isInGroupBlock(c, blocks));
+      }
       default:
         return [];
     }
@@ -337,6 +344,8 @@ export default function SearchPage() {
     remaining: t("search.remaining"),
     comp: t("search.comp"),
     vip: "VIP",
+    children: "Enfants",
+    groups: "Groupes",
   };
 
   return (

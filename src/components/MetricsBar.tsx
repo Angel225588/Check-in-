@@ -2,10 +2,11 @@
 import { useRouter } from "next/navigation";
 import { Client, CheckInRecord } from "@/lib/types";
 import { getTotalGuests, getCheckedInCount, getCompStats } from "@/lib/utils";
+import { getChildrenCount, getGroupStats } from "@/lib/groups";
 import { useApp } from "@/contexts/AppContext";
 import AnimatedNumber from "@/components/AnimatedNumber";
 
-export type MetricFilter = "total" | "entered" | "remaining" | "comp" | "vip" | null;
+export type MetricFilter = "total" | "entered" | "remaining" | "comp" | "vip" | "children" | "groups" | null;
 
 interface MetricsBarProps {
   clients: Client[];
@@ -31,6 +32,10 @@ export default function MetricsBar({
   const entered = getCheckedInCount(checkIns);
   const comp = getCompStats(clients, checkIns);
   const vipCount = clients.filter((c) => c.isVip).length;
+  const children = getChildrenCount(clients);
+  // Groups get their own tile because forty people off one coach are not forty
+  // individuals: they arrive together and they decide the peak.
+  const groups = getGroupStats(clients);
 
   const handleFilter = (filter: MetricFilter) => {
     if (!onFilterChange) return;
@@ -75,6 +80,36 @@ export default function MetricsBar({
         <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.remaining")}</div>
         <AnimatedNumber value={total - entered} className="text-2xl md:text-[28px] font-black text-brand" />
       </button>
+      {children > 0 && (
+        <button
+          onClick={() => handleFilter("children")}
+          className={`${pillBase} ${
+            activeFilter === "children"
+              ? "glass-liquid-active"
+              : "hover:bg-white/30 dark:hover:bg-white/5"
+          }`}
+        >
+          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">Enfants</div>
+          <AnimatedNumber value={children} className="text-xl md:text-2xl font-bold text-dark" />
+        </button>
+      )}
+      {groups.blocks > 0 && (
+        <button
+          onClick={() => handleFilter("groups")}
+          className={`${pillBase} ${
+            activeFilter === "groups"
+              ? "glass-liquid-active"
+              : "hover:bg-white/30 dark:hover:bg-white/5"
+          }`}
+        >
+          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">Groupes</div>
+          {/* People over blocks: "62/3" is the number that matters and the
+              number of coaches it arrives on, in one glance. */}
+          <div className="text-xl md:text-2xl font-bold text-dark tabular-nums">
+            {groups.people}<span className="text-muted text-sm font-semibold">/{groups.blocks}</span>
+          </div>
+        </button>
+      )}
       <button
         onClick={() => handleFilter("comp")}
         className={`${pillBase} ${

@@ -139,8 +139,13 @@ Roles, so we stop saying "the user":
 ### US-7 — See everything known about the guest in front of me
 
     As      Réception
-    I need  one place that shows visits AND notes together
+    I need  one place that shows the complete visit record AND every note
     So that "Tout" means everything, not "everything except the notes"
+
+    "Everything known" is exactly two things and nothing else: the visit
+    record (every stay, and today's entries with day, date, hour and count)
+    and the notes (all of them, with what they say). If a third kind of guest
+    knowledge ever exists, "Tout" owes it a place too.
 
     Scenario: a regular arrives
       Given  they have 6 previous stays and 2 notes
@@ -279,6 +284,27 @@ guests departing that day come down earlier and more reliably.
 **What we cannot, yet:** the coach's actual departure time. Everything above
 infers timing from history; a rooming list with the pickup time would beat all
 of it.
+
+### US-14 — Order to the change, not to the level
+
+    As      Direction / F&B on the dashboard
+    I need  the day-to-day delta in covers, with its cause named
+    So that I order for the week rather than repeating yesterday
+
+    Scenario: a 62-person tour checks out Wednesday morning
+      Given  the block shares a departure date
+      When   I read the dashboard
+      Then   Wednesday reads "+62 early, group departure" and Thursday reads
+             "−62, group gone" — the cause next to the number
+
+    Never:  a delta shown without what caused it. "Down 60" sends someone
+            hunting; "down 60, the Meunier group left" ends the question.
+    Proof:  — to be written
+
+    Note: this is a Direction/F&B story on the dashboard, not a Réception
+    story in this app. Reception cannot act on next Thursday. Keeping it here
+    so the shared arithmetic (`report-v2`, group detection) is built once and
+    read twice, but the surface it lands on is the dashboard.
 
 ## Open — stories without proof yet
 

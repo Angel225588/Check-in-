@@ -27,12 +27,15 @@ type StatusFilter =
   | "vip";
 
 // Map the MetricsBar's MetricFilter to our local StatusFilter.
-// MetricsBar emits "total" | "entered" | "remaining" | "comp" | "vip" | null.
+// The bar grew "children" and "groups" tiles, which this old page has no
+// equivalent status for — fall back to showing everything rather than
+// silently filtering to nothing.
 function metricToStatusFilter(metric: MetricFilter): StatusFilter {
-  if (metric === null) return "all";
-  if (metric === "total") return "all";
-  // "entered" | "remaining" | "comp" | "vip" map 1-to-1
-  return metric;
+  if (metric === null || metric === "total") return "all";
+  if (metric === "entered" || metric === "remaining" || metric === "comp" || metric === "vip") {
+    return metric;
+  }
+  return "all";
 }
 
 function statusToMetricFilter(status: StatusFilter): MetricFilter {
