@@ -271,7 +271,7 @@ function ReportV2() {
           </div>
         </div>
 
-        <div className="w-full md:w-[300px] lg:w-[320px] shrink-0 flex flex-col gap-3 md:min-h-0">
+        <div className="w-full md:w-[300px] lg:w-[320px] shrink-0 flex flex-col gap-3 md:min-h-0 [@media(max-height:720px)]:overflow-y-auto no-scrollbar">
           <PresenceRing percent={percent} entered={report.totalEntered} expected={report.totalGuests} />
 
           <DayGroups
@@ -281,7 +281,7 @@ function ReportV2() {
             onFilter={() => setFilter(filter === "groupe" ? "all" : "groupe")}
           />
 
-          <div className="surface-card rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 md:flex-1 md:min-h-0 min-h-[220px]">
+          <div className="surface-card rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 md:flex-1 md:min-h-0 min-h-[240px] [@media(max-height:720px)]:flex-none [@media(max-height:720px)]:shrink-0">
             <div className="flex items-baseline justify-between">
               <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Répartition

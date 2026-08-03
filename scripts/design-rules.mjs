@@ -216,8 +216,38 @@ async function ping(timeoutMs) {
 // remembering to start (and not to rebuild underneath) a server is a gate that
 // reports infrastructure noise as design regressions.
 let _server = null;
+
+/**
+ * Is the server on BASE serving the build we just made?
+ *
+ * Adopting whatever answers the port is how a leftover `next start` from an
+ * earlier run ends up serving code from two commits ago while the suite
+ * reports its failures as design regressions. It cost two runs before the
+ * hydration guard caught it, and by then the log said "empty body" rather
+ * than "wrong build". Next stamps every asset path with the build id, so the
+ * served HTML either mentions the id in .next/BUILD_ID or it is not ours.
+ */
+async function servingCurrentBuild() {
+  let id = "";
+  try { id = readFileSync(join(ROOT, ".next", "BUILD_ID"), "utf8").trim(); } catch { return true; }
+  if (!id) return true;
+  try {
+    const html = await fetch(`${BASE}/search`).then((r) => r.text());
+    return html.includes(id);
+  } catch {
+    return false;
+  }
+}
+
 async function startServer() {
-  if (await ping(2000)) return; // caller supplied one
+  if (await ping(2000)) {
+    if (await servingCurrentBuild()) return; // caller supplied a current one
+    throw new Error(
+      `A server is already answering on ${BASE}, but it is serving a DIFFERENT build ` +
+      `than the one in .next. Kill it and re-run (fuser -k ${new URL(BASE).port}/tcp) — ` +
+      `testing a stale bundle reports old code as new failures.`
+    );
+  }
   const port = new URL(BASE).port || "3000";
   // `shell: true` so this resolves npx the same way an interactive shell would;
   // a bare spawn silently fails to launch in some sandboxes and then the whole
@@ -643,6 +673,14 @@ async function main() {
   // These need a whole seeded morning rather than a single guest, so they get
   // their own opener.
 
+  const shortDay = (off) => {
+    const d = new Date();
+    d.setDate(d.getDate() + off);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
+  };
+  const DAY_TODAY = shortDay(0), DAY_MINUS1 = shortDay(-1), DAY_MINUS3 = shortDay(-3), DAY_PLUS2 = shortDay(2);
+
   const DAY_CLIENTS = [
     mk("224", "POLANCO/ANGEL", 2, 1, "BKF INC", { isVip: true, vipLevel: "VIP" }),
     mk("310", "VANDENBERGHE-MONTGOMERY/ALEXANDRINE", 2, 2, "BKF INC"),
@@ -654,6 +692,13 @@ async function main() {
     mk("619", "DAVID/JULIE", 1, 0, "BKF INC"),
     mk("718", "LEFÈVRE/CLAIRE", 2, 2, "BKF INC"),
     mk("930", "KOVACS/ISTVAN", 2, 2, "BKF INC"),
+    // Two coaches, so the groups panel has something true to show. The fixture
+    // has to be able to reproduce the product — the demo seeder could not, and
+    // three working features looked broken on the tablet because of it.
+    ...["201", "202", "203"].map((r, i) =>
+      mk(r, `MEUNIER/GROUPE${i + 1}`, 2, 0, "BKF GRP", { rateCode: "TOMEU", arrivalDate: DAY_MINUS3, departureDate: DAY_TODAY })),
+    ...["301", "302"].map((r, i) =>
+      mk(r, `ALPINE/TOUR${i + 1}`, 2, 1, "BKF GRP", { rateCode: "TOALP", arrivalDate: DAY_MINUS1, departureDate: DAY_PLUS2 })),
   ];
   // room, people, hour, minute
   const DAY_ARRIVALS = [
@@ -881,7 +926,20 @@ async function main() {
           for (const el of document.querySelectorAll(`[data-role="${role}"]`)) {
             const r = el.getBoundingClientRect();
             if (r.width === 0 && r.height === 0) continue;
-            const offBottom = r.bottom > window.innerHeight + 1;
+            // Below the fold inside a scroller is reachable, not clipped. The
+            // rule is that nothing becomes UNREACHABLE — a panel you scroll to
+            // is a different thing from a panel sliced by the window edge, and
+            // conflating them forces the layout to crush a chart rather than
+            // let the column scroll. Reachability of the primary CTA is a
+            // separate and stricter promise; that is R1.
+            const inScroller = (() => {
+              for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+                const oy = getComputedStyle(p).overflowY;
+                if ((oy === "auto" || oy === "scroll") && p.scrollHeight > p.clientHeight + 2) return true;
+              }
+              return false;
+            })();
+            const offBottom = r.bottom > window.innerHeight + 1 && !inScroller;
             const offRight = r.right > window.innerWidth + 1;
             const selfClipped = el.scrollHeight > el.clientHeight + 2;
             if (offBottom || offRight || selfClipped) {
@@ -1088,6 +1146,114 @@ async function main() {
       "The name is not squeezed and the alert is not clipped",
       !m.fail && !m.squeezed && m.spill <= 0,
       m.fail ? m.fail : `name squeezed=${m.squeezed}, alert spill=${m.spill}px`);
+    await ctx.close();
+  }
+
+  // R23 — the four checklist items nothing was asserting.
+  //
+  // Written after a tablet session where three working features read as broken
+  // because the fixture could not show them. These are the remaining lines of
+  // the acceptance list that a browser can settle, so they stop costing a
+  // human pass.
+  {
+    // a — the idle carousel actually rotates, and a swipe moves it.
+    const { ctx, page } = await openDay("/search");
+    const first = await page.locator('[data-role="preview-carousel"]').getAttribute("data-pane");
+    await page.locator('[data-role="preview-dots"] button').nth(1).click();
+    await page.waitForTimeout(350);
+    const second = await page.locator('[data-role="preview-carousel"]').getAttribute("data-pane");
+    record("R23a-carousel-turns", "The preview slot changes face when asked",
+      !!first && !!second && first !== second, `${first} → ${second}`);
+
+    // b — the groups panel says something true about the day.
+    await page.goto(`${BASE}/report`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const groups = await page.evaluate(() => {
+      const p = document.querySelector('[data-role="report-groups"]');
+      if (!p) return { blocks: 0, depart: false };
+      return {
+        blocks: p.querySelectorAll('[data-role="report-groups-filter"] > span').length,
+        depart: /DÉPART/i.test(p.textContent || ""),
+      };
+    });
+    record("R23b-groups-panel", "The report shows real blocks and flags a departure",
+      groups.blocks >= 2 && groups.depart, `${groups.blocks} blocks, départ badge=${groups.depart}`);
+    await ctx.close();
+  }
+
+  // c — the VIP points swap exists where it should, and takes over from the
+  // payment grid when it is on.
+  {
+    const { ctx, page } = await openDay("/checkin/517");
+    const swap = page.locator('[data-role="points-swap"]');
+    const shown = await swap.isVisible().catch(() => false);
+    let hidPay = false;
+    if (shown) {
+      await swap.click();
+      await page.waitForTimeout(350);
+      hidPay = (await page.getByRole("button", { name: "Carte", exact: true }).count()) === 0;
+    }
+    record("R23c-points-swap", "A VIP without breakfast can swap points, and the grid steps aside",
+      shown && hidPay, `switch=${shown}, payment grid hidden=${hidPay}`);
+    await ctx.close();
+  }
+
+  // d — "Tout" means everything. This is the gap US-7 named: nothing asserted
+  // that the tab which reads as the whole picture contains the notes, which is
+  // exactly how it came to omit them.
+  {
+    const { ctx, page } = await openDay("/checkin/224");
+    const tog = page.locator('[data-role="activity-toggle"]');
+    if (await tog.isVisible().catch(() => false)) { await tog.click(); await page.waitForTimeout(300); }
+    await page.locator('[data-role="side-tab-notes"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('[data-role="note-new"]').click();
+    await page.waitForTimeout(300);
+    const dlg = page.locator('[data-role="notes-modal"]');
+    const scope = (await dlg.count()) ? dlg : page.locator("aside");
+    await scope.getByRole("button", { name: "Alerte", exact: true }).click();
+    await scope.locator('[data-role="note-title"]').fill("Allergie arachides");
+    await scope.locator('[data-role="note-save"]').click();
+    await page.waitForTimeout(600);
+    await page.locator('[data-role="side-tab-all"]').click();
+    await page.waitForTimeout(500);
+    const digest = await page.locator('[data-role="digest-note"]').count();
+    record("R23d-tout-has-notes", "The Tout tab carries the notes, not only the visits",
+      digest > 0, `${digest} note(s) in Tout`);
+    await ctx.close();
+  }
+
+  // R24 — every card has an edge, in both themes.
+  //
+  // The preview card shipped with no light-theme fill at all: a 7% white
+  // gradient on a cream page, invisible for weeks. Contrast rules check text
+  // against its background; nothing checked whether a surface could be told
+  // from the page it sits on.
+  for (const dark of [false, true]) {
+    const { ctx, page } = await openDay("/search", { dark });
+    await page.locator('[data-role="numeric-keypad"] button', { hasText: /^2$/ }).first().click();
+    await page.locator('[data-role="numeric-keypad"] button', { hasText: /^2$/ }).first().click();
+    await page.locator('[data-role="numeric-keypad"] button', { hasText: /^4$/ }).first().click();
+    await page.waitForTimeout(700);
+    const flat = await page.evaluate((COMPOSITE) => {
+      const measure = eval(`(${COMPOSITE})`);
+      const out = [];
+      for (const sel of ['[data-role="guest-preview"]', '[data-role="search-field"]', '[data-role="numeric-keypad"]']) {
+        const el = document.querySelector(sel);
+        if (!el) { out.push(`${sel} MISSING`); continue; }
+        const cs = getComputedStyle(el);
+        const own = measure(el).bgs?.[0];
+        const parentBg = measure(el.parentElement).bgs?.[0];
+        const hasRing = cs.boxShadow !== "none" || cs.borderTopWidth !== "0px";
+        // Either it paints differently from what is behind it, or it draws a
+        // ring. A card that does neither is not a card.
+        const differs = own && parentBg && own.some((c, i) => Math.abs(c - parentBg[i]) > 3);
+        if (!differs && !hasRing) out.push(sel);
+      }
+      return out;
+    }, COMPOSITE);
+    record(`R24-card-edges-${dark ? "dark" : "light"}`, "Every card can be told from the page behind it",
+      flat.length === 0, flat.length ? flat.join(" | ") : "all surfaces distinct");
     await ctx.close();
   }
 
