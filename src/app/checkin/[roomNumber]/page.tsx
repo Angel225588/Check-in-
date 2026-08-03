@@ -28,6 +28,7 @@ import {
 } from "@/lib/storage";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { readSelection, checkinHref } from "@/lib/checkin-nav";
+import { takeOrigin, peekOrigin } from "@/lib/back-nav";
 import { useApp } from "@/contexts/AppContext";
 import PeopleCounter from "@/components/PeopleCounter";
 import ClientHistory from "@/components/ClientHistory";
@@ -100,10 +101,14 @@ export default function CheckInPage({
   // Which edge the activity panel and its controls live on. Persisted, because
   // a left-hander should set this once and never think about it again.
   const [handSide, setHandSide] = useState<"left" | "right">("left");
+  /** Where back goes, and what it is called. Read on mount so the label is
+   *  right before anyone taps it. */
+  const [cameFrom, setCameFrom] = useState<"search" | "report">("search");
 
   useEffect(() => {
     const st = getSettings();
     setHandSide(st.handSide === "right" ? "right" : "left");
+    setCameFrom(peekOrigin());
   }, []);
 
   const flipHandSide = () => {
@@ -326,12 +331,13 @@ export default function CheckInPage({
       <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 h-[68px]">
 
             <button
-              onClick={() => router.push("/search")}
+              onClick={() => router.push(takeOrigin())}
               data-role="back"
+              data-origin={cameFrom}
               className="shrink-0 flex items-center gap-1.5 px-4 min-h-[44px] glass-liquid rounded-full active:scale-[0.96] transition-all"
             >
               <svg className="w-4 h-4" style={{ color: "var(--brand-ink)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-              <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("checkin.search")}</span>
+              <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{cameFrom === "report" ? "Rapport" : t("checkin.search")}</span>
             </button>
 
             <div className={`flex-1 min-w-0 flex items-center gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>

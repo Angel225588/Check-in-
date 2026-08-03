@@ -192,6 +192,119 @@ Roles, so we stop saying "the user":
 
 ---
 
+## Proposed — closing the landscape app (stories → HTML → build)
+
+From the tablet session. Written first, on purpose: the last round proved
+stories find more than building does.
+
+Three of these were not design problems at all. The dates, the groups and the
+VIP switch all existed and all looked missing, because the demo seeder wrote
+empty dates, handed `BKF GRP` out at random with no rate code, and buried the
+one VIP who needed a payment choice among a hundred rooms. Fixed, with tests —
+mock-seeder.test.ts now asserts the demo day can exercise every feature the
+app can show. **A test fixture that cannot reproduce the product is a fixture
+that lies about it.**
+
+### US-17 — Read and write a note without leaving the queue
+
+    As      Réception
+    I need  to open, read, edit and start a note inside the preview frame
+    So that the card behaves like a watch face, not a door to another screen
+
+    Scenario: a note is on the guest in front of me
+      Given  the Notes face of the carousel is showing
+      When   I tap one
+      Then   it opens IN the frame — readable, editable, and a new one starts
+             there too, with the frame never changing size
+
+    Never:  a full-screen panel for a one-line note during service.
+    Proof:  — to be written
+
+### US-18 — Write a note in one gesture
+
+    As      Réception
+    I need  a note to need one field, not a title and a description
+    So that writing one costs less than skipping it
+
+    Scenario: 07:40, someone says "no nuts"
+      Given  I have started a note
+      When   I pick the tone and type the words
+      Then   it saves — no second field, no decision about which box gets what
+
+    Never:  two text fields between reception and a recorded allergy.
+    Proof:  — to be written
+
+    Alerts stay pinned by default whatever else changes (already true:
+    `shouldPinByDefault`), and un-pinning stays possible afterwards.
+
+### US-19 — Choose which metrics I want to see
+
+    As      Réception
+    I need  to pick the metrics on the bar, and have the rest fold away
+    So that the bar stays readable on a small screen and when zoomed
+
+    Scenario: zoomed to 125% on the iPad
+      Given  eight metrics exist
+      When   the bar cannot fit them
+      Then   it shows the ones I chose, the rest go behind a filter control,
+             and each visible one keeps its spacing — nothing is cut
+
+    Never:  a metric sliced by the panel edge, or a bar that reflows into a
+            second line and eats the list under it.
+    Proof:  — to be written (extend R19 to the metrics bar)
+
+### US-20 — Read the report for a day, or a week, or a month
+
+    As      F&B / manager
+    I need  the report's date to be selectable, including a range
+    So that I can look at yesterday, or the week, without a second tool
+
+    Scenario: Monday briefing
+      Given  I am on the report
+      When   I tap the date
+      Then   I can pick yesterday, any past day, or a cumulative week/month,
+             and every figure on the screen re-reads that range
+
+    Never:  a heading that says one date while a figure below counts another.
+    Proof:  — to be written
+
+    The affluence curve and the arrival list are per-service. Over a range
+    they have to mean something different — an average morning, not eleven
+    mornings stacked — and that is the part to get right before it is built.
+
+### US-21 — Filter the report to one group
+
+    As      F&B / manager
+    I need  to select a single tour block
+    So that I can see how that coach behaved, not all groups at once
+
+    Scenario: two coaches, one left early
+      Given  the Groupes panel lists both
+      When   I tap one
+      Then   the list, and the figures that follow it, show only that block
+
+    Never:  "Groupes" as a single on/off that lumps every tour together.
+    Proof:  — to be written
+
+### US-22 — Come back to where I came from — BUILT
+
+    As      Réception
+    I need  back to return me to the screen I arrived from
+    So that opening a guest from the report does not lose my place in it
+
+    Scenario: I open a room from a filtered report
+      Given  I arrived at the guest from a report row
+      When   I press back
+      Then   I am on the report, and the button said "Rapport" before I tapped
+
+    Never:  back to a random screen. Never an origin from an hour ago
+            resurrected by a reload.
+    Proof:  back-nav.test.ts (5 cases)
+
+    Kept out of the URL for the same reason the room number is: nothing about
+    where reception has been needs to reach a server log. Reading consumes it,
+    so a stale origin cannot outlive the journey that set it.
+
 ## Proposed — tomorrow's covers (not built)
 
 The question behind these: *how many people will come down tomorrow, and

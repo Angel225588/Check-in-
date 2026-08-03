@@ -24,6 +24,7 @@ import NotesModal from "@/components/NotesModal";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { checkinHref } from "@/lib/checkin-nav";
+import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks, isInGroupBlock } from "@/lib/groups";
 import { expectedFromYesterday } from "@/lib/expected";
 
@@ -229,6 +230,7 @@ export default function SearchPage() {
     // PII-free navigation: room number goes to sessionStorage, not the URL.
     // The arrival count rides along, so the stepper you just set is the number
     // waiting on the check-in screen rather than a figure you set twice.
+    rememberOrigin("search");
     router.push(checkinHref(roomNumber, clientIndex, people));
   };
 

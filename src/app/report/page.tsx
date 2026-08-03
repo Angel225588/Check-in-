@@ -19,6 +19,7 @@ import ReportTiles, { ReportTile } from "@/components/report/ReportTiles";
 import ArrivalList from "@/components/report/ArrivalList";
 import DayGroups from "@/components/report/DayGroups";
 import { checkinHref } from "@/lib/checkin-nav";
+import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks, getChildrenCount } from "@/lib/groups";
 import type { Client } from "@/lib/types";
 
@@ -263,6 +264,7 @@ function ReportV2() {
                 const i = clients.findIndex(
                   (c) => c.roomNumber === r.roomNumber && c.name === r.name
                 );
+                rememberOrigin("report");
                 router.push(checkinHref(r.roomNumber, i >= 0 ? i : undefined));
               }}
             />
