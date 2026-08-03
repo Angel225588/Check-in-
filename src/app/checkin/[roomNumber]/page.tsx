@@ -594,8 +594,51 @@ export default function CheckInPage({
             </div>
           )}
 
-          {/* Payment methods — only when needed */}
-          {needsPay && (
+          {/* The swap. A VIP whose rate gives points instead of breakfast can
+              keep the points and put breakfast on the room — reception offers
+              it, the guest decides, and it is worth its own control because it
+              is the one case where the answer to "not included" is neither
+              paying nor refusing. Its own formule too, so the briefing can see
+              how often it happens. */}
+          {needsPay && client.isVip && (
+            <button
+              onClick={() => {
+                const next = paymentAction === "points_to_bkf" ? null : "points_to_bkf";
+                setPaymentAction(next);
+                if (clientIndex !== null) updateClient(clientIndex, { pendingPaymentAction: next ?? undefined });
+              }}
+              data-role="points-swap"
+              aria-pressed={paymentAction === "points_to_bkf"}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-[18px] text-left transition-transform active:scale-[0.98]"
+              style={paymentAction === "points_to_bkf"
+                ? { background: "var(--aur-good-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-good)" }
+                : { background: "var(--color-card, #fff)", boxShadow: "var(--shadow-aur-2)" }}
+            >
+              <Coffee weight="duotone" size={22} style={{ color: paymentAction === "points_to_bkf" ? "var(--aur-good-ink)" : "var(--brand-ink)" }} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-black" style={{ color: paymentAction === "points_to_bkf" ? "var(--aur-good-ink)" : undefined }}>
+                  Garder les points, petit-déjeuner sur la chambre
+                </span>
+                <span className="block text-[12px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+                  {paymentAction === "points_to_bkf" ? "Échange accepté — rien à encaisser" : "À proposer au client VIP"}
+                </span>
+              </span>
+              {/* A switch, not a checkbox: it reads as a state you flip, and
+                  the guest is being asked a yes/no question. */}
+              <span
+                className="shrink-0 w-[52px] h-[30px] rounded-full relative transition-colors"
+                style={{ background: paymentAction === "points_to_bkf" ? "var(--aur-good)" : "rgba(128,128,128,.28)" }}
+              >
+                <span
+                  className="absolute top-[3px] w-6 h-6 rounded-full bg-white transition-all"
+                  style={{ left: paymentAction === "points_to_bkf" ? 25 : 3, boxShadow: "0 2px 6px rgba(0,0,0,.25)" }}
+                />
+              </span>
+            </button>
+          )}
+
+          {/* Payment methods — only when needed, and not once the swap is on */}
+          {needsPay && paymentAction !== "points_to_bkf" && (
             <div className="grid grid-cols-4 gap-2">
               {PAY_METHODS.map((opt) => {
                 const active = paymentAction === opt.key;

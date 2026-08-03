@@ -260,6 +260,11 @@ describe("filterRows", () => {
     expect(filterRows(rows, "groupe", "", ecart)).toEqual([]);
   });
 
+  it("filters to the VIPs who swapped their points for breakfast", () => {
+    const swapped = filterRows(rows, "echange", "", ecart, new Set());
+    expect(swapped.every((r) => r.formule === "echange")).toBe(true);
+  });
+
   it("filters to the rooms that have children in them", () => {
     // Not cosmetic: high chairs and the children's table are set before
     // service, and the report is where the afternoon team reads it back.

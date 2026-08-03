@@ -6,7 +6,7 @@ import { getChildrenCount, getGroupStats } from "@/lib/groups";
 import { useApp } from "@/contexts/AppContext";
 import AnimatedNumber from "@/components/AnimatedNumber";
 
-export type MetricFilter = "total" | "entered" | "remaining" | "comp" | "vip" | "children" | "groups" | null;
+export type MetricFilter = "total" | "entered" | "remaining" | "comp" | "vip" | "children" | "groups" | "expected" | null;
 
 interface MetricsBarProps {
   clients: Client[];
@@ -16,6 +16,10 @@ interface MetricsBarProps {
   onFilterChange?: (filter: MetricFilter) => void;
   /** Hide the history + dashboard nav buttons on the right. Use when reusing this component outside the main check-in screen. */
   hideNav?: boolean;
+  /** People who came down yesterday and are still in the house. A fact, not a
+   *  forecast — omitted entirely when there is no previous day to measure
+   *  against, because a confident zero would be a lie. */
+  expected?: { people: number; basedOn: string | null };
 }
 
 export default function MetricsBar({
@@ -25,6 +29,7 @@ export default function MetricsBar({
   activeFilter = null,
   onFilterChange,
   hideNav = false,
+  expected,
 }: MetricsBarProps) {
   const { t } = useApp();
   const router = useRouter();
@@ -80,6 +85,20 @@ export default function MetricsBar({
         <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.remaining")}</div>
         <AnimatedNumber value={total - entered} className="text-2xl md:text-[28px] font-black text-brand" />
       </button>
+      {expected && expected.basedOn && (
+        <button
+          onClick={() => handleFilter("expected")}
+          title={`D'après le service du ${expected.basedOn}`}
+          className={`${pillBase} ${
+            activeFilter === "expected"
+              ? "glass-liquid-active"
+              : "hover:bg-white/30 dark:hover:bg-white/5"
+          }`}
+        >
+          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">Attendus</div>
+          <AnimatedNumber value={expected.people} className="text-xl md:text-2xl font-bold text-dark" />
+        </button>
+      )}
       {children > 0 && (
         <button
           onClick={() => handleFilter("children")}

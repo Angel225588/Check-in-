@@ -209,6 +209,45 @@ A forecast that is wrong is worse than no forecast, because someone staffs to
 it. So every predicted figure carries how many days it is based on, and with
 too little history the app says so instead of inventing.
 
+### US-15 — Know who is likely down this morning, without guessing — BUILT
+
+    As      Réception
+    I need  how many of yesterday's breakfast guests are still in the house
+    So that I know the shape of the morning before it starts
+
+    Scenario: 06:30, the list is loaded
+      Given  yesterday's service was closed and today's report is in
+      When   I look at the metrics bar
+      Then   "Attendus" shows the people who came down yesterday and have not
+             checked out, and it says which day it is measured against
+
+    Never:  a confident number with no history behind it. With no previous
+            session the tile does not appear at all.
+    Proof:  expected.test.ts (8 cases)
+
+    This is the FACT half of US-10 and it is deliberately not the forecast
+    half. Both inputs are recorded events: a check-in we saved, and a
+    reservation that has not ended. The person carries over, not the room —
+    matching on the door number would drop every guest who was moved
+    overnight.
+
+### US-16 — Offer a VIP breakfast instead of their points — BUILT
+
+    As      Réception
+    I need  to swap a VIP's points for breakfast charged to the room
+    So that the answer to "not included" is not only pay or refuse
+
+    Scenario: a VIP on a points rate comes down
+      Given  their booking gives points rather than breakfast
+      When   I offer the swap and they accept
+      Then   one switch records it, nothing is collected, and the report shows
+             them under "Échangé" rather than "Inclus"
+
+    Never:  a swap that looks identical to a booking that always included
+            breakfast. The hotel gave something away; the briefing should see
+            how often.
+    Proof:  report-v2.test.ts (formule + filter)
+
 ### US-10 — Know how many to prepare for tomorrow
 
     As      F&B / manager

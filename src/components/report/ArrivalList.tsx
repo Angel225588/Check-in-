@@ -8,6 +8,7 @@ import { ArrivalRow, FORMULE_LABEL, type Formule } from "@/lib/report-v2";
 const FORMULE_STYLE: Record<Formule, { bg: string; fg: string }> = {
   inclus: { bg: "var(--aur-hairline)", fg: "var(--tab-idle)" },
   comp: { bg: "rgba(90,59,143,.16)", fg: "var(--aur-pm-points)" },
+  echange: { bg: "var(--aur-good-soft)", fg: "var(--aur-good-ink)" },
   points: { bg: "rgba(90,59,143,.16)", fg: "var(--aur-pm-points)" },
   chambre: { bg: "var(--aur-info-soft)", fg: "var(--aur-info-ink)" },
   carte: { bg: "var(--aur-info-soft)", fg: "var(--aur-info-ink)" },

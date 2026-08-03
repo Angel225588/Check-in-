@@ -116,6 +116,11 @@ export function buildAffluence(checkIns: CheckInRecord[], grain: number): Afflue
 export type Formule =
   | "inclus"
   | "comp"
+  /** A VIP kept their points and put breakfast on the room instead. Its own
+   *  formule rather than "inclus", because the reservation never included
+   *  breakfast — reception offered the swap and the guest took it, and the
+   *  briefing wants to know how often that happens. */
+  | "echange"
   | "points"
   | "chambre"
   | "carte"
@@ -126,6 +131,7 @@ export type Formule =
 export const FORMULE_LABEL: Record<Formule, string> = {
   inclus: "Inclus",
   comp: "COMP",
+  echange: "Échangé",
   points: "Points",
   chambre: "Chambre",
   carte: "Carte",
@@ -148,6 +154,7 @@ export function formuleOf(room: {
   if (room.isComp) return "comp";
   if (room.hasBreakfast) return "inclus";
   switch (room.paymentAction) {
+    case "points_to_bkf": return "echange";
     case "points": return "points";
     case "cash":
     case "pay_onsite": return "cash";
@@ -240,7 +247,8 @@ export type ReportFilter =
   | "offlist"
   | "ecart"
   | "groupe"
-  | "enfants";
+  | "enfants"
+  | "echange";
 
 /** Accent-blind, case-blind. "lefevre" has to find "LEFÈVRE". */
 const fold = (s: string) =>
@@ -286,6 +294,9 @@ export function filterRows(
         break;
       case "enfants":
         if (r.children <= 0) return false;
+        break;
+      case "echange":
+        if (r.formule !== "echange") return false;
         break;
       default:
         break;

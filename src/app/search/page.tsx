@@ -25,6 +25,7 @@ import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { checkinHref } from "@/lib/checkin-nav";
 import { groupBlocks, isInGroupBlock } from "@/lib/groups";
+import { expectedFromYesterday } from "@/lib/expected";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -136,6 +137,22 @@ export default function SearchPage() {
       }));
   }, [checkIns]);
 
+  /** Who came down yesterday and has not checked out. A fact from two records
+   *  we already keep — no attendance model, no prediction. */
+  const expectedToday = useMemo(
+    () => expectedFromYesterday(clients, getSessionHistory(), new Date().toISOString().split("T")[0]),
+    [clients]
+  );
+  const cameYesterday = useMemo(() => {
+    const hist = getSessionHistory();
+    const todayIso = new Date().toISOString().split("T")[0];
+    const last = hist.filter((s) => s.date < todayIso).sort((a, b) => b.date.localeCompare(a.date))[0];
+    if (!last) return new Set<string>();
+    const key = (n: string) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+    return new Set(last.checkIns.map((c) => key(c.clientName)));
+  }, [clients]);
+
   /** Prior stays per guest, for the preview's first-visit / regular badge. */
   const visitCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -194,6 +211,11 @@ export default function SearchPage() {
         return clients.filter((c) => c.isVip);
       case "children":
         return clients.filter((c) => (c.children || 0) > 0);
+      case "expected": {
+        const key = (n: string) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
+          .replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+        return clients.filter((c) => cameYesterday.has(key(c.name)));
+      }
       case "groups": {
         const blocks = groupBlocks(clients);
         return clients.filter((c) => isInGroupBlock(c, blocks));
@@ -201,7 +223,7 @@ export default function SearchPage() {
       default:
         return [];
     }
-  }, [activeFilter, clients, checkIns]);
+  }, [activeFilter, clients, checkIns, cameYesterday]);
 
   const handleSelectRoom = (roomNumber: string, clientIndex?: number, people?: number) => {
     // PII-free navigation: room number goes to sessionStorage, not the URL.
@@ -351,6 +373,7 @@ export default function SearchPage() {
     vip: "VIP",
     children: "Enfants",
     groups: "Groupes",
+    expected: "Attendus",
   };
 
   return (
@@ -401,6 +424,7 @@ export default function SearchPage() {
               onHistoryToggle={() => setHistoryOpen(true)}
               activeFilter={activeFilter}
               onFilterChange={handleFilterChange}
+              expected={expectedToday}
               hideNav
             />
           </div>
