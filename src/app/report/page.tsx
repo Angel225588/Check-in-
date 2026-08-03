@@ -18,6 +18,8 @@ import OutcomeTreemap from "@/components/report/OutcomeTreemap";
 import ReportTiles, { ReportTile } from "@/components/report/ReportTiles";
 import ArrivalList from "@/components/report/ArrivalList";
 import DayGroups from "@/components/report/DayGroups";
+import AlphaKeypad from "@/components/AlphaKeypad";
+import NumericKeypad from "@/components/NumericKeypad";
 import { checkinHref } from "@/lib/checkin-nav";
 import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks, getChildrenCount } from "@/lib/groups";
@@ -56,6 +58,9 @@ function ReportV2() {
   const [isHistorical, setIsHistorical] = useState(false);
   const [filter, setFilter] = useState<ReportFilter>("all");
   const [query, setQuery] = useState("");
+  /** The app's keyboard, on the report too. Rooms are digits and names are
+   *  letters, so it opens on the pad that matches what is already typed. */
+  const [pad, setPad] = useState<null | "num" | "abc">(null);
 
   const dateParam = searchParams.get("date");
 
@@ -250,7 +255,7 @@ function ReportV2() {
             </div>
 
             <div className="mt-3">
-              <ReportTiles tiles={tiles} filter={filter} onFilter={setFilter} />
+              <ReportTiles tiles={tiles} filter={filter} onFilter={setFilter} rooms={rows.length} />
             </div>
 
             <ArrivalList
@@ -258,6 +263,7 @@ function ReportV2() {
               query={query}
               onQuery={setQuery}
               ecartRooms={ecartRooms}
+              onFocusField={() => setPad(/[a-zA-Z]/.test(query) ? "abc" : "num")}
               /* Historical days are read-only: their guests are long gone and
                  the check-in screen would act on today's session. */
               onOpen={isHistorical ? undefined : (r) => {
@@ -300,6 +306,36 @@ function ReportV2() {
           </div>
         </div>
       </div>
+
+      {pad && (
+        <div className="shrink-0 px-3 pb-3" data-role="report-pad">
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => setPad(null)}
+              data-role="report-pad-close"
+              className="min-h-[40px] px-4 rounded-full text-[13px] font-black glass-liquid active:scale-[0.96] transition-transform"
+              style={{ color: "var(--brand-ink)" }}
+            >
+              Fermer le clavier
+            </button>
+          </div>
+          {pad === "abc" ? (
+            <AlphaKeypad
+              onKeyPress={(k) => setQuery((q) => q + k)}
+              onBackspace={() => setQuery((q) => q.slice(0, -1))}
+              onToggleMode={() => setPad("num")}
+            />
+          ) : (
+            <div className="max-w-[420px]">
+              <NumericKeypad
+                onKeyPress={(k) => setQuery((q) => q + k)}
+                onBackspace={() => setQuery((q) => q.slice(0, -1))}
+                onToggleMode={() => setPad("abc")}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

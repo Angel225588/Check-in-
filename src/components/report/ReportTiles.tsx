@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { FunnelSimple, Check, X } from "@phosphor-icons/react/dist/ssr";
 import { ReportFilter } from "@/lib/report-v2";
+import { rankTiles } from "@/lib/tile-rank";
 
 export interface ReportTile {
   key: ReportFilter;
@@ -28,9 +29,6 @@ export interface ReportTile {
  * see, which also means the funnel never needs an "active" badge.
  */
 
-/** Most useful first. What survives to the visible row when space is short. */
-const PRIORITY: ReportFilter[] = ["in", "no", "partial", "ecart", "groupe", "vip", "comp", "enfants", "offlist"];
-
 function useVisibleCount(): number {
   const [n, setN] = useState(5);
   useEffect(() => {
@@ -47,17 +45,26 @@ export default function ReportTiles({
   tiles,
   filter,
   onFilter,
+  rooms,
 }: {
   tiles: ReportTile[];
   filter: ReportFilter;
   onFilter: (f: ReportFilter) => void;
+  /** Rooms in the day, so a count can be scored against the size of the
+   *  service rather than against a fixed idea of what matters. */
+  rooms: number;
 }) {
   const [sheet, setSheet] = useState(false);
   const max = useVisibleCount();
 
-  const ranked = [...tiles].sort(
-    (a, b) => PRIORITY.indexOf(a.key) - PRIORITY.indexOf(b.key)
-  );
+  // The day decides the order: the outcome trio always leads, then whatever
+  // this service actually contains. Membership never changes — the funnel
+  // still holds everything — so nothing is ever hunted for.
+  const order = rankTiles({
+    rooms,
+    tiles: tiles.map((t) => ({ key: t.key, value: Number(t.value) || 0 })),
+  }).map((t) => t.key);
+  const ranked = [...tiles].sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
   const visible = ranked.slice(0, max);
   let hidden = ranked.slice(max);
 

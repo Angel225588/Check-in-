@@ -35,6 +35,7 @@ export default function ArrivalList({
   onQuery,
   ecartRooms,
   onOpen,
+  onFocusField,
 }: {
   rows: ArrivalRow[];
   query: string;
@@ -44,6 +45,10 @@ export default function ArrivalList({
    *  fixing a count are the same errand — the row is where you notice, so the
    *  row is where you should be able to act. */
   onOpen?: (row: ArrivalRow) => void;
+  /** Opens the app's own keyboard. The report is a screen you read standing
+   *  up too, and the iPad keyboard covering half of it is the same failure it
+   *  was on the search screen. */
+  onFocusField?: () => void;
 }) {
   return (
     <>
@@ -60,6 +65,9 @@ export default function ArrivalList({
             placeholder="Chambre ou nom du client…"
             aria-label="Chercher dans le rapport"
             autoComplete="off"
+            inputMode="none"
+            onFocus={() => onFocusField?.()}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }}
             className="flex-1 min-w-0 bg-transparent outline-none text-[16px] font-bold placeholder:font-normal placeholder:italic"
             style={{ color: "var(--brand-ink)", fontFamily: "inherit" }}
           />

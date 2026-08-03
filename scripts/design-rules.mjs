@@ -869,7 +869,18 @@ async function main() {
 
     // R17e — the reception error count is the figure the user asked for, and it
     // has to survive the round trip from the check-in screen to this tile.
-    const ecartTile = page.locator('[data-role="report-tile"][data-tile="ecart"]');
+    //
+    // The row is ordered by what the day contains now, so a quiet écart count
+    // can sit in the funnel instead of the visible five. That is the design —
+    // membership never changes, only order — so the rule looks in the funnel
+    // rather than assuming a fixed position. It still fails if the metric is
+    // unreachable, which is the property that matters.
+    let ecartTile = page.locator('[data-role="report-tile"][data-tile="ecart"]');
+    if ((await ecartTile.count()) === 0) {
+      await page.locator('[data-role="report-filter-more"]').click();
+      await page.waitForTimeout(300);
+      ecartTile = page.locator('[data-role="report-filter-option"][data-tile="ecart"]');
+    }
     const ecartText = await ecartTile.innerText();
     const ecartRooms = Number(ecartText.match(/(\d+)/)?.[1] ?? NaN);
     await ecartTile.click();
@@ -878,7 +889,10 @@ async function main() {
     record("R17e-ecarts-tracked", "Reception count errors are counted and filterable",
       ecartRooms === DAY_ECARTS.length && ecartRowsShown === DAY_ECARTS.length,
       `tile ${ecartRooms}, list ${ecartRowsShown}, seeded ${DAY_ECARTS.length}`);
-    await ecartTile.click();
+    // Clear the filter from the row: picking it out of the funnel closes the
+    // sheet, so that locator is gone, and the active filter is always promoted
+    // into the visible row anyway.
+    await page.locator('[data-role="report-tile"][data-tile="ecart"]').click();
     await page.waitForTimeout(240);
 
     // R17f — the page must not scroll sideways on the tablet it lives on.
