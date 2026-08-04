@@ -18,6 +18,8 @@ import OutcomeTreemap from "@/components/report/OutcomeTreemap";
 import ReportTiles, { ReportTile } from "@/components/report/ReportTiles";
 import ArrivalList from "@/components/report/ArrivalList";
 import DayGroups from "@/components/report/DayGroups";
+import ReportDatePicker from "@/components/report/ReportDatePicker";
+import { reportDays } from "@/lib/report-days";
 import AlphaKeypad from "@/components/AlphaKeypad";
 import NumericKeypad from "@/components/NumericKeypad";
 import { checkinHref } from "@/lib/checkin-nav";
@@ -61,8 +63,21 @@ function ReportV2() {
   /** The app's keyboard, on the report too. Rooms are digits and names are
    *  letters, so it opens on the pad that matches what is already typed. */
   const [pad, setPad] = useState<null | "num" | "abc">(null);
+  /** Which services exist to look at. Newest first, today only when there is
+   *  one open. */
+  const [days, setDays] = useState<string[]>([]);
 
   const dateParam = searchParams.get("date");
+  const todayIso = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    const open = getTodayData();
+    setDays(reportDays(
+      getSessionHistory().map((s) => s.date),
+      todayIso,
+      !!open && open.clients.length > 0
+    ));
+  }, [todayIso]);
 
   useEffect(() => {
     if (dateParam) {
@@ -157,18 +172,6 @@ function ReportV2() {
     }
   })();
 
-  const dateLabel = (() => {
-    try {
-      return new Date(report.date + "T12:00:00").toLocaleDateString("fr-FR", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      });
-    } catch {
-      return report.date;
-    }
-  })();
-
   const exportCSV = () => {
     const blob = new Blob([exportReportCSV(report)], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -201,10 +204,12 @@ function ReportV2() {
           <h1 className="text-[23px] font-black tracking-[-0.02em]" style={{ color: "var(--brand-ink)" }}>
             Rapport
           </h1>
-          {/* first-letter, not capitalize: French writes "lundi 27 juillet". */}
-          <span className="text-[14px] font-bold first-letter:uppercase truncate" style={{ color: "var(--tab-idle)" }}>
-            {dateLabel}
-          </span>
+          <ReportDatePicker
+            days={days.length ? days : [report.date]}
+            current={report.date}
+            todayIso={todayIso}
+            onPick={(d) => router.push(d === todayIso ? "/report" : `/report?date=${d}`)}
+          />
         </div>
 
         <div className="flex-1" />

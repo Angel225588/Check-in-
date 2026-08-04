@@ -192,6 +192,74 @@ Roles, so we stop saying "the user":
 
 ---
 
+## Portrait — where it starts
+
+Portrait is not landscape made narrower. Landscape has two columns because
+the hand rests on the right and the eye reads on the left. Portrait has one
+column, one thumb, and a keyboard-sized zone at the bottom that is the only
+part of the screen a standing person can reach without regripping.
+
+So the order is not "port the screens". It is: settle the pad, because
+everything else is what fits above it.
+
+**The reachable zone decides the layout.** On a phone held one-handed the
+bottom third is comfortable, the middle is a stretch, and the top is a
+two-handed operation. The pad and the commit button live in the bottom third.
+The guest card lives directly above them. The results list gets whatever is
+left and scrolls under both.
+
+### US-P1 — The pad never leaves — TO BUILD FIRST
+
+    As      Réception
+    I need  the keypad and the commit button fixed to the bottom of the screen
+    So that the next guest can be entered without finding anything first
+
+    Scenario: the queue, on a phone
+      Given  I have typed a room and results are showing
+      When   I scroll the results
+      Then   the pad and the button do not move, and the list scrolls under them
+
+    Never:  the primary action leaving the screen. Never a layout where the
+            keyboard region changes height between states.
+    Proof:  — to be written (R1 already asserts this for landscape)
+
+    Fixed, not hide-on-scroll. Hiding a toolbar on scroll is a reading
+    pattern — Safari does it because a web page is content. This is a tool,
+    and the moment you scroll the results is the moment you are deciding, so
+    it is the worst possible moment to take the commit button away. It also
+    costs a gesture to get it back, which is the thing portrait has least of.
+
+### US-P2 — The guest card above the pad
+
+    As      Réception
+    I need  the resolved guest directly above the keys
+    So that what I am about to record and the button that records it are one
+            glance apart
+
+    Scenario: a room resolves
+      Given  I typed 224
+      When   the card appears
+      Then   room, name, pax, dates and any alert are readable without
+             scrolling, and the card does not push the pad down
+
+    Never:  a card that grows and moves the keys.
+    Proof:  — to be written
+
+### US-P3 — Notes and history without leaving the screen
+
+    As      Réception
+    I need  the same carousel faces portrait gives room for
+    So that reading a note does not cost a screen change
+
+    Never:  a modal for a one-line note.
+    Proof:  — to be written
+
+**Open questions to settle in HTML, not in code:** whether the results list is
+worth showing at all on a phone once a room resolves (landscape has room for
+both; portrait may be better as card-then-pad with the list only while
+ambiguous), and whether the metrics bar survives portrait or becomes a single
+line.
+
 ## Proposed — closing the landscape app (stories → HTML → build)
 
 From the tablet session. Written first, on purpose: the last round proved

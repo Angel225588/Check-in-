@@ -66,16 +66,29 @@ describe("what actually lands in localStorage", () => {
     expect(dump).not.toContain("anaphylactique");
   });
 
-  // Identity is asserted against the KEYS, which are deterministic. Asserting a
-  // 3-digit room number against the base64 ciphertext would collide by chance
-  // roughly once in a few thousand runs — a safety test that fails at random teaches
-  // people to re-run it until it passes, which is worse than not having it.
+  // Asserted by SHAPE, not by substring.
+  //
+  // The keys are salted hex digests, and a 3-digit room number turns up inside
+  // 32 hex characters by coincidence roughly one run in thirty — this test
+  // failed exactly that way, on a digest containing "…1524ce…" for room 524.
+  // A safety test that cries wolf gets re-run until it passes, which is worse
+  // than not having it.
+  //
+  // Proving every key IS a digest is also strictly stronger than proving one
+  // string is absent: a room number written literally cannot match the shape,
+  // whatever else it collides with.
   it("writes no guest identity in the clear", async () => {
     await addNote(ROOM, NAME, { tone: "info", title: "Test", body: "", author: "Sofia" });
-    const keys = Object.keys(localStorage).join(" ");
-    expect(keys).not.toContain(ROOM);
-    expect(keys.toUpperCase()).not.toContain("POLANCO");
-    expect(keys.toUpperCase()).not.toContain("ANTHONIO");
+    const keys = Object.keys(localStorage);
+    expect(keys.length).toBeGreaterThan(0);
+    for (const k of keys) {
+      expect(k).toMatch(/^gn_(salt|[0-9a-f]{16,})$/);
+    }
+    // And nothing identifying survives once the digests themselves are removed.
+    const outsideDigests = keys.map((k) => k.replace(/[0-9a-f]{16,}/g, "")).join(" ");
+    expect(outsideDigests).not.toContain(ROOM);
+    expect(outsideDigests.toUpperCase()).not.toContain("POLANCO");
+    expect(outsideDigests.toUpperCase()).not.toContain("ANTHONIO");
   });
 
   it("namespaces its keys so it cannot collide with session data", async () => {
