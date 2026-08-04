@@ -111,6 +111,7 @@ export default function PortraitSearch({
      — and keeps the same three faces in the same carousel. Order, not
      membership: nothing moves, nothing is lost. */
   const PORTRAIT_IDLE = ["recents", "expected", "clock"];
+  const recentsFace = idlePanes.find((p) => p.key === "recents")?.node;
   const idleForPortrait = [...idlePanes].sort(
     (a, b) => PORTRAIT_IDLE.indexOf(a.key) - PORTRAIT_IDLE.indexOf(b.key)
   );
@@ -143,6 +144,29 @@ export default function PortraitSearch({
         data-slot={slot}
       >
         {slot === "card" && hit && (
+          <div className="flex-1 min-h-0 flex flex-col gap-2">
+            {/* On an iPad stood up the card needs ~30vh and the slot is 900.
+                Stretching the card to fill it produced a key card floating in
+                1100px of nothing, which is what the tablet showed. So the card
+                takes what a card needs, sits one glance above the button that
+                records it, and the surplus goes to the service's own arrivals.
+
+                This is not the results list coming back (US-P2 / R25b): that
+                list and the card compete for the SAME space and one of them has
+                to lose the allergy chip. Récents only ever occupies height the
+                card had no use for, and only where that height exists — below
+                900px it is not rendered at all. */}
+            {recentsFace && (
+              <div
+                className="hidden [@media(min-height:900px)]:flex flex-1 min-h-0 flex-col"
+                data-role="portrait-recents-aside"
+              >
+                {recentsFace}
+              </div>
+            )}
+            {/* mt-auto: with no Récents above (a phone), the card still hugs the
+                button rather than leaving a band of nothing between them. */}
+            <div className="shrink-0 mt-auto h-[clamp(190px,30vh,380px)] flex flex-col">
           <PreviewCarousel
             panes={hitPanes}
             auto={false}
@@ -162,6 +186,8 @@ export default function PortraitSearch({
               </button>
             }
           />
+            </div>
+          </div>
         )}
 
         {slot === "idle" && <PreviewCarousel panes={idleForPortrait} auto swipe={swipe} resetKey="idle" />}
