@@ -166,7 +166,7 @@ export default function PortraitSearch({
             )}
             {/* mt-auto: with no Récents above (a phone), the card still hugs the
                 button rather than leaving a band of nothing between them. */}
-            <div className="shrink-0 mt-auto h-[clamp(190px,30vh,380px)] flex flex-col">
+            <div className="shrink-0 mt-auto h-[clamp(150px,30vh,380px)] max-h-full flex flex-col">
           <PreviewCarousel
             panes={hitPanes}
             auto={false}
