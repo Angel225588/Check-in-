@@ -34,12 +34,17 @@ export default function PreviewCarousel({
   auto,
   resetKey,
   action,
+  swipe = true,
 }: {
   panes: Pane[];
   /** Idle only. Never true while a guest is on screen. */
   auto: boolean;
   /** Changing this snaps back to the first pane — e.g. a new room. */
   resetKey: string;
+  /** US-23. Reception can turn the gesture off when the tablet lies flat and
+   *  gets brushed during service. The dots are unaffected, on purpose: nothing
+   *  may become unreachable because a shortcut was declined. */
+  swipe?: boolean;
   /** A control pinned to the frame, above every face. The slot is the one
    *  place the eye already is once a room resolves, so the fastest way to
    *  write a note is from here rather than two screens away. */
@@ -66,7 +71,11 @@ export default function PreviewCarousel({
     setPausedUntil(Date.now() + PAUSE_MS);
   };
 
-  const begin = (x: number, y: number) => { startX.current = x; startY.current = y; };
+  const begin = (x: number, y: number) => {
+    if (!swipe) return;
+    startX.current = x;
+    startY.current = y;
+  };
   const end = (x: number, y: number) => {
     const x0 = startX.current;
     startX.current = null;
@@ -88,6 +97,7 @@ export default function PreviewCarousel({
       className="relative flex-1 min-h-0 flex flex-col select-none"
       data-role="preview-carousel"
       data-pane={active.key}
+      data-swipe={swipe ? "on" : "off"}
       /* pan-y, or the browser claims a horizontal drag as a scroll gesture and
          fires pointercancel — which is why swiping did nothing at all before
          while the dots worked fine. */

@@ -208,7 +208,7 @@ two-handed operation. The pad and the commit button live in the bottom third.
 The guest card lives directly above them. The results list gets whatever is
 left and scrolls under both.
 
-### US-P1 — The pad never leaves — TO BUILD FIRST
+### US-P1 — The pad never leaves — BUILT
 
     As      Réception
     I need  the keypad and the commit button fixed to the bottom of the screen
@@ -221,7 +221,8 @@ left and scrolls under both.
 
     Never:  the primary action leaving the screen. Never a layout where the
             keyboard region changes height between states.
-    Proof:  — to be written (R1 already asserts this for landscape)
+    Proof:  R25a (three portrait viewports, before and after a scroll) ·
+            R25e (both pads share one box, so the button never shifts)
 
     Fixed, not hide-on-scroll. Hiding a toolbar on scroll is a reading
     pattern — Safari does it because a web page is content. This is a tool,
@@ -229,7 +230,7 @@ left and scrolls under both.
     it is the worst possible moment to take the commit button away. It also
     costs a gesture to get it back, which is the thing portrait has least of.
 
-### US-P2 — The guest card above the pad
+### US-P2 — The guest card above the pad — BUILT (Option B)
 
     As      Réception
     I need  the resolved guest directly above the keys
@@ -242,8 +243,21 @@ left and scrolls under both.
       Then   room, name, pax, dates and any alert are readable without
              scrolling, and the card does not push the pad down
 
-    Never:  a card that grows and moves the keys.
-    Proof:  — to be written
+    Never:  a card that grows and moves the keys. Never the card and the list
+            on screen at once.
+    Proof:  R25b (idle → list → card, and the two never coexist) ·
+            portrait.test.ts `portraitSlot` (8 cases)
+
+    **The open question, settled.** Both options were built in HTML at 320px
+    before a line of code. Option A kept the results list under the field and
+    shrank the card to fit: the room number came down to 34px and there was no
+    line left for an allergy chip. Option B gives the whole slot to whichever
+    is being used, and they are never both being used — at rest you are looking
+    at the last guest, while typing you are looking at candidates. The list
+    returns on the first keystroke, so nothing is lost.
+
+    The rule lives in `portraitSlot`, not in the component, so it can be argued
+    with in a test rather than in a screenshot.
 
 ### US-P3 — Notes and history without leaving the screen
 
@@ -254,11 +268,55 @@ left and scrolls under both.
     Never:  a modal for a one-line note.
     Proof:  — to be written
 
-**Open questions to settle in HTML, not in code:** whether the results list is
-worth showing at all on a phone once a room resolves (landscape has room for
-both; portrait may be better as card-then-pad with the list only while
-ambiguous), and whether the metrics bar survives portrait or becomes a single
-line.
+    The carousel and the pencil are already there in portrait; what is missing
+    is US-17's in-frame reading and editing, which is the same work in both
+    orientations.
+
+### US-P4 — The drawer, the way iOS already taught everyone — BUILT
+
+    As      Réception
+    I need  the navigation to look like what the iPad does everywhere else
+    So that there is nothing to learn — a tool that resembles the system reads
+            as safe
+
+    Scenario: I open the menu mid-service
+      Given  I am on the search screen in portrait
+      When   I tap the burger at the top left
+      Then   a glass drawer slides in from the edge, the screen behind stays
+             visible and dimmed, and the same four controls as landscape are
+             there: Récents · Rapport · Gaucher · Clôture
+
+    Never:  a full-screen menu that costs the context. Never different icons or
+            different words from landscape — one tool does not introduce itself
+            twice.
+    Proof:  R25c (four controls present, panel narrower than the screen, a real
+            backdrop-filter)
+
+    **Why glass here and nowhere else.** Landscape taught us that
+    `backdrop-filter` over a flat page is invisible AND expensive — 170 blurred
+    elements is what made the iPad unusable. A drawer reverses the argument:
+    there is genuinely a screen behind it, staying visible is the entire reason
+    it is a drawer rather than a page, and it is one element rather than a
+    hundred. Radius capped, nothing stacked on top.
+
+### US-23 — The gestures are an option, not a condition — BUILT
+
+    As      Réception
+    I need  to turn the carousel's swipe on or off
+    So that the good surprise stays a surprise and never becomes a trap
+
+    Scenario: the tablet lies flat and a tray brushes it
+      Given  I prefer the dots to the gesture
+      When   I turn Balayage off in the drawer
+      Then   the carousel stops answering to a swipe, the dots still work, and
+             nothing has become unreachable
+
+    Never:  information that exists only behind a gesture. Everything a swipe
+            reaches must be reachable by a tap.
+    Proof:  R25d (swipe off, every face still on a dot) · gestures.test.ts
+
+    Same principle as the left/right hand setting. Default on: a setting saved
+    before the toggle existed has no opinion, and silence is not a refusal.
 
 ## Proposed — closing the landscape app (stories → HTML → build)
 
@@ -535,5 +593,8 @@ These are the honest gaps. Each is a rule waiting to be written.
 - **Every card has a visible edge in both themes.** The preview card had no
   light-theme fill for weeks and no check caught it — contrast rules test text,
   not surfaces.
-- **Portrait.** Not designed yet; deferred until landscape is settled. No
-  stories written, deliberately.
+- **US-P3.** The carousel is in portrait, but reading and editing a note in the
+  frame is US-17's work and is not built in either orientation.
+- **US-19.** The portrait metrics bar already ranks and folds
+  (`compactMetrics`); the landscape one still shows everything and wraps when
+  zoomed. Same mechanism, not yet carried across.

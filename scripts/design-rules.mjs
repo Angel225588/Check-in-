@@ -1271,6 +1271,138 @@ async function main() {
     await ctx.close();
   }
 
+  // ── R25 · portrait ──────────────────────────────────────────────────────
+  //
+  // Portrait is a different shell over the same state, so it needs its own
+  // rules rather than inheriting landscape's. Three things are load-bearing:
+  // the dock never moves, the card and the list take turns, and the drawer
+  // leaves the screen behind visible.
+  const PORTRAITS = [["se", 320, 568], ["phone", 390, 844], ["ipad", 834, 1194]];
+
+  // R25a — the pad and the commit button are on screen, and scrolling the
+  // results does not take them away. Fixed, not hide-on-scroll: the moment you
+  // scroll the list is the moment you are deciding.
+  for (const [label, w, h] of PORTRAITS) {
+    const { ctx, page } = await openDay("/search", { w, h });
+    const shell = await page.locator('[data-role="portrait-shell"]').count();
+    const before = await page.locator('[data-role="portrait-dock"]').boundingBox();
+    // Fill the slot with a list long enough to scroll, then scroll it.
+    await page.locator('[data-role="numeric-keypad"] button', { hasText: /^2$/ }).first().click();
+    await page.waitForTimeout(400);
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(300);
+    const after = await page.locator('[data-role="portrait-dock"]').boundingBox();
+    const enter = await page.locator('[data-role="search-enter"]').boundingBox();
+    const onScreen = !!after && after.y >= 0 && after.y + after.height <= h + 1;
+    const held = !!before && !!after && Math.abs(before.y - after.y) < 1;
+    record(`R25a-${label}-dock-fixed`, "The pad and the commit button never leave the screen",
+      shell === 1 && onScreen && held && !!enter,
+      shell !== 1 ? "portrait shell did not render" :
+      !onScreen ? `dock at y=${after?.y} h=${after?.height} in ${h}px` :
+      !held ? `dock moved ${Math.abs(before.y - after.y).toFixed(1)}px on scroll` : "fixed");
+    await ctx.close();
+  }
+
+  // R25b — Option B. The card and the list take turns and are never both on
+  // screen: on 320px, keeping both is what shrinks the card until the allergy
+  // chip has nowhere to go.
+  {
+    const { ctx, page } = await openDay("/search", { w: 390, h: 844 });
+    const slot = () => page.locator('[data-role="portrait-slot"]').getAttribute("data-slot");
+    const tap = async (d) => {
+      await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${d}$`) }).first().click();
+      await page.waitForTimeout(250);
+    };
+    const idle = await slot();
+    const idleCarousel = await page.locator('[data-role="preview-carousel"]').count();
+
+    await tap(3); await tap(8);
+    const listing = await slot();
+    const listHasCarousel = await page.locator('[data-role="preview-carousel"]').count();
+
+    await tap(5);
+    await page.waitForTimeout(450);
+    const carded = await slot();
+    const cardHasRows = await page.locator('[data-role="suggestion-card"], [data-role="room-row"]').count();
+    const preview = await page.locator('[data-role="guest-preview"]').count();
+
+    record("R25b-slot-takes-turns", "The card and the results list never share the slot",
+      idle === "idle" && idleCarousel === 1 &&
+      listing === "list" && listHasCarousel === 0 &&
+      carded === "card" && cardHasRows === 0 && preview === 1,
+      `idle=${idle}/${idleCarousel} typing=${listing}/${listHasCarousel} resolved=${carded}/${cardHasRows}/${preview}`);
+    await ctx.close();
+  }
+
+  // R25c — the drawer is a drawer. It carries the four landscape controls with
+  // the same words, and it leaves the screen behind visible, which is the
+  // whole reason it is not a page.
+  {
+    const { ctx, page } = await openDay("/search", { w: 390, h: 844 });
+    await page.locator('[data-role="portrait-menu"]').click();
+    await page.waitForTimeout(400);
+    const panel = page.locator('[data-role="nav-drawer-panel"]');
+    const box = await panel.boundingBox();
+    const blurred = await panel.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return (cs.backdropFilter || cs.webkitBackdropFilter || "none") !== "none";
+    });
+    const controls = [];
+    for (const role of ["drawer-recents", "drawer-report", "drawer-hand", "drawer-swipe", "drawer-close-day"]) {
+      if ((await page.locator(`[data-role="${role}"]`).count()) !== 1) controls.push(role);
+    }
+    const leavesRoom = !!box && box.width < 390 * 0.92;
+    record("R25c-drawer", "The burger opens a drawer that keeps the screen behind it",
+      controls.length === 0 && leavesRoom && blurred,
+      controls.length ? `missing ${controls.join(",")}` :
+      !leavesRoom ? `panel ${box?.width}px of 390` : blurred ? "ok" : "no backdrop-filter");
+    await ctx.close();
+  }
+
+  // R25d — turning the swipe off costs nothing. Every face stays on a dot,
+  // which is why declining the shortcut can never hide information.
+  {
+    const { ctx, page } = await openDay("/search", { w: 390, h: 844 });
+    await page.locator('[data-role="portrait-menu"]').click();
+    await page.waitForTimeout(350);
+    await page.locator('[data-role="drawer-swipe"]').click();
+    await page.waitForTimeout(200);
+    const stateOff = await page.locator('[data-role="drawer-swipe"]').getAttribute("aria-checked");
+    await page.locator('[data-role="nav-drawer"] [aria-label="Fermer le menu"]').click();
+    await page.waitForTimeout(400);
+    const carousel = page.locator('[data-role="preview-carousel"]');
+    const flag = await carousel.getAttribute("data-swipe");
+    const first = await carousel.getAttribute("data-pane");
+    const dots = page.locator('[data-role="preview-dots"] button');
+    const n = await dots.count();
+    await dots.nth(n - 1).click();
+    await page.waitForTimeout(350);
+    const moved = await carousel.getAttribute("data-pane");
+    record("R25d-swipe-optional", "Swipe off leaves every face reachable by a dot",
+      stateOff === "false" && flag === "off" && n > 1 && moved !== first,
+      `switch=${stateOff} carousel=${flag} dots=${n} ${first}→${moved}`);
+    await ctx.close();
+  }
+
+  // R25e — nothing spills sideways, and switching alphabet does not move the
+  // button underneath the thumb.
+  for (const [label, w, h] of PORTRAITS) {
+    const { ctx, page } = await openDay("/search", { w, h });
+    const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    const numY = (await page.locator('[data-role="search-enter"]').boundingBox())?.y;
+    await page.locator('[data-role="pad-abc"]').click();
+    await page.waitForTimeout(450);
+    const abc = await page.locator('[data-role="alpha-keypad"]').count();
+    const abcY = (await page.locator('[data-role="search-enter"]').boundingBox())?.y;
+    const stayed = numY !== undefined && abcY !== undefined && Math.abs(numY - abcY) < 1;
+    record(`R25e-${label}-no-spill`, "The page never scrolls sideways and the pads share one box",
+      wide <= 1 && abc === 1 && stayed,
+      wide > 1 ? `${wide}px of horizontal overflow` :
+      abc !== 1 ? "letter pad missing" :
+      stayed ? "steady" : `commit moved ${Math.abs(numY - abcY).toFixed(1)}px`);
+    await ctx.close();
+  }
+
   await closeBrowser();
   stopServer();
 

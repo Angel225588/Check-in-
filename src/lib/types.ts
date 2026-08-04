@@ -94,6 +94,12 @@ export interface AppSettings {
   handSide?: "left" | "right";
   /** Wider activity panel, for reading long notes without squinting. */
   sideWide?: boolean;
+  /**
+   * Whether the preview carousel answers to a swipe. On by default; reception
+   * can turn it off when the tablet lies flat and gets brushed during service.
+   * Nothing becomes unreachable either way — every face is also on a dot.
+   */
+  swipe?: boolean;
 }
 
 // Dashboard analytics types

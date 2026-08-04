@@ -27,6 +27,10 @@ import { checkinHref } from "@/lib/checkin-nav";
 import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks, isInGroupBlock } from "@/lib/groups";
 import { expectedFromYesterday } from "@/lib/expected";
+import { swipeEnabled } from "@/lib/gestures";
+import { usePortrait } from "@/hooks/usePortrait";
+import PortraitSearch from "@/components/portrait/PortraitSearch";
+import NavDrawer from "@/components/portrait/NavDrawer";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -46,6 +50,12 @@ export default function SearchPage() {
   const [mergeBanner, setMergeBanner] = useState<{ added: number; skipped: number; total: number } | null>(null);
   const queryRef = useRef<HTMLInputElement>(null);
   const [handSide, setHandSide] = useState<"left" | "right">("left");
+  /** One column and one thumb, or two columns and a resting hand. Not a width
+   *  test: a landscape iPad zoomed to 150% is 796px wide and still landscape. */
+  const portrait = usePortrait();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  /** US-23 — the swipe is a shortcut, never the only path. */
+  const [swipe, setSwipe] = useState(true);
   /** How many of the room are actually walking in. Defaults to everyone still
    *  expected, because that is the common case; the stepper handles the rest
    *  without loading the check-in screen. */
@@ -58,13 +68,25 @@ export default function SearchPage() {
   const [noteFor, setNoteFor] = useState<Client | null>(null);
 
   useEffect(() => {
-    setHandSide(getSettings().handSide === "right" ? "right" : "left");
+    const st = getSettings();
+    setHandSide(st.handSide === "right" ? "right" : "left");
+    setSwipe(swipeEnabled(st));
   }, []);
 
   const flipSide = () => {
     const next = handSide === "left" ? "right" : "left";
     setHandSide(next);
     saveSettings({ ...getSettings(), handSide: next });
+  };
+
+  const flipSwipe = () => {
+    const next = !swipe;
+    setSwipe(next);
+    saveSettings({ ...getSettings(), swipe: next });
+  };
+
+  const closeDayConfirmed = () => {
+    if (confirm("Clôturer la journée ?")) { closeDay(); refresh(); }
   };
 
   /** The single unambiguous target, if there is one: an exact room, or the only
@@ -378,6 +400,263 @@ export default function SearchPage() {
     expected: "Attendus",
   };
 
+  /* Everything that floats over either shell: the sheets, the composer, the
+     history drawer. They are fixed-position, so they belong to the page rather
+     than to a layout, and neither shell has to carry a copy. */
+  const overlays = (
+    <>
+      {/* Hidden VIP PhotoCapture */}
+      <div className="hidden">
+        <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-unified" />
+      </div>
+
+      {/* VIP merged success toast */}
+      {vipMergedMsg && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg shadow-green-500/30 animate-[slideDown_0.2s_ease-out]">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="text-sm font-semibold">{t("search.vipMerged")}</span>
+        </div>
+      )}
+
+      {/* Mid-session upload — inline in scrollable area, not overlaying keypad */}
+
+      {/* Upload action sheet */}
+      {uploadSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setUploadSheetOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
+          <div
+            className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-dark mb-4">{t("search.upload")}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=pdf"); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <span className="text-2xl">PDF</span>
+                <span className="text-xs font-semibold text-dark">{t("action.uploadPdf")}</span>
+              </button>
+              <button
+                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=scanner"); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <circle cx="12" cy="13" r="3" />
+                </svg>
+                <span className="text-xs font-semibold text-dark">{t("action.scanner")}</span>
+              </button>
+              <button
+                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=gallery"); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-semibold text-dark">{t("action.gallery")}</span>
+              </button>
+              <button
+                onClick={() => { setUploadSheetOpen(false); setAddClientOpen(true); }}
+                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+              >
+                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="text-xs font-semibold text-dark">{t("action.manual")}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add client modal */}
+      {addClientOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60" onClick={() => setAddClientOpen(false)}>
+          <div
+            className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-dark mb-4">{t("checkin.addClient")}</h3>
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.roomNumber")}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={newRoom}
+                  onChange={(e) => setNewRoom(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  placeholder="101"
+                  maxLength={10}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.guestName")}</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  placeholder="Dupont"
+                  maxLength={100}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div>
+                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.adultsCount")}</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={newAdults}
+                  onChange={(e) => setNewAdults(e.target.value)}
+                  min="0"
+                  max="20"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.childrenCount")}</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={newChildren}
+                  onChange={(e) => setNewChildren(e.target.value)}
+                  min="0"
+                  max="20"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAddClientOpen(false)}
+                className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
+              >
+                {t("checkin.cancel")}
+              </button>
+              <button
+                onClick={handleAddClient}
+                disabled={!newRoom.trim() || !newName.trim()}
+                className="flex-1 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 disabled:opacity-40 dark:glow-brand"
+              >
+                {t("checkin.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* The composer, for the guest resolved in the slot. */}
+      {noteFor && (
+        <NotesModal
+          open
+          onClose={() => setNoteFor(null)}
+          initialView="compose"
+          closeOnSave
+          api={hitNotes}
+          roomNumber={noteFor.roomNumber}
+          guestName={noteFor.name}
+          visits={visitsFor(noteFor.name)}
+          pax={noteFor.adults + noteFor.children}
+        />
+      )}
+
+      <HistoryPanel
+        checkIns={checkIns}
+        isOpen={historyOpen}
+        onClose={() => {
+          setHistoryOpen(false);
+          refresh();
+        }}
+        onUndo={refresh}
+      />
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translate(-50%, -20px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
+    </>
+  );
+
+  /* Portrait is not landscape made narrower — it is a different shell over the
+     same state. Keeping them as two trees rather than one tree full of
+     breakpoints is what stops a portrait tweak from moving a tablet the hotel
+     is already using every morning. */
+  if (portrait) {
+    return (
+      <>
+        <PortraitSearch
+          clients={clients}
+          checkIns={checkIns}
+          query={query}
+          setQuery={setQuery}
+          clear={clear}
+          results={results}
+          hit={hit ?? null}
+          hitPanes={hitPanes}
+          idlePanes={idlePanes}
+          filteredClients={showFiltered ? filteredClients : []}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilterChange}
+          onMenu={() => setDrawerOpen(true)}
+          onSelectRoom={handleSelectRoom}
+          onCompose={setNoteFor}
+          onAddRoom={() => {
+            setNewRoom(query);
+            setNewName("");
+            setNewAdults("1");
+            setNewChildren("0");
+            setAddClientOpen(true);
+          }}
+          expected={expectedToday}
+          swipe={swipe}
+          pad={pad}
+          setPad={setPad}
+          appendKey={appendKey}
+          backspace={backspace}
+          count={count}
+          setCount={setCount}
+          maxCount={maxCount}
+          needsScreen={needsScreen}
+          onCommit={commitHere}
+          flash={flash}
+          saveFailed={saveFailed}
+          onDismissError={() => setSaveFailed(false)}
+          clientIndexOf={(c) => clients.indexOf(c)}
+        />
+        <NavDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          handSide={handSide}
+          swipe={swipe}
+          onRecents={() => setHistoryOpen(true)}
+          onReport={() => router.push("/report")}
+          onFlipSide={flipSide}
+          onSwipeToggle={flipSwipe}
+          onCloseDay={closeDayConfirmed}
+          onUpload={() => router.push("/upload")}
+        />
+        {overlays}
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
       <div className="shrink-0 px-3 pt-3 pb-0">
@@ -436,7 +715,7 @@ export default function SearchPage() {
               onRecents={() => setHistoryOpen(true)}
               onReport={() => router.push("/report")}
               onFlipSide={flipSide}
-              onCloseDay={() => { if (confirm("Clôturer la journée ?")) { closeDay(); refresh(); } }}
+              onCloseDay={closeDayConfirmed}
             />
           </div>
         </div>
@@ -678,192 +957,7 @@ export default function SearchPage() {
       )}
       </div>
 
-      {/* Hidden VIP PhotoCapture */}
-      <div className="hidden">
-        <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-unified" />
-      </div>
-
-      {/* VIP merged success toast */}
-      {vipMergedMsg && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg shadow-green-500/30 animate-[slideDown_0.2s_ease-out]">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-sm font-semibold">{t("search.vipMerged")}</span>
-        </div>
-      )}
-
-      {/* Mid-session upload — inline in scrollable area, not overlaying keypad */}
-
-      {/* Upload action sheet */}
-      {uploadSheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setUploadSheetOpen(false)}>
-          <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
-          <div
-            className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-dark mb-4">{t("search.upload")}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=pdf"); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
-              >
-                <span className="text-2xl">PDF</span>
-                <span className="text-xs font-semibold text-dark">{t("action.uploadPdf")}</span>
-              </button>
-              <button
-                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=scanner"); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
-              >
-                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <circle cx="12" cy="13" r="3" />
-                </svg>
-                <span className="text-xs font-semibold text-dark">{t("action.scanner")}</span>
-              </button>
-              <button
-                onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=gallery"); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
-              >
-                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-xs font-semibold text-dark">{t("action.gallery")}</span>
-              </button>
-              <button
-                onClick={() => { setUploadSheetOpen(false); setAddClientOpen(true); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
-              >
-                <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="text-xs font-semibold text-dark">{t("action.manual")}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add client modal */}
-      {addClientOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60" onClick={() => setAddClientOpen(false)}>
-          <div
-            className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-dark mb-4">{t("checkin.addClient")}</h3>
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.roomNumber")}</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={newRoom}
-                  onChange={(e) => setNewRoom(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
-                  placeholder="101"
-                  maxLength={10}
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.guestName")}</label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
-                  placeholder="Dupont"
-                  maxLength={100}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div>
-                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.adultsCount")}</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={newAdults}
-                  onChange={(e) => setNewAdults(e.target.value)}
-                  min="0"
-                  max="20"
-                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted uppercase tracking-wide font-medium">{t("checkin.childrenCount")}</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={newChildren}
-                  onChange={(e) => setNewChildren(e.target.value)}
-                  min="0"
-                  max="20"
-                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setAddClientOpen(false)}
-                className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
-              >
-                {t("checkin.cancel")}
-              </button>
-              <button
-                onClick={handleAddClient}
-                disabled={!newRoom.trim() || !newName.trim()}
-                className="flex-1 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 disabled:opacity-40 dark:glow-brand"
-              >
-                {t("checkin.save")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* The composer, for the guest resolved in the slot. */}
-      {noteFor && (
-        <NotesModal
-          open
-          onClose={() => setNoteFor(null)}
-          initialView="compose"
-          closeOnSave
-          api={hitNotes}
-          roomNumber={noteFor.roomNumber}
-          guestName={noteFor.name}
-          visits={visitsFor(noteFor.name)}
-          pax={noteFor.adults + noteFor.children}
-        />
-      )}
-
-      <HistoryPanel
-        checkIns={checkIns}
-        isOpen={historyOpen}
-        onClose={() => {
-          setHistoryOpen(false);
-          refresh();
-        }}
-        onUndo={refresh}
-      />
-
-      <style jsx>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translate(-50%, -20px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
-        }
-      `}</style>
+      {overlays}
     </div>
   );
 }

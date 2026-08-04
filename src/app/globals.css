@@ -66,6 +66,11 @@
   --aur-gold-3: #dd9c28;
   --aur-gold-soft: rgba(166, 105, 20, 0.10);
   --aur-gold-soft-2: rgba(166, 105, 20, 0.18);
+  /* The one surface that earns a backdrop-filter: the portrait drawer. It is a
+     single element with a real screen behind it, so the blur is visible and is
+     paid for once. Opaque enough that its own text keeps AA whatever the
+     screen underneath happens to be. */
+  --aur-drawer: rgba(251, 247, 238, 0.86);
   --aur-good: #2f6f4f;
   --aur-good-soft: rgba(47, 111, 79, 0.10);
   --aur-warn: #b87333;
@@ -160,6 +165,7 @@ html.dark {
   --aur-gold-3: #E9B44C;
   --aur-gold-soft: rgba(221, 156, 40, 0.12);
   --aur-gold-soft-2: rgba(221, 156, 40, 0.20);
+  --aur-drawer: rgba(27, 24, 21, 0.88);
   /* The semantic hues do NOT move. Each one is a solid fill carrying white
      text somewhere (the Enregistrer CTA, the NON INCLUS badge), and lifting
      them for dark mode dropped those pairs to 1.8:1. Text keeps to the -ink
