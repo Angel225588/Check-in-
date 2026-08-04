@@ -1325,6 +1325,35 @@ async function main() {
     await ctx.close();
   }
 
+  // R25g — nothing floats over the dock.
+  //
+  // The install banner was pinned to the bottom of the viewport and landed
+  // squarely on the keypad: on an iPad in portrait it covered the entire last
+  // row, so the one screen that tells you to install the app is the screen
+  // where the app stops working. The dock's band belongs to the dock.
+  {
+    const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
+    const intruders = await page.evaluate(() => {
+      const dock = document.querySelector('[data-role="portrait-dock"]');
+      if (!dock) return ["NO DOCK"];
+      const d = dock.getBoundingClientRect();
+      const out = [];
+      for (const el of document.querySelectorAll("body *")) {
+        if (getComputedStyle(el).position !== "fixed") continue;
+        if (dock.contains(el) || el.contains(dock)) continue;
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        if (r.bottom > d.top + 2 && r.top < d.bottom - 2 && r.right > d.left && r.left < d.right) {
+          out.push(el.getAttribute("data-role") || el.tagName.toLowerCase());
+        }
+      }
+      return out;
+    });
+    record("R25g-dock-unobstructed", "Nothing floats over the pad or the commit button",
+      intruders.length === 0, intruders.length ? intruders.join(", ") : "clear");
+    await ctx.close();
+  }
+
   // R25b — Option B. The card and the list take turns and are never both on
   // screen: on 320px, keeping both is what shrinks the card until the allergy
   // chip has nowhere to go.

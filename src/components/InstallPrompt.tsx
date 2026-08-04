@@ -60,7 +60,11 @@ export default function InstallPrompt() {
   return (
     <div
       data-role="install-prompt"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] w-[min(560px,calc(100vw-32px))] rounded-[20px] px-5 py-4 flex items-center gap-4 animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
+      /* Top, not bottom. At the bottom it sat squarely on the keypad — on the
+         iPad in portrait it covered the whole last row, so the one screen that
+         tells you to install the app is the screen where the app stops working.
+         Nothing may occupy the dock's band except the dock. */
+      className="fixed top-3 left-1/2 -translate-x-1/2 z-[80] w-[min(560px,calc(100vw-32px))] rounded-[20px] px-5 py-4 flex items-center gap-4 animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
       style={{
         background: "var(--aur-bg-elev)",
         boxShadow: "0 24px 60px -20px rgba(20,12,0,.55), inset 0 0 0 1px var(--aur-hairline)",

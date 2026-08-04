@@ -100,6 +100,20 @@ export default function PortraitSearch({
   });
 
   const rows = query ? results : filteredClients;
+
+  /* Landscape's idle slot is 240px, so it opens on the clock and the clock
+     fills it. Portrait's is three times that, and a clock centred in 800px of
+     nothing is what the tablet actually showed. Every reference for this shape
+     agrees: Cash App gives the spare height to the keys, Strava and Hevy fill
+     it with time-stamped rows. Nobody frames an empty box.
+
+     So portrait opens on Récents — which is also what the approved sketch drew
+     — and keeps the same three faces in the same carousel. Order, not
+     membership: nothing moves, nothing is lost. */
+  const PORTRAIT_IDLE = ["recents", "expected", "clock"];
+  const idleForPortrait = [...idlePanes].sort(
+    (a, b) => PORTRAIT_IDLE.indexOf(a.key) - PORTRAIT_IDLE.indexOf(b.key)
+  );
   const bubble =
     "w-[clamp(56px,8.5vh,72px)] h-[clamp(56px,8.5vh,72px)] shrink-0 rounded-full text-[30px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25";
 
@@ -150,7 +164,7 @@ export default function PortraitSearch({
           />
         )}
 
-        {slot === "idle" && <PreviewCarousel panes={idlePanes} auto swipe={swipe} resetKey="idle" />}
+        {slot === "idle" && <PreviewCarousel panes={idleForPortrait} auto swipe={swipe} resetKey="idle" />}
 
         {slot === "flash" && flash && (
           <div

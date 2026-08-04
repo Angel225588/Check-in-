@@ -44,7 +44,7 @@ export default function ServiceClock() {
 
   return (
     <div
-      className="relative flex-1 min-h-[158px] rounded-[24px] px-5 py-4 flex flex-col justify-center overflow-hidden glass-liquid"
+      className="relative flex-1 min-h-[158px] rounded-[24px] px-5 py-4 flex flex-col justify-center portrait:justify-start overflow-hidden glass-liquid"
       data-role="service-clock"
     >
       <div className="flex items-baseline gap-3">
@@ -80,7 +80,7 @@ export default function ServiceClock() {
           practically nonsense — reception is often on the floor at 06:00 and
           would read 8h50 as time left of a service that has not started. Say
           which state the morning is actually in. */}
-      <div className="mt-3 flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+      <div className="mt-3 portrait:mt-auto flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
         <span>Service <b style={{ color: "var(--brand-ink)" }}>06:30 – 10:30</b></span>
         {mins < OPEN ? (
           <span>ouvre dans <b style={{ color: "var(--brand-ink)" }}>{Math.floor((OPEN - mins) / 60)}h{pad((OPEN - mins) % 60)}</b></span>
