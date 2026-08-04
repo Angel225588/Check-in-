@@ -1303,6 +1303,28 @@ async function main() {
     await ctx.close();
   }
 
+  // R25f — the slot's content stays inside the slot.
+  //
+  // R25a passed on a 320x568 screen where the guest card overflowed its slot by
+  // 36px and painted straight over the commit button: measuring the dock's own
+  // box proves the dock is where it should be, and nothing at all about what is
+  // on top of it. A rule that can be satisfied by a broken screen is not a rule.
+  for (const [label, w, h] of PORTRAITS) {
+    const { ctx, page } = await openDay("/search", { w, h });
+    for (const d of [3, 1, 0]) {
+      await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${d}$`) }).first().click();
+      await page.waitForTimeout(220);
+    }
+    await page.waitForTimeout(500);
+    const card = await page.locator('[data-role="guest-preview"]').boundingBox();
+    const dock = await page.locator('[data-role="portrait-dock"]').boundingBox();
+    const clear = !!card && !!dock && card.y + card.height <= dock.y + 1;
+    record(`R25f-${label}-no-overlap`, "The guest card never paints over the commit button",
+      clear,
+      clear ? "clear" : `card ends ${card ? (card.y + card.height).toFixed(0) : "?"}, dock starts ${dock?.y.toFixed(0)}`);
+    await ctx.close();
+  }
+
   // R25b — Option B. The card and the list take turns and are never both on
   // screen: on 320px, keeping both is what shrinks the card until the allergy
   // chip has nowhere to go.

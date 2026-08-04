@@ -124,7 +124,7 @@ export default function PortraitSearch({
 
       {/* The one body slot. Its height never changes; only its face does. */}
       <div
-        className="flex-1 min-h-[96px] flex flex-col px-2.5 py-2"
+        className="flex-1 min-h-[96px] overflow-hidden flex flex-col px-2.5 py-2"
         data-role="portrait-slot"
         data-slot={slot}
       >

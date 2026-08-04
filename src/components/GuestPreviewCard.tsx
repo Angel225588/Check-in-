@@ -71,12 +71,16 @@ export default function GuestPreviewCard({
          because it had only ever been looked at in the dark theme. The card
          now uses the same tier as every other card in the app and is a card in
          both themes. */
-      className={`relative flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-6 flex flex-col overflow-hidden ${vip ? "" : "surface-card"}`}
+      className={`relative flex-1 min-h-[150px] portrait:min-h-[110px] rounded-[24px] px-5 pt-4 pb-6 flex flex-col overflow-hidden ${vip ? "" : "surface-card"}`}
       style={vip
         ? { background: "linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C)", boxShadow: "0 16px 44px -14px rgba(120,74,12,.55)" }
         : undefined}
     >
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-0.5">
+      {/* Portrait centres the stack instead of pinning it to the top. The card
+          owns the whole slot there (Option B), and a key card with its content
+          shoved against the ceiling and 200px of nothing under it reads as a
+          layout that ran out of things to say. */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-0.5 portrait:justify-center">
       <div className="shrink-0 flex items-start justify-between gap-3">
         <span className="text-[10.5px] font-black uppercase tracking-[0.15em]"
           style={{ color: vip ? "rgba(255,255,255,.9)" : "var(--tab-idle)" }}>
@@ -88,7 +92,11 @@ export default function GuestPreviewCard({
       </div>
 
       <div
-        className="shrink-0 flex text-[clamp(34px,min(4.6vw,7.4vh),66px)] font-black leading-[0.88] tracking-[-0.045em] tabular-nums"
+        /* Two clamps, because the scarce axis flips with the orientation.
+           Landscape is short and wide, so the number is held down by height;
+           portrait is tall and narrow, so 4.6vw would pin it to the 34px floor
+           on a phone — the exact squeeze Option B exists to avoid. */
+        className="shrink-0 flex font-black leading-[0.88] tracking-[-0.045em] tabular-nums text-[clamp(34px,min(4.6vw,7.4vh),66px)] portrait:text-[clamp(44px,min(15vw,9vh),92px)]"
         style={{ color: vip ? "#fff" : undefined }}
       >
         {client.roomNumber.split("").map((d, i) => (
@@ -97,7 +105,7 @@ export default function GuestPreviewCard({
         ))}
       </div>
 
-      <div data-role="preview-name" className="shrink-0 text-[20px] font-bold leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
+      <div data-role="preview-name" className="shrink-0 text-[20px] portrait:text-[clamp(20px,5.4vw,28px)] font-bold leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
         {client.name}
       </div>
 
@@ -134,7 +142,7 @@ export default function GuestPreviewCard({
         </div>
       )}
 
-      <div className={`flex items-center gap-2 flex-wrap mt-auto pt-2 min-h-0 overflow-hidden ${shown.length > 0 ? "max-[720px]:hidden" : ""}`}>
+      <div className={`flex items-center gap-2 flex-wrap mt-auto portrait:mt-3 pt-2 min-h-0 overflow-hidden ${shown.length > 0 ? "[@media(max-height:720px)]:hidden" : ""}`}>
         <b className="text-[14px]" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
           {pax} pers.
         </b>

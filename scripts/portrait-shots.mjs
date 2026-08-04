@@ -25,16 +25,32 @@ function resolveChromium() {
   return undefined;
 }
 
-const server = spawn("npx", ["next", "start", "-p", String(PORT)], { stdio: "ignore" });
-const stop = () => { try { server.kill("SIGTERM"); } catch {} };
+/** Adopt a server already on the port, otherwise start one. Two `next start`
+ *  on the same port means the second dies on EADDRINUSE and the run screenshots
+ *  whatever the first one happens to be serving. */
+async function answering() {
+  try {
+    // /upload, not /search: with no day loaded, /search server-renders a
+    // skeleton and redirects, so its HTML proves nothing about readiness.
+    const r = await fetch(`${BASE}/upload`, { signal: AbortSignal.timeout(2000) });
+    return r.ok;
+  } catch { return false; }
+}
+let server = null;
+const stop = () => { if (server) { try { server.kill("SIGTERM"); } catch {} } };
 process.on("exit", stop);
 
+/** A socket that accepts is not a server that renders. Wait for the real page,
+ *  or the first screenshot is a 4KB picture of nothing. */
 async function waitForServer() {
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(BASE)).ok || true) return; } catch {}
-    await new Promise((r) => setTimeout(r, 500));
+  for (let i = 0; i < 120; i++) {
+    try {
+      const r = await fetch(`${BASE}/upload`);
+      if (r.ok) return;
+    } catch {}
+    await new Promise((res) => setTimeout(res, 500));
   }
-  throw new Error("server never came up");
+  throw new Error(`server never came up on ${BASE}`);
 }
 
 const DAY = [
@@ -55,7 +71,10 @@ const DEVICES = [
   ["ipad", 834, 1194],
 ];
 
-await waitForServer();
+if (!(await answering())) {
+  server = spawn("npx", ["next", "start", "-p", String(PORT)], { stdio: "inherit", shell: true });
+  await waitForServer();
+}
 const browser = await chromium.launch({
   headless: true, executablePath: resolveChromium(),
   args: ["--disable-dev-shm-usage", "--no-sandbox"],
