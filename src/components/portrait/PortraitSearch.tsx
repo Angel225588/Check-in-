@@ -42,6 +42,7 @@ export default function PortraitSearch({
   activeFilter,
   onFilterChange,
   onMenu,
+  handSide,
   onSelectRoom,
   onCompose,
   onAddRoom,
@@ -74,6 +75,8 @@ export default function PortraitSearch({
   activeFilter: MetricFilter;
   onFilterChange: (f: MetricFilter) => void;
   onMenu: () => void;
+  /** The drawer and its button live on the hand that is free. */
+  handSide: "left" | "right";
   onSelectRoom: (room: string, index?: number, people?: number) => void;
   onCompose: (c: Client) => void;
   onAddRoom: () => void;
@@ -138,7 +141,7 @@ export default function PortraitSearch({
       <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-2.5">
         {/* The menu is not a metric. Inside the tinted bar it read as a fifth
             pill; beside it, it reads as what it is. */}
-        <div className="flex items-stretch gap-2">
+        <div className={`flex items-stretch gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
           <button
             onClick={onMenu}
             data-role="portrait-menu"

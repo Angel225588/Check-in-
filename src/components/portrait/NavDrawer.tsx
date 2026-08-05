@@ -29,6 +29,7 @@ export default function NavDrawer({
   open,
   onClose,
   handSide,
+  side,
   swipe,
   recents,
   onPickRoom,
@@ -42,6 +43,10 @@ export default function NavDrawer({
   open: boolean;
   onClose: () => void;
   handSide: "left" | "right";
+  /** Which edge it comes from. Reception holds the tablet in whichever hand is
+   *  free; a drawer that always opens on the left is a drawer a left-hander
+   *  reaches across the screen for, every time. */
+  side: "left" | "right";
   swipe: boolean;
   /** The service so far, newest first. */
   recents: RecentEntry[];
@@ -74,28 +79,39 @@ export default function NavDrawer({
   const pick = (fn: () => void) => () => { fn(); onClose(); };
 
   return (
-    <div className="fixed inset-0 z-50 flex" data-role="nav-drawer" onClick={onClose}>
+    <div
+      className={`fixed inset-0 z-50 flex ${side === "right" ? "justify-end" : ""}`}
+      data-role="nav-drawer"
+      data-side={side}
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/25 dark:bg-black/50 animate-[fadeIn_.18s_ease-out]" />
 
       <aside
         onClick={(e) => e.stopPropagation()}
         data-role="nav-drawer-panel"
-        className="relative w-[min(340px,88vw)] h-full flex flex-col p-3 pt-4 animate-[drawerIn_.24s_cubic-bezier(.2,.9,.25,1)]"
+        className={`relative w-[min(340px,88vw)] h-full flex flex-col p-3 pt-4 ${
+          side === "right"
+            ? "animate-[drawerInRight_.24s_cubic-bezier(.2,.9,.25,1)]"
+            : "animate-[drawerInLeft_.24s_cubic-bezier(.2,.9,.25,1)]"
+        }`}
         style={{
           background: "var(--aur-drawer)",
           backdropFilter: "blur(20px) saturate(140%)",
           WebkitBackdropFilter: "blur(20px) saturate(140%)",
-          boxShadow: "1px 0 0 var(--aur-hairline), 24px 0 60px -30px rgba(20,12,0,.5)",
+          boxShadow: side === "right"
+            ? "-1px 0 0 var(--aur-hairline), -24px 0 60px -30px rgba(20,12,0,.5)"
+            : "1px 0 0 var(--aur-hairline), 24px 0 60px -30px rgba(20,12,0,.5)",
         }}
       >
-        <div className="shrink-0 flex items-center justify-between mb-2 px-1">
+        <div className={`shrink-0 flex items-center justify-between mb-2 px-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
           <b className="text-[13px] font-black uppercase tracking-[0.12em]" style={{ color: "var(--tab-idle)" }}>
             Service
           </b>
           <button
             onClick={onClose}
             aria-label="Fermer le menu"
-            className="w-11 h-11 -mr-1 rounded-full grid place-items-center active:scale-[0.92] transition-transform"
+            className={`w-11 h-11 rounded-full grid place-items-center active:scale-[0.92] transition-transform ${side === "right" ? "-ml-1" : "-mr-1"}`}
           >
             <X size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
@@ -203,8 +219,12 @@ export default function NavDrawer({
       </aside>
 
       <style jsx>{`
-        @keyframes drawerIn {
+        @keyframes drawerInLeft {
           from { transform: translateX(-100%); }
+          to   { transform: translateX(0); }
+        }
+        @keyframes drawerInRight {
+          from { transform: translateX(100%); }
           to   { transform: translateX(0); }
         }
         @keyframes fadeIn {

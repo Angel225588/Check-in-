@@ -650,6 +650,7 @@ export default function SearchPage() {
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
           onMenu={() => setDrawerOpen(true)}
+          handSide={handSide}
           onSelectRoom={handleSelectRoom}
           onCompose={setNoteFor}
           onAddRoom={() => {
@@ -679,6 +680,7 @@ export default function SearchPage() {
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
           handSide={handSide}
+          side={handSide}
           swipe={swipe}
           recents={recents}
           onPickRoom={openRoom}
@@ -686,7 +688,10 @@ export default function SearchPage() {
           onFlipSide={flipSide}
           onSwipeToggle={flipSwipe}
           onCloseDay={closeDayConfirmed}
-          onUpload={() => router.push("/upload")}
+          /* The sheet, not the upload screen. "Charger la liste" means pick a
+             PDF or a photo — the screen it used to open is a detour with its
+             own layout and its own back button, for a choice of four. */
+          onUpload={() => setUploadSheetOpen(true)}
           onUndo={() => setHistoryOpen(true)}
         />
         {overlays}
