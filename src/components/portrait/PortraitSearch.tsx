@@ -111,10 +111,17 @@ export default function PortraitSearch({
      — and keeps the same three faces in the same carousel. Order, not
      membership: nothing moves, nothing is lost. */
   const PORTRAIT_IDLE = ["recents", "expected", "clock"];
-  const recentsFace = idlePanes.find((p) => p.key === "recents")?.node;
   const idleForPortrait = [...idlePanes].sort(
     (a, b) => PORTRAIT_IDLE.indexOf(a.key) - PORTRAIT_IDLE.indexOf(b.key)
   );
+  /* One frame, one place, one size.
+     
+     The frame sits directly under the search field and takes the width but not
+     the height: on an iPad stood up it was a 900px square, which is not a card,
+     it is a wall. Card-sized and always in the same spot means the eye learns
+     where to look once — it does not move between resting and resolved, and it
+     does not resize when the guest has more to say than the clock. */
+  const FRAME = "shrink-0 h-[clamp(150px,28vh,340px)] max-h-full flex flex-col";
   const bubble =
     "w-[clamp(56px,8.5vh,72px)] h-[clamp(56px,8.5vh,72px)] shrink-0 rounded-full text-[30px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25";
 
@@ -143,31 +150,11 @@ export default function PortraitSearch({
         data-role="portrait-slot"
         data-slot={slot}
       >
+        {/* Resolved: the guest, and nothing else. Anything sharing the screen
+            with the person in front of you is something to read past. */}
         {slot === "card" && hit && (
-          <div className="flex-1 min-h-0 flex flex-col gap-2">
-            {/* On an iPad stood up the card needs ~30vh and the slot is 900.
-                Stretching the card to fill it produced a key card floating in
-                1100px of nothing, which is what the tablet showed. So the card
-                takes what a card needs, sits one glance above the button that
-                records it, and the surplus goes to the service's own arrivals.
-
-                This is not the results list coming back (US-P2 / R25b): that
-                list and the card compete for the SAME space and one of them has
-                to lose the allergy chip. Récents only ever occupies height the
-                card had no use for, and only where that height exists — below
-                900px it is not rendered at all. */}
-            {recentsFace && (
-              <div
-                className="hidden [@media(min-height:900px)]:flex flex-1 min-h-0 flex-col"
-                data-role="portrait-recents-aside"
-              >
-                {recentsFace}
-              </div>
-            )}
-            {/* mt-auto: with no Récents above (a phone), the card still hugs the
-                button rather than leaving a band of nothing between them. */}
-            <div className="shrink-0 mt-auto h-[clamp(150px,30vh,380px)] max-h-full flex flex-col">
-          <PreviewCarousel
+          <div className={FRAME}>
+            <PreviewCarousel
             panes={hitPanes}
             auto={false}
             swipe={swipe}
@@ -186,11 +173,14 @@ export default function PortraitSearch({
               </button>
             }
           />
-            </div>
           </div>
         )}
 
-        {slot === "idle" && <PreviewCarousel panes={idleForPortrait} auto swipe={swipe} resetKey="idle" />}
+        {slot === "idle" && (
+          <div className={FRAME}>
+            <PreviewCarousel panes={idleForPortrait} auto swipe={swipe} resetKey="idle" />
+          </div>
+        )}
 
         {slot === "flash" && flash && (
           <div
