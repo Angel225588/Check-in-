@@ -1,5 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { CheckInRecord } from "@/lib/types";
+import { buildAffluence, hhmm } from "@/lib/report-v2";
 
 export interface ExpectedGuest {
   roomNumber: string;
@@ -21,7 +23,11 @@ function pad(n: number): string {
  * Rotation belongs to the carousel around it, and only while idle — the moment
  * a room resolves, nothing in this column is allowed to move on its own.
  */
-export default function ServiceClock() {
+export default function ServiceClock({ checkIns = [] }: { checkIns?: CheckInRecord[] }) {
+  /* Same arithmetic as the report's chart, so the peak reception reads at the
+     desk and the peak the manager reads at 15:00 can never disagree. Fifteen
+     minutes is the grain the report opens on. */
+  const pulse = useMemo(() => buildAffluence(checkIns, 15), [checkIns]);
   const [now, setNow] = useState<Date | null>(null);
   const [prev, setPrev] = useState<string | null>(null);
 
@@ -44,7 +50,11 @@ export default function ServiceClock() {
 
   return (
     <div
-      className="relative flex-1 min-h-[158px] rounded-[24px] px-5 py-4 flex flex-col justify-center portrait:justify-start overflow-hidden glass-liquid"
+      /* Portrait spreads the three parts over the height instead of stacking
+         them at the top: the hour, the shape of the morning, then the window.
+         pb-9 keeps the last line clear of the carousel's dots, which sit on
+         the card rather than under it. */
+      className="relative flex-1 min-h-[158px] rounded-[24px] px-5 py-4 portrait:pb-9 flex flex-col justify-center portrait:justify-between overflow-hidden glass-liquid"
       data-role="service-clock"
     >
       <div className="flex items-baseline gap-3">
@@ -76,11 +86,50 @@ export default function ServiceClock() {
         )}
       </div>
 
+      {/* Portrait has the height for the shape of the morning, and the morning
+          is what the clock is actually about: 20:36 on its own says nothing you
+          could not read off the wall. The bars are the same buckets the report
+          draws, so the peak at the desk and the peak in the 15:00 briefing are
+          one number. Landscape's box is 240px and has no room for it. */}
+      <div className="hidden portrait:flex flex-1 min-h-0 flex-col justify-center gap-1.5 py-2" data-role="service-pulse">
+        <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em]"
+          style={{ color: "var(--tab-idle)" }}>
+          <span>Affluence</span>
+          {pulse.peakIndex >= 0 && (
+            <span style={{ color: "var(--brand-ink)" }}>
+              Pointe {hhmm(pulse.buckets[pulse.peakIndex].start)} · {pulse.peakCount} pers.
+            </span>
+          )}
+        </div>
+        <div className="flex items-end gap-[3px] h-[clamp(38px,9vh,84px)]">
+          {pulse.buckets.map((b, i) => {
+            const peak = i === pulse.peakIndex;
+            const h = pulse.peakCount > 0 ? Math.max(b.count > 0 ? 0.08 : 0.02, b.count / pulse.peakCount) : 0.02;
+            return (
+              <i
+                key={b.start}
+                className="flex-1 min-w-0 rounded-t-[3px] transition-[height] duration-300"
+                style={{
+                  height: `${(h * 100).toFixed(1)}%`,
+                  background: peak
+                    ? "linear-gradient(180deg,var(--aur-gold-3),var(--aur-gold))"
+                    : b.count > 0 ? "var(--aur-gold-soft-2)" : "var(--aur-hairline)",
+                }}
+              />
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-[10px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
+          <span>{hhmm(pulse.open)}</span>
+          <span>{hhmm(pulse.close)}</span>
+        </div>
+      </div>
+
       {/* Before 06:30 the "time left" figure is arithmetically true and
           practically nonsense — reception is often on the floor at 06:00 and
           would read 8h50 as time left of a service that has not started. Say
           which state the morning is actually in. */}
-      <div className="mt-3 portrait:mt-auto flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+      <div className="mt-3 portrait:mt-0 flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
         <span>Service <b style={{ color: "var(--brand-ink)" }}>06:30 – 10:30</b></span>
         {mins < OPEN ? (
           <span>ouvre dans <b style={{ color: "var(--brand-ink)" }}>{Math.floor((OPEN - mins) / 60)}h{pad((OPEN - mins) % 60)}</b></span>

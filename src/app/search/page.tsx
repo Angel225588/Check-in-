@@ -367,7 +367,7 @@ export default function SearchPage() {
      Idle rotates on its own; a resolved room never does. Both are reachable
      by swipe or by tapping a dot — see PreviewCarousel. */
   const idlePanes: Pane[] = [
-    { key: "clock", label: "Heure", node: <ServiceClock /> },
+    { key: "clock", label: "Heure", node: <ServiceClock checkIns={checkIns} /> },
     { key: "expected", label: "Attendus bientôt", node: <ExpectedPane expected={expected} /> },
     { key: "recents", label: "Récents", node: <RecentsPane recents={recents} /> },
   ];
