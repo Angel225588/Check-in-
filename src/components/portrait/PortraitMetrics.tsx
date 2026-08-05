@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { List, FunnelSimple, Check, X } from "@phosphor-icons/react/dist/ssr";
+import { FunnelSimple, Check, X } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import { getTotalGuests, getCheckedInCount, getCompStats } from "@/lib/utils";
 import { getChildrenCount, getGroupStats } from "@/lib/groups";
@@ -11,29 +11,27 @@ import type { MetricFilter } from "@/components/MetricsBar";
 /**
  * The metrics bar, portrait width.
  *
+ * The burger used to live in this row. It is navigation, not a number, and
+ * sitting inside the same tinted box it read as a fifth metric — so it is its
+ * own control now, beside the bar rather than in it.
+ *
  * Same numbers, same behaviour — read one and tap it to filter the list — but
  * four pills instead of eight, because eight across a phone is 45px each and
  * the labels get cut. Which four is not hard-coded: the outcome trio leads,
  * then the day decides (`compactMetrics`). A metric the day has none of never
  * takes a slot.
- *
- * The burger lives in this row rather than above it. A separate header line
- * costs 44px of the only screen where the pad, the field, the card and the
- * list all have to fit at once.
  */
 export default function PortraitMetrics({
   clients,
   checkIns,
   activeFilter,
   onFilterChange,
-  onMenu,
   expected,
 }: {
   clients: Client[];
   checkIns: CheckInRecord[];
   activeFilter: MetricFilter;
   onFilterChange: (f: MetricFilter) => void;
-  onMenu: () => void;
   expected?: { people: number; basedOn: string | null };
 }) {
   /* Memoised because this bar re-renders on every keystroke, and getGroupStats
@@ -88,16 +86,6 @@ export default function PortraitMetrics({
 
   return (
     <div className="flex items-stretch gap-1.5 p-1.5 surface-chrome rounded-[14px]" data-role="portrait-metrics">
-      <button
-        onClick={onMenu}
-        data-role="portrait-menu"
-        aria-label="Ouvrir le menu du service"
-        className="w-[52px] shrink-0 rounded-[12px] grid place-items-center active:scale-[0.94] transition-transform"
-        style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
-      >
-        <List size={21} weight="bold" style={{ color: "var(--brand-ink)" }} />
-      </button>
-
       {shown.map((m) => {
         const on = activeFilter === m.key;
         return (

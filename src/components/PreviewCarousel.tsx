@@ -125,7 +125,10 @@ export default function PreviewCarousel({
       </div>
 
       {action && (
-        <div className="absolute right-2.5 bottom-2 z-30" data-role="preview-action">
+        /* Top-right, not bottom-right. At the bottom it shared its corner with
+           the dots and sat furthest from the card's own content; at the top it
+           is next to the room it writes about, and the dots get their row back. */
+        <div className="absolute right-2.5 top-2.5 z-30" data-role="preview-action">
           {action}
         </div>
       )}

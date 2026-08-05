@@ -81,13 +81,13 @@ export default function GuestPreviewCard({
           shoved against the ceiling and 200px of nothing under it reads as a
           layout that ran out of things to say. */}
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-0.5 portrait:justify-center">
+      {/* The eyebrow alone. The visits badge moved down to the chip row with
+          the rest of what is true about this stay, which frees the top-right
+          corner for the compose action — the one control on this card. */}
       <div className="shrink-0 flex items-start justify-between gap-3">
         <span className="text-[10.5px] font-black uppercase tracking-[0.15em]"
           style={{ color: vip ? "rgba(255,255,255,.9)" : "var(--tab-idle)" }}>
           Chambre
-        </span>
-        <span className="shrink-0 text-[11px] font-black px-2 py-1 rounded-full" style={glass}>
-          {visits > 0 ? `Habitué · ${visits}ᵉ séjour` : "1ʳᵉ visite"}
         </span>
       </div>
 
@@ -105,7 +105,7 @@ export default function GuestPreviewCard({
         ))}
       </div>
 
-      <div data-role="preview-name" className="shrink-0 text-[20px] portrait:text-[clamp(20px,5.4vw,28px)] font-bold leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
+      <div data-role="preview-name" className="shrink-0 text-[24px] portrait:text-[clamp(24px,6.4vw,34px)] font-black leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
         {client.name}
       </div>
 
@@ -143,9 +143,23 @@ export default function GuestPreviewCard({
       )}
 
       <div className={`flex items-center gap-2 flex-wrap mt-auto portrait:mt-3 pt-2 min-h-0 overflow-hidden ${shown.length > 0 ? "[@media(max-height:720px)]:hidden" : ""}`}>
-        <b className="text-[14px]" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
+        <b className="text-[16px]" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
           {pax} pers.
         </b>
+        {/* A sixteenth stay is the single most useful thing on this card and it
+            was wearing the same glass as everything else. Gold, so "this one
+            comes back" reads before the words do. */}
+        <span
+          data-role="preview-visits"
+          className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full"
+          style={vip
+            ? { background: "rgba(0,0,0,.34)", color: "#fff", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.22)" }
+            : visits > 0
+              ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1px var(--aur-gold)" }
+              : glass}
+        >
+          {visits > 0 ? `Habitué · ${visits}ᵉ` : "1ʳᵉ visite"}
+        </span>
         {/* The stay, in the same landing/takeoff shorthand the check-in card
             already uses. Reception asks "vous partez quand ?" every morning;
             it was on the room's own screen but not on the card you decide
@@ -153,38 +167,38 @@ export default function GuestPreviewCard({
         {(client.arrivalDate || client.departureDate) && (
           <span
             data-role="preview-stay"
-            className="inline-flex items-center gap-1.5 text-[11.5px] font-black px-3 py-1.5 rounded-full tabular-nums"
+            className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full tabular-nums"
             style={glass}
           >
             {client.arrivalDate && (
               <>
-                <AirplaneLanding weight="duotone" size={13} />
+                <AirplaneLanding weight="duotone" size={15} />
                 {shortDate(client.arrivalDate)}
               </>
             )}
             {client.departureDate && (
               <>
-                <AirplaneTakeoff weight="duotone" size={13} className={client.arrivalDate ? "ml-1" : ""} />
+                <AirplaneTakeoff weight="duotone" size={15} className={client.arrivalDate ? "ml-1" : ""} />
                 {shortDate(client.departureDate)}
               </>
             )}
           </span>
         )}
         {needsPay && (
-          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-black px-3 py-1.5 rounded-full"
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full"
             style={hasAlert || vip ? glass : { background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
-            <Coffee weight="duotone" size={13} /><Prohibit weight="bold" size={11} /> À ENCAISSER
+            <Coffee weight="duotone" size={15} /><Prohibit weight="bold" size={12} /> À ENCAISSER
           </span>
         )}
         {comp && (
-          <span className="text-[11.5px] font-black px-3 py-1.5 rounded-full"
+          <span className="text-[13px] font-black px-3 py-1.5 rounded-full"
             style={hasAlert || vip ? glass : { background: "rgba(90,59,143,.16)", color: "var(--aur-pm-points)" }}>
             COMP
           </span>
         )}
         {vip && (
-          <span className="inline-flex items-center gap-1.5 text-[11.5px] font-black px-3 py-1.5 rounded-full" style={glass}>
-            <Star weight="fill" size={12} /> {client.vipLevel || "VIP"}
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full" style={glass}>
+            <Star weight="fill" size={14} /> {client.vipLevel || "VIP"}
           </span>
         )}
       </div>

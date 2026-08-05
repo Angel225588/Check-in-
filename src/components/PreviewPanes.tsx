@@ -131,12 +131,12 @@ export function NotesPane({ notes, ready }: { notes: GuestNote[]; ready: boolean
               <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: m.color }} />
               <NoteToneIcon tone={n.tone} size={14} />
               <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-extrabold leading-snug truncate"
+                <span className="block text-[14.5px] font-extrabold leading-snug truncate"
                   style={{ color: n.tone === "alert" ? m.color : undefined }}>
                   {n.title || n.body}
                 </span>
                 {n.title && n.body && (
-                  <span className="block text-[11.5px] truncate" style={{ color: "var(--tab-idle)" }}>{n.body}</span>
+                  <span className="block text-[12.5px] truncate" style={{ color: "var(--tab-idle)" }}>{n.body}</span>
                 )}
               </span>
             </div>
@@ -167,14 +167,17 @@ export function HistoryPane({
         <Clock weight="duotone" size={13} className="inline mr-1.5 -mt-0.5" />
         Historique
       </span>
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 mt-2">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-1.5 mt-2"
+        style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}
+      >
         {today.length > 0 && (
           <>
-            <span className="text-[9.5px] font-black uppercase tracking-[0.12em]" style={{ color: "var(--tab-idle)" }}>
+            <span className="text-[10.5px] font-black uppercase tracking-[0.12em] shrink-0" style={{ color: "var(--tab-idle)" }}>
               Aujourd&apos;hui
             </span>
             {today.map((t, i) => (
-              <div key={`t${i}`} className="flex items-baseline gap-2 text-[13px] font-bold">
+              <div key={`t${i}`} className="flex items-baseline gap-2.5 text-[15px] font-bold shrink-0 min-h-[30px]">
                 <ArrowUUpLeft weight="bold" size={12} style={{ color: "var(--aur-good-ink)" }} />
                 <span className="tabular-nums" style={{ color: "var(--tab-idle)" }}>{t.at}</span>
                 <span className="flex-1">{t.pax} pers. entrées</span>
@@ -188,12 +191,16 @@ export function HistoryPane({
           </span>
         )}
         {stays.length > 0 && (
-          <span className="text-[9.5px] font-black uppercase tracking-[0.12em] mt-1" style={{ color: "var(--tab-idle)" }}>
-            Séjours précédents
+          <span className="text-[10.5px] font-black uppercase tracking-[0.12em] mt-1 shrink-0" style={{ color: "var(--tab-idle)" }}>
+            Séjours précédents · {stays.length}
           </span>
         )}
-        {stays.slice(0, 4).map((s, i) => (
-          <div key={`s${i}`} className="flex items-baseline gap-2 text-[13px]">
+        {/* All of them, not the first four. A regular's sixteenth stay is
+            exactly the guest whose history is worth reading, and the pane
+            scrolls — capping it left four lines above a pool of air and quietly
+            hid the other twelve. */}
+        {stays.map((s, i) => (
+          <div key={`s${i}`} className="flex items-baseline gap-2.5 text-[15px] shrink-0 min-h-[30px]">
             <b className="font-extrabold tabular-nums">
               {new Date(s.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
             </b>

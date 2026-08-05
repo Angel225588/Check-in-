@@ -1,5 +1,5 @@
 "use client";
-import { Check, WarningCircle, NotePencil } from "@phosphor-icons/react/dist/ssr";
+import { Check, WarningCircle, NotePencil, List } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import { portraitSlot } from "@/lib/portrait";
 import { capRows } from "@/lib/row-cap";
@@ -136,14 +136,28 @@ export default function PortraitSearch({
       {/* Top: where we are, then what you are looking for. Both fixed — the
           numbers are read between guests, not scrolled to. */}
       <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-2.5">
-        <PortraitMetrics
-          clients={clients}
-          checkIns={checkIns}
-          activeFilter={activeFilter}
-          onFilterChange={onFilterChange}
-          onMenu={onMenu}
-          expected={expected}
-        />
+        {/* The menu is not a metric. Inside the tinted bar it read as a fifth
+            pill; beside it, it reads as what it is. */}
+        <div className="flex items-stretch gap-2">
+          <button
+            onClick={onMenu}
+            data-role="portrait-menu"
+            aria-label="Ouvrir le menu du service"
+            className="w-[56px] shrink-0 min-h-[64px] rounded-[14px] grid place-items-center active:scale-[0.94] transition-transform"
+            style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
+          >
+            <List size={22} weight="bold" style={{ color: "var(--brand-ink)" }} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <PortraitMetrics
+              clients={clients}
+              checkIns={checkIns}
+              activeFilter={activeFilter}
+              onFilterChange={onFilterChange}
+              expected={expected}
+            />
+          </div>
+        </div>
         <RoomSearchField value={query} onChange={setQuery} onClear={clear} />
       </div>
 
