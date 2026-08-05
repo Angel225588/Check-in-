@@ -206,6 +206,19 @@ export default function NavDrawer({
           </span>
         </button>
 
+        {/* Which build is this?
+            "It does not work on my tablet" and "it works on mine" are the same
+            sentence about two different builds, and we lost a round to that.
+            Vercel stamps the commit into the bundle; showing seven characters
+            of it turns a guess into a fact. */}
+        <span
+          data-role="build-stamp"
+          className="shrink-0 mt-2 text-center text-[10px] font-bold tabular-nums tracking-[0.08em]"
+          style={{ color: "var(--tab-idle)", opacity: 0.65 }}
+        >
+          build {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}
+        </span>
+
         {onUndo && recents.length > 0 && (
           <button
             onClick={pick(onUndo)}
