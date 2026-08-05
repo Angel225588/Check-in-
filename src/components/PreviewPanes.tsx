@@ -1,4 +1,5 @@
 "use client";
+import { useTapGuard } from "@/hooks/useTapGuard";
 import { Clock, Star, ArrowUUpLeft, NotePencil } from "@phosphor-icons/react/dist/ssr";
 import { toneMeta } from "@/lib/note-tone";
 import NoteToneIcon from "./NoteToneIcon";
@@ -21,6 +22,19 @@ const row =
   "w-full text-left flex items-baseline gap-3 shrink-0 min-h-[44px] px-2 -mx-2 rounded-[10px] " +
   "transition-transform active:scale-[0.985] active:bg-black/[0.04] dark:active:bg-white/[0.06]";
 
+/** A row inside a swipeable frame: the click is ignored when the finger
+ *  travelled, so a swipe across the list does not open whatever it landed on. */
+function PaneRow({
+  onPick, room, children,
+}: { onPick?: (room: string) => void; room: string; children: React.ReactNode }) {
+  const tap = useTapGuard(() => onPick?.(room));
+  return (
+    <button type="button" data-role="pane-row" disabled={!onPick} className={row} {...tap}>
+      {children}
+    </button>
+  );
+}
+
 /** Guests we expect shortly, based on how consistently they have arrived. */
 export function ExpectedPane({ expected, onPick }: { expected: ExpectedGuest[]; onPick?: (room: string) => void }) {
   return (
@@ -33,18 +47,11 @@ export function ExpectedPane({ expected, onPick }: { expected: ExpectedGuest[]; 
           </span>
         )}
         {expected.slice(0, 3).map((e) => (
-          <button
-            key={e.roomNumber}
-            type="button"
-            data-role="pane-row"
-            onClick={() => onPick?.(e.roomNumber)}
-            disabled={!onPick}
-            className={row}
-          >
+          <PaneRow key={e.roomNumber} room={e.roomNumber} onPick={onPick}>
             <b className="text-[22px] font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{e.roomNumber}</b>
             <span className="flex-1 min-w-0 truncate text-[15px] font-bold">{e.surname}</span>
             <em className="not-italic text-[13px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>~{e.at}</em>
-          </button>
+          </PaneRow>
         ))}
       </div>
     </div>
@@ -84,19 +91,12 @@ export function RecentsPane({ recents, onPick }: { recents: RecentEntry[]; onPic
           </span>
         )}
         {recents.map((r, i) => (
-          <button
-            key={`${r.roomNumber}-${i}`}
-            type="button"
-            data-role="pane-row"
-            onClick={() => onPick?.(r.roomNumber)}
-            disabled={!onPick}
-            className={row}
-          >
-            <em className="not-italic text-[12.5px] font-bold tabular-nums w-[46px]" style={{ color: "var(--tab-idle)" }}>{r.at}</em>
-            <b className="text-[19px] font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{r.roomNumber}</b>
-            <span className="flex-1 min-w-0 truncate text-[13.5px] font-bold">{r.name}</span>
-            <span className="text-[12.5px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>{r.pax}</span>
-          </button>
+          <PaneRow key={`${r.roomNumber}-${i}`} room={r.roomNumber} onPick={onPick}>
+            <em className="not-italic text-[13px] font-bold tabular-nums w-[48px]" style={{ color: "var(--tab-idle)" }}>{r.at}</em>
+            <b className="text-[20px] font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{r.roomNumber}</b>
+            <span className="flex-1 min-w-0 truncate text-[14.5px] font-bold">{r.name}</span>
+            <span className="text-[13px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>{r.pax}</span>
+          </PaneRow>
         ))}
       </div>
     </div>

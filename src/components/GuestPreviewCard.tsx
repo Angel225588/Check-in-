@@ -1,4 +1,5 @@
 "use client";
+import { useTapGuard } from "@/hooks/useTapGuard";
 import { Warning, Star, Coffee, Prohibit, PushPin, AirplaneLanding, AirplaneTakeoff } from "@phosphor-icons/react/dist/ssr";
 import { Client } from "@/lib/types";
 import { isComp, needsPaymentChoice } from "@/lib/utils";
@@ -32,11 +33,16 @@ export default function GuestPreviewCard({
   client,
   visits,
   notes = [],
+  onOpen,
 }: {
   client: Client;
   visits: number;
   notes?: GuestNote[];
+  /** Open this guest's own screen. The card is the guest; touching it should
+   *  go to them, which is what every finger tried to do. */
+  onOpen?: () => void;
 }) {
+  const tap = useTapGuard(() => onOpen?.());
   const pax = client.adults + client.children;
   const comp = isComp(client);
   const needsPay = needsPaymentChoice(client);
@@ -80,6 +86,19 @@ export default function GuestPreviewCard({
           owns the whole slot there (Option B), and a key card with its content
           shoved against the ceiling and 200px of nothing under it reads as a
           layout that ran out of things to say. */}
+      {/* The whole card is the target. An overlay rather than a wrapping
+          button, so the card keeps its layout and the pencil and the dots —
+          higher layers — still take their own taps. */}
+      {onOpen && (
+        <button
+          type="button"
+          {...tap}
+          data-role="preview-open"
+          aria-label={`Ouvrir la fiche de la chambre ${client.roomNumber}`}
+          className="absolute inset-0 z-[5] rounded-[24px] active:bg-black/[0.04] dark:active:bg-white/[0.05]"
+        />
+      )}
+
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-0.5 portrait:justify-center">
       {/* The eyebrow alone. The visits badge moved down to the chip row with
           the rest of what is true about this stay, which frees the top-right

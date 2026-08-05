@@ -1325,6 +1325,44 @@ async function main() {
     await ctx.close();
   }
 
+  // R25h — the card is the guest, and a swipe is not a tap.
+  //
+  // Two halves of one thing. The resolved card looked exactly like something
+  // you touch and did nothing, so every finger tried it and nothing happened.
+  // And the moment it did answer, the browser's habit of firing `click` after
+  // any touch meant a swipe across the frame opened a guest screen nobody
+  // asked for — mid-service, with a queue.
+  {
+    const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
+    const type = async (...digits) => {
+      for (const d of digits) {
+        await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${d}$`) }).first().click();
+        await page.waitForTimeout(220);
+      }
+    };
+    await type(3, 1, 0);
+    await page.waitForTimeout(500);
+
+    // A drag across the card must NOT navigate.
+    const box = await page.locator('[data-role="preview-open"]').boundingBox();
+    await page.mouse.move(box.x + box.width * 0.75, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.25, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(600);
+    const afterSwipe = new URL(page.url()).pathname;
+
+    // A tap must.
+    await page.locator('[data-role="preview-open"]').click();
+    await page.waitForTimeout(800);
+    const afterTap = new URL(page.url()).pathname;
+
+    record("R25h-card-opens-guest", "Tapping the guest card opens them; swiping across it does not",
+      afterSwipe === "/search" && afterTap.startsWith("/checkin/"),
+      `swipe→${afterSwipe} tap→${afterTap}`);
+    await ctx.close();
+  }
+
   // R25g — nothing floats over the dock.
   //
   // The install banner was pinned to the bottom of the viewport and landed

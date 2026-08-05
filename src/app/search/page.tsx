@@ -402,7 +402,17 @@ export default function SearchPage() {
         {
           key: "apercu",
           label: "Aperçu",
-          node: <GuestPreviewCard client={hit} visits={visitsFor(hit.name)} notes={hitNotes.notes} />,
+          node: (
+            <GuestPreviewCard
+              client={hit}
+              visits={visitsFor(hit.name)}
+              notes={hitNotes.notes}
+              /* Same destination as "Ouvrir la fiche", and it carries the
+                 stepper's count so the number set here is the number waiting
+                 on the room's own screen. */
+              onOpen={() => handleSelectRoom(hit.roomNumber, clients.indexOf(hit), maxCount > 0 ? count : undefined)}
+            />
+          ),
           // The VIP card is a gold fill in both themes, so its dots stay white.
           onDark: !!hit.isVip,
         },

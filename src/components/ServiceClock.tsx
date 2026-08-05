@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import { useTapGuard } from "@/hooks/useTapGuard";
 import { CheckInRecord } from "@/lib/types";
 import { buildAffluence, hhmm } from "@/lib/report-v2";
 
@@ -28,6 +29,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
      desk and the peak the manager reads at 15:00 can never disagree. Fifteen
      minutes is the grain the report opens on. */
   const pulse = useMemo(() => buildAffluence(checkIns, 15), [checkIns]);
+  const tap = useTapGuard(() => onOpen?.());
   const [now, setNow] = useState<Date | null>(null);
   const [prev, setPrev] = useState<string | null>(null);
 
@@ -64,7 +66,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
       {onOpen && (
         <button
           type="button"
-          onClick={onOpen}
+          {...tap}
           data-role="clock-open-report"
           aria-label="Ouvrir le rapport"
           className="absolute inset-0 z-[5] rounded-[24px] active:bg-black/[0.04] dark:active:bg-white/[0.05]"
