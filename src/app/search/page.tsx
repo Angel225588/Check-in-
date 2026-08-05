@@ -27,6 +27,7 @@ import { checkinHref } from "@/lib/checkin-nav";
 import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks, isInGroupBlock } from "@/lib/groups";
 import { expectedFromYesterday } from "@/lib/expected";
+import { capRows } from "@/lib/row-cap";
 import { swipeEnabled } from "@/lib/gestures";
 import { usePortrait } from "@/hooks/usePortrait";
 import PortraitSearch from "@/components/portrait/PortraitSearch";
@@ -176,20 +177,41 @@ export default function SearchPage() {
     return new Set(last.checkIns.map((c) => key(c.clientName)));
   }, [clients]);
 
-  /** Prior stays per guest, for the preview's first-visit / regular badge. */
-  const visitCounts = useMemo(() => {
-    const m = new Map<string, number>();
+  /**
+   * The history, walked ONCE, into two lookups: how many prior stays a guest
+   * has, and what those stays were.
+   *
+   * Both used to be computed from `getSessionHistory()` at the point of use,
+   * and the second one was not memoised at all — so every keystroke and every
+   * tap of the stepper re-parsed thirty days of JSON and re-walked every guest
+   * of every session, while someone stood at the counter waiting for a digit
+   * to appear. Measured at 71ms median on a desktop, which is several times
+   * that on the iPad. That is the whole of "the pad is not very reactive".
+   */
+  const staysIndex = useMemo(() => {
+    const counts = new Map<string, number>();
+    const stays = new Map<string, StayEntry[]>();
     const today = new Date().toISOString().split("T")[0];
     for (const s of getSessionHistory()) {
       if (s.date === today) continue;
+      const seen = new Set<string>();
       for (const c of s.clients) {
         const k = c.name.trim().toUpperCase();
-        m.set(k, (m.get(k) ?? 0) + 1);
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+        // One row per stay, not one per matching line: a shared room lists the
+        // same guest twice and that is still one night.
+        if (!seen.has(k)) {
+          seen.add(k);
+          (stays.get(k) ?? stays.set(k, []).get(k)!).push({
+            date: s.date, roomNumber: c.roomNumber, pax: c.adults + c.children,
+          });
+        }
       }
     }
-    return m;
+    for (const list of stays.values()) list.sort((a, b) => b.date.localeCompare(a.date));
+    return { counts, stays };
   }, []);
-  const visitsFor = (name: string) => visitCounts.get(name.trim().toUpperCase()) ?? 0;
+  const visitsFor = (name: string) => staysIndex.counts.get(name.trim().toUpperCase()) ?? 0;
 
   /** Guests whose arrival time is predictable: three or more prior stays. One
    *  visit is not a pattern, and a wrong prediction puts a wrong name in
@@ -350,16 +372,9 @@ export default function SearchPage() {
     { key: "recents", label: "Récents", node: <RecentsPane recents={recents} /> },
   ];
 
+  // A map lookup, not a parse of every night the hotel has had.
   const hitStays: StayEntry[] = hit
-    ? getSessionHistory()
-        .filter((sess) => sess.date !== new Date().toISOString().split("T")[0])
-        .flatMap((sess) =>
-          sess.clients
-            .filter((c) => c.name.trim().toUpperCase() === hit.name.trim().toUpperCase())
-            .slice(0, 1)
-            .map((c) => ({ date: sess.date, roomNumber: c.roomNumber, pax: c.adults + c.children }))
-        )
-        .sort((a, b) => b.date.localeCompare(a.date))
+    ? staysIndex.stays.get(hit.name.trim().toUpperCase()) ?? []
     : [];
 
   const hitToday: RecentEntry[] = hit
@@ -388,7 +403,8 @@ export default function SearchPage() {
     : [];
 
   const showFiltered = activeFilter && !query;
-  const displayClients = query ? results : showFiltered ? filteredClients : [];
+  const { shown: displayClients, more: hiddenRows } =
+    capRows(query ? results : showFiltered ? filteredClients : []);
   const filterLabels: Record<string, string> = {
     total: t("search.allClients"),
     entered: t("search.entered"),
@@ -766,6 +782,11 @@ export default function SearchPage() {
             </div>
           );
         })}
+        {hiddenRows > 0 && (
+          <div className="text-center py-3 text-sm font-bold text-muted" data-role="rows-capped">
+            +{hiddenRows} autre{hiddenRows > 1 ? "s" : ""} — tapez un chiffre de plus
+          </div>
+        )}
         {query && results.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-6">
             <div className="text-muted text-sm">{t("search.noRooms")}</div>

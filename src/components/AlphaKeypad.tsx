@@ -48,7 +48,11 @@ export default function AlphaKeypad({
       className="glass-surface rounded-[14px] p-1.5 md:p-3 flex flex-col gap-1.5 md:gap-2 w-full h-full"
       role="group"
       aria-label="Letter keypad"
-      style={{ touchAction: "manipulation" }}
+      /* none, not manipulation: manipulation still lets the browser
+         consider the touch a pan and wait to see. A key is never a
+         scroll — the portrait page does not scroll at all — so the
+         browser has nothing to decide and the digit lands at once. */
+      style={{ touchAction: "none" }}
       data-role="alpha-keypad"
     >
       {rows.map((row, i) => (

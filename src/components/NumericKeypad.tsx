@@ -45,7 +45,11 @@ export default function NumericKeypad({
       role="group"
       aria-label="Numeric keypad"
       data-role="numeric-keypad"
-      style={{ touchAction: "manipulation" }}
+      /* none, not manipulation: manipulation still lets the browser
+         consider the touch a pan and wait to see. A key is never a
+         scroll — the portrait page does not scroll at all — so the
+         browser has nothing to decide and the digit lands at once. */
+      style={{ touchAction: "none" }}
     >
       {keys.map((row, i) => (
         <div key={i} className="grid grid-cols-3 gap-1.5 md:gap-2 flex-1 min-h-0">

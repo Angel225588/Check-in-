@@ -2,6 +2,7 @@
 import { Check, WarningCircle, NotePencil } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import { portraitSlot } from "@/lib/portrait";
+import { capRows } from "@/lib/row-cap";
 import PortraitMetrics from "@/components/portrait/PortraitMetrics";
 import RoomSearchField from "@/components/RoomSearchField";
 import PreviewCarousel, { type Pane } from "@/components/PreviewCarousel";
@@ -99,7 +100,9 @@ export default function PortraitSearch({
     flash: !!flash,
   });
 
-  const rows = query ? results : filteredClients;
+  /* Capped, and never silently: one digit into a full house matches a third
+     of it, and drawing all of them is what made the first keystroke slow. */
+  const { shown: rows, more: hiddenRows } = capRows(query ? results : filteredClients);
 
   /* Landscape's idle slot is 240px, so it opens on the clock and the clock
      fills it. Portrait's is three times that, and a clock centred in 800px of
@@ -221,6 +224,11 @@ export default function PortraitSearch({
                 >
                   Ajouter {query}
                 </button>
+              </div>
+            )}
+            {hiddenRows > 0 && (
+              <div className="text-center py-3 text-[13px] font-bold text-muted" data-role="rows-capped">
+                +{hiddenRows} autre{hiddenRows > 1 ? "s" : ""} — tapez un chiffre de plus
               </div>
             )}
             {!query && rows.length === 0 && (

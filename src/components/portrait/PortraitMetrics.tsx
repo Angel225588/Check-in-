@@ -1,4 +1,5 @@
 "use client";
+import { useMemo } from "react";
 import { List } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import { getTotalGuests, getCheckedInCount, getCompStats } from "@/lib/utils";
@@ -35,10 +36,17 @@ export default function PortraitMetrics({
   onMenu: () => void;
   expected?: { people: number; basedOn: string | null };
 }) {
-  const total = getTotalGuests(clients);
-  const entered = getCheckedInCount(checkIns);
-  const comp = getCompStats(clients, checkIns);
-  const groups = getGroupStats(clients);
+  /* Memoised because this bar re-renders on every keystroke, and getGroupStats
+     rebuilds every tour block from scratch — a full pass over the house to
+     redraw four numbers that did not change because someone typed a 2. */
+  const { total, entered, comp, groups, children, vipCount } = useMemo(() => ({
+    total: getTotalGuests(clients),
+    entered: getCheckedInCount(checkIns),
+    comp: getCompStats(clients, checkIns),
+    groups: getGroupStats(clients),
+    children: getChildrenCount(clients),
+    vipCount: clients.filter((c) => c.isVip).length,
+  }), [clients, checkIns]);
 
   const all: { key: MetricFilter & string; label: string; value: number; render?: React.ReactNode }[] = [
     { key: "total", label: "Total", value: total },
@@ -47,10 +55,10 @@ export default function PortraitMetrics({
     // Attendus is a fact measured against a real previous service, so it is
     // absent rather than zero when there is no service to measure against.
     ...(expected?.basedOn ? [{ key: "expected" as const, label: "Attendus", value: expected.people }] : []),
-    { key: "children" as const, label: "Enfants", value: getChildrenCount(clients) },
+    { key: "children" as const, label: "Enfants", value: children },
     { key: "groups" as const, label: "Groupes", value: groups.people },
     { key: "comp" as const, label: "Comp", value: comp.total },
-    { key: "vip" as const, label: "VIP", value: clients.filter((c) => c.isVip).length },
+    { key: "vip" as const, label: "VIP", value: vipCount },
   ];
 
   const chosen = compactMetrics(all.map((m) => ({ key: m.key, value: m.value })), clients.length);
