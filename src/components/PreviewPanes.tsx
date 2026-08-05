@@ -10,8 +10,19 @@ const shell =
 
 const cap = "text-[10.5px] font-black uppercase tracking-[0.14em] shrink-0";
 
+/**
+ * A row you can read is a row you will try to touch.
+ *
+ * The panes listed rooms and names in a frame that looked exactly like every
+ * other list in the app and answered to nothing. `onPick` makes each row open
+ * that guest, which is what the finger was already trying to do.
+ */
+const row =
+  "w-full text-left flex items-baseline gap-3 shrink-0 min-h-[44px] px-2 -mx-2 rounded-[10px] " +
+  "transition-transform active:scale-[0.985] active:bg-black/[0.04] dark:active:bg-white/[0.06]";
+
 /** Guests we expect shortly, based on how consistently they have arrived. */
-export function ExpectedPane({ expected }: { expected: ExpectedGuest[] }) {
+export function ExpectedPane({ expected, onPick }: { expected: ExpectedGuest[]; onPick?: (room: string) => void }) {
   return (
     <div className={shell} data-role="pane-expected">
       <span className={cap} style={{ color: "var(--tab-idle)" }}>Attendus bientôt</span>
@@ -22,11 +33,18 @@ export function ExpectedPane({ expected }: { expected: ExpectedGuest[] }) {
           </span>
         )}
         {expected.slice(0, 3).map((e) => (
-          <div key={e.roomNumber} className="flex items-baseline gap-3">
+          <button
+            key={e.roomNumber}
+            type="button"
+            data-role="pane-row"
+            onClick={() => onPick?.(e.roomNumber)}
+            disabled={!onPick}
+            className={row}
+          >
             <b className="text-[22px] font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{e.roomNumber}</b>
             <span className="flex-1 min-w-0 truncate text-[15px] font-bold">{e.surname}</span>
             <em className="not-italic text-[13px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>~{e.at}</em>
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -48,7 +66,7 @@ export interface RecentEntry {
  * above a pool of air, and switches to a plain scroller once there is enough
  * to scroll.
  */
-export function RecentsPane({ recents }: { recents: RecentEntry[] }) {
+export function RecentsPane({ recents, onPick }: { recents: RecentEntry[]; onPick?: (room: string) => void }) {
   return (
     <div className={shell} data-role="pane-recents">
       <span className={cap} style={{ color: "var(--tab-idle)" }}>
@@ -66,12 +84,19 @@ export function RecentsPane({ recents }: { recents: RecentEntry[] }) {
           </span>
         )}
         {recents.map((r, i) => (
-          <div key={`${r.roomNumber}-${i}`} className="flex items-baseline gap-3 shrink-0">
+          <button
+            key={`${r.roomNumber}-${i}`}
+            type="button"
+            data-role="pane-row"
+            onClick={() => onPick?.(r.roomNumber)}
+            disabled={!onPick}
+            className={row}
+          >
             <em className="not-italic text-[12.5px] font-bold tabular-nums w-[46px]" style={{ color: "var(--tab-idle)" }}>{r.at}</em>
             <b className="text-[19px] font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{r.roomNumber}</b>
             <span className="flex-1 min-w-0 truncate text-[13.5px] font-bold">{r.name}</span>
             <span className="text-[12.5px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>{r.pax}</span>
-          </div>
+          </button>
         ))}
       </div>
     </div>

@@ -23,7 +23,7 @@ function pad(n: number): string {
  * Rotation belongs to the carousel around it, and only while idle — the moment
  * a room resolves, nothing in this column is allowed to move on its own.
  */
-export default function ServiceClock({ checkIns = [] }: { checkIns?: CheckInRecord[] }) {
+export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: CheckInRecord[]; onOpen?: () => void }) {
   /* Same arithmetic as the report's chart, so the peak reception reads at the
      desk and the peak the manager reads at 15:00 can never disagree. Fifteen
      minutes is the grain the report opens on. */
@@ -57,6 +57,19 @@ export default function ServiceClock({ checkIns = [] }: { checkIns?: CheckInReco
       className="relative flex-1 min-h-[158px] rounded-[24px] px-5 py-4 portrait:pb-9 flex flex-col justify-center portrait:justify-between overflow-hidden glass-liquid"
       data-role="service-clock"
     >
+      {/* The whole face opens the report. The chart here is a glance; the
+          report is where you change the grain and read the day. An overlay
+          rather than a wrapping button, so the card keeps its layout and the
+          carousel's dots (a higher layer) still take their own taps. */}
+      {onOpen && (
+        <button
+          type="button"
+          onClick={onOpen}
+          data-role="clock-open-report"
+          aria-label="Ouvrir le rapport"
+          className="absolute inset-0 z-[5] rounded-[24px] active:bg-black/[0.04] dark:active:bg-white/[0.05]"
+        />
+      )}
       <div className="flex items-baseline gap-3">
         <div className="flex text-[clamp(56px,7vw,104px)] font-light leading-[0.92] tracking-[-0.045em] tabular-nums">
           {digits.split("").map((d, i) => (
@@ -119,9 +132,42 @@ export default function ServiceClock({ checkIns = [] }: { checkIns?: CheckInReco
             );
           })}
         </div>
-        <div className="flex justify-between text-[10px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
-          <span>{hhmm(pulse.open)}</span>
-          <span>{hhmm(pulse.close)}</span>
+        {/* A ruler, not two lonely end labels: "when was the rush" is a
+            question about a point on a line, and a line with no marks on it
+            cannot be read to the nearest half hour. Ticks on the hour, the
+            peak called out in gold underneath its own bar. */}
+        <div className="relative h-[26px] shrink-0" data-role="pulse-ruler">
+          <div className="absolute left-0 right-0 top-0 h-px" style={{ background: "var(--aur-hairline)" }} />
+          {(() => {
+            const span = Math.max(1, pulse.close - pulse.open);
+            const first = Math.ceil(pulse.open / 60) * 60;
+            const marks = [];
+            for (let m = first; m <= pulse.close; m += 60) marks.push(m);
+            return marks.map((m) => {
+              const pos = ((m - pulse.open) / span) * 100;
+              return (
+                <span key={m} className="absolute top-0 flex flex-col items-center -translate-x-1/2" style={{ left: `${pos}%` }}>
+                  <i className="block w-px h-[5px]" style={{ background: "var(--aur-hairline)" }} />
+                  <em className="not-italic text-[10px] font-bold tabular-nums leading-none mt-0.5"
+                    style={{ color: "var(--tab-idle)" }}>{hhmm(m)}</em>
+                </span>
+              );
+            });
+          })()}
+          {pulse.peakIndex >= 0 && (() => {
+            const span = Math.max(1, pulse.close - pulse.open);
+            const b = pulse.buckets[pulse.peakIndex];
+            const pos = ((b.start + pulse.grain / 2 - pulse.open) / span) * 100;
+            return (
+              <span
+                className="absolute top-[13px] -translate-x-1/2 text-[10px] font-black tabular-nums whitespace-nowrap"
+                style={{ left: `${Math.min(92, Math.max(8, pos))}%`, color: "var(--brand-ink)" }}
+                data-role="pulse-peak-mark"
+              >
+                ▲ {hhmm(b.start)}
+              </span>
+            );
+          })()}
         </div>
       </div>
 

@@ -102,15 +102,19 @@ for (const [name, w, h] of DEVICES) {
         adults, children, rateCode: "", packageCode, ...(isVip ? { isVip: true, vipLevel: "VIP" } : {}),
       }));
       const iso = (hh, mm) => new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm).toISOString();
-      const arrivals = [["402", 4, 6, 55], ["437", 2, 7, 10], ["224", 3, 7, 40], ["501", 2, 7, 50], ["718", 2, 8, 0]];
-      localStorage.setItem("dailyData_" + d, JSON.stringify({
-        date: d, clients, rawUploadText: "",
-        checkIns: arrivals.map(([room, pax, hh, mm], i) => ({
-          id: "ci" + i, roomNumber: room,
-          clientName: clients.find((c) => c.roomNumber === room).name,
-          peopleEntered: pax, timestamp: iso(hh, mm),
-        })),
-      }));
+      // A real morning: slow start, a hard peak just before 08:00, a tail.
+      const curve = [[6,40,1],[6,55,2],[7,5,2],[7,20,3],[7,35,4],[7,45,6],[7,50,5],
+                     [8,0,6],[8,10,4],[8,20,3],[8,40,2],[9,0,2],[9,20,1],[9,50,1]];
+      const checkIns = [];
+      let k = 0;
+      for (const [hh, mm, cnt] of curve) {
+        for (let j = 0; j < cnt; j++) {
+          const c = clients[k % clients.length];
+          checkIns.push({ id: "ci" + (k++), roomNumber: c.roomNumber, clientName: c.name,
+            peopleEntered: 1, timestamp: iso(hh, mm) });
+        }
+      }
+      localStorage.setItem("dailyData_" + d, JSON.stringify({ date: d, clients, rawUploadText: "", checkIns }));
       localStorage.setItem("app-dark", dark ? "true" : "false");
     }, { day: DAY, dark });
 
@@ -140,6 +144,18 @@ for (const [name, w, h] of DEVICES) {
     await page.locator('[data-role="pad-abc"]').click();
     await page.waitForTimeout(500);
     await shot("5-letters");
+
+    // Back to rest, then the last face: the hour and the shape of the morning.
+    // Switching pad already clears the field, so this is back at rest.
+    await page.locator('[data-role="pad-123"]').click();
+    await page.waitForTimeout(700);
+    const dots = page.locator('[data-role="preview-dots"] button');
+    const n = await dots.count();
+    if (n > 1) {
+      await dots.nth(n - 1).click();
+      await page.waitForTimeout(600);
+      await shot("6-clock");
+    }
 
     await ctx.close();
   }

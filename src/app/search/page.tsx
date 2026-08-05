@@ -366,10 +366,19 @@ export default function SearchPage() {
   /* ── The preview slot's faces ──────────────────────────────────────────
      Idle rotates on its own; a resolved room never does. Both are reachable
      by swipe or by tapping a dot — see PreviewCarousel. */
+  /** Open a guest from a row in one of the idle faces. Rooms that have left
+   *  the list since it was drawn simply do nothing rather than opening a
+   *  screen about nobody. */
+  const openRoom = (roomNumber: string) => {
+    const i = clients.findIndex((c) => c.roomNumber === roomNumber);
+    if (i < 0) return;
+    handleSelectRoom(roomNumber, i);
+  };
+
   const idlePanes: Pane[] = [
-    { key: "clock", label: "Heure", node: <ServiceClock checkIns={checkIns} /> },
-    { key: "expected", label: "Attendus bientôt", node: <ExpectedPane expected={expected} /> },
-    { key: "recents", label: "Récents", node: <RecentsPane recents={recents} /> },
+    { key: "clock", label: "Heure", node: <ServiceClock checkIns={checkIns} onOpen={() => { rememberOrigin("search"); router.push("/report"); }} /> },
+    { key: "expected", label: "Attendus bientôt", node: <ExpectedPane expected={expected} onPick={openRoom} /> },
+    { key: "recents", label: "Récents", node: <RecentsPane recents={recents} onPick={openRoom} /> },
   ];
 
   // A map lookup, not a parse of every night the hotel has had.
@@ -661,12 +670,14 @@ export default function SearchPage() {
           onClose={() => setDrawerOpen(false)}
           handSide={handSide}
           swipe={swipe}
-          onRecents={() => setHistoryOpen(true)}
-          onReport={() => router.push("/report")}
+          recents={recents}
+          onPickRoom={openRoom}
+          onReport={() => { rememberOrigin("search"); router.push("/report"); }}
           onFlipSide={flipSide}
           onSwipeToggle={flipSwipe}
           onCloseDay={closeDayConfirmed}
           onUpload={() => router.push("/upload")}
+          onUndo={() => setHistoryOpen(true)}
         />
         {overlays}
       </>

@@ -13,7 +13,12 @@ export interface Pane {
 const AUTO_MS = 8000;
 /** After a manual swipe or tap, auto-advance stays out of the way this long. */
 const PAUSE_MS = 20000;
-const SWIPE_PX = 44;
+/* 44 was a deliberate finger-width, but a swipe inside a 340px card is a
+   shorter gesture than a swipe across a screen, and the pane under it scrolls
+   vertically — so a real horizontal flick often ended at 36-40px and was
+   discarded. 30 still cannot be reached by a tap (which moves single digits)
+   and it must still be the dominant axis. */
+const SWIPE_PX = 30;
 
 /**
  * The box above the keypad: one slot, several faces.
@@ -84,8 +89,9 @@ export default function PreviewCarousel({
     const dy = y - startY.current;
     if (Math.abs(dx) < SWIPE_PX) return;
     // The panes scroll, so a drag that is mostly vertical belongs to the list
-    // inside the pane rather than to the carousel.
-    if (Math.abs(dy) > Math.abs(dx)) return;
+    // inside the pane rather than to the carousel. A clear margin, not a tie:
+    // a diagonal drag on a scrolling list should scroll it, not change face.
+    if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
     go(i + (dx < 0 ? 1 : -1));
   };
 
