@@ -1560,6 +1560,56 @@ async function main() {
     await ctx.close();
   }
 
+  // R29 — no orphan band under the frame.
+  //
+  // A fixed 28vh frame on an iPad stood up left ~180px of nothing between the
+  // card and the commit button: not a layout, a gap. The frame takes the slot
+  // it is given now and caps at 520px. The check is the distance from the
+  // frame's bottom edge to the dock's top edge — the thing you actually see.
+  for (const [label, w, h] of [["phone", 390, 844], ["ipad", 834, 1194]]) {
+    const { ctx, page } = await openDay("/search", { w, h });
+    const frame = await page.locator('[data-role="preview-carousel"]').boundingBox();
+    const dock = await page.locator('[data-role="portrait-dock"]').boundingBox();
+    const gap = frame && dock ? dock.y - (frame.y + frame.height) : null;
+    record(`R29-${label}-no-orphan-band`, "The resting frame leaves no band of dead screen above the pad",
+      gap !== null && gap < 120,
+      gap === null ? "frame or dock missing" : `${gap.toFixed(0)}px between frame and dock`);
+    await ctx.close();
+  }
+
+  // R28 — the app's furniture keeps out of the status bar and the home
+  // indicator, at BOTH ends.
+  //
+  // `viewport-fit: cover` hands the app the whole screen — which is what we
+  // want for the dock, and a bargain: iOS is still drawing a clock in the top
+  // strip and an indicator in the bottom one. We shipped the bottom half of
+  // that deal and the burger went under the clock on a real iPad.
+  //
+  // A desktop browser reports 0 on every inset, so a rule written against
+  // `env()` alone passes on the one machine where the bug cannot happen. The
+  // utilities read `--safe-top` / `--safe-bottom` first, so the harness can be
+  // an iPad: 44px of status bar, 34px of home indicator.
+  for (const [path, top, dock] of [
+    ["/search", '[data-role="portrait-menu"]', '[data-role="portrait-dock"]'],
+    ["/report", '[data-role="report-header"] button', null],
+  ]) {
+    for (const [label, w, h] of [["phone", 390, 844], ["ipad", 834, 1194]]) {
+      const { ctx, page } = await openDay(path, { w, h });
+      await page.addStyleTag({ content: ":root{--safe-top:44px;--safe-bottom:34px}" });
+      await page.waitForTimeout(300);
+      const topBox = await page.locator(top).first().boundingBox().catch(() => null);
+      const dockBox = dock ? await page.locator(dock).boundingBox().catch(() => null) : null;
+      const clearsTop = !!topBox && topBox.y >= 44;
+      const clearsBottom = !dockBox || dockBox.y + dockBox.height <= h - 34 + 1;
+      record(`R28-${label}-${path.slice(1)}-safe-area`,
+        "The app's own furniture stays out of the status bar and the home indicator",
+        clearsTop && clearsBottom,
+        !clearsTop ? `top chrome starts at y=${topBox?.y?.toFixed(0) ?? "?"}, status bar is 44px` :
+        !clearsBottom ? `dock ends ${(dockBox.y + dockBox.height).toFixed(0)} of ${h - 34}` : "clear");
+      await ctx.close();
+    }
+  }
+
   // R27 — contrast on the guest screen, panel open, in both themes.
   //
   // R18 sweeps /search and /report. The guest screen's side panel was never

@@ -235,7 +235,7 @@ function ReportV2() {
   return (
     <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2 flex-wrap">
+      <div className="shrink-0 flex items-center gap-3 px-3 pt-safe pb-2 flex-wrap" data-role="report-header">
         <button
           onClick={() => router.push(isHistorical ? "/reports" : "/search")}
           className="min-h-[46px] px-4 rounded-full flex items-center gap-1.5 glass-liquid active:scale-[0.96] transition-transform"
@@ -377,7 +377,7 @@ function ReportV2() {
           two views of one state, not two lists. */}
       {expanded && (
         <div className="fixed inset-0 z-50 flex flex-col bg-[#FBF8F3] dark:bg-[#12100E]" data-role="report-list-sheet">
-          <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2">
+          <div className="shrink-0 flex items-center gap-3 px-3 pt-safe pb-2">
             <span className="text-[15px] font-black" style={{ color: "var(--brand-ink)" }}>
               Par ordre d&apos;arrivée
             </span>

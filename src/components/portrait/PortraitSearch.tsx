@@ -148,7 +148,17 @@ export default function PortraitSearch({
      it is a wall. Card-sized and always in the same spot means the eye learns
      where to look once — it does not move between resting and resolved, and it
      does not resize when the guest has more to say than the clock. */
-  const FRAME = "shrink-0 h-[clamp(150px,28vh,340px)] max-h-full flex flex-col";
+  /* Fill the slot, up to a cap.
+
+     Fixed at 28vh it left a 180px band of nothing between the card and the
+     commit button on an iPad stood up — the card had stopped being a wall and
+     become a postcard with a margin of dead screen under it. The frame takes
+     the slot it is given and stops at 520px, which is where a card starts
+     reading as a wall again.
+
+     Both states use this, so the eye still learns one place: the frame is the
+     same size resting and resolved, and nothing moves when a room comes up. */
+  const FRAME = "flex-1 min-h-0 max-h-[clamp(150px,46vh,520px)] flex flex-col";
   const bubble =
     "w-[clamp(56px,8.5vh,72px)] h-[clamp(56px,8.5vh,72px)] shrink-0 rounded-full text-[30px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25";
 
@@ -159,7 +169,7 @@ export default function PortraitSearch({
     >
       {/* Top: where we are, then what you are looking for. Both fixed — the
           numbers are read between guests, not scrolled to. */}
-      <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-2.5">
+      <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-safe">
         {/* The menu is not a metric. Inside the tinted bar it read as a fifth
             pill; beside it, it reads as what it is. */}
         <div className={`flex items-stretch gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>

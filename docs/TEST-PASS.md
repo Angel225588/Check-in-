@@ -10,6 +10,28 @@ reopen the installed app.
 
 ---
 
+## 0 · The edges of the screen — **installed app, not the browser tab**
+
+`viewport-fit: cover` gives the app the whole screen. That is what we want for
+the pad, and it is a bargain: iOS still draws a clock in the top strip and an
+indicator in the bottom one, and the app has to keep out of both.
+
+| | Check | Good |
+|---|---|---|
+| 0.1 | **Recherche**, installed app, portrait | The burger and the metrics bar sit **below** the clock and the battery — not under them |
+| 0.2 | Same, landscape | Same |
+| 0.3 | **Rapport** | The back button and the date sit below the status bar |
+| 0.4 | A guest screen | Same |
+| 0.5 | Any screen with the pad open | The last row of keys is above the home indicator |
+
+## 0b · The resting screen
+
+| | Check | Good |
+|---|---|---|
+| 0b.1 | **Recherche** at rest, nothing typed | The Récents card **fills** the space between the search field and the commit button — no band of empty screen |
+| 0b.2 | Drawer → **Aperçu au repos** off | The space is deliberately empty. That is the switch, not a fault — turn it back on if the empty screen is not what you wanted |
+| 0b.3 | Type a room, then clear it | The frame is the **same size** resting and resolved; nothing jumps |
+
 ## 1 · The pad (report screen)
 
 | | Check | Good |

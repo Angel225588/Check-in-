@@ -13,6 +13,42 @@ git for those.
 
 ---
 
+## 2026-08-07 (late) — the other end of the same bargain
+
+### The burger went under the clock (US-30, second half)
+`viewport-fit: cover` hands the app the whole screen. That is what we wanted
+for the dock — but it is a bargain, and we took only one side of it. iOS is
+still drawing a status bar in the top strip and an indicator in the bottom one,
+and the app now owns both. Angel's screenshot: the burger and the metrics bar
+sitting under the clock and the battery.
+
+**My regression, from this session.** `pb-safe` was the fix for the bottom; the
+top never got one. `.pt-safe` now, on the portrait shell, the activity sheet,
+the report header and its full-screen sheet, the guest screen, the landscape
+search header, /reports and /clients.
+
+**The insets go through a variable so the harness can fake them.** A desktop
+browser reports 0 on every edge, so a rule written against `env()` alone passes
+on the one machine where the bug cannot happen — it would have watched this
+ship. `--safe-top: 44px` makes any machine an iPad. R28 sets it and asserts the
+first control is below it; measured 54px after the fix, 10px before.
+
+### The band of dead screen (R29)
+The resting frame was pinned at 28vh, which on an iPad stood up left ~180px of
+nothing between the card and the commit button — and 500px when the resting
+preview is switched off. The frame takes the slot it is given now and stops at
+520px, which is where a card starts reading as a wall again.
+
+Same size resting and resolved, so the eye still learns one place. Verified on
+Angel's own numbers — 186 rooms, 157 entered: five recents visible before, eight
+now, and no gap.
+
+The empty screen with **Aperçu au repos** off is the switch doing what it says.
+Worth stating rather than fixing: reproduced both ways, `carousel=1` on and
+`carousel=0` off.
+
+---
+
 ## 2026-08-07 (night) — the gate, 100/100
 
 **Branch** `claude/checkin-app-registration-bug-3lpy9c` · 511 tests across 41

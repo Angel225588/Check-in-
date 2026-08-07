@@ -806,12 +806,23 @@ html.dark .vip-glow {
 }
 
 
-/* ── The bottom of the screen ─────────────────────────────────────────────
-   Installed, the app owns the full screen and the home indicator sits over
-   the last stripe of it. Anything docked at the bottom adds the inset to its
-   own padding; anything that sets its own height subtracts it, or the last
-   row of keys ends up under the indicator with no way to tell from a desktop
-   browser that it happened. */
+/* ── The edges of the screen ──────────────────────────────────────────────
+   `viewport-fit: cover` hands the app the WHOLE screen, status bar and home
+   indicator included. That is what we want — a dock flush to the bottom edge
+   rather than a white letterbox — but it is a bargain: the app now owns two
+   strips that iOS is also drawing in, and it has to keep its own furniture out
+   of them at BOTH ends.
+
+   Bottom only was half a fix, and the half we shipped: the burger and the
+   metrics bar went straight under the clock and the battery on a real iPad.
+
+   The insets go through a variable so the harness can fake them. A desktop
+   browser reports 0 on every edge, so a rule written against `env()` alone
+   proves nothing at all — it passes on the one machine where the bug cannot
+   happen. Setting `--safe-top` to 44px is the iPad, on any machine. */
+.pt-safe {
+  padding-top: calc(var(--chrome-pad, 10px) + var(--safe-top, env(safe-area-inset-top, 0px)));
+}
 .pb-safe {
-  padding-bottom: calc(var(--dock-pad, 10px) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--dock-pad, 10px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 }

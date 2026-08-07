@@ -822,7 +822,7 @@ export default function SearchPage() {
 
   return (
     <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
-      <div className="shrink-0 px-3 pt-3 pb-0">
+      <div className="shrink-0 px-3 pt-safe pb-0">
         {/* Header row: back button + logo */}
         <div className="flex items-center justify-between mb-2 md:mb-3">
           <button

@@ -381,7 +381,7 @@ export default function CheckInPage({
           main column, so opening the activity rail pushed it 300px to the
           right — the one control that has to be in the same place every time
           was the one moving most. */}
-      <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 h-[68px]">
+      <div className="shrink-0 flex items-center gap-2 px-3 pt-safe pb-2 min-h-[68px]">
 
             <button
               onClick={() => router.push(takeOrigin())}
