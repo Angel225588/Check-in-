@@ -59,6 +59,9 @@ export function ExpectedPane({ expected, onPick }: { expected: ExpectedGuest[]; 
 }
 
 export interface RecentEntry {
+  /** The check-in record behind the row. Present for today's arrivals, absent
+   *  for a past-stay row — you cannot undo a morning that is already closed. */
+  id?: string;
   roomNumber: string;
   name: string;
   pax: number;

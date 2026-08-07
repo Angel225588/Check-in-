@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useDailyData } from "@/hooks/useDailyData";
 import { useSearch } from "@/hooks/useSearch";
 import { useApp } from "@/contexts/AppContext";
-import { addClient, mergeVipIntoSession, getSessionHistory, getSettings, saveSettings, closeDay, addCheckIn } from "@/lib/storage";
+import { addClient, mergeVipIntoSession, getSessionHistory, getSettings, saveSettings, closeDay, addCheckIn, removeCheckIn } from "@/lib/storage";
 import { v4 as uuidv4 } from "uuid";
 import { Check, WarningCircle, NotePencil } from "@phosphor-icons/react/dist/ssr";
 import { useGuestNotes } from "@/hooks/useGuestNotes";
@@ -94,6 +94,14 @@ export default function SearchPage() {
     saveSettings({ ...getSettings(), swipe: next });
   };
 
+  /** Undo an arrival from wherever it is listed. The drawer used to carry a
+   *  button to a screen whose only job was this, which is a trip to correct a
+   *  typo you are already looking at. */
+  const undoCheckIn = (id: string) => {
+    removeCheckIn(id);
+    refresh();
+  };
+
   const chooseMetricsFor = (next: string[]) => {
     setChosenMetrics(next);
     saveSettings({ ...getSettings(), metrics: next });
@@ -173,6 +181,7 @@ export default function SearchPage() {
       // whole service, newest first, for the "did I already do 224?" question.
       .slice(0, 40)
       .map((c) => ({
+        id: c.id,
         roomNumber: c.roomNumber,
         name: c.clientName,
         pax: c.peopleEntered,
@@ -730,7 +739,7 @@ export default function SearchPage() {
              PDF or a photo — the screen it used to open is a detour with its
              own layout and its own back button, for a choice of four. */
           onUpload={() => setUploadSheetOpen(true)}
-          onUndo={() => setHistoryOpen(true)}
+          onUndoRow={undoCheckIn}
           onExpandActivity={() => setActivityOpen(true)}
         />
         <ActivitySheet
@@ -739,6 +748,7 @@ export default function SearchPage() {
           rows={activityRows}
           clients={clients}
           onPickRoom={openRoom}
+          onUndoRow={undoCheckIn}
         />
         {overlays}
       </>

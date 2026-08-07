@@ -350,6 +350,31 @@ left and scrolls under both.
     wrong "d'habitude" is worse than none — it puts a sentence in reception's
     mouth about a guest standing in front of them.
 
+### US-27 — Correct an entry where it is listed — BUILT
+
+    As      Réception
+    I need  to undo a mis-tapped arrival from the list I am already reading
+    So that fixing a typo does not cost a screen
+
+    Scenario: 224 was entered twice in the rush
+      Given  the drawer is open on the day's activity
+      When   I tap the undo arrow on that row
+      Then   the row asks "Annuler l'entrée de 224 ?" in place, and the second
+             tap removes it — the list is still under my thumb
+
+    Never:  a one-tap destroy. Never a modal for it either: undo removes a
+            record, and a dialog mid-service is one more thing to dismiss.
+    Proof:  verified on a real build — 3 rows, arm, confirm, 2 rows; arm then
+            cancel leaves 2. Design rule to be written.
+
+    The drawer used to carry a button to a screen whose only job was this. A
+    trip to correct a typo you are already looking at. The button is gone.
+
+    The row arms rather than confirming in a dialog: a mis-tap costs one extra
+    tap, which is the right price for something that cannot be un-done. Two
+    buttons in a div, not a button inside a button — the nesting is invalid
+    HTML and Safari resolves it by dropping one of them.
+
 ### US-25 — Turn the resting preview off — BUILT
 
     As      Réception

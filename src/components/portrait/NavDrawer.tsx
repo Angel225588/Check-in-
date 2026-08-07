@@ -1,9 +1,10 @@
 "use client";
 import { useEffect } from "react";
 import {
-  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, HandSwipeRight, ArrowUUpLeft, Cards, ArrowsOutSimple,
+  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, HandSwipeRight, Cards, ArrowsOutSimple,
 } from "@phosphor-icons/react/dist/ssr";
 import type { RecentEntry } from "@/components/PreviewPanes";
+import ArrivalRow from "@/components/portrait/ArrivalRow";
 
 /**
  * US-P4 — the service controls, as the drawer iOS already taught everyone.
@@ -40,7 +41,7 @@ export default function NavDrawer({
   onSwipeToggle,
   onCloseDay,
   onUpload,
-  onUndo,
+  onUndoRow,
   onExpandActivity,
 }: {
   open: boolean;
@@ -61,7 +62,9 @@ export default function NavDrawer({
   onSwipeToggle: () => void;
   onCloseDay: () => void;
   onUpload: () => void;
-  onUndo?: () => void;
+  /** Undo one arrival, in place. The drawer used to carry a button to a screen
+   *  whose only job was this — a trip to correct a typo you are looking at. */
+  onUndoRow: (id: string) => void;
   /** The same list, full screen, with a search field and the lenses. */
   onExpandActivity: () => void;
 }) {
@@ -176,28 +179,12 @@ export default function NavDrawer({
             </span>
           )}
           {recents.map((r, i) => (
-            <button
+            <ArrivalRow
               key={`${r.roomNumber}-${i}`}
-              type="button"
-              data-role="drawer-recent-row"
-              onClick={pick(() => onPickRoom(r.roomNumber))}
-              className="w-full text-left min-h-[52px] px-3 rounded-[12px] flex items-center gap-3 transition-transform active:scale-[0.98]"
-              style={{ background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
-            >
-              <em className="not-italic text-[12px] font-bold tabular-nums shrink-0" style={{ color: "var(--tab-idle)" }}>
-                {r.at}
-              </em>
-              <b className="text-[17px] font-black tabular-nums shrink-0" style={{ color: "var(--brand-ink)" }}>
-                {r.roomNumber}
-              </b>
-              <span className="flex-1 min-w-0 truncate text-[13px] font-bold" style={{ color: "var(--aur-ink-2)" }}>
-                {r.name}
-              </span>
-              <span className="shrink-0 w-7 h-7 rounded-full grid place-items-center text-[12px] font-black tabular-nums"
-                style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}>
-                {r.pax}
-              </span>
-            </button>
+              row={r}
+              onOpen={pick(() => onPickRoom(r.roomNumber))}
+              onUndo={onUndoRow}
+            />
           ))}
         </div>
 
@@ -248,16 +235,6 @@ export default function NavDrawer({
           build {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}
         </span>
 
-        {onUndo && recents.length > 0 && (
-          <button
-            onClick={pick(onUndo)}
-            data-role="drawer-undo"
-            className="shrink-0 mt-2 min-h-[48px] px-4 rounded-[14px] inline-flex items-center justify-center gap-2 text-[13px] font-black transition-transform active:scale-[0.98]"
-            style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}
-          >
-            <ArrowUUpLeft size={16} weight="bold" /> Corriger une entrée
-          </button>
-        )}
       </aside>
 
       <style jsx>{`

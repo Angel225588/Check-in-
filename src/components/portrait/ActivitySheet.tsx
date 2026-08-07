@@ -7,6 +7,7 @@ import { isComp, needsPaymentChoice, fold } from "@/lib/utils";
 import { groupBlocks, isInGroupBlock } from "@/lib/groups";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
+import ArrivalRow from "@/components/portrait/ArrivalRow";
 
 /**
  * The service, full screen.
@@ -43,12 +44,14 @@ export default function ActivitySheet({
   rows,
   clients,
   onPickRoom,
+  onUndoRow,
 }: {
   open: boolean;
   onClose: () => void;
   rows: ActivityRow[];
   clients: Client[];
   onPickRoom: (room: string) => void;
+  onUndoRow: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [lens, setLens] = useState<Lens>("all");
@@ -162,34 +165,21 @@ export default function ActivitySheet({
           </span>
         )}
         {shown.map((r, i) => (
-          <button
+          <ArrivalRow
             key={`${r.roomNumber}-${i}`}
-            type="button"
-            data-role="activity-row"
-            onClick={() => { onPickRoom(r.roomNumber); onClose(); }}
-            className="w-full text-left min-h-[64px] px-4 rounded-[16px] flex items-center gap-3.5 transition-transform active:scale-[0.985] surface-inset"
+            row={r}
+            size="roomy"
+            onOpen={() => { onPickRoom(r.roomNumber); onClose(); }}
+            onUndo={onUndoRow}
           >
-            <em className="not-italic text-[13px] font-bold tabular-nums shrink-0 w-[44px]" style={{ color: "var(--tab-idle)" }}>
-              {r.at}
-            </em>
-            <b className="text-[21px] font-black tabular-nums shrink-0" style={{ color: "var(--brand-ink)" }}>
-              {r.roomNumber}
-            </b>
-            <span className="flex-1 min-w-0">
-              <span className="block truncate text-[15px] font-bold" style={{ color: "var(--aur-ink-2)" }}>{r.name}</span>
-              {/* The code, because "why did this room not pay" is the question
-                  the list gets asked after the fact. */}
-              {r.client?.packageCode && (
-                <span className="block truncate text-[11.5px] font-black uppercase tracking-[0.08em]" style={{ color: "var(--tab-idle)" }}>
-                  {r.client.packageCode}
-                </span>
-              )}
-            </span>
-            <span className="shrink-0 w-8 h-8 rounded-full grid place-items-center text-[13px] font-black tabular-nums"
-              style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}>
-              {r.pax}
-            </span>
-          </button>
+            {/* The code, because "why did this room not pay" is the question
+                the list gets asked after the fact. */}
+            {r.client?.packageCode && (
+              <span className="block truncate text-[11.5px] font-black uppercase tracking-[0.08em]" style={{ color: "var(--tab-idle)" }}>
+                {r.client.packageCode}
+              </span>
+            )}
+          </ArrivalRow>
         ))}
       </div>
 
