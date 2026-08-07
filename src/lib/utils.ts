@@ -68,8 +68,10 @@ export function getCompStats(
 }
 
 /** Strip diacritics so "lefevre" finds "LEFÈVRE". Without this, a receptionist
- *  has to reproduce every accent exactly, and the on-screen keypad has none. */
-function fold(s: string): string {
+ *  has to reproduce every accent exactly, and the on-screen keypad has none.
+ *  Exported: every list that can be searched has to fold the same way, or the
+ *  same query finds a guest on one screen and not on another. */
+export function fold(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 

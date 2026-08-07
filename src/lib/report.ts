@@ -132,7 +132,12 @@ function buildSourceBreakdown(
 
 export function generateDayReport(
   clients: Client[],
-  checkIns: CheckInRecord[]
+  checkIns: CheckInRecord[],
+  /** The day this data belongs to. Omitted means the open service, i.e. today.
+   *  Without it every report was stamped today — including one built from a
+   *  session three days old, so stepping back a day changed every figure on
+   *  the screen except the date above them. */
+  date?: string
 ): DayReport {
   const rooms: RoomReport[] = clients.map((client) => {
     const totalGuests = client.adults + client.children;
@@ -173,7 +178,7 @@ export function generateDayReport(
   const compPersonsEntered = rooms.filter((r) => r.isComp).reduce((s, r) => s + r.entered, 0);
 
   return {
-    date: new Date().toISOString().split("T")[0],
+    date: date || new Date().toISOString().split("T")[0],
     totalRooms: rooms.length,
     totalGuests,
     totalEntered,

@@ -1252,7 +1252,15 @@ async function main() {
     const flat = await page.evaluate((COMPOSITE) => {
       const measure = eval(`(${COMPOSITE})`);
       const out = [];
-      for (const sel of ['[data-role="guest-preview"]', '[data-role="search-field"]', '[data-role="numeric-keypad"]']) {
+      // The KEY, not the pad's wrapper. When the keys were flat tiles inside a
+      // glass box, the box was the card and the rule watched it. The keys are
+      // the cards now — cut and raised, twelve of them — and the wrapper is
+      // padding. Watching a wrapper proves nothing about what you touch.
+      //
+      // This is a rule being re-aimed, not relaxed: it went from one surface to
+      // a real one, and it would still catch a pad whose keys vanished into the
+      // page, which is the failure it was written for.
+      for (const sel of ['[data-role="guest-preview"]', '[data-role="search-field"]', '[data-role="numeric-keypad"] button']) {
         const el = document.querySelector(sel);
         if (!el) { out.push(`${sel} MISSING`); continue; }
         const cs = getComputedStyle(el);

@@ -124,7 +124,7 @@ export function computeMonthlyStats(
     compRooms += comp.rooms;
     compPersons += comp.entered;
 
-    const report = generateDayReport(day.clients, day.checkIns);
+    const report = generateDayReport(day.clients, day.checkIns, day.date);
     totalExtras += report.totalExtras;
     walkInPaid += report.sourceBreakdown.byPayment.cash + report.sourceBreakdown.byPayment.card;
     walkInPoints += report.sourceBreakdown.byPayment.points;

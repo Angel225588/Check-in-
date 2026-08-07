@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import {
-  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, HandSwipeRight, ArrowUUpLeft, Cards,
+  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, HandSwipeRight, ArrowUUpLeft, Cards, ArrowsOutSimple,
 } from "@phosphor-icons/react/dist/ssr";
 import type { RecentEntry } from "@/components/PreviewPanes";
 
@@ -41,6 +41,7 @@ export default function NavDrawer({
   onCloseDay,
   onUpload,
   onUndo,
+  onExpandActivity,
 }: {
   open: boolean;
   onClose: () => void;
@@ -61,6 +62,8 @@ export default function NavDrawer({
   onCloseDay: () => void;
   onUpload: () => void;
   onUndo?: () => void;
+  /** The same list, full screen, with a search field and the lenses. */
+  onExpandActivity: () => void;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -149,6 +152,17 @@ export default function NavDrawer({
             style={{ color: "var(--tab-idle)" }}>
             <Clock size={13} weight="duotone" /> Activité · {recents.length}
           </b>
+          {/* The drawer answers "who came down". Expanded, it answers "which of
+              them was a group, a VIP, not included" — the same rows with a
+              search field and the lenses. */}
+          <button
+            onClick={pick(onExpandActivity)}
+            data-role="drawer-expand-activity"
+            aria-label="Ouvrir l'activité en grand"
+            className="w-11 h-11 -mr-1 rounded-[12px] grid place-items-center active:scale-[0.92] transition-transform"
+          >
+            <ArrowsOutSimple size={17} weight="bold" style={{ color: "var(--brand-ink)" }} />
+          </button>
         </div>
 
         <div

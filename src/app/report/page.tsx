@@ -84,11 +84,11 @@ function ReportV2() {
       const session = getSessionHistory().find((s) => s.date === dateParam);
       const unclosed = getDataForDate(dateParam);
       if (session) {
-        setReport(generateDayReport(session.clients, session.checkIns));
+        setReport(generateDayReport(session.clients, session.checkIns, session.date));
         setDiscrepancies(session.discrepancies ?? []);
         setClients(session.clients);
       } else if (unclosed && unclosed.clients.length > 0) {
-        setReport(generateDayReport(unclosed.clients, unclosed.checkIns));
+        setReport(generateDayReport(unclosed.clients, unclosed.checkIns, unclosed.date || dateParam));
         setDiscrepancies(unclosed.discrepancies ?? []);
         setClients(unclosed.clients);
       } else {

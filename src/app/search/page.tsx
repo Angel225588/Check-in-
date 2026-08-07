@@ -32,6 +32,7 @@ import { swipeEnabled } from "@/lib/gestures";
 import { usePortrait } from "@/hooks/usePortrait";
 import PortraitSearch from "@/components/portrait/PortraitSearch";
 import NavDrawer from "@/components/portrait/NavDrawer";
+import ActivitySheet from "@/components/portrait/ActivitySheet";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -55,6 +56,7 @@ export default function SearchPage() {
    *  test: a landscape iPad zoomed to 150% is 796px wide and still landscape. */
   const portrait = usePortrait();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
   /** US-23 — the swipe is a shortcut, never the only path. */
   const [swipe, setSwipe] = useState(true);
   /** US-19 — reception's own metrics bar. null means "you decide". */
@@ -177,6 +179,13 @@ export default function SearchPage() {
         at: new Date(c.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
       }));
   }, [checkIns]);
+
+  /** The arrivals, each with the booking behind it — the sheet's lenses need
+   *  the client, not just the name that was recorded at the time. */
+  const activityRows = useMemo(
+    () => recents.map((r) => ({ ...r, client: clients.find((c) => c.roomNumber === r.roomNumber) })),
+    [recents, clients]
+  );
 
   /** Who came down yesterday and has not checked out. A fact from two records
    *  we already keep — no attendance model, no prediction. */
@@ -722,6 +731,14 @@ export default function SearchPage() {
              own layout and its own back button, for a choice of four. */
           onUpload={() => setUploadSheetOpen(true)}
           onUndo={() => setHistoryOpen(true)}
+          onExpandActivity={() => setActivityOpen(true)}
+        />
+        <ActivitySheet
+          open={activityOpen}
+          onClose={() => setActivityOpen(false)}
+          rows={activityRows}
+          clients={clients}
+          onPickRoom={openRoom}
         />
         {overlays}
       </>
