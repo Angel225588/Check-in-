@@ -25,6 +25,8 @@ import NumericKeypad from "@/components/NumericKeypad";
 import { checkinHref } from "@/lib/checkin-nav";
 import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks, getChildrenCount } from "@/lib/groups";
+import { pickGroups } from "@/lib/group-pick";
+import GroupPicker from "@/components/GroupPicker";
 import { ArrowsOutSimple, X as XIcon } from "@phosphor-icons/react/dist/ssr";
 import type { Client } from "@/lib/types";
 
@@ -122,9 +124,18 @@ function ReportV2() {
   );
   const ecart = useMemo(() => summarizeDiscrepancies(discrepancies), [discrepancies]);
   const blocks = useMemo(() => groupBlocks(clients), [clients]);
+  /* Which coach. Two tours on one morning are two mornings — one is gone by
+     7:15, the other drifts in until half past nine — so "Groupes" as a single
+     on/off answers a question nobody asks. Empty means all of them, which is
+     what the tile alone has always meant. */
+  const [pickedGroups, setPickedGroups] = useState<string[]>([]);
+  /* Two sets, deliberately. The tile counts every group room in the house —
+     it is the door into the filter, and a door that renames itself once you
+     walk through it is not a door. The list narrows to the coach you ticked. */
+  const allGroupRooms = useMemo(() => new Set(blocks.flatMap((b) => b.roomNumbers)), [blocks]);
   const groupRooms = useMemo(
-    () => new Set(blocks.flatMap((b) => b.roomNumbers)),
-    [blocks]
+    () => new Set(pickGroups(clients, blocks, pickedGroups).map((c) => c.roomNumber)),
+    [clients, blocks, pickedGroups]
   );
   const children = useMemo(() => getChildrenCount(clients), [clients]);
   const visible = useMemo(
@@ -153,7 +164,7 @@ function ReportV2() {
     { key: "comp", label: "COMP", value: compRooms },
     ...(children > 0 ? [{ key: "enfants" as const, label: "Enfants", value: children }] : []),
     ...(blocks.length > 0
-      ? [{ key: "groupe" as const, label: "Groupes", value: groupRooms.size, sub: `${blocks.length} bloc${blocks.length > 1 ? "s" : ""}` }]
+      ? [{ key: "groupe" as const, label: "Groupes", value: allGroupRooms.size, sub: `${blocks.length} bloc${blocks.length > 1 ? "s" : ""}` }]
       : []),
     ...(offList > 0 ? [{ key: "offlist" as const, label: "Hors liste", value: offList }] : []),
     {
@@ -322,6 +333,11 @@ function ReportV2() {
             <div className="mt-3">
               <ReportTiles tiles={tiles} filter={filter} onFilter={setFilter} rooms={rows.length} />
             </div>
+            {filter === "groupe" && (
+              <div className="mt-2">
+                <GroupPicker blocks={blocks} picked={pickedGroups} onPick={setPickedGroups} />
+              </div>
+            )}
 
             <ArrivalList
               rows={visible}
@@ -397,6 +413,11 @@ function ReportV2() {
           <div className="shrink-0 px-3">
             <ReportTiles tiles={tiles} filter={filter} onFilter={setFilter} rooms={rows.length} />
           </div>
+          {filter === "groupe" && (
+            <div className="shrink-0 px-3 pt-2">
+              <GroupPicker blocks={blocks} picked={pickedGroups} onPick={setPickedGroups} />
+            </div>
+          )}
           <div className="flex-1 min-h-0 flex flex-col px-3 pb-2">
             <ArrivalList
               rows={visible}

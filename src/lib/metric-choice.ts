@@ -51,11 +51,21 @@ export function chooseMetrics(
  * and the control would look broken the first time anyone touched it.
  *
  * The last one cannot be removed. An empty bar is not a preference.
+ *
+ * **On a full bar, the new one takes the last slot.** It used to append, and
+ * `chooseMetrics` slices to the slots — so the fifth tick landed in fifth place
+ * and nothing on screen moved. From the desk that is a checkbox that does not
+ * work: you tick Comp, the bar does not change, and the only way through is to
+ * work out for yourself that something has to come off first.
+ *
+ * The LAST slot, not the oldest: the three that answer "where are we" stay put,
+ * and the slot you are choosing is always the same one.
  */
 export function toggleMetric(
   chosen: string[] | null | undefined,
   key: string,
-  visibleNow: string[]
+  visibleNow: string[],
+  slots?: number
 ): string[] {
   const base = chosen && chosen.length > 0 ? [...chosen] : [...visibleNow];
   const at = base.indexOf(key);
@@ -64,5 +74,6 @@ export function toggleMetric(
     base.splice(at, 1);
     return base;
   }
+  if (slots && base.length >= slots) return [...base.slice(0, slots - 1), key];
   return [...base, key];
 }

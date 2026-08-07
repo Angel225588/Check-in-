@@ -580,9 +580,52 @@ that lies about it.**
     everything. It is not shown at all when the day has one block: a control
     with a single option only ever teaches you it does nothing.
 
-    **Still all-or-nothing on the report itself.** The Groupes tile there filters
-    every block together. Same lib when it is done; saying so beats letting the
-    two screens quietly disagree.
+    **On the report too, now.** The same picker, the same `pickGroups`, under
+    the tiles in the panel and in the full-screen sheet. Two sets deliberately:
+    the tile counts every group room in the house — it is the door into the
+    filter, and a door that renames itself once you walk through it is not a
+    door — while the list narrows to the coach you ticked.
+
+### US-32 — Swap a metric without unticking one first — BUILT
+
+    As      Réception
+    I need  ticking a metric on a full bar to put it on the bar
+    So that the checklist does what a checklist looks like it does
+
+    Scenario: four slots, all taken
+      Given  Total · Entrés · Restants · Attendus are on the bar
+      When   I tick Comp
+      Then   Comp is on the bar and Attendus is not
+
+    Never:  a tick that changes nothing. It appended to the stored list and the
+            bar sliced to its slots, so the fifth tick landed in fifth place and
+            nothing moved — a checkbox that does not work, with no clue that
+            something has to come off first.
+    Never:  the trio that answers "where are we" evicted by a tap somewhere
+            else. The NEW one takes the LAST slot, so the slot you are choosing
+            is always the same one.
+    Proof:  metric-swap.test.ts (7 cases)
+
+### US-33 — How many are coming, and how many came — BUILT
+
+    As      Réception
+    I need  the subset pills to read "2/15", not "15"
+    So that I know how much of that group is still to come
+
+    Scenario: fifteen comps, two down
+      Then   COMP reads 2/15 — on the bar and in the checklist
+
+    Never:  5/4. Three people on a room booked for two is an écart, which the
+            report names and reception settles; a pill that reads more-arrived-
+            than-expected just looks broken, and the bar is not where that
+            conversation belongs.
+    Proof:  metric-progress.test.ts (5 cases)
+
+    Landscape has said 2/15 for comps since the beginning. The portrait bar
+    lost it in the port — and the half it dropped is the half that changes what
+    happens next: fifteen comps with two down is a morning with thirteen
+    conversations still in it. Comp, VIP, Groupes, Enfants and Non inclus all
+    answer the same question, so they all answer it the same way.
 
 ### US-31 — Read every chip in the guest's panel — BUILT
 

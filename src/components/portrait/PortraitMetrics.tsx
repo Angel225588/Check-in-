@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { FunnelSimple, Check, X } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
-import { getTotalGuests, getCheckedInCount, getCompStats, needsPaymentChoice } from "@/lib/utils";
-import { getChildrenCount, getGroupStats } from "@/lib/groups";
+import { getTotalGuests, getCheckedInCount, getCompStats, needsPaymentChoice, isComp } from "@/lib/utils";
+import { subsetProgress } from "@/lib/metric-progress";
+import { getChildrenCount, getGroupStats, groupBlocks } from "@/lib/groups";
 import { chooseMetrics, toggleMetric, CORE_METRICS as CORE } from "@/lib/metric-choice";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import type { MetricFilter } from "@/components/MetricsBar";
@@ -42,15 +43,27 @@ export default function PortraitMetrics({
   /* Memoised because this bar re-renders on every keystroke, and getGroupStats
      rebuilds every tour block from scratch — a full pass over the house to
      redraw four numbers that did not change because someone typed a 2. */
-  const { total, entered, comp, groups, children, vipCount, notIncluded } = useMemo(() => ({
+  const { total, entered, comp, groups, groupRooms, children, vipCount, notIncluded } = useMemo(() => ({
     total: getTotalGuests(clients),
     entered: getCheckedInCount(checkIns),
     comp: getCompStats(clients, checkIns),
     groups: getGroupStats(clients),
+    groupRooms: new Set(groupBlocks(clients).flatMap((b) => b.roomNumbers)),
     children: getChildrenCount(clients),
     vipCount: clients.filter((c) => c.isVip).length,
     notIncluded: clients.filter((c) => needsPaymentChoice(c)).length,
   }), [clients, checkIns]);
+
+  /* "How many are coming and how many came." A bare 15 under COMP answers half
+     of what is being asked, and drops the half that changes what reception does
+     next. Landscape has said 2/15 since the beginning; the port lost it. */
+  const progress = useMemo(() => ({
+    comp: subsetProgress(clients, checkIns, (c) => isComp(c)),
+    vip: subsetProgress(clients, checkIns, (c) => !!c.isVip),
+    groups: subsetProgress(clients, checkIns, (c) => groupRooms.has(c.roomNumber)),
+    children: subsetProgress(clients, checkIns, (c) => (c.children || 0) > 0),
+    notincluded: subsetProgress(clients, checkIns, (c) => needsPaymentChoice(c)),
+  } as Record<string, ReturnType<typeof subsetProgress>>), [clients, checkIns, groupRooms]);
 
   const all: { key: MetricFilter & string; label: string; value: number; render?: React.ReactNode }[] = [
     { key: "total", label: "Total", value: total },
@@ -109,12 +122,19 @@ export default function PortraitMetrics({
             }`}
           >
             <div className="text-[9.5px] font-black uppercase tracking-[0.08em] truncate text-muted">{m.label}</div>
-            <AnimatedNumber
-              value={m.value}
-              className={`text-[21px] font-black leading-[1.1] tabular-nums ${
-                m.key === "remaining" ? "text-brand" : "text-dark"
-              }`}
-            />
+            {progress[m.key] ? (
+              <div className={`text-[21px] font-black leading-[1.1] tabular-nums ${on ? "text-dark" : "text-dark"}`}>
+                <AnimatedNumber value={progress[m.key]!.done} />
+                <span style={{ color: "var(--tab-idle)" }}>/{progress[m.key]!.of}</span>
+              </div>
+            ) : (
+              <AnimatedNumber
+                value={m.value}
+                className={`text-[21px] font-black leading-[1.1] tabular-nums ${
+                  m.key === "remaining" ? "text-brand" : "text-dark"
+                }`}
+              />
+            )}
           </button>
         );
       })}
@@ -150,7 +170,7 @@ export default function PortraitMetrics({
               <div>
                 <b className="text-[15px] text-dark block">Sur la barre</b>
                 <span className="text-[12px] font-semibold" style={{ color: "var(--tab-idle)" }}>
-                  {slots} places · touchez une pastille pour filtrer
+                  {slots} places · une nouvelle prend la dernière
                 </span>
               </div>
               <button onClick={() => setSheet(false)} aria-label="Fermer"
@@ -172,7 +192,7 @@ export default function PortraitMetrics({
                   role="checkbox"
                   aria-checked={on}
                   disabled={absent}
-                  onClick={() => onChoose(toggleMetric(chosen, m.key, keys))}
+                  onClick={() => onChoose(toggleMetric(chosen, m.key, keys, slots))}
                   className="min-h-[56px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98] disabled:opacity-40"
                   style={{
                     background: on ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
@@ -190,7 +210,7 @@ export default function PortraitMetrics({
                   <span className="flex-1 text-[15px] font-bold text-dark">{m.label}</span>
                   <b className="text-[18px] font-black tabular-nums"
                     style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
-                    {absent ? "—" : m.value}
+                    {absent ? "—" : progress[m.key] ? `${progress[m.key]!.done}/${progress[m.key]!.of}` : m.value}
                   </b>
                 </button>
               );

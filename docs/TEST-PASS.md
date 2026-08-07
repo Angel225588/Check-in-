@@ -63,6 +63,26 @@ indicator in the bottom one, and the app has to keep out of both.
 | 3.6 | A morning with **one** coach only | No chips at all — one option is not a choice |
 | 3.7 | Type a room number while Groupes is on | The chips step aside; you are searching, not filtering |
 
+## 3b · The metrics bar and its checklist
+
+| | Check | Good |
+|---|---|---|
+| 3b.1 | Funnel → tick a metric while the bar is **full** | It appears on the bar and the **last** one drops off — no unticking first |
+| 3b.2 | Do it three times in a row | Total · Entrés · Restants never move; only the last slot changes |
+| 3b.3 | Untick one | It leaves and the slot stays free until you tick something |
+| 3b.4 | Look at **COMP** on the bar | It reads **entered / total** (e.g. 2/15), not a bare 15 |
+| 3b.5 | Same for VIP, Groupes, Enfants, Non inclus | Same two numbers |
+| 3b.6 | A metric the day has none of | Greyed with a dash in the checklist, never on the bar |
+
+## 3c · Groupes on the report
+
+| | Check | Good |
+|---|---|---|
+| 3c.1 | **Rapport** → tap the **Groupes** tile | The chips appear under the tiles: Tous · your rate codes |
+| 3c.2 | Tick one coach | The list shows only that coach; the **tile keeps its full count** — it is the door in, not a mirror of the filter |
+| 3c.3 | Expand the list full screen | The same chips are there, with the same ticks |
+| 3c.4 | Untick everything | All group rooms again |
+
 ## 4 · The activity panel (guest screen) — the contrast fix
 
 | | Check | Good |

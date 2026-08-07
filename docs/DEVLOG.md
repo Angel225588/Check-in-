@@ -13,6 +13,42 @@ git for those.
 
 ---
 
+## 2026-08-07 (late, second round) — a tick that did nothing
+
+### The checklist could not swap (US-32)
+Four slots, all taken, tick Comp — nothing moved. `toggleMetric` appended to
+the stored list and `chooseMetrics` sliced to the slots, so the fifth tick
+landed in fifth place. From the desk: a checkbox that does not work, with
+nothing to tell you something has to come off first.
+
+The new one takes the **last** slot. Not the oldest — the last, so the three
+that answer "where are we" stay put and the slot you are choosing is always the
+same one. Angel's own case: `[total, entered, remaining, expected]` + Comp
+becomes `[total, entered, remaining, comp]`, which is exactly the bar they were
+trying to build by hand.
+
+### "Comp normally has the 2/20" (US-33)
+It does — in landscape, since the beginning. The portrait bar lost it in the
+port and shipped a bare "15".
+
+The half it dropped is the half that changes what happens next: fifteen comps
+with two down is a morning with thirteen conversations still in it. Comp, VIP,
+Groupes, Enfants and Non inclus all answer the same question, so they all
+answer it the same way now, on the bar and in the checklist.
+
+Capped at the expected count. Three people on a room booked for two is an
+écart — the report names it and reception settles it — but a pill reading 5/4
+just looks broken, and the bar is not where that conversation belongs.
+
+### The report picks its coach too (US-21, the half that was owed)
+Same picker, same `pickGroups`, under the tiles in the panel and in the
+full-screen sheet. Two sets on purpose: the **tile** counts every group room in
+the house — it is the door into the filter, and a door that renames itself once
+you walk through it is not a door — while the **list** narrows to what is
+ticked.
+
+---
+
 ## 2026-08-07 (late) — the other end of the same bargain
 
 ### The burger went under the clock (US-30, second half)
