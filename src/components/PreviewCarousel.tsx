@@ -39,6 +39,7 @@ export default function PreviewCarousel({
   auto,
   resetKey,
   action,
+  actionHiddenOn,
   swipe = true,
 }: {
   panes: Pane[];
@@ -54,6 +55,10 @@ export default function PreviewCarousel({
    *  place the eye already is once a room resolves, so the fastest way to
    *  write a note is from here rather than two screens away. */
   action?: React.ReactNode;
+  /** Faces that decline it. The notes face has its own compose button in the
+   *  same corner — two buttons stacked on one another, and the top one wins
+   *  silently, which is how you get a control that "does nothing". */
+  actionHiddenOn?: string[];
 }) {
   const [i, setI] = useState(0);
   const [pausedUntil, setPausedUntil] = useState(0);
@@ -124,7 +129,7 @@ export default function PreviewCarousel({
         {active.node}
       </div>
 
-      {action && (
+      {action && !actionHiddenOn?.includes(active.key) && (
         /* Top-right, not bottom-right. At the bottom it shared its corner with
            the dots and sat furthest from the card's own content; at the top it
            is next to the room it writes about, and the dots get their row back. */

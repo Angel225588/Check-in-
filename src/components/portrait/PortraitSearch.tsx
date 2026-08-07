@@ -53,6 +53,7 @@ export default function PortraitSearch({
   swipe,
   pad,
   setPad,
+  onPadToggle,
   appendKey,
   backspace,
   count,
@@ -92,6 +93,9 @@ export default function PortraitSearch({
   swipe: boolean;
   pad: "num" | "abc";
   setPad: (p: "num" | "abc") => void;
+  /** Switching alphabet clears the search — except mid-note, where that would
+   *  drop the guest the note is about. */
+  onPadToggle: (next: "num" | "abc") => void;
   appendKey: (k: string) => void;
   backspace: () => void;
   count: number;
@@ -188,6 +192,7 @@ export default function PortraitSearch({
             auto={false}
             swipe={swipe}
             resetKey={hit.roomNumber}
+            actionHiddenOn={["notes"]}
             action={
               <button
                 onClick={() => onCompose(hit)}
@@ -335,13 +340,13 @@ export default function PortraitSearch({
             <NumericKeypad
               onKeyPress={appendKey}
               onBackspace={backspace}
-              onToggleMode={() => { clear(); setPad("abc"); }}
+              onToggleMode={() => onPadToggle("abc")}
             />
           ) : (
             <AlphaKeypad
               onKeyPress={appendKey}
               onBackspace={backspace}
-              onToggleMode={() => { clear(); setPad("num"); }}
+              onToggleMode={() => onPadToggle("num")}
             />
           )}
         </div>

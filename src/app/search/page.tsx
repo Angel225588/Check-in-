@@ -15,7 +15,8 @@ import ServiceClock, { ExpectedGuest } from "@/components/ServiceClock";
 import SearchNav from "@/components/SearchNav";
 import GuestPreviewCard from "@/components/GuestPreviewCard";
 import PreviewCarousel, { type Pane } from "@/components/PreviewCarousel";
-import { ExpectedPane, RecentsPane, NotesPane, HistoryPane, type RecentEntry, type StayEntry } from "@/components/PreviewPanes";
+import { ExpectedPane, RecentsPane, HistoryPane, type RecentEntry, type StayEntry } from "@/components/PreviewPanes";
+import NotesFrame, { type NoteDraft } from "@/components/NotesFrame";
 import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
@@ -73,6 +74,15 @@ export default function SearchPage() {
   // room first. The slot is where the eye already is, so it is where the pencil
   // goes.
   const [noteFor, setNoteFor] = useState<Client | null>(null);
+  /**
+   * A note being written in the preview frame (US-17/US-18).
+   *
+   * It lives here rather than in the frame because the app's pad is what types
+   * into it — the keyboard is already on screen six inches below, and building
+   * a second one inside a 340px box was never going to fit. While a draft is
+   * open the pad's keys go to the note instead of the search field.
+   */
+  const [noteDraft, setNoteDraft] = useState<NoteDraft | null>(null);
 
   useEffect(() => {
     const st = getSettings();
@@ -128,6 +138,28 @@ export default function SearchPage() {
 
   const maxCount = hit ? getRemainingForRoom(hit, checkIns) : 0;
   useEffect(() => { setCount(Math.max(1, maxCount)); }, [hit?.roomNumber, maxCount]);
+
+  /** The pad, pointed at whatever is being typed. Search by default; the note
+   *  while one is open. One keyboard, two destinations — not two keyboards. */
+  const padAppend = (k: string) =>
+    noteDraft ? setNoteDraft({ ...noteDraft, text: noteDraft.text + k }) : appendKey(k);
+  const padBackspace = () =>
+    noteDraft ? setNoteDraft({ ...noteDraft, text: noteDraft.text.slice(0, -1) }) : backspace();
+
+  /** Switching alphabet clears the search field — which, mid-note, would drop
+   *  the guest the note is about and take the frame with it. While a draft is
+   *  open the switch only switches. */
+  const padToggle = (next: "num" | "abc") => {
+    if (!noteDraft) clear();
+    setPad(next);
+  };
+
+  /** Starting a note switches to letters: a note is words, and leaving the pad
+   *  on digits would make the first thing anyone types a wrong one. */
+  const startDraft = (d: NoteDraft | null) => {
+    setNoteDraft(d);
+    if (d) setPad("abc");
+  };
 
   /** Notes for the one resolved room — one decrypt per resolved guest, not per
    *  row. An alert here is the whole reason the shortcut must not fire. */
@@ -458,7 +490,28 @@ export default function SearchPage() {
           // The VIP card is a gold fill in both themes, so its dots stay white.
           onDark: !!hit.isVip,
         },
-        { key: "notes", label: "Notes", node: <NotesPane notes={hitNotes.notes} ready={hitNotes.ready} /> },
+        {
+          key: "notes",
+          label: "Notes",
+          node: (
+            <NotesFrame
+              notes={hitNotes.notes}
+              ready={hitNotes.ready}
+              draft={noteDraft}
+              onDraftChange={startDraft}
+              saveError={hitNotes.saveError}
+              onSave={async (d) => {
+                const text = d.text.trim();
+                if (!text) return;
+                if (d.editing) await hitNotes.edit(d.editing, { tone: d.tone, title: text });
+                else await hitNotes.add({ tone: d.tone, title: text, body: "" });
+                startDraft(null);
+              }}
+              onDelete={(id) => hitNotes.remove(id)}
+              onPin={(id) => hitNotes.pin(id)}
+            />
+          ),
+        },
         { key: "historique", label: "Historique", node: <HistoryPane stays={hitStays} today={hitToday} /> },
       ]
     : [];
@@ -709,8 +762,9 @@ export default function SearchPage() {
           swipe={swipe}
           pad={pad}
           setPad={setPad}
-          appendKey={appendKey}
-          backspace={backspace}
+          onPadToggle={padToggle}
+          appendKey={padAppend}
+          backspace={padBackspace}
           count={count}
           setCount={setCount}
           maxCount={maxCount}
@@ -927,6 +981,7 @@ export default function SearchPage() {
                 panes={hitPanes}
                 auto={false}
                 resetKey={hit.roomNumber}
+                actionHiddenOn={["notes"]}
                 action={
                   <button
                     onClick={() => setNoteFor(hit)}
@@ -1040,9 +1095,9 @@ export default function SearchPage() {
           {pad === "num" && (
             <div className="flex-1 min-h-[196px]">
               <NumericKeypad
-                onKeyPress={appendKey}
-                onBackspace={backspace}
-                onToggleMode={() => { clear(); setPad("abc"); }}
+                onKeyPress={padAppend}
+                onBackspace={padBackspace}
+                onToggleMode={() => padToggle("abc")}
               />
             </div>
           )}
@@ -1052,9 +1107,9 @@ export default function SearchPage() {
       {pad === "abc" && (
         <div className="shrink-0 px-3 pb-3 pt-3">
           <AlphaKeypad
-            onKeyPress={appendKey}
-            onBackspace={backspace}
-            onToggleMode={() => { clear(); setPad("num"); }}
+            onKeyPress={padAppend}
+            onBackspace={padBackspace}
+            onToggleMode={() => padToggle("num")}
           />
         </div>
       )}

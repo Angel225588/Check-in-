@@ -1,9 +1,6 @@
 "use client";
 import { useTapGuard } from "@/hooks/useTapGuard";
 import { Clock, Star, ArrowUUpLeft, NotePencil } from "@phosphor-icons/react/dist/ssr";
-import { toneMeta } from "@/lib/note-tone";
-import NoteToneIcon from "./NoteToneIcon";
-import type { GuestNote } from "@/lib/notes";
 import type { ExpectedGuest } from "./ServiceClock";
 
 const shell =
@@ -101,50 +98,6 @@ export function RecentsPane({ recents, onPick }: { recents: RecentEntry[]; onPic
             <span className="text-[13px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>{r.pax}</span>
           </PaneRow>
         ))}
-      </div>
-    </div>
-  );
-}
-
-/** The resolved guest's notes, read-only — writing still happens on the card. */
-export function NotesPane({ notes, ready }: { notes: GuestNote[]; ready: boolean }) {
-  return (
-    <div className={shell} data-role="pane-notes">
-      <span className={cap} style={{ color: "var(--tab-idle)" }}>
-        <NotePencil weight="duotone" size={13} className="inline mr-1.5 -mt-0.5" />
-        Notes
-      </span>
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 mt-2">
-        {!ready && (
-          <span className="text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>Déchiffrement…</span>
-        )}
-        {ready && notes.length === 0 && (
-          <span className="text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
-            Aucune note pour ce client.
-          </span>
-        )}
-        {notes.map((n) => {
-          const m = toneMeta(n.tone);
-          return (
-            <div
-              key={n.id}
-              className="rounded-[12px] px-2 py-2 flex items-start gap-2 relative overflow-hidden"
-              style={{ background: n.tone === "alert" ? m.soft : "rgba(255,255,255,.05)" }}
-            >
-              <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: m.color }} />
-              <NoteToneIcon tone={n.tone} size={14} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14.5px] font-extrabold leading-snug truncate"
-                  style={{ color: n.tone === "alert" ? m.color : undefined }}>
-                  {n.title || n.body}
-                </span>
-                {n.title && n.body && (
-                  <span className="block text-[12.5px] truncate" style={{ color: "var(--tab-idle)" }}>{n.body}</span>
-                )}
-              </span>
-            </div>
-          );
-        })}
       </div>
     </div>
   );

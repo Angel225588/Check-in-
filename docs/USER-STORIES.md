@@ -418,7 +418,7 @@ mock-seeder.test.ts now asserts the demo day can exercise every feature the
 app can show. **A test fixture that cannot reproduce the product is a fixture
 that lies about it.**
 
-### US-17 — Read and write a note without leaving the queue
+### US-17 — Read and write a note without leaving the queue — BUILT
 
     As      Réception
     I need  to open, read, edit and start a note inside the preview frame
@@ -430,8 +430,38 @@ that lies about it.**
       Then   it opens IN the frame — readable, editable, and a new one starts
              there too, with the frame never changing size
 
-    Never:  a full-screen panel for a one-line note during service.
-    Proof:  — to be written
+    Never:  a full-screen panel for a one-line note during service. Never the
+            search field losing the guest the note is about.
+    Proof:  verified on a real build — list → compose → typed on the pad →
+            saved → read, with the search field still holding "310" throughout.
+            Design rule to be written.
+
+    **The pad is the keyboard.** A note editor needs one, the app owns the
+    keyboard everywhere, and it is already on screen six inches below the
+    frame — so the draft lives on the page and the pad's keys go to it while
+    one is open. Building a second keyboard inside a 340px box was never going
+    to fit; borrowing the one already there is what makes this feature possible
+    at all.
+
+    Two consequences that had to be handled rather than discovered:
+    starting a note switches the pad to letters (a note is words), and the
+    alphabet switch stops clearing the search field, because mid-note that
+    would drop the guest and take the frame with them.
+
+### US-18 — Write a note in one gesture — BUILT
+
+    As      Réception
+    I need  a note to need one field, not a title and a description
+    So that writing one costs less than skipping it
+
+    Scenario: 07:40, someone says "no nuts"
+      Given  I have started a note
+      When   I pick the tone and type the words
+      Then   it saves — no second field, no decision about which box gets what
+
+    Never:  two text fields between reception and a recorded allergy.
+    Proof:  the frame's composer has one field · notes.test.ts holds
+            `shouldPinByDefault`, so an Alerte is still pinned without asking
 
 ### US-18 — Write a note in one gesture
 

@@ -13,6 +13,37 @@ git for those.
 
 ---
 
+## 2026-08-07 (later) — notes in the frame
+
+### The pad is the keyboard (US-17 / US-18 / US-P3)
+A note editor needs a keyboard. The app owns the keyboard everywhere, and it is
+already on screen six inches below the frame — so the draft lives on the page
+and the pad's keys route to it while one is open. Building a second keyboard
+inside a 340px box was never going to fit; borrowing the one already there is
+what makes the feature possible at all.
+
+Two consequences handled rather than discovered: starting a note switches the
+pad to letters, and the alphabet switch stops clearing the search field —
+mid-note that would drop the guest and take the frame with them. Verified: the
+field still read "310" after typing a note.
+
+One field, not two. Reception is writing "pas de fruits à coque" at 07:40, and
+asking which half is the title is asking them to file rather than to write.
+
+### Two buttons in one corner
+Moving the compose pencil to the top-right put it exactly on top of the notes
+face's own "+". Both visible, one silently winning — the classic "this button
+does nothing". `actionHiddenOn` lets a face decline the frame's action.
+
+Found by a verification script, not by looking: the click resolved to the right
+element and then timed out because something else was over it.
+
+### The guest page's notes open in place
+Tapping a digest note jumped to the Notes tab — a change of screen to read two
+more lines of something already in front of you. It expands where it is now.
+
+---
+
 ## 2026-08-07 — the date that was always today, and the history that never said how
 
 ### generateDayReport stamped `new Date()` inside itself
