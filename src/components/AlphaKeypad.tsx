@@ -41,11 +41,13 @@ export default function AlphaKeypad({
   });
 
   const key =
-    "glass-key rounded-lg md:rounded-xl flex-1 min-w-0 min-h-[clamp(42px,7.4vh,72px)] text-lg md:text-2xl font-bold active:scale-95 transition-transform select-none";
+    "surface-raised rounded-[14px] flex-1 min-w-0 min-h-[34px] " +
+    "text-[clamp(18px,2.9vh,30px)] font-black active:scale-[0.97] " +
+    "transition-[transform,box-shadow] duration-100 select-none";
 
   return (
     <div
-      className="glass-surface rounded-[14px] p-1.5 md:p-3 flex flex-col gap-1.5 md:gap-2 w-full h-full"
+      className="rounded-[20px] p-[clamp(6px,1.2vh,12px)] flex flex-col gap-[clamp(6px,1.2vh,12px)] w-full h-full"
       role="group"
       aria-label="Letter keypad"
       /* none, not manipulation: manipulation still lets the browser
@@ -56,7 +58,7 @@ export default function AlphaKeypad({
       data-role="alpha-keypad"
     >
       {rows.map((row, i) => (
-        <div key={i} className="flex gap-1.5 md:gap-2 flex-1 min-h-0">
+        <div key={i} className="flex gap-[clamp(5px,1vh,10px)] flex-1 min-h-0">
           {/* The third row is short, so it centres rather than stretching six
               keys across ten columns' worth of width. */}
           {i === 2 && <span className="flex-[2] min-w-0" aria-hidden />}
@@ -69,11 +71,11 @@ export default function AlphaKeypad({
         </div>
       ))}
 
-      <div className="flex gap-1.5 md:gap-2 flex-1 min-h-0">
+      <div className="flex gap-[clamp(5px,1vh,10px)] flex-1 min-h-0">
         <button
           {...press(onToggleMode)}
           data-role="pad-123"
-          className="flex-[2] min-w-0 bg-teal/90 text-white rounded-lg md:rounded-xl min-h-[clamp(42px,7.4vh,72px)] text-base font-bold active:scale-95 transition-transform select-none"
+          className="flex-[2] min-w-0 bg-teal/90 text-white rounded-[14px] min-h-[34px] text-[15px] font-black tracking-[0.06em] active:scale-95 transition-transform select-none"
         >
           123
         </button>
@@ -87,7 +89,7 @@ export default function AlphaKeypad({
         <button
           {...press(onBackspace)}
           aria-label="Backspace"
-          className="flex-[2] min-w-0 bg-slate/90 text-white rounded-lg md:rounded-xl min-h-[clamp(42px,7.4vh,72px)] active:scale-95 transition-transform select-none"
+          className="flex-[2] min-w-0 bg-slate/90 text-white rounded-[14px] min-h-[34px] active:scale-[0.97] transition-transform select-none"
         >
           <svg className="w-7 h-7 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l7-7 12 0v14H10L3 12z" />

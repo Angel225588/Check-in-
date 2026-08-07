@@ -299,6 +299,38 @@ left and scrolls under both.
     it is a drawer rather than a page, and it is one element rather than a
     hundred. Radius capped, nothing stacked on top.
 
+### US-24 — Find the guests who need a decision — BUILT
+
+    As      Réception
+    I need  to filter the day down to the rooms whose breakfast is not included
+    So that the VIP who can swap their points is findable
+
+    Scenario: a VIP on a points rate is somewhere in a full house
+      Given  the swap switch lives on that guest's own screen
+      When   I put "Non inclus" on the bar and tap it
+      Then   I get exactly the rooms whose answer to "petit-déjeuner ?" is not
+             yes, and the swap is two taps away
+
+    Never:  a control that can only be reached by already knowing the room
+            number. A switch nobody can find is a switch nobody built.
+    Proof:  — to be written
+
+    This is the missing half of US-16. The switch was built, tested and shipped
+    months ago and was reported as "removed" — it was not; it was unreachable.
+    Verified present and on-screen without scrolling in both orientations, at
+    which point the real defect was obvious: nothing led to it.
+
+### US-25 — Turn the resting preview off — BUILT
+
+    As      Réception
+    I need  to hide the frame at rest
+    So that some mornings the pad and the list have the screen to themselves
+
+    Never:  this switch touching the RESOLVED guest card. That card carries the
+            allergy, and US-2 exists so it cannot be skipped — a preference
+            must not be able to hide it.
+    Proof:  — to be written
+
 ### US-23 — The gestures are an option, not a condition — BUILT
 
     As      Réception
@@ -363,7 +395,7 @@ that lies about it.**
     Alerts stay pinned by default whatever else changes (already true:
     `shouldPinByDefault`), and un-pinning stays possible afterwards.
 
-### US-19 — Choose which metrics I want to see
+### US-19 — Choose which metrics I want to see — BUILT (portrait)
 
     As      Réception
     I need  to pick the metrics on the bar, and have the rest fold away
@@ -372,12 +404,24 @@ that lies about it.**
     Scenario: zoomed to 125% on the iPad
       Given  eight metrics exist
       When   the bar cannot fit them
-      Then   it shows the ones I chose, the rest go behind a filter control,
-             and each visible one keeps its spacing — nothing is cut
+      Then   it shows the ones I chose, the rest go behind a funnel, and each
+             visible one keeps its spacing — nothing is cut
 
     Never:  a metric sliced by the panel edge, or a bar that reflows into a
-            second line and eats the list under it.
-    Proof:  — to be written (extend R19 to the metrics bar)
+            second line and eats the list under it. Never an empty bar.
+    Proof:  metric-choice.test.ts (10 cases) · R25e (no spill at three widths)
+
+    The funnel is a CHECKLIST of what is on the bar, not a second filter.
+    Filtering stays on the pill, where reading a number and acting on it are
+    the same gesture; the sheet decides membership. Two invariants hold it up:
+    with nothing chosen the ranking picks (and re-picks as the day moves), and
+    a chosen metric the day has none of never takes a slot — it is listed
+    greyed with a dash, so "why is Groupes missing" answers itself.
+
+    The choice is stored (`AppSettings.metrics`) and survives the shift.
+
+    Still landscape-only work: the wide bar shows everything and wraps when
+    zoomed. Same mechanism, not yet carried across.
 
 ### US-20 — Read the report for a day, or a week, or a month
 

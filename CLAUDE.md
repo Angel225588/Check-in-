@@ -19,10 +19,17 @@ The user is standing, one-handed, with a queue in front of them between 06:30 an
 1. **Write tests FIRST** before implementing any feature or fix
 2. Tests live in `src/__tests__/` with pattern `*.test.ts`
 3. Run tests: `npx vitest run` — single file: `npx vitest run src/__tests__/x.test.ts`
-4. All tests must pass before committing — **465 tests across 34 files**
+4. All tests must pass before committing — **481 tests across 37 files**
 5. Layout and behaviour that a unit test cannot see belong in the design rules,
-   not in a screenshot: `node scripts/design-rules.mjs` (52 rules, real browser)
-6. Full gate: `bash scripts/validate.sh` — tsc, vitest, build, end-to-end
+   not in a screenshot: `node scripts/design-rules.mjs` (90 checks, real browser)
+   — and **a rule that can be satisfied by a broken screen is not a rule**: R25a
+   passed while the card painted over the commit button, because it measured the
+   dock's own box and nothing about what was drawn on top of it
+6. Performance claims get measured: `node scripts/pad-latency.mjs` times
+   key-down to digit-on-screen against a full house and 30 days of history
+7. Full gate: `bash scripts/validate.sh` — tsc, vitest, build, end-to-end.
+   Never rebuild while it runs: `next build` under a live `next start` is the
+   stale-manifest trap the harness exists to catch, and it will crash the run.
 
 **A test fixture that cannot reproduce the product is a fixture that lies about
 it.** Three features once looked broken on the tablet because the demo seeder
@@ -52,6 +59,9 @@ still a landscape iPad.
 - Tests: `src/__tests__/` · Harness: `scripts/`
 - **Why anything exists: `docs/USER-STORIES.md`** — every story names the test or
   design rule that holds it. A story with no proof is a wish.
+- **What changed and what proved it: `docs/DEVLOG.md`** — mirrors the ClickUp
+  list *📖 User stories — Check-in* (`Imarketin › Check-in`). ClickUp holds the
+  story and its state; the devlog holds the work and the evidence.
 
 ## Brand & Design
 - Primary gold `#A66914`, light gold `#DD9C28`; tokens in `globals.css` `@theme`
@@ -60,6 +70,11 @@ still a landscape iPad.
 - Surface tiers, so three stacked boxes do not read as one: `surface-chrome`
   (furniture) · `surface-field` (the live input) · `surface-card` (data)
 - WCAG AA is measured on real renders, gradients composited — not eyeballed
+
+**Depth is free; glass is not.** `box-shadow` paints. `backdrop-filter`
+composites live pixels every frame. `.surface-inset` / `.surface-raised` give
+the neumorphic depth Angel asked for at no cost — the technique, not the
+reference's cool-grey palette.
 
 **Glass is expensive.** `backdrop-filter` over a flat background is invisible and
 still pays full compositing cost; 170 blurred elements is what made the iPad

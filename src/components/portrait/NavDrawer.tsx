@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import {
-  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, HandSwipeRight, ArrowUUpLeft,
+  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, HandSwipeRight, ArrowUUpLeft, Cards,
 } from "@phosphor-icons/react/dist/ssr";
 import type { RecentEntry } from "@/components/PreviewPanes";
 
@@ -31,6 +31,8 @@ export default function NavDrawer({
   handSide,
   side,
   swipe,
+  idlePreview,
+  onIdlePreviewToggle,
   recents,
   onPickRoom,
   onReport,
@@ -48,6 +50,8 @@ export default function NavDrawer({
    *  reaches across the screen for, every time. */
   side: "left" | "right";
   swipe: boolean;
+  idlePreview: boolean;
+  onIdlePreviewToggle: () => void;
   /** The service so far, newest first. */
   recents: RecentEntry[];
   onPickRoom: (room: string) => void;
@@ -184,27 +188,38 @@ export default function NavDrawer({
         </div>
 
         {/* Preferences last, where a mis-tap costs nothing. */}
-        <button
-          onClick={onSwipeToggle}
-          data-role="drawer-swipe"
-          role="switch"
-          aria-checked={swipe}
-          className="shrink-0 mt-2 min-h-[52px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
-          style={{ background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
-        >
-          <HandSwipeRight size={19} weight="duotone" style={{ opacity: .75 }} />
-          <span className="flex-1 text-[14px] font-bold" style={{ color: "var(--aur-ink-2)" }}>Balayage</span>
-          <span
-            aria-hidden
-            className="shrink-0 w-[46px] h-[27px] rounded-full relative transition-colors"
-            style={{ background: swipe ? "var(--aur-good)" : "rgba(128,128,128,.32)" }}
+        {/* Preferences, as switches. Both are "do I want this", not "do this",
+            so neither closes the drawer — watching it vanish would hide whether
+            the flip took. */}
+        {([
+          { role: "drawer-preview", icon: <Cards size={19} weight="duotone" style={{ opacity: .75 }} />,
+            label: "Aperçu au repos", on: idlePreview, act: onIdlePreviewToggle },
+          { role: "drawer-swipe", icon: <HandSwipeRight size={19} weight="duotone" style={{ opacity: .75 }} />,
+            label: "Balayage", on: swipe, act: onSwipeToggle },
+        ] as const).map((s) => (
+          <button
+            key={s.role}
+            onClick={s.act}
+            data-role={s.role}
+            role="switch"
+            aria-checked={s.on}
+            className="shrink-0 mt-2 min-h-[52px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
+            style={{ background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
           >
-            <i
-              className="absolute top-[3px] w-[21px] h-[21px] rounded-full bg-white transition-all"
-              style={{ left: swipe ? 22 : 3, boxShadow: "0 1px 3px rgba(0,0,0,.28)" }}
-            />
-          </span>
-        </button>
+            {s.icon}
+            <span className="flex-1 text-[14px] font-bold" style={{ color: "var(--aur-ink-2)" }}>{s.label}</span>
+            <span
+              aria-hidden
+              className="shrink-0 w-[46px] h-[27px] rounded-full relative transition-colors"
+              style={{ background: s.on ? "var(--aur-good)" : "rgba(128,128,128,.32)" }}
+            >
+              <i
+                className="absolute top-[3px] w-[21px] h-[21px] rounded-full bg-white transition-all"
+                style={{ left: s.on ? 22 : 3, boxShadow: "0 1px 3px rgba(0,0,0,.28)" }}
+              />
+            </span>
+          </button>
+        ))}
 
         {/* Which build is this?
             "It does not work on my tablet" and "it works on mine" are the same

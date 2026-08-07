@@ -43,6 +43,9 @@ export default function PortraitSearch({
   onFilterChange,
   onMenu,
   handSide,
+  chosenMetrics,
+  onChooseMetrics,
+  idlePreview,
   onSelectRoom,
   onCompose,
   onAddRoom,
@@ -77,6 +80,11 @@ export default function PortraitSearch({
   onMenu: () => void;
   /** The drawer and its button live on the hand that is free. */
   handSide: "left" | "right";
+  chosenMetrics?: string[] | null;
+  onChooseMetrics: (next: string[]) => void;
+  /** The frame at rest. Off, the pad and the list have the screen to
+   *  themselves — the resolved guest card is never affected. */
+  idlePreview: boolean;
   onSelectRoom: (room: string, index?: number, people?: number) => void;
   onCompose: (c: Client) => void;
   onAddRoom: () => void;
@@ -146,8 +154,7 @@ export default function PortraitSearch({
             onClick={onMenu}
             data-role="portrait-menu"
             aria-label="Ouvrir le menu du service"
-            className="w-[56px] shrink-0 min-h-[64px] rounded-[14px] grid place-items-center active:scale-[0.94] transition-transform"
-            style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
+            className="surface-raised w-[56px] shrink-0 min-h-[64px] rounded-[16px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
           >
             <List size={22} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
@@ -158,6 +165,8 @@ export default function PortraitSearch({
               activeFilter={activeFilter}
               onFilterChange={onFilterChange}
               expected={expected}
+              chosen={chosenMetrics}
+              onChoose={onChooseMetrics}
             />
           </div>
         </div>
@@ -196,7 +205,7 @@ export default function PortraitSearch({
           </div>
         )}
 
-        {slot === "idle" && (
+        {slot === "idle" && idlePreview && (
           <div className={FRAME}>
             <PreviewCarousel panes={idleForPortrait} auto swipe={swipe} resetKey="idle" />
           </div>
@@ -321,7 +330,7 @@ export default function PortraitSearch({
             still afford: 4 rows of 42px keys. Anything taller and the dock
             pushes itself off a 568px screen — which is exactly the failure
             R25a exists to catch. */}
-        <div className="h-[clamp(198px,34vh,268px)]">
+        <div className="h-[clamp(210px,38vh,340px)]">
           {pad === "num" ? (
             <NumericKeypad
               onKeyPress={appendKey}

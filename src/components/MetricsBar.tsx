@@ -6,7 +6,7 @@ import { getChildrenCount, getGroupStats } from "@/lib/groups";
 import { useApp } from "@/contexts/AppContext";
 import AnimatedNumber from "@/components/AnimatedNumber";
 
-export type MetricFilter = "total" | "entered" | "remaining" | "comp" | "vip" | "children" | "groups" | "expected" | null;
+export type MetricFilter = "total" | "entered" | "remaining" | "comp" | "vip" | "children" | "groups" | "expected" | "notincluded" | null;
 
 interface MetricsBarProps {
   clients: Client[];

@@ -66,6 +66,15 @@
   --aur-gold-3: #dd9c28;
   --aur-gold-soft: rgba(166, 105, 20, 0.10);
   --aur-gold-soft-2: rgba(166, 105, 20, 0.18);
+  /* Soft depth, borrowed from the neumorphic reference and not its palette.
+     Two shadows: a light one from the top-left and a dark one from the
+     bottom-right, so a pill reads as pressed into the page rather than drawn
+     on it. It costs nothing — box-shadow is not backdrop-filter, there is no
+     compositing pass and no blur of live pixels behind it, which is why this
+     is affordable on the iPad where glass was not. */
+  --inset-hi: rgba(255, 255, 255, 0.9);
+  --inset-lo: rgba(70, 58, 40, 0.13);
+
   /* The one surface that earns a backdrop-filter: the portrait drawer. It is a
      single element with a real screen behind it, so the blur is visible and is
      paid for once. Opaque enough that its own text keeps AA whatever the
@@ -166,6 +175,9 @@ html.dark {
   --aur-gold-soft: rgba(221, 156, 40, 0.12);
   --aur-gold-soft-2: rgba(221, 156, 40, 0.20);
   --aur-drawer: rgba(27, 24, 21, 0.88);
+  /* On a near-black page the highlight has to be a lift, not white paint. */
+  --inset-hi: rgba(255, 255, 255, 0.045);
+  --inset-lo: rgba(0, 0, 0, 0.5);
   /* The semantic hues do NOT move. Each one is a solid fill carrying white
      text somewhere (the Enregistrer CTA, the NON INCLUS badge), and lifting
      them for dark mode dropped those pairs to 1.8:1. Text keeps to the -ink
@@ -762,4 +774,33 @@ html.dark .vip-glow {
     0 4px 14px -4px rgba(221, 156, 40, 0.55),
     0 14px 40px -8px rgba(221, 156, 40, 0.65),
     0 0 90px -8px rgba(221, 156, 40, 0.50);
+}
+
+
+/* ── Depth ────────────────────────────────────────────────────────────────
+   From the neumorphic reference: the shape is cut into the surface rather
+   than outlined on it. Used where a row of equal things has to read as a row
+   of separate things without a border between each one — the metrics pills,
+   the keys. Nothing here paints over live pixels, so unlike glass it is free.
+
+   Reduced to two shadows, not four: the reference stacks a highlight and a
+   shadow on each side, which at our radius reads as a halo rather than depth. */
+.surface-inset {
+  background: var(--aur-surface);
+  box-shadow:
+    inset 2px 2px 5px var(--inset-lo),
+    inset -2px -2px 5px var(--inset-hi);
+}
+.surface-raised {
+  background: var(--aur-surface);
+  box-shadow:
+    -3px -3px 7px var(--inset-hi),
+    3px 3px 7px var(--inset-lo);
+}
+/* Pressed: the raised key inverts on touch, which is the whole appeal of the
+   style — the surface responds like a physical thing. */
+.surface-raised:active {
+  box-shadow:
+    inset 2px 2px 5px var(--inset-lo),
+    inset -2px -2px 5px var(--inset-hi);
 }

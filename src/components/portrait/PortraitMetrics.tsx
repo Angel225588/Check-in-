@@ -2,9 +2,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { FunnelSimple, Check, X } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
-import { getTotalGuests, getCheckedInCount, getCompStats } from "@/lib/utils";
+import { getTotalGuests, getCheckedInCount, getCompStats, needsPaymentChoice } from "@/lib/utils";
 import { getChildrenCount, getGroupStats } from "@/lib/groups";
-import { compactMetrics } from "@/lib/portrait";
+import { chooseMetrics, toggleMetric, CORE_METRICS as CORE } from "@/lib/metric-choice";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import type { MetricFilter } from "@/components/MetricsBar";
 
@@ -27,23 +27,29 @@ export default function PortraitMetrics({
   activeFilter,
   onFilterChange,
   expected,
+  chosen,
+  onChoose,
 }: {
   clients: Client[];
   checkIns: CheckInRecord[];
   activeFilter: MetricFilter;
   onFilterChange: (f: MetricFilter) => void;
   expected?: { people: number; basedOn: string | null };
+  /** Reception's own list, or null for "you decide". */
+  chosen?: string[] | null;
+  onChoose: (next: string[]) => void;
 }) {
   /* Memoised because this bar re-renders on every keystroke, and getGroupStats
      rebuilds every tour block from scratch — a full pass over the house to
      redraw four numbers that did not change because someone typed a 2. */
-  const { total, entered, comp, groups, children, vipCount } = useMemo(() => ({
+  const { total, entered, comp, groups, children, vipCount, notIncluded } = useMemo(() => ({
     total: getTotalGuests(clients),
     entered: getCheckedInCount(checkIns),
     comp: getCompStats(clients, checkIns),
     groups: getGroupStats(clients),
     children: getChildrenCount(clients),
     vipCount: clients.filter((c) => c.isVip).length,
+    notIncluded: clients.filter((c) => needsPaymentChoice(c)).length,
   }), [clients, checkIns]);
 
   const all: { key: MetricFilter & string; label: string; value: number; render?: React.ReactNode }[] = [
@@ -59,6 +65,7 @@ export default function PortraitMetrics({
     { key: "groups" as const, label: "Groupes", value: groups.people },
     { key: "comp" as const, label: "Comp", value: comp.total },
     { key: "vip" as const, label: "VIP", value: vipCount },
+    { key: "notincluded" as const, label: "Non inclus", value: notIncluded },
   ];
 
   const [sheet, setSheet] = useState(false);
@@ -73,19 +80,18 @@ export default function PortraitMetrics({
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
-  const chosen = compactMetrics(all.map((m) => ({ key: m.key, value: m.value })), clients.length, slots);
+  const candidates = all.map((m) => ({ key: m.key, value: m.value }));
+  const choice = chooseMetrics(candidates, chosen, clients.length, slots);
   // A filter running from off-screen is how you end up staring at four rows
   // wondering why — the same rule the report's tile row follows.
-  const keys = activeFilter && !chosen.includes(activeFilter)
-    ? [...chosen.slice(0, chosen.length - 1), activeFilter]
-    : chosen;
+  const keys = activeFilter && !choice.shown.includes(activeFilter)
+    ? [...choice.shown.slice(0, choice.shown.length - 1), activeFilter]
+    : choice.shown;
   const shown = keys.map((k) => all.find((m) => m.key === k)!).filter(Boolean);
-  // Everything the day has that did not fit. Zero-value metrics never enter the
-  // funnel either: a filter that can only ever return nothing is not a filter.
-  const hidden = all.filter((m) => !keys.includes(m.key) && m.value > 0);
+  const hidden = choice.hidden;
 
   return (
-    <div className="flex items-stretch gap-1.5 p-1.5 surface-chrome rounded-[14px]" data-role="portrait-metrics">
+    <div className="flex items-stretch gap-2 p-2 surface-chrome rounded-[16px]" data-role="portrait-metrics">
       {shown.map((m) => {
         const on = activeFilter === m.key;
         return (
@@ -95,8 +101,11 @@ export default function PortraitMetrics({
             data-metric={m.key}
             aria-pressed={on}
             onClick={() => onFilterChange(on ? null : m.key)}
-            className={`flex-1 min-w-0 min-h-[52px] px-1 rounded-[12px] text-center transition-transform active:scale-[0.96] ${
-              on ? "glass-liquid-active" : ""
+            /* Cut into the bar rather than outlined on it: four numbers in a
+               row need to read as four things, and a border between each is a
+               cage. Depth does it with light instead. */
+            className={`flex-1 min-w-0 min-h-[56px] px-1.5 rounded-[14px] text-center transition-transform active:scale-[0.96] ${
+              on ? "glass-liquid-active" : "surface-inset"
             }`}
           >
             <div className="text-[9.5px] font-black uppercase tracking-[0.08em] truncate text-muted">{m.label}</div>
@@ -114,9 +123,8 @@ export default function PortraitMetrics({
         <button
           onClick={() => setSheet(true)}
           data-role="portrait-filter-more"
-          aria-label={`Autres filtres (${hidden.length})`}
-          className="relative shrink-0 w-[44px] min-h-[52px] rounded-[12px] grid place-items-center transition-transform active:scale-[0.94]"
-          style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
+          aria-label={`Choisir les métriques (${hidden.length} de côté)`}
+          className="surface-inset relative shrink-0 w-[46px] min-h-[56px] rounded-[14px] grid place-items-center transition-transform active:scale-[0.94]"
         >
           <FunnelSimple size={18} weight="bold" style={{ color: "var(--tab-idle)" }} />
           <span className="absolute bottom-1 text-[9px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
@@ -139,32 +147,51 @@ export default function PortraitMetrics({
             style={{ background: "var(--aur-bg-elev)", boxShadow: "0 -20px 60px -24px rgba(20,12,0,.55)" }}
           >
             <div className="flex items-center justify-between mb-1">
-              <b className="text-[15px] text-dark">Filtrer</b>
+              <div>
+                <b className="text-[15px] text-dark block">Sur la barre</b>
+                <span className="text-[12px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+                  {slots} places · touchez une pastille pour filtrer
+                </span>
+              </div>
               <button onClick={() => setSheet(false)} aria-label="Fermer"
                 className="w-11 h-11 rounded-full grid place-items-center">
                 <X size={15} weight="bold" style={{ color: "var(--brand-ink)" }} />
               </button>
             </div>
-            {all.filter((m) => m.value > 0).map((m) => {
-              const on = activeFilter === m.key;
+            {/* A checklist, not a filter list: what is on the bar and what is
+                not. Metrics the day has none of are listed greyed rather than
+                hidden, so "why is Groupes missing" answers itself. */}
+            {all.map((m) => {
+              const on = keys.includes(m.key);
+              const absent = m.value <= 0 && !CORE.includes(m.key);
               return (
                 <button
                   key={m.key}
-                  data-role="portrait-filter-option"
+                  data-role="metric-choice-option"
                   data-metric={m.key}
-                  onClick={() => { onFilterChange(on ? null : m.key); setSheet(false); }}
-                  className="min-h-[56px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
+                  role="checkbox"
+                  aria-checked={on}
+                  disabled={absent}
+                  onClick={() => onChoose(toggleMetric(chosen, m.key, keys))}
+                  className="min-h-[56px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98] disabled:opacity-40"
                   style={{
                     background: on ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
                     boxShadow: on ? "inset 0 0 0 1.5px var(--aur-gold)" : "inset 0 0 0 1px rgba(128,128,128,.12)",
                   }}
                 >
-                  <span className="w-5 shrink-0">
-                    {on && <Check size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />}
+                  <span
+                    className="w-6 h-6 shrink-0 rounded-[7px] grid place-items-center"
+                    style={on
+                      ? { background: "var(--aur-gold)" }
+                      : { boxShadow: "inset 0 0 0 1.5px rgba(128,128,128,.4)" }}
+                  >
+                    {on && <Check size={14} weight="bold" color="#fff" />}
                   </span>
                   <span className="flex-1 text-[15px] font-bold text-dark">{m.label}</span>
                   <b className="text-[18px] font-black tabular-nums"
-                    style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>{m.value}</b>
+                    style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
+                    {absent ? "—" : m.value}
+                  </b>
                 </button>
               );
             })}

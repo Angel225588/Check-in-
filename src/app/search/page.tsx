@@ -57,6 +57,10 @@ export default function SearchPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   /** US-23 — the swipe is a shortcut, never the only path. */
   const [swipe, setSwipe] = useState(true);
+  /** US-19 — reception's own metrics bar. null means "you decide". */
+  const [chosenMetrics, setChosenMetrics] = useState<string[] | null>(null);
+  /** The frame at rest. Never governs the resolved guest card. */
+  const [idlePreview, setIdlePreview] = useState(true);
   /** How many of the room are actually walking in. Defaults to everyone still
    *  expected, because that is the common case; the stepper handles the rest
    *  without loading the check-in screen. */
@@ -72,6 +76,8 @@ export default function SearchPage() {
     const st = getSettings();
     setHandSide(st.handSide === "right" ? "right" : "left");
     setSwipe(swipeEnabled(st));
+    setChosenMetrics(st.metrics && st.metrics.length ? st.metrics : null);
+    setIdlePreview(st.idlePreview !== false);
   }, []);
 
   const flipSide = () => {
@@ -84,6 +90,17 @@ export default function SearchPage() {
     const next = !swipe;
     setSwipe(next);
     saveSettings({ ...getSettings(), swipe: next });
+  };
+
+  const chooseMetricsFor = (next: string[]) => {
+    setChosenMetrics(next);
+    saveSettings({ ...getSettings(), metrics: next });
+  };
+
+  const flipIdlePreview = () => {
+    const next = !idlePreview;
+    setIdlePreview(next);
+    saveSettings({ ...getSettings(), idlePreview: next });
   };
 
   const closeDayConfirmed = () => {
@@ -261,6 +278,13 @@ export default function SearchPage() {
           .replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
         return clients.filter((c) => cameYesterday.has(key(c.name)));
       }
+      /* The guests whose answer to "petit-déjeuner ?" is not yes. This is the
+         only route to the points swap: it lives on a VIP's own screen, and
+         before this there was no way to find that VIP among two hundred rooms
+         except by knowing their number. A switch nobody can reach is a switch
+         nobody built. */
+      case "notincluded":
+        return clients.filter((c) => needsPaymentChoice(c));
       case "groups": {
         const blocks = groupBlocks(clients);
         return clients.filter((c) => isInGroupBlock(c, blocks));
@@ -651,6 +675,9 @@ export default function SearchPage() {
           onFilterChange={handleFilterChange}
           onMenu={() => setDrawerOpen(true)}
           handSide={handSide}
+          chosenMetrics={chosenMetrics}
+          onChooseMetrics={chooseMetricsFor}
+          idlePreview={idlePreview}
           onSelectRoom={handleSelectRoom}
           onCompose={setNoteFor}
           onAddRoom={() => {
@@ -682,6 +709,8 @@ export default function SearchPage() {
           handSide={handSide}
           side={handSide}
           swipe={swipe}
+          idlePreview={idlePreview}
+          onIdlePreviewToggle={flipIdlePreview}
           recents={recents}
           onPickRoom={openRoom}
           onReport={() => { rememberOrigin("search"); router.push("/report"); }}

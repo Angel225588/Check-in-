@@ -100,6 +100,13 @@ export interface AppSettings {
    * Nothing becomes unreachable either way — every face is also on a dot.
    */
   swipe?: boolean;
+  /** Which metrics reception put on the bar, in their order (US-19). Absent
+   *  means "you decide" — the ranking picks, and it re-picks as the day moves. */
+  metrics?: string[];
+  /** Whether the preview frame is shown at rest. Some mornings the pad and the
+   *  list are all anyone wants on screen. The resolved guest card is NOT
+   *  covered by this: that one carries the allergy. */
+  idlePreview?: boolean;
 }
 
 // Dashboard analytics types
