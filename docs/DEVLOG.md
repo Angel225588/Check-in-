@@ -13,6 +13,41 @@ git for those.
 
 ---
 
+## 2026-08-07 (night) — a quiet screen, and the way out
+
+### The resting frame is off by default (US-35)
+It shipped ON because an empty band above the pad looked unfinished — measured
+in a desktop browser, where the band is smaller and there is no queue. With a
+real day on a real tablet the answer came back the other way: "too big, hide it
+by default". At rest reception is looking at the pad, not at a list of who has
+already come down.
+
+Off, and smaller when it is on: 24vh capped at 280px rather than filling the
+slot. The **resolved guest card still fills it** — that card is the reason the
+screen exists, and no preference may shrink it.
+
+Silence means off here, and on for the swipe. Both are right for their own
+reason: a frame at rest takes half the screen, a swipe takes nothing away. The
+defaults are asserted in `idle-preview.test.ts` rather than assumed.
+
+### A back button in portrait
+Portrait shipped without one because search is the root of the service. That is
+true and it is not the point: reception's only route back to the arrivals list
+was two taps deep in the drawer, and a screen with no way out reads as a trap
+however logical the reason. Beside the burger, on the same hand.
+
+### R29 re-aimed, and R25b/R25d taught the new default
+R29 was written about the resting frame — no dead band under it. The tablet then
+said the opposite about that frame, so the rule now measures the **guest card**:
+when someone is standing there, dead space between their card and the button is
+the thing worth forbidding. Re-aimed, not deleted, and stated here because a
+rule that changes shape to keep passing has to justify the new shape.
+
+R25b and R25d both read the resting carousel, so they turn the preference on
+first. What R25b protects — the card and the list never sharing the slot — is
+hardest to hold when the frame IS present, so testing it on is testing the
+harder case.
+
 ## 2026-08-07 (night) — the tick that lost to the filter
 
 ### Recency was the wrong rule (US-32, round two)

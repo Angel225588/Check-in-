@@ -586,6 +586,32 @@ that lies about it.**
     filter, and a door that renames itself once you walk through it is not a
     door — while the list narrows to the coach you ticked.
 
+### US-35 — A quiet screen at rest, and a way back — BUILT
+
+    As      Réception
+    I need  the resting frame off unless I ask for it, and a back button
+    So that the screen at rest is the pad, and the app is not a dead end
+
+    Scenario: nothing typed
+      Given  I have not turned the resting preview on
+      Then   the space above the pad is empty, and the guest card still fills
+             it the moment a room resolves
+
+    Never:  this preference touching the RESOLVED guest card. That card carries
+            the allergy and US-2 exists so it cannot be skipped.
+    Proof:  idle-preview.test.ts (3 cases) · R25b (turns it on, then asserts the
+            card and the list never share the slot)
+
+    **Two reversals, both from the tablet.** The frame shipped ON because an
+    empty band looked unfinished in a desktop browser; with a real day in it the
+    answer was "too big, hide it by default". And portrait shipped with no back
+    button because search is the root of the service — but the only route back
+    to the arrivals list was two taps deep in the drawer, and a screen with no
+    way out reads as a trap however logical the reason.
+
+    Off means off here, unlike the swipe: an unset preference is off, because a
+    frame at rest takes half the screen while the swipe takes nothing away.
+
 ### US-34 — Give a leaving coach its breakfast boxes — BUILT
 
     As      Réception

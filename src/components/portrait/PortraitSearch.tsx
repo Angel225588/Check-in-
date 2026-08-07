@@ -1,5 +1,5 @@
 "use client";
-import { Check, WarningCircle, NotePencil, List, Package } from "@phosphor-icons/react/dist/ssr";
+import { Check, WarningCircle, NotePencil, List, Package, CaretLeft } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import { portraitSlot } from "@/lib/portrait";
 import { capRows } from "@/lib/row-cap";
@@ -54,6 +54,7 @@ export default function PortraitSearch({
   onServeBox,
   onUndoBox,
   onMenu,
+  onBack,
   handSide,
   chosenMetrics,
   onChooseMetrics,
@@ -101,6 +102,8 @@ export default function PortraitSearch({
   onServeBox: (row: BoxRow) => void;
   onUndoBox: (row: BoxRow) => void;
   onMenu: () => void;
+  /** Back to the arrivals list — the one route portrait was missing. */
+  onBack: () => void;
   /** The drawer and its button live on the hand that is free. */
   handSide: "left" | "right";
   chosenMetrics?: string[] | null;
@@ -172,6 +175,12 @@ export default function PortraitSearch({
      Both states use this, so the eye still learns one place: the frame is the
      same size resting and resolved, and nothing moves when a room comes up. */
   const FRAME = "flex-1 min-h-0 max-h-[clamp(150px,46vh,520px)] flex flex-col";
+  /* The resting frame is smaller than the guest card, and off unless asked for.
+     Same place, less of it: at rest reception is looking at the pad, and a
+     half-screen list of who already came is answering a question nobody is
+     asking yet. The GUEST card keeps the slot — that one is the reason the
+     screen exists. */
+  const IDLE_FRAME = "shrink-0 h-[clamp(130px,24vh,280px)] max-h-full flex flex-col";
   const bubble =
     "w-[clamp(56px,8.5vh,72px)] h-[clamp(56px,8.5vh,72px)] shrink-0 rounded-full text-[30px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25";
 
@@ -186,6 +195,18 @@ export default function PortraitSearch({
         {/* The menu is not a metric. Inside the tinted bar it read as a fifth
             pill; beside it, it reads as what it is. */}
         <div className={`flex items-stretch gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
+          {/* Back to the arrivals list. Portrait had none: search is the root
+              of the service, so I had left it out — but reception's route back
+              to the upload screen was the drawer, two taps deep, and the app
+              looks trapped without it. Beside the burger, on the same hand. */}
+          <button
+            onClick={onBack}
+            data-role="portrait-back"
+            aria-label="Retour à la liste des arrivées"
+            className="surface-raised w-[44px] shrink-0 min-h-[64px] rounded-[16px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
+          >
+            <CaretLeft size={18} weight="bold" style={{ color: "var(--brand-ink)" }} />
+          </button>
           <button
             onClick={onMenu}
             data-role="portrait-menu"
@@ -243,7 +264,7 @@ export default function PortraitSearch({
         )}
 
         {slot === "idle" && idlePreview && (
-          <div className={FRAME}>
+          <div className={IDLE_FRAME}>
             <PreviewCarousel panes={idleForPortrait} auto swipe={swipe} resetKey="idle" />
           </div>
         )}

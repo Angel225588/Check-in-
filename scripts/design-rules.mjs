@@ -1419,6 +1419,16 @@ async function main() {
       await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${d}$`) }).first().click();
       await page.waitForTimeout(250);
     };
+    /* The resting frame ships OFF (US-35) — at rest reception is looking at
+       the pad. Turn it on before asserting it takes the slot: what this rule
+       protects is the card and the list never SHARING the slot, and that is
+       hardest to hold when the frame is present. */
+    await page.locator('[data-role="portrait-menu"]').click();
+    await page.waitForTimeout(300);
+    await page.locator('[data-role="drawer-preview"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('[data-role="nav-drawer"] [aria-label="Fermer le menu"]').click();
+    await page.waitForTimeout(400);
     const idle = await slot();
     const idleCarousel = await page.locator('[data-role="preview-carousel"]').count();
 
@@ -1472,6 +1482,9 @@ async function main() {
     await page.locator('[data-role="portrait-menu"]').click();
     await page.waitForTimeout(350);
     await page.locator('[data-role="drawer-swipe"]').click();
+    await page.waitForTimeout(200);
+    // The frame is off by default now (US-35); this rule is about its dots.
+    await page.locator('[data-role="drawer-preview"]').click();
     await page.waitForTimeout(200);
     const stateOff = await page.locator('[data-role="drawer-swipe"]').getAttribute("aria-checked");
     await page.locator('[data-role="nav-drawer"] [aria-label="Fermer le menu"]').click();
@@ -1619,20 +1632,31 @@ async function main() {
     await ctx.close();
   }
 
-  // R29 — no orphan band under the frame.
+  // R29 — no orphan band under the GUEST card.
   //
-  // A fixed 28vh frame on an iPad stood up left ~180px of nothing between the
-  // card and the commit button: not a layout, a gap. The frame takes the slot
-  // it is given now and caps at 520px. The check is the distance from the
-  // frame's bottom edge to the dock's top edge — the thing you actually see.
+  // Written first about the resting frame: a fixed 28vh left ~180px of nothing
+  // between it and the commit button. Then the tablet said the opposite about
+  // THAT frame — "too big, hide it by default" — so the resting frame is now a
+  // deliberately small, opt-in card and a gap under it is the point.
+  //
+  // Re-aimed rather than deleted, because the failure it describes is real and
+  // simply belongs to the other face: when a guest is on screen, the card is
+  // the screen, and dead space between them and the button they are waiting on
+  // is the thing worth forbidding. Saying so plainly — a rule that changes
+  // shape to keep passing has to justify the new shape.
   for (const [label, w, h] of [["phone", 390, 844], ["ipad", 834, 1194]]) {
     const { ctx, page } = await openDay("/search", { w, h });
-    const frame = await page.locator('[data-role="preview-carousel"]').boundingBox();
+    for (const d of [3, 1, 0]) {
+      await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${d}$`) }).first().click();
+      await page.waitForTimeout(220);
+    }
+    await page.waitForTimeout(450);
+    const card = await page.locator('[data-role="guest-preview"]').boundingBox();
     const dock = await page.locator('[data-role="portrait-dock"]').boundingBox();
-    const gap = frame && dock ? dock.y - (frame.y + frame.height) : null;
-    record(`R29-${label}-no-orphan-band`, "The resting frame leaves no band of dead screen above the pad",
-      gap !== null && gap < 120,
-      gap === null ? "frame or dock missing" : `${gap.toFixed(0)}px between frame and dock`);
+    const gap = card && dock ? dock.y - (card.y + card.height) : null;
+    record(`R29-${label}-no-orphan-band`, "The guest card leaves no band of dead screen above the pad",
+      gap !== null && gap >= 0 && gap < 120,
+      gap === null ? "card or dock missing" : `${gap.toFixed(0)}px between card and dock`);
     await ctx.close();
   }
 

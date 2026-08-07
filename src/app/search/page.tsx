@@ -32,7 +32,7 @@ import { boxRows, boxRecord, type BoxRow } from "@/lib/box-list";
 import GroupPicker from "@/components/GroupPicker";
 import { expectedFromYesterday } from "@/lib/expected";
 import { capRows } from "@/lib/row-cap";
-import { swipeEnabled } from "@/lib/gestures";
+import { swipeEnabled, idlePreviewEnabled } from "@/lib/gestures";
 import { usePortrait } from "@/hooks/usePortrait";
 import PortraitSearch from "@/components/portrait/PortraitSearch";
 import NavDrawer from "@/components/portrait/NavDrawer";
@@ -96,7 +96,7 @@ export default function SearchPage() {
     setHandSide(st.handSide === "right" ? "right" : "left");
     setSwipe(swipeEnabled(st));
     setChosenMetrics(st.metrics && st.metrics.length ? st.metrics : null);
-    setIdlePreview(st.idlePreview !== false);
+    setIdlePreview(idlePreviewEnabled(st));
   }, []);
 
   const flipSide = () => {
@@ -786,6 +786,7 @@ export default function SearchPage() {
           onServeBox={serveBox}
           onUndoBox={undoBox}
           onMenu={() => setDrawerOpen(true)}
+          onBack={() => router.push("/upload")}
           handSide={handSide}
           chosenMetrics={chosenMetrics}
           onChooseMetrics={chooseMetricsFor}
