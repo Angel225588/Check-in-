@@ -246,7 +246,7 @@ export default function CheckInPage({
 
   if (!client) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-safe">
         <div className="skeleton h-8 w-24 mb-4" />
         <div className="skeleton h-14 w-40 mb-2" />
         <div className="skeleton h-6 w-56 mb-6" />

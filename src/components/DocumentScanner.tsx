@@ -269,7 +269,7 @@ export default function DocumentScanner({
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Top bar */}
-      <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-2 z-10">
+      <div className="shrink-0 flex items-center justify-between px-4 pt-safe pb-2 z-10">
         <button
           onClick={onClose}
           className="text-white/80 text-sm font-medium px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 transition-colors"

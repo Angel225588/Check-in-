@@ -61,7 +61,7 @@ function HistoryDrawer({
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
-        <div className="shrink-0 p-4 flex items-center justify-between">
+        <div className="shrink-0 p-4 pt-safe flex items-center justify-between">
           <h2 className="text-xl font-bold text-dark">{t("history.pastSessions")}</h2>
           <button onClick={onClose} className="p-2 glass-liquid rounded-full active:scale-95 transition-transform">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@ function SessionDetailDrawer({
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="ml-auto relative w-full max-w-lg bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         {/* Header */}
-        <div className="shrink-0 p-4">
+        <div className="shrink-0 p-4 pt-safe">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="text-lg font-black text-dark">{session.date}</h2>
@@ -620,7 +620,7 @@ export default function UploadPage() {
           <div className="absolute -bottom-40 -left-20 w-96 h-96 rounded-full bg-brand-light/[0.03] blur-3xl" />
         </div>
 
-        <div className="relative flex-1 flex flex-col px-5 pt-6 pb-5">
+        <div className="relative flex-1 flex flex-col px-5 pt-safe pb-5">
           {/* Add-mode banner */}
           {isAddMode && (
             <div className="mb-3 flex items-center gap-2 bg-brand/10 dark:bg-brand/15 rounded-[14px] px-4 py-2">

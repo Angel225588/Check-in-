@@ -61,7 +61,7 @@ export default function HistoryPanel({
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 glass-dark" onClick={onClose} />
       <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col">
-        <div className="shrink-0 glass border-b border-white/20 dark:border-white/5 p-4 flex items-center justify-between">
+        <div className="shrink-0 glass border-b border-white/20 dark:border-white/5 p-4 pt-safe flex items-center justify-between">
           <h2 className="text-xl font-bold text-dark">{t("history.title")}</h2>
           <button onClick={onClose} aria-label="Close history" className="p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-xl active:scale-90 transition-all">
             <svg className="w-6 h-6 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -67,7 +67,7 @@ export default function ReportsListPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-safe">
         <div className="skeleton h-8 w-32 mb-4" />
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (

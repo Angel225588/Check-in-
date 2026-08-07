@@ -415,7 +415,7 @@ export default function SearchPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-safe">
         <div className="skeleton h-14 w-full mb-3" />
         <div className="skeleton h-10 w-full mb-3" />
         <div className="space-y-2">

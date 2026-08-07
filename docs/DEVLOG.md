@@ -13,6 +13,28 @@ git for those.
 
 ---
 
+## 2026-08-07 (night) — every screen, not the two I could see
+
+### "In none of these screens are we using the margin"
+Correct, and the criticism lands on the fix as much as the bug: I patched the
+screens in the photographs. R28 named two routes — which is a rule that watches
+the two places the bug had already been caught.
+
+`.pt-safe` now on every screen — search, report and its full-screen sheet,
+guest, reports, clients, upload, dashboard, debug, morning-brief, the reception
+brief — including the loading shells, which are the first thing anyone sees.
+And on every full-height overlay, because an overlay is drawn on top of a screen
+that is already correct and gets no help from it: the drawer, the activity
+sheet, the history panel, the scanner, the upload session panels.
+
+**R30 walks the app.** Eight routes and two overlays, with the insets faked to
+an iPad's 44px, failing on anything that carries words or takes a tap and starts
+above the line. Decoration and backdrops may still span the screen — that is
+what full-bleed means, and a rule that forbade it would be a rule about the
+wrong thing.
+
+Ten for ten on a real build before the gate ran.
+
 ## 2026-08-07 (late, second round) — a tick that did nothing
 
 ### The checklist could not swap (US-32)

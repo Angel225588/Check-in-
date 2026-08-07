@@ -1560,6 +1560,65 @@ async function main() {
     await ctx.close();
   }
 
+  // R30 — every screen, and every full-screen overlay, keeps out of the top
+  // strip. Not two screens: all of them.
+  //
+  // R28 checked the two Angel photographed. He then said it plainly — "in none
+  // of these screens are we using the margin" — and he was right: I had fixed
+  // what I could see. A rule that names two routes is a rule that watches the
+  // two places the bug already got caught.
+  //
+  // So this walks the app. Anything that carries words or takes a tap must
+  // start below the status bar; decoration and backdrops may span the screen,
+  // which is what full-bleed means.
+  const TOP_BAND = 44;
+  const topOffenders = `(band) => {
+    const bad = [];
+    for (const el of document.querySelectorAll("body *")) {
+      const tag = el.tagName.toLowerCase();
+      const words = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
+      const tappable = tag === "button" || tag === "input" || tag === "a" || tag === "textarea";
+      if (!words && !tappable) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === "hidden" || cs.opacity === "0") continue;
+      if (r.top < band && r.bottom > 0) {
+        bad.push((el.getAttribute("data-role") || tag) + " @" + Math.round(r.top) + " \\"" + el.textContent.trim().slice(0, 18) + "\\"");
+      }
+    }
+    return bad;
+  }`;
+
+  for (const path of ["/search", "/report", "/reports", "/clients", "/upload", "/dashboard", "/checkin/224", "/morning-brief"]) {
+    const { ctx, page } = await openDay(path, { w: 834, h: 1194 });
+    await page.addStyleTag({ content: `:root{--safe-top:${TOP_BAND}px;--safe-bottom:34px}` });
+    await page.waitForTimeout(350);
+    const bad = await page.evaluate(`(${topOffenders})(${TOP_BAND})`);
+    record(`R30-${path.slice(1).replace(/\//g, "-")}-top-margin`,
+      "Nothing on this screen is drawn under the iPad's clock",
+      bad.length === 0, bad.length ? bad.slice(0, 4).join(" | ") : "clear");
+    await ctx.close();
+  }
+
+  // R30b — the overlays, which are drawn on top of a screen that is already
+  // correct and so get no help from it.
+  {
+    const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
+    await page.addStyleTag({ content: `:root{--safe-top:${TOP_BAND}px;--safe-bottom:34px}` });
+    for (const [name, open] of [
+      ["drawer", async () => { await page.locator('[data-role="portrait-menu"]').click(); }],
+      ["activity", async () => { await page.locator('[data-role="drawer-recents"]').click(); }],
+    ]) {
+      await open();
+      await page.waitForTimeout(450);
+      const bad = await page.evaluate(`(${topOffenders})(${TOP_BAND})`);
+      record(`R30b-${name}-top-margin`, "This overlay keeps out of the status bar too",
+        bad.length === 0, bad.length ? bad.slice(0, 4).join(" | ") : "clear");
+    }
+    await ctx.close();
+  }
+
   // R29 — no orphan band under the frame.
   //
   // A fixed 28vh frame on an iPad stood up left ~180px of nothing between the
