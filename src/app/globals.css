@@ -820,8 +820,11 @@ html.dark .vip-glow {
    browser reports 0 on every edge, so a rule written against `env()` alone
    proves nothing at all — it passes on the one machine where the bug cannot
    happen. Setting `--safe-top` to 44px is the iPad, on any machine. */
+/* 12px, not 10: the scale is 4pt above 8, and R20 reads the RENDERED padding —
+   so a utility with a 10px default quietly takes every header it is applied to
+   off the scale. The rule caught it the first time this shipped. */
 .pt-safe {
-  padding-top: calc(var(--chrome-pad, 10px) + var(--safe-top, env(safe-area-inset-top, 0px)));
+  padding-top: calc(var(--chrome-pad, 12px) + var(--safe-top, env(safe-area-inset-top, 0px)));
 }
 .pb-safe {
   padding-bottom: calc(var(--dock-pad, 10px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
