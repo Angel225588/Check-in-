@@ -1648,8 +1648,15 @@ async function main() {
   // `env()` alone passes on the one machine where the bug cannot happen. The
   // utilities read `--safe-top` / `--safe-bottom` first, so the harness can be
   // an iPad: 44px of status bar, 34px of home indicator.
-  for (const [path, top, dock] of [
-    ["/search", '[data-role="portrait-menu"]', '[data-role="portrait-dock"]'],
+  /* The bottom is measured on the LAST KEY, not on the dock.
+
+     The dock is SUPPOSED to reach the bottom edge — that is what cover buys us,
+     a pad flush to the glass instead of a letterbox. What must clear the home
+     indicator is what is drawn inside it. Measuring the container failed the
+     app for doing the right thing, which is the same mistake R26a exists to
+     prevent, made in my own rule one screen later. */
+  for (const [path, top, lastKey] of [
+    ["/search", '[data-role="portrait-menu"]', '[data-role="portrait-dock"] button'],
     ["/report", '[data-role="report-header"] button', null],
   ]) {
     for (const [label, w, h] of [["phone", 390, 844], ["ipad", 834, 1194]]) {
@@ -1657,14 +1664,14 @@ async function main() {
       await page.addStyleTag({ content: ":root{--safe-top:44px;--safe-bottom:34px}" });
       await page.waitForTimeout(300);
       const topBox = await page.locator(top).first().boundingBox().catch(() => null);
-      const dockBox = dock ? await page.locator(dock).boundingBox().catch(() => null) : null;
+      const keyBox = lastKey ? await page.locator(lastKey).last().boundingBox().catch(() => null) : null;
       const clearsTop = !!topBox && topBox.y >= 44;
-      const clearsBottom = !dockBox || dockBox.y + dockBox.height <= h - 34 + 1;
+      const clearsBottom = !keyBox || keyBox.y + keyBox.height <= h - 34 + 1;
       record(`R28-${label}-${path.slice(1)}-safe-area`,
         "The app's own furniture stays out of the status bar and the home indicator",
         clearsTop && clearsBottom,
         !clearsTop ? `top chrome starts at y=${topBox?.y?.toFixed(0) ?? "?"}, status bar is 44px` :
-        !clearsBottom ? `dock ends ${(dockBox.y + dockBox.height).toFixed(0)} of ${h - 34}` : "clear");
+        !clearsBottom ? `last key ends ${(keyBox.y + keyBox.height).toFixed(0)} of ${h - 34}` : "clear");
       await ctx.close();
     }
   }
