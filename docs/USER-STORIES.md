@@ -556,19 +556,75 @@ that lies about it.**
     they have to mean something different — an average morning, not eleven
     mornings stacked — and that is the part to get right before it is built.
 
-### US-21 — Filter the report to one group
+### US-21 — Filter to one group, not all of them — BUILT (search screen)
 
-    As      F&B / manager
+    As      Réception / F&B
     I need  to select a single tour block
     So that I can see how that coach behaved, not all groups at once
 
     Scenario: two coaches, one left early
-      Given  the Groupes panel lists both
-      When   I tap one
-      Then   the list, and the figures that follow it, show only that block
+      Given  the house has TOMEU (8 rooms) and TOALP (5)
+      When   I tap Groupes and tick TOMEU
+      Then   the list shows those 8 rooms and nobody else
+      And    unticking it shows all 13 again — not none
 
     Never:  "Groupes" as a single on/off that lumps every tour together.
-    Proof:  — to be written
+            Never an empty screen from a stored pick the day no longer has:
+            the coach that was here yesterday is gone by the time this morning's
+            list is uploaded, and "no groups today" is a different and wrong
+            fact. All of them beats none of them.
+    Proof:  group-pick.test.ts (7 cases) · R26c
+
+    Nothing ticked means all of them, so the pill on its own behaves exactly as
+    it always did — the checklist is what you open when you want less than
+    everything. It is not shown at all when the day has one block: a control
+    with a single option only ever teaches you it does nothing.
+
+    **Still all-or-nothing on the report itself.** The Groupes tile there filters
+    every block together. Same lib when it is done; saying so beats letting the
+    two screens quietly disagree.
+
+### US-29 — Read the arrival list on the whole screen — BUILT
+
+    As      Réception
+    I need  the report's arrival list at full size, with its search and filters
+    So that "who came at 8?" is answered by reading, not by squinting at a panel
+
+    Scenario: the morning is over and F&B asks about room 402
+      Given  I am on the report
+      When   I tap the expand button on "Par ordre d'arrivée"
+      Then   the same list fills the screen, with the search field, the tiles,
+             and the pad in the sheet's own column
+      And    closing it leaves my query and my filter exactly as they were
+
+    Never:  a second list with its own state. Two views of one state, or the
+            filter you set in the sheet is lost the moment you close it.
+    Never:  the pad floating over the rows. Stacked on top it was a grid of keys
+            with guest names showing through the gaps — every row it covered was
+            one you could neither read nor tap.
+    Proof:  R26b (phone + iPad)
+
+### US-30 — The pad stays on the screen — BUILT
+
+    As      Réception
+    I need  every key reachable on the tablet I actually hold
+    So that the last row is not under the home indicator
+
+    Scenario: the report's search, on an iPad in portrait
+      Given  I tap the search field
+      Then   the pad opens and its last row of keys is above the bottom edge
+
+    Never:  a pad measured by its own box. The box can sit where it belongs
+            while a taller key inside it hangs below the fold — which is what a
+            key with its own min-height inside a shorter container does.
+            The last key is what gets measured.
+    Proof:  R26a (320×568, 390×844, 834×1194, 1194×834)
+
+    The app had no `viewport-fit` and no safe-area handling at all: installed as
+    a PWA, iOS hands back a viewport that includes the home indicator's band and
+    every dock in the app was drawing into it. `viewportFit: "cover"` plus a
+    `.pb-safe` utility on the docks, and the pad's height is a share of the
+    viewport rather than whatever its keys ask for.
 
 ### US-22 — Come back to where I came from — BUILT
 

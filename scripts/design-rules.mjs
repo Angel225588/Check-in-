@@ -1500,6 +1500,84 @@ async function main() {
     await ctx.close();
   }
 
+  // ── R26 · the report's list, and the pad under it ───────────────────────
+  //
+  // Three rules for three things Angel found on the tablet and no unit test
+  // could see: a pad walking off the bottom of the screen, a list you could
+  // not open, and a group filter that could only mean "all the coaches".
+
+  // R26a — the pad is inside the screen, keys and all.
+  //
+  // Not a rule about the pad's own box: the box can be where it belongs while
+  // the last row of keys hangs below the fold, which is exactly what a taller
+  // key inside a shorter container does. The last key is what gets measured.
+  for (const [label, w, h] of [...PORTRAITS, ["landscape", 1194, 834]]) {
+    const { ctx, page } = await openDay("/report", { w, h });
+    await page.locator('[data-role="report-search"]').first().click();
+    await page.waitForTimeout(500);
+    const pad = await page.locator('[data-role="report-pad"]').boundingBox();
+    const key = await page.locator('[data-role="numeric-keypad"] button, [data-role="alpha-keypad"] button').last().boundingBox();
+    const inside = !!pad && !!key && pad.y + pad.height <= h + 1 && key.y + key.height <= h + 1;
+    record(`R26a-${label}-report-pad-fits`, "The report's pad and its last key stay on the screen",
+      inside,
+      inside ? "inside" : `pad ends ${pad ? (pad.y + pad.height).toFixed(0) : "?"}, last key ends ${key ? (key.y + key.height).toFixed(0) : "?"} of ${h}`);
+    await ctx.close();
+  }
+
+  // R26b — the list opens full screen, and the pad does not stand on it.
+  //
+  // The panel is a corner of a dashboard; "who came at 8?" is read off the
+  // list. Expanded it keeps the search field and the filters — and the pad
+  // joins the sheet's own column, because floating it over the top left the
+  // guest rows showing through the gaps between the keys, unreadable and
+  // untappable in one move.
+  for (const [label, w, h] of [["phone", 390, 844], ["ipad", 834, 1194]]) {
+    const { ctx, page } = await openDay("/report", { w, h });
+    await page.locator('[data-role="report-search"]').first().click();
+    await page.waitForTimeout(400);
+    await page.locator('[data-role="report-list-expand"]').click();
+    await page.waitForTimeout(450);
+    const sheet = page.locator('[data-role="report-list-sheet"]');
+    const rows = await sheet.locator('[data-role="report-row"]').count();
+    const field = await sheet.locator('[data-role="report-search"]').count();
+    const list = await sheet.locator('[data-role="report-list"]').boundingBox();
+    const pad = await sheet.locator('[data-role="report-pad"]').boundingBox();
+    const clear = !!list && !!pad && list.y + list.height <= pad.y + 1 && pad.y + pad.height <= h + 1;
+    record(`R26b-${label}-report-list-expands`, "The arrival list opens full screen with its search, and the pad never covers it",
+      rows > 0 && field === 1 && clear,
+      rows === 0 ? "no rows in the sheet" :
+      field !== 1 ? "no search field in the sheet" :
+      clear ? `${rows} rows` : `list ends ${list ? (list.y + list.height).toFixed(0) : "?"}, pad starts ${pad?.y.toFixed(0)}`);
+    await ctx.close();
+  }
+
+  // R26c — Groupes names which coach.
+  //
+  // One on/off for every tour in the house answers a question reception rarely
+  // asks: the seven o'clock coach and the nine o'clock coach are two different
+  // mornings. Nothing ticked still means all of them, so the pill alone keeps
+  // working exactly as it did.
+  {
+    const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
+    await page.locator('[data-metric="groups"]').first().click();
+    await page.waitForTimeout(450);
+    const rows = () => page.locator('[data-role="room-row"]').count();
+    const all = await rows();
+    const options = page.locator('[data-role="group-pick-option"]');
+    const n = await options.count();
+    await options.first().click();
+    await page.waitForTimeout(350);
+    const picked = await rows();
+    const checked = await options.first().getAttribute("aria-checked");
+    await options.first().click();
+    await page.waitForTimeout(350);
+    const back = await rows();
+    record("R26c-group-checklist", "Groupes narrows to the coach you tick, and unticking means all of them again",
+      n >= 2 && all > 0 && picked > 0 && picked < all && checked === "true" && back === all,
+      `options=${n} all=${all} picked=${picked} back=${back}`);
+    await ctx.close();
+  }
+
   await closeBrowser();
   stopServer();
 

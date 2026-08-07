@@ -10,6 +10,8 @@ import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
 import type { MetricFilter } from "@/components/MetricsBar";
+import type { GroupBlock } from "@/lib/groups";
+import GroupPicker from "@/components/GroupPicker";
 
 /**
  * The check-in screen, one column and one thumb.
@@ -41,6 +43,9 @@ export default function PortraitSearch({
   filteredClients,
   activeFilter,
   onFilterChange,
+  groupBlocks,
+  pickedGroups,
+  onPickGroups,
   onMenu,
   handSide,
   chosenMetrics,
@@ -78,6 +83,10 @@ export default function PortraitSearch({
   filteredClients: Client[];
   activeFilter: MetricFilter;
   onFilterChange: (f: MetricFilter) => void;
+  /** The tours in the house, and which of them the list is narrowed to. */
+  groupBlocks: GroupBlock[];
+  pickedGroups: string[];
+  onPickGroups: (next: string[]) => void;
   onMenu: () => void;
   /** The drawer and its button live on the hand that is free. */
   handSide: "left" | "right";
@@ -232,6 +241,13 @@ export default function PortraitSearch({
           </div>
         )}
 
+        {/* The checklist sits above the list it narrows, and only while the
+            groups filter is the reason the list is there — a group picker over
+            a room search is a control for a question nobody asked. */}
+        {slot === "list" && !query && activeFilter === "groups" && (
+          <GroupPicker blocks={groupBlocks} picked={pickedGroups} onPick={onPickGroups} />
+        )}
+
         {slot === "list" && (
           <div className="flex-1 min-h-0 overflow-y-auto space-y-2 -mx-0.5 px-0.5">
             {rows.map((client, i) => {
@@ -271,7 +287,7 @@ export default function PortraitSearch({
 
       {/* The dock. Fixed by construction: everything above it is the flexible
           part, so no scroll position and no state can move it. */}
-      <div className="shrink-0 flex flex-col gap-2 px-2.5 pb-2.5" data-role="portrait-dock">
+      <div className="shrink-0 flex flex-col gap-2 px-2.5 pb-2.5 pb-safe" data-role="portrait-dock">
         {saveFailed && (
           <div
             data-role="checkin-save-error"

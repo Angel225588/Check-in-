@@ -13,6 +13,55 @@ git for those.
 
 ---
 
+## 2026-08-07 (evening) — three from the tablet
+
+### The pad was cut off, and the app had never heard of the safe area
+Angel's screenshot showed the report's pad running off the bottom. The harness
+disagreed — measured on a desktop viewport it fitted exactly, which is the point:
+the app declared no `viewport-fit` and had **no safe-area handling anywhere**.
+Installed as a PWA, iOS hands back a viewport that includes the home indicator's
+band, and every dock in the app was drawing into it.
+
+`viewportFit: "cover"`, a `.pb-safe` utility on the docks, and the report's pad
+given a bounded box (`clamp(180px,30vh,290px)`) so key size can never push its
+last row off the screen. **R26a measures the last key, not the pad's box** — the
+box can sit where it belongs while a taller key inside it hangs below the fold.
+
+### The list you could not open (US-29)
+The arrival list lived in a corner of a dashboard, and "who came at 8?" is read
+off the list. It expands to the whole screen now, with its search field, its
+tiles, and the same `query`/`filter`/`pad` state — two views of one state, so
+closing the sheet leaves you exactly where you were.
+
+**The pad went in the sheet's column, not over it.** The first build stacked it
+on top with `z-[60]`: a grid of keys with guest names showing through the gaps,
+and every row it covered was one you could neither read nor tap. R26b asserts
+the list's bottom edge is above the pad's top edge — the R25f lesson, applied
+before Angel had to find it.
+
+### Groupes names which coach (US-21)
+One on/off for every tour answers a question reception rarely asks: the seven
+o'clock coach and the nine o'clock coach are two different mornings. Ticking
+TOMEU narrows 13 rooms to 8; unticking gives all 13 back.
+
+Nothing ticked means all of them, so the pill alone behaves exactly as before,
+and the checklist does not appear at all when the day has one block — a control
+with a single option only ever teaches you it does nothing.
+
+The case that decided the implementation: a stored pick outliving its day.
+Yesterday's coach is gone by the time this morning's list is uploaded, and an
+empty screen reads as "no groups today", which is a different and wrong fact.
+`pickGroups` falls back to every block rather than none.
+
+### Also worth recording
+The first verification run came back blank on all three devices — a stale
+`next start` from before the rebuild was still holding port 3213, serving JS
+chunks the new build had renamed. Blank white screenshots, every selector
+missing. That is the same stale-manifest trap CLAUDE.md warns about, from the
+other direction: kill the server *before* the build, not after.
+
+---
+
 ## 2026-08-07 (later still) — the two habits
 
 ### "Descend vers 07:34 · 6 matins" (US-28)

@@ -25,6 +25,7 @@ import NumericKeypad from "@/components/NumericKeypad";
 import { checkinHref } from "@/lib/checkin-nav";
 import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks, getChildrenCount } from "@/lib/groups";
+import { ArrowsOutSimple, X as XIcon } from "@phosphor-icons/react/dist/ssr";
 import type { Client } from "@/lib/types";
 
 export default function ReportPageWrapper() {
@@ -66,6 +67,10 @@ function ReportV2() {
   /** Which services exist to look at. Newest first, today only when there is
    *  one open. */
   const [days, setDays] = useState<string[]>([]);
+  /** The list, full screen. Same rows, same search, same filters — the panel it
+   *  lives in is a third of a tablet, and "who came at 08:57" is a question
+   *  asked of the whole day rather than of the six rows that happen to fit. */
+  const [expanded, setExpanded] = useState(false);
 
   const dateParam = searchParams.get("date");
   const todayIso = new Date().toISOString().split("T")[0];
@@ -185,6 +190,48 @@ function ReportV2() {
   const btn =
     "min-h-[46px] px-4 rounded-full text-[13.5px] font-black flex items-center gap-2 glass-liquid active:scale-[0.97] transition-transform";
 
+  /* One pad, rendered into whichever column is on screen.
+
+     A bounded box, not a stack of keys: the pad used to be as tall as its keys
+     wanted to be, so making the keys bigger pushed its last row off the bottom
+     of an iPad — and on a desktop browser, where there is no home indicator, it
+     still just fitted. Height is a share of the viewport now.
+
+     It belongs to the layout, never floating over it. Stacked above the sheet it
+     was a grid of keys with the guest list showing through the gaps, and every
+     row it covered was a row you could neither read nor tap. */
+  const padBox = pad && (
+    <div className="shrink-0 px-3 pb-3 pb-safe" data-role="report-pad">
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={() => setPad(null)}
+          data-role="report-pad-close"
+          className="min-h-[40px] px-4 rounded-full text-[13px] font-black glass-liquid active:scale-[0.96] transition-transform"
+          style={{ color: "var(--brand-ink)" }}
+        >
+          Fermer le clavier
+        </button>
+      </div>
+      <div className="h-[clamp(180px,30vh,290px)]">
+        {pad === "abc" ? (
+          <AlphaKeypad
+            onKeyPress={(k) => setQuery((q) => q + k)}
+            onBackspace={() => setQuery((q) => q.slice(0, -1))}
+            onToggleMode={() => setPad("num")}
+          />
+        ) : (
+          <div className="max-w-[420px] h-full">
+            <NumericKeypad
+              onKeyPress={(k) => setQuery((q) => q + k)}
+              onBackspace={() => setQuery((q) => q.slice(0, -1))}
+              onToggleMode={() => setPad("abc")}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -250,13 +297,26 @@ function ReportV2() {
           <AffluenceChart checkIns={report.checkIns} />
 
           <div className="surface-card rounded-[20px] px-4 pt-3 pb-3 flex flex-col md:flex-1 md:min-h-0">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Par ordre d&apos;arrivée
               </span>
-              <b className="text-[12px] font-bold tabular-nums" style={{ color: "var(--aur-ink-2)" }}>
-                {visible.length} chambre{visible.length > 1 ? "s" : ""}
-              </b>
+              <div className="flex items-center gap-2">
+                <b className="text-[12px] font-bold tabular-nums" style={{ color: "var(--aur-ink-2)" }}>
+                  {visible.length} chambre{visible.length > 1 ? "s" : ""}
+                </b>
+                {/* The panel is a corner of a dashboard; the list is the thing
+                    you actually read when someone asks "who came at 8?". Same
+                    rows, same search, same filters — the whole screen. */}
+                <button
+                  onClick={() => setExpanded(true)}
+                  data-role="report-list-expand"
+                  aria-label="Ouvrir la liste en plein écran"
+                  className="surface-raised w-[40px] h-[36px] rounded-[12px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
+                >
+                  <ArrowsOutSimple size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />
+                </button>
+              </div>
             </div>
 
             <div className="mt-3">
@@ -312,35 +372,52 @@ function ReportV2() {
         </div>
       </div>
 
-      {pad && (
-        <div className="shrink-0 px-3 pb-3" data-role="report-pad">
-          <div className="flex justify-end mb-2">
+      {/* The same list with the whole screen. It shares query, filter and pad
+          with the panel, so closing it leaves you exactly where you were —
+          two views of one state, not two lists. */}
+      {expanded && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#FBF8F3] dark:bg-[#12100E]" data-role="report-list-sheet">
+          <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2">
+            <span className="text-[15px] font-black" style={{ color: "var(--brand-ink)" }}>
+              Par ordre d&apos;arrivée
+            </span>
+            <b className="text-[12.5px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
+              {visible.length} chambre{visible.length > 1 ? "s" : ""}
+            </b>
+            <span className="flex-1" />
             <button
-              onClick={() => setPad(null)}
-              data-role="report-pad-close"
-              className="min-h-[40px] px-4 rounded-full text-[13px] font-black glass-liquid active:scale-[0.96] transition-transform"
-              style={{ color: "var(--brand-ink)" }}
+              onClick={() => { setExpanded(false); setPad(null); }}
+              data-role="report-list-collapse"
+              aria-label="Fermer"
+              className="surface-raised w-[52px] min-h-[52px] rounded-[16px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
             >
-              Fermer le clavier
+              <XIcon size={18} weight="bold" style={{ color: "var(--brand-ink)" }} />
             </button>
           </div>
-          {pad === "abc" ? (
-            <AlphaKeypad
-              onKeyPress={(k) => setQuery((q) => q + k)}
-              onBackspace={() => setQuery((q) => q.slice(0, -1))}
-              onToggleMode={() => setPad("num")}
+          <div className="shrink-0 px-3">
+            <ReportTiles tiles={tiles} filter={filter} onFilter={setFilter} rooms={rows.length} />
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col px-3 pb-2">
+            <ArrivalList
+              rows={visible}
+              query={query}
+              onQuery={setQuery}
+              ecartRooms={ecartRooms}
+              onFocusField={() => setPad(/[a-zA-Z]/.test(query) ? "abc" : "num")}
+              onOpen={isHistorical ? undefined : (r) => {
+                const i = clients.findIndex(
+                  (c) => c.roomNumber === r.roomNumber && c.name === r.name
+                );
+                rememberOrigin("report");
+                router.push(checkinHref(r.roomNumber, i >= 0 ? i : undefined));
+              }}
             />
-          ) : (
-            <div className="max-w-[420px]">
-              <NumericKeypad
-                onKeyPress={(k) => setQuery((q) => q + k)}
-                onBackspace={() => setQuery((q) => q.slice(0, -1))}
-                onToggleMode={() => setPad("abc")}
-              />
-            </div>
-          )}
+          </div>
+          {padBox}
         </div>
       )}
+
+      {!expanded && padBox}
     </div>
   );
 }

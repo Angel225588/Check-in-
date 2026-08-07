@@ -804,3 +804,14 @@ html.dark .vip-glow {
     inset 2px 2px 5px var(--inset-lo),
     inset -2px -2px 5px var(--inset-hi);
 }
+
+
+/* ── The bottom of the screen ─────────────────────────────────────────────
+   Installed, the app owns the full screen and the home indicator sits over
+   the last stripe of it. Anything docked at the bottom adds the inset to its
+   own padding; anything that sets its own height subtracts it, or the last
+   row of keys ends up under the indicator with no way to tell from a desktop
+   browser that it happened. */
+.pb-safe {
+  padding-bottom: calc(var(--dock-pad, 10px) + env(safe-area-inset-bottom, 0px));
+}

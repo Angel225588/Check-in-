@@ -183,7 +183,7 @@ export default function ActivitySheet({
         ))}
       </div>
 
-      <div className="shrink-0 px-2.5 pb-2.5 h-[clamp(200px,34vh,300px)]">
+      <div className="shrink-0 px-2.5 pb-2.5 pb-safe h-[calc(clamp(200px,34vh,300px)+env(safe-area-inset-bottom,0px))]">
         {pad === "num" ? (
           <NumericKeypad onKeyPress={append} onBackspace={backspace} onToggleMode={() => { setQuery(""); setPad("abc"); }} />
         ) : (

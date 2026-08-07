@@ -26,7 +26,9 @@ import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { checkinHref } from "@/lib/checkin-nav";
 import { rememberOrigin } from "@/lib/back-nav";
-import { groupBlocks, isInGroupBlock } from "@/lib/groups";
+import { groupBlocks } from "@/lib/groups";
+import { pickGroups } from "@/lib/group-pick";
+import GroupPicker from "@/components/GroupPicker";
 import { expectedFromYesterday } from "@/lib/expected";
 import { capRows } from "@/lib/row-cap";
 import { swipeEnabled } from "@/lib/gestures";
@@ -43,6 +45,8 @@ export default function SearchPage() {
     useSearch(clients);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MetricFilter>(null);
+  /** Which coach, when there is more than one. Empty means all of them. */
+  const [pickedGroups, setPickedGroups] = useState<string[]>([]);
   const [addClientOpen, setAddClientOpen] = useState(false);
   const [newRoom, setNewRoom] = useState("");
   const [newName, setNewName] = useState("");
@@ -303,6 +307,10 @@ export default function SearchPage() {
   }, [clients, checkIns]);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
 
+  /* One walk of the house per upload, not one per keystroke: the group blocks
+     feed both the picker and the filter. */
+  const blocks = useMemo(() => groupBlocks(clients), [clients]);
+
   const filteredClients = useMemo(() => {
     if (!activeFilter) return [];
     switch (activeFilter) {
@@ -335,14 +343,14 @@ export default function SearchPage() {
          nobody built. */
       case "notincluded":
         return clients.filter((c) => needsPaymentChoice(c));
-      case "groups": {
-        const blocks = groupBlocks(clients);
-        return clients.filter((c) => isInGroupBlock(c, blocks));
-      }
+      /* Not "the groups" — the ones ticked. Nothing ticked is all of them, so
+         the pill on its own behaves exactly as it always did. */
+      case "groups":
+        return pickGroups(clients, blocks, pickedGroups);
       default:
         return [];
     }
-  }, [activeFilter, clients, checkIns, cameYesterday]);
+  }, [activeFilter, clients, checkIns, cameYesterday, blocks, pickedGroups]);
 
   const handleSelectRoom = (roomNumber: string, clientIndex?: number, people?: number) => {
     // PII-free navigation: room number goes to sessionStorage, not the URL.
@@ -744,6 +752,9 @@ export default function SearchPage() {
           filteredClients={showFiltered ? filteredClients : []}
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
+          groupBlocks={blocks}
+          pickedGroups={pickedGroups}
+          onPickGroups={setPickedGroups}
           onMenu={() => setDrawerOpen(true)}
           handSide={handSide}
           chosenMetrics={chosenMetrics}
@@ -900,6 +911,9 @@ export default function SearchPage() {
               {t("upload.clear")}
             </button>
           </div>
+        )}
+        {showFiltered && activeFilter === "groups" && (
+          <GroupPicker blocks={blocks} picked={pickedGroups} onPick={setPickedGroups} />
         )}
         {displayClients.map((client, i) => {
           const ci = clients.indexOf(client);
