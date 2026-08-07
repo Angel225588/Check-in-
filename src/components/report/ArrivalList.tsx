@@ -127,6 +127,15 @@ export default function ArrivalList({
                   </span>
                 )}
               </span>
+              {/* A bag, not a cover. Same breakfast, different morning for the
+                  kitchen — and the 15:00 briefing is where that is read. */}
+              {r.box && (
+                <span data-role="report-box"
+                  className="shrink-0 text-[9.5px] font-black px-2 py-0.5 rounded-full"
+                  style={{ background: "var(--aur-good-soft)", color: "var(--aur-good-ink)" }}>
+                  PANIER
+                </span>
+              )}
               <span
                 data-role="report-formule"
                 data-formule={r.formule}

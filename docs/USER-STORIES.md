@@ -586,6 +586,43 @@ that lies about it.**
     filter, and a door that renames itself once you walk through it is not a
     door — while the list narrows to the coach you ticked.
 
+### US-34 — Give a leaving coach its breakfast boxes — BUILT
+
+    As      Réception
+    I need  a list of one group's rooms with one tap each
+    So that a coach leaving at 06:45 gets its bags without forty searches
+
+    Scenario: TOMEU leaves before the restaurant opens
+      Given  I have ticked TOMEU in the Groupes checklist
+      When   I turn on Paniers
+      Then   I see its rooms in ROOM ORDER, one line each, with how many each
+             is due, and a counter reading 0/8
+      And    one tap serves a whole room and the counter moves
+
+    Never:  a bag that does not count as breakfast. A box IS breakfast — the
+            morning's figure would be short by a coach and the kitchen's
+            numbers would stop meaning anything.
+    Never:  a box recorded as a payment. `viaBox` sits BESIDE `paymentAction`,
+            never instead of it: a group on a room charge that takes bags is
+            still a room charge.
+    Never:  a second tap double-counting a room that is already served.
+    Never:  the list re-sorting under the finger. Room order, because it is read
+            against the coach's paper manifest and a coach's rooms run
+            consecutively — arrival order would reshuffle it on every tick.
+    Proof:  box-list.test.ts (12 cases)
+
+    Someone who ate in the restaurant counts as served here too. They had
+    breakfast; showing them as still owed a bag sends reception chasing a guest
+    who is sitting down eating.
+
+    Undo removes only what THIS run recorded (`viaBox`). Undoing a restaurant
+    arrival from the box list would delete a fact somebody else entered on
+    another screen.
+
+    The report row carries a **PANIER** chip. Forty bags and forty covers are
+    the same count and not the same morning, and 15:00 is where the difference
+    is read.
+
 ### US-32 — Swap a metric without unticking one first — BUILT
 
     As      Réception

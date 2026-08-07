@@ -28,6 +28,7 @@ import { checkinHref } from "@/lib/checkin-nav";
 import { rememberOrigin } from "@/lib/back-nav";
 import { groupBlocks } from "@/lib/groups";
 import { pickGroups } from "@/lib/group-pick";
+import { boxRows, boxRecord, type BoxRow } from "@/lib/box-list";
 import GroupPicker from "@/components/GroupPicker";
 import { expectedFromYesterday } from "@/lib/expected";
 import { capRows } from "@/lib/row-cap";
@@ -47,6 +48,8 @@ export default function SearchPage() {
   const [activeFilter, setActiveFilter] = useState<MetricFilter>(null);
   /** Which coach, when there is more than one. Empty means all of them. */
   const [pickedGroups, setPickedGroups] = useState<string[]>([]);
+  /** US-34 — the box run. A mode, not a screen: same rooms, one tap each. */
+  const [boxMode, setBoxMode] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
   const [newRoom, setNewRoom] = useState("");
   const [newName, setNewName] = useState("");
@@ -351,6 +354,28 @@ export default function SearchPage() {
         return [];
     }
   }, [activeFilter, clients, checkIns, cameYesterday, blocks, pickedGroups]);
+
+  /* The rooms of the picked coach, one line each. `filteredClients` is already
+     the group filter's own answer, so the run and the list can never disagree
+     about who is on the coach. */
+  const boxRowsToday = useMemo(
+    () => (activeFilter === "groups" ? boxRows(filteredClients, checkIns) : []),
+    [activeFilter, filteredClients, checkIns]
+  );
+
+  const serveBox = (row: BoxRow) => {
+    const rec = boxRecord(row.client, checkIns, uuidv4());
+    // Null means the room owes nothing — a second tap must not double-count.
+    if (rec && addCheckIn(rec)) refresh();
+  };
+
+  const undoBox = (row: BoxRow) => {
+    /* Only what this run recorded. Undoing a restaurant arrival from the box
+       list would delete a fact somebody else entered on another screen. */
+    const mine = checkIns.filter((c) => c.roomNumber === row.roomNumber && c.viaBox);
+    const last = mine[mine.length - 1];
+    if (last) { removeCheckIn(last.id); refresh(); }
+  };
 
   const handleSelectRoom = (roomNumber: string, clientIndex?: number, people?: number) => {
     // PII-free navigation: room number goes to sessionStorage, not the URL.
@@ -755,6 +780,11 @@ export default function SearchPage() {
           groupBlocks={blocks}
           pickedGroups={pickedGroups}
           onPickGroups={setPickedGroups}
+          boxMode={boxMode}
+          onBoxMode={setBoxMode}
+          boxRows={boxRowsToday}
+          onServeBox={serveBox}
+          onUndoBox={undoBox}
           onMenu={() => setDrawerOpen(true)}
           handSide={handSide}
           chosenMetrics={chosenMetrics}

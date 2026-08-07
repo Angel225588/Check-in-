@@ -186,6 +186,10 @@ export interface ArrivalRow {
   /** Minutes since midnight of the first arrival, or null for a no-show. */
   minutes: number | null;
   time: string;
+  /** Breakfast left the desk in a paper bag (US-34). A box IS breakfast, so
+   *  the row counts as served — but forty bags and forty covers are not the
+   *  same morning for the kitchen, and 15:00 is where that is read. */
+  box: boolean;
 }
 
 function firstArrivalMinutes(
@@ -221,6 +225,7 @@ export function buildArrivalRows(report: DayReport): ArrivalRow[] {
       children: Math.max(0, (r.totalGuests || 0) - (r.adults || 0)),
       offList: !!r.isVip && (r.vipSource === "list_only" || r.vipSource === "walk_in"),
       formule: formuleOf(r),
+      box: report.checkIns.some((c) => c.roomNumber === r.roomNumber && c.viaBox),
       minutes,
       time: minutes === null ? "—" : hhmm(minutes),
     };

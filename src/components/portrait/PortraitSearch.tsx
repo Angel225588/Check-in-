@@ -1,5 +1,5 @@
 "use client";
-import { Check, WarningCircle, NotePencil, List } from "@phosphor-icons/react/dist/ssr";
+import { Check, WarningCircle, NotePencil, List, Package } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
 import { portraitSlot } from "@/lib/portrait";
 import { capRows } from "@/lib/row-cap";
@@ -12,6 +12,8 @@ import AlphaKeypad from "@/components/AlphaKeypad";
 import type { MetricFilter } from "@/components/MetricsBar";
 import type { GroupBlock } from "@/lib/groups";
 import GroupPicker from "@/components/GroupPicker";
+import BoxList from "@/components/BoxList";
+import type { BoxRow } from "@/lib/box-list";
 
 /**
  * The check-in screen, one column and one thumb.
@@ -46,6 +48,11 @@ export default function PortraitSearch({
   groupBlocks,
   pickedGroups,
   onPickGroups,
+  boxMode,
+  onBoxMode,
+  boxRows,
+  onServeBox,
+  onUndoBox,
   onMenu,
   handSide,
   chosenMetrics,
@@ -87,6 +94,12 @@ export default function PortraitSearch({
   groupBlocks: GroupBlock[];
   pickedGroups: string[];
   onPickGroups: (next: string[]) => void;
+  /** US-34 — the coach leaves at 06:45 and takes bags. */
+  boxMode: boolean;
+  onBoxMode: (on: boolean) => void;
+  boxRows: BoxRow[];
+  onServeBox: (row: BoxRow) => void;
+  onUndoBox: (row: BoxRow) => void;
   onMenu: () => void;
   /** The drawer and its button live on the hand that is free. */
   handSide: "left" | "right";
@@ -255,10 +268,32 @@ export default function PortraitSearch({
             groups filter is the reason the list is there — a group picker over
             a room search is a control for a question nobody asked. */}
         {slot === "list" && !query && activeFilter === "groups" && (
-          <GroupPicker blocks={groupBlocks} picked={pickedGroups} onPick={onPickGroups} />
+          <div className="shrink-0 flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <GroupPicker blocks={groupBlocks} picked={pickedGroups} onPick={onPickGroups} />
+            </div>
+            {/* The run is a different job from the search, so it is a mode, not
+                a second list: same rooms, one tap each, a counter. */}
+            <button
+              onClick={() => onBoxMode(!boxMode)}
+              data-role="box-mode"
+              aria-pressed={boxMode}
+              className="shrink-0 min-h-[40px] px-3 rounded-[12px] inline-flex items-center gap-1.5 text-[13px] font-black active:scale-[0.97] transition-transform"
+              style={boxMode
+                ? { background: "var(--aur-good-soft)", color: "var(--aur-good-ink)", boxShadow: "inset 0 0 0 1.5px var(--aur-good)" }
+                : { background: "rgba(128,128,128,.10)", color: "var(--tab-idle)" }}
+            >
+              <Package size={15} weight="duotone" />
+              Paniers
+            </button>
+          </div>
         )}
 
-        {slot === "list" && (
+        {slot === "list" && !query && activeFilter === "groups" && boxMode && (
+          <BoxList rows={boxRows} onServe={onServeBox} onUndo={onUndoBox} />
+        )}
+
+        {slot === "list" && !(boxMode && !query && activeFilter === "groups") && (
           <div className="flex-1 min-h-0 overflow-y-auto space-y-2 -mx-0.5 px-0.5">
             {rows.map((client, i) => {
               const ci = clientIndexOf(client);

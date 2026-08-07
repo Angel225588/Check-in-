@@ -39,6 +39,15 @@ export interface CheckInRecord {
   peopleEntered: number;
   timestamp: string;
   paymentAction?: string; // 'card' | 'room' | 'points' | 'pass'
+  /**
+   * Breakfast left the desk in a paper bag rather than being eaten in the
+   * restaurant — a coach with a 06:45 departure (US-34).
+   *
+   * Beside the payment, never instead of it: a group on a room charge that
+   * takes bags is still a room charge. And it counts as served, because a box
+   * IS breakfast — anything else leaves the morning's figure short by a coach.
+   */
+  viaBox?: boolean;
 }
 
 /**

@@ -13,6 +13,39 @@ git for those.
 
 ---
 
+## 2026-08-07 (night) — the coach that leaves before the restaurant opens
+
+### Paniers (US-34)
+Angel's story: a group leaving early takes breakfast boxes, and reception wants
+"this list view and quickly check per room number in line".
+
+Every choice is downstream of forty rooms, three minutes, and a driver waiting.
+One line per room in ROOM ORDER — it is read against the coach's paper manifest,
+and arrival order would reshuffle the list under the finger with every tick. One
+tap serves the whole room, because a bag per person is the case and the
+exception belongs on the guest's own screen. A counter, because how far through
+the run you are is the only number this screen owes anyone.
+
+**A box is breakfast.** It counts as served, or the morning is short by a coach
+and the kitchen's numbers stop meaning anything. **A box is not a payment** —
+`viaBox` sits beside `paymentAction`, never instead of it: a group on a room
+charge that takes bags is still a room charge.
+
+Someone who already ate in the restaurant shows as served here too. They had
+breakfast, and marking them as still owed a bag sends reception chasing a guest
+who is sitting down eating.
+
+Undo removes only what the run recorded. Undoing a restaurant arrival from this
+list would delete a fact entered on another screen.
+
+The report row carries a PANIER chip: forty bags and forty covers are the same
+count and not the same morning.
+
+**A fixture that lied, caught by its own test.** The first version of
+`box-list.test.ts` used `clientName: "X"` and six cases failed — check-ins match
+on room AND name, because two names in one room are two entries. The lib was
+right; the fixture could not reproduce the product.
+
 ## 2026-08-07 (night) — every screen, not the two I could see
 
 ### "In none of these screens are we using the margin"
