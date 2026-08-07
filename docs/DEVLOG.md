@@ -13,6 +13,48 @@ git for those.
 
 ---
 
+## 2026-08-07 — the date that was always today, and the history that never said how
+
+### generateDayReport stamped `new Date()` inside itself
+Every report ever produced said today — including one built from a session
+closed three days ago. Stepping back a day changed every figure on the screen
+except the date above them, which is exactly the failure US-8's Never names.
+
+The date is a parameter now. Every call site passes the day its data belongs
+to — **including the monthly roll-up**, which was stamping thirty stored days
+with today's date and had never been looked at closely enough to notice.
+
+### The past stays never said how the guest paid (US-26)
+Each row read "1 pers · ch. 718" while the storage knew it was a room charge:
+reception's choice at the door is saved on the check-in record and the closed
+session keeps both. It had simply never been read back.
+
+Each stay now carries its formule, via `formuleOf` — the report's own function,
+so one morning cannot be "inclus" on the guest screen and something else in the
+briefing. Null, not "à encaisser", when they never came down: an absence is not
+a refusal.
+
+Three occurrences before it is called a habit. Two is a coincidence, and a
+wrong "d'habitude" puts a sentence in reception's mouth about a guest standing
+in front of them.
+
+### The activity list expands
+Search field, and lenses with counts — Tous · VIP · Groupes · Comp · Non inclus.
+A lens the day cannot fill is disabled rather than tapped-and-empty. `fold` is
+exported from utils rather than copied: two lists folding accents differently
+is one guest findable on one screen and not another.
+
+### R24 re-aimed, not relaxed
+The pad's wrapper stopped being a card when the keys became cut-and-raised
+surfaces. The rule watched the wrapper and failed; it watches the keys now —
+one surface became twelve, and it would still catch a pad whose keys vanished
+into the page.
+
+**Worth stating plainly:** changing a rule so your own change passes is the
+move that should never go unmentioned. It is in the commit message and here.
+
+---
+
 ## 2026-08-06 — the pad, the bar, and a switch nobody could reach
 
 **Branch** `claude/checkin-app-registration-bug-3lpy9c` · 481 tests · 90 design

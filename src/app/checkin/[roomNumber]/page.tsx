@@ -27,6 +27,8 @@ import {
   saveSettings,
 } from "@/lib/storage";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
+import { stayFormule } from "@/lib/stay-formule";
+import { FORMULE_LABEL, type Formule } from "@/lib/report-v2";
 import { readSelection, checkinHref } from "@/lib/checkin-nav";
 import { takeOrigin, peekOrigin } from "@/lib/back-nav";
 import { useApp } from "@/contexts/AppContext";
@@ -170,22 +172,44 @@ export default function CheckInPage({
     [client]
   );
 
-  /** Past stays for this guest, matched by normalized name (survives room changes). */
+  /** Past stays for this guest, matched by normalized name (survives room changes).
+   *
+   *  Each carries how that morning was actually covered. The answer was always
+   *  stored — reception's choice at the door is saved on the check-in — and had
+   *  simply never been read back, so every row said "1 pers · ch. 718" and
+   *  nothing about whether it went on the room, on a card, or was given away.
+   *  That is the question asked at the door: a guest charged to the room three
+   *  mornings running should not be asked a fourth time. */
   const pastStays = useMemo(() => {
     if (!guestId) return [];
     const sessions = getSessionHistory();
     const todayIso = new Date().toISOString().split("T")[0];
-    const visits: Array<{ date: string; roomNumber: string; pax: number; vipLevel?: string }> = [];
+    const visits: Array<{
+      date: string; roomNumber: string; pax: number; vipLevel?: string; formule: Formule | null;
+    }> = [];
     for (const s of sessions) {
       if (s.date === todayIso) continue;
       for (const c of s.clients) {
         if (normalizeNameForId(c.name) !== guestId) continue;
-        visits.push({ date: s.date, roomNumber: c.roomNumber, pax: c.adults + c.children, vipLevel: c.vipLevel });
+        visits.push({
+          date: s.date, roomNumber: c.roomNumber, pax: c.adults + c.children, vipLevel: c.vipLevel,
+          formule: stayFormule(c, s.checkIns ?? []),
+        });
         break;
       }
     }
     return visits.sort((a, b) => b.date.localeCompare(a.date));
   }, [guestId]);
+
+  /** What reception has done most often for this guest. Two mornings is not a
+   *  habit; three is worth putting at the top of the list. */
+  const usualFormule = useMemo(() => {
+    const counts = new Map<Formule, number>();
+    for (const v of pastStays) if (v.formule) counts.set(v.formule, (counts.get(v.formule) ?? 0) + 1);
+    let best: Formule | null = null, n = 0;
+    for (const [f, c] of counts) if (c > n) { best = f; n = c; }
+    return n >= 3 ? { formule: best!, times: n } : null;
+  }, [pastStays]);
 
   // Called unconditionally (hook rules); it simply resolves to an empty list
   // until the guest is loaded.
@@ -460,6 +484,26 @@ export default function CheckInPage({
                     <SideNotesDigest notes={notesApi.notes} onOpen={() => setSideTab("notes")} />
                   </>
                 )}
+                {/* The habit, before the list of it. "Chambre · 4 fois" is the
+                    sentence reception would otherwise assemble by reading six
+                    rows, and it is the one that decides what to ask. */}
+                {usualFormule && (
+                  <div
+                    data-role="usual-formule"
+                    className="mt-1 flex items-center gap-2 px-3 py-2 rounded-[12px]"
+                    style={{ background: "var(--aur-gold-soft)", boxShadow: "inset 0 0 0 1px var(--aur-gold)" }}
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-[0.1em]" style={{ color: "var(--tab-idle)" }}>
+                      D&apos;habitude
+                    </span>
+                    <b className="text-[13px] font-black" style={{ color: "var(--brand-ink)" }}>
+                      {FORMULE_LABEL[usualFormule.formule]}
+                    </b>
+                    <span className="text-[11px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
+                      · {usualFormule.times} fois
+                    </span>
+                  </div>
+                )}
                 <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
                 {pastStays.map((v, i) => (
                   <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
@@ -471,7 +515,23 @@ export default function CheckInPage({
                         {new Date(v.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long" })}
                       </span>
                     </span>
-                    <span className="text-[11px]" style={{ color: "var(--tab-idle)" }}>{v.pax} pers · ch. {v.roomNumber}{v.vipLevel ? ` · ${v.vipLevel}` : ""}</span>
+                    <span className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] text-right" style={{ color: "var(--tab-idle)" }}>
+                        {v.pax} pers · ch. {v.roomNumber}{v.vipLevel ? ` · ${v.vipLevel}` : ""}
+                      </span>
+                      {/* Null means they did not come down. Saying "à encaisser"
+                          there would invent a refusal out of an absence. */}
+                      <span
+                        data-role="stay-formule"
+                        data-formule={v.formule ?? "absent"}
+                        className="shrink-0 text-[10.5px] font-black px-2 py-1 rounded-full whitespace-nowrap"
+                        style={v.formule
+                          ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }
+                          : { background: "rgba(128,128,128,.12)", color: "var(--tab-idle)" }}
+                      >
+                        {v.formule ? FORMULE_LABEL[v.formule] : "Pas descendu"}
+                      </span>
+                    </span>
                   </div>
                 ))}
               </>

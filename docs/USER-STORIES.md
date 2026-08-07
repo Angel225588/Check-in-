@@ -320,6 +320,36 @@ left and scrolls under both.
     Verified present and on-screen without scrolling in both orientations, at
     which point the real defect was obvious: nothing led to it.
 
+### US-26 — Know how this guest paid last time — BUILT
+
+    As      Réception
+    I need  each past stay to say how the breakfast was covered
+    So that I stop asking a question this guest has already answered
+
+    Scenario: a regular on their sixth morning
+      Given  the last three went on the room
+      When   I open their screen
+      Then   each stay carries its formule, and the habit is stated once at the
+             top: "D'habitude · Chambre · 4 fois"
+
+    Never:  "à encaisser" on a morning they never came down. A guest who did
+            not come down did not decline to pay, and an absence must not be
+            reported as a refusal.
+    Proof:  stay-formule.test.ts (7 cases)
+
+    The answer was never missing, only unread. Reception's choice at the door
+    is saved on the check-in record and the closed session keeps both — so the
+    row said "1 pers · ch. 718" while the storage knew it was a room charge.
+
+    Uses `formuleOf`, the report's own function, so the same morning cannot be
+    "inclus" on the guest screen and something else in the 15:00 briefing. The
+    guest is matched by name rather than door number: someone moved overnight
+    is the same person, which is the rule US-15 already follows.
+
+    Three occurrences before it is called a habit. Two is a coincidence, and a
+    wrong "d'habitude" is worse than none — it puts a sentence in reception's
+    mouth about a guest standing in front of them.
+
 ### US-25 — Turn the resting preview off — BUILT
 
     As      Réception
