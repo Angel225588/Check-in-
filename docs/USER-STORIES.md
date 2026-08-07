@@ -375,6 +375,35 @@ left and scrolls under both.
     buttons in a div, not a button inside a button — the nesting is invalid
     HTML and Safari resolves it by dropping one of them.
 
+### US-28 — Know when this guest comes down — BUILT
+
+    As      Réception
+    I need  each regular's usual arrival time, and what it is built on
+    So that I know whether the room I am waiting on is late or simply theirs
+
+    Scenario: a regular on their seventh morning
+      Given  six recorded mornings, all around half past seven
+      When   I open their screen
+      Then   it reads "Descend vers 07:34 · 6 matins"
+
+    Never:  a confident time with two mornings behind it. Never a minute picked
+            out of a two-hour spread and presented as a habit — a guest who
+            comes at 06:40, 08:00 and 09:40 has no usual time, and the screen
+            says "entre 07:20 et 08:50" rather than inventing one.
+    Proof:  arrival-pattern.test.ts (8 cases)
+
+    **This is MEASURED, not Fact** — the second tier from US-10/US-15. It comes
+    from our own history, so it carries its basis on the same line and refuses
+    to speak below three mornings. A measured number without its basis is a
+    guess wearing a uniform.
+
+    The median, not the mean: one guest who overslept to 10:15 once should not
+    drag their 07:30 habit half an hour later. The middle half, not min-to-max:
+    a single outlier defines the extremes and says nothing about the habit.
+
+    The first arrival of a morning is the observation. A second cup at 09:50 is
+    not a second data point about when they come down.
+
 ### US-25 — Turn the resting preview off — BUILT
 
     As      Réception

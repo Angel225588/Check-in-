@@ -28,6 +28,7 @@ import {
 } from "@/lib/storage";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { stayFormule } from "@/lib/stay-formule";
+import { arrivalPattern, hhmmOf } from "@/lib/arrival-pattern";
 import { FORMULE_LABEL, type Formule } from "@/lib/report-v2";
 import { readSelection, checkinHref } from "@/lib/checkin-nav";
 import { takeOrigin, peekOrigin } from "@/lib/back-nav";
@@ -199,6 +200,34 @@ export default function CheckInPage({
       }
     }
     return visits.sort((a, b) => b.date.localeCompare(a.date));
+  }, [guestId]);
+
+  /**
+   * When this guest tends to come down, from the mornings we recorded.
+   *
+   * MEASURED, so it says how many mornings it stands on and it says nothing at
+   * all below three. A guest with no habit gets "varie" rather than a minute
+   * picked out of a two-hour spread and presented as a pattern.
+   */
+  const arrival = useMemo(() => {
+    if (!guestId) return null;
+    const todayIso = new Date().toISOString().split("T")[0];
+    const mins: number[] = [];
+    for (const sess of getSessionHistory()) {
+      if (sess.date === todayIso) continue;
+      const theirs = (sess.checkIns ?? []).filter(
+        (c) => normalizeNameForId(c.clientName) === guestId
+      );
+      // The first arrival of the morning is the habit; a second cup at 09:50
+      // is not a second data point about when they come down.
+      if (theirs.length === 0) continue;
+      const first = theirs
+        .map((c) => new Date(c.timestamp))
+        .filter((d) => !isNaN(d.getTime()))
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+      if (first) mins.push(first.getHours() * 60 + first.getMinutes());
+    }
+    return arrivalPattern(mins);
   }, [guestId]);
 
   /** What reception has done most often for this guest. Two mornings is not a
@@ -487,6 +516,25 @@ export default function CheckInPage({
                 {/* The habit, before the list of it. "Chambre · 4 fois" is the
                     sentence reception would otherwise assemble by reading six
                     rows, and it is the one that decides what to ask. */}
+                {arrival && (
+                  <div
+                    data-role="arrival-pattern"
+                    className="mt-1 flex items-center gap-2 px-3 py-2 rounded-[12px]"
+                    style={{ background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
+                  >
+                    <Clock size={14} weight="duotone" style={{ color: "var(--tab-idle)" }} />
+                    <b className="text-[13px] font-black" style={{ color: "var(--aur-ink-2)" }}>
+                      {arrival.steady
+                        ? `Descend vers ${hhmmOf(arrival.typical)}`
+                        : `Descend entre ${hhmmOf(arrival.band[0])} et ${hhmmOf(arrival.band[1])}`}
+                    </b>
+                    {/* The basis, always. A measured number without it is a
+                        guess wearing a uniform. */}
+                    <span className="text-[11px] font-bold tabular-nums ml-auto" style={{ color: "var(--tab-idle)" }}>
+                      {arrival.days} matins
+                    </span>
+                  </div>
+                )}
                 {usualFormule && (
                   <div
                     data-role="usual-formule"

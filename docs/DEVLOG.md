@@ -13,6 +13,28 @@ git for those.
 
 ---
 
+## 2026-08-07 (later still) — the two habits
+
+### "Descend vers 07:34 · 6 matins" (US-28)
+The timestamps were already there; nothing had ever read them as a pattern.
+Alongside "D'habitude · Chambre · 6 fois", the guest screen now answers the
+other question reception asks about a regular.
+
+Both are MEASURED, the second tier from US-10 — our own history, not a fact and
+not a guess — so both carry what they stand on and both refuse to speak below
+three occurrences. Two is a coincidence, and a wrong habit puts a sentence in
+reception's mouth about someone standing in front of them.
+
+Median over mean, and the middle half over min-to-max: one 10:15 lie-in should
+not move a 07:30 habit, and one outlier should not define the window. A guest
+with no habit gets "entre 07:20 et 08:50" rather than a minute invented out of
+a two-hour spread.
+
+Verified on a real build: six mornings around 07:30 → "Descend vers 07:34 ·
+6 matins", every stay stamped "Chambre".
+
+---
+
 ## 2026-08-07 (later) — notes in the frame
 
 ### The pad is the keyboard (US-17 / US-18 / US-P3)
