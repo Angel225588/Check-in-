@@ -1360,6 +1360,15 @@ async function main() {
     await page.waitForTimeout(600);
     const afterSwipe = new URL(page.url()).pathname;
 
+    /* Back to the first face before tapping. The rule used to tap straight
+       after the swipe, which worked only while the card had one face: the
+       moment it gained Notes (US-17), the swipe did its job and landed on a
+       face with nothing to open, and the rule timed out looking for a target
+       the app was right not to be showing. The assumption expired; the two
+       things being asserted did not. */
+    await page.locator('[data-role="preview-dots"] button').first().click();
+    await page.waitForTimeout(400);
+
     // A tap must.
     await page.locator('[data-role="preview-open"]').click();
     await page.waitForTimeout(800);
