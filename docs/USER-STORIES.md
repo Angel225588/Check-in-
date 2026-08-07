@@ -584,6 +584,31 @@ that lies about it.**
     every block together. Same lib when it is done; saying so beats letting the
     two screens quietly disagree.
 
+### US-31 — Read every chip in the guest's panel — BUILT
+
+    As      Réception
+    I need  the notes filters legible in the theme I am actually in
+    So that the tab I have selected can tell me it is selected
+
+    Scenario: dark mode, guest screen, Notes
+      Given  "Tout" is the selected filter
+      Then   I can read the word, and it reads as chosen
+
+    Never:  a literal colour on a themed surface. Every other chip was fine —
+            they take their colour from a tone, and tones are `--aur-*` tokens
+            that flip with the theme. "Tout" has no tone, so it had been handed
+            #1C1C1C and a ring of rgba(0,0,0,.25): black ink and a black ring on
+            a near-black panel. A literal is a colour that has only ever been
+            checked against one background.
+    Proof:  tone-chip.test.ts (4 cases) · R27 (both themes)
+
+    The second half of the same bug: the Info tone's ink was `--tab-idle`, which
+    is the colour of a chip nobody has chosen — so a chosen Info chip looked
+    exactly like an unchosen one.
+
+    R18 sweeps /search and /report for contrast. The guest screen's side panel
+    was never swept, which is how this shipped. R27 sweeps it, in both themes.
+
 ### US-29 — Read the arrival list on the whole screen — BUILT
 
     As      Réception

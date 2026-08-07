@@ -1551,6 +1551,51 @@ async function main() {
     await ctx.close();
   }
 
+  // R27 — contrast on the guest screen, panel open, in both themes.
+  //
+  // R18 sweeps /search and /report. The guest screen's side panel was never
+  // swept, and that is where "Tout" shipped selected and invisible: #1C1C1C on
+  // a near-black panel, ringed in black on black. Every other chip was fine —
+  // they take their colour from a tone token that flips with the theme, and
+  // "Tout" had been handed a literal.
+  //
+  // A literal is a colour that has only ever been checked against one
+  // background. The rule is the check the literal never got.
+  for (const dark of [false, true]) {
+    const { ctx, page } = await openDay("/checkin/224", { dark });
+    const tog = page.locator('[data-role="activity-toggle"]');
+    if (await tog.isVisible().catch(() => false)) { await tog.click(); await page.waitForTimeout(300); }
+    await page.locator('[data-role="side-tab-notes"]').click();
+    await page.waitForTimeout(500);
+    const samples = await page.evaluate((fn) => {
+      const measure = eval(`(${fn})`);
+      const out = [];
+      const panel = document.querySelector("aside") || document.body;
+      for (const el of panel.querySelectorAll("button, span, div, p, b, h1, h2")) {
+        const direct = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
+        if (!direct) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 4 || r.height < 4) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.opacity === "0") continue;
+        out.push({ text: el.textContent.trim().slice(0, 28), ...measure(el) });
+      }
+      return out;
+    }, COMPOSITE);
+    const fails = [];
+    for (const s of samples) {
+      const large = s.size >= 24 || (s.size >= 18.66 && Number(s.weight) >= 700);
+      const need = large ? 3 : 4.5;
+      const got = Math.min(...s.bgs.map((bg) => contrast(s.color, bg)));
+      if (got < need) fails.push(`"${s.text}" ${got.toFixed(2)}:1 (needs ${need})`);
+    }
+    record(`R27-contrast-guest-notes-${dark ? "dark" : "light"}`,
+      "Every word in the guest's activity panel is readable in this theme",
+      fails.length === 0,
+      fails.length ? fails.slice(0, 6).join(" | ") : `${samples.length} text nodes checked`);
+    await ctx.close();
+  }
+
   // R26c — Groupes names which coach.
   //
   // One on/off for every tour in the house answers a question reception rarely

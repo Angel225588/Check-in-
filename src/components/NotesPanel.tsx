@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Plus, PushPin, WarningCircle, ArrowsOut, Check, X } from "@phosphor-icons/react/dist/ssr";
 import { filterNotes, TONES, MAX_TITLE, MAX_BODY, shouldPinByDefault, type GuestNote, type NoteTone } from "@/lib/notes";
-import { toneMeta } from "@/lib/note-tone";
+import { toneMeta, toneChipStyle } from "@/lib/note-tone";
 import NoteToneIcon from "./NoteToneIcon";
 import NoteDetail from "./NoteDetail";
 import type { NotesApi } from "@/hooks/useGuestNotes";
@@ -141,9 +141,7 @@ export default function NotesPanel({
                   data-role="note-tone"
                   aria-pressed={on}
                   className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-2 rounded-full text-[11.5px] font-extrabold transition-all"
-                  style={on
-                    ? { background: m.soft, color: m.color, boxShadow: `inset 0 0 0 1.5px ${m.color}` }
-                    : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+                  style={toneChipStyle(t, on)}
                 >
                   <NoteToneIcon tone={t} size={12} color={on ? m.color : "var(--tab-idle)"} />
                   {m.label}
@@ -176,7 +174,7 @@ export default function NotesPanel({
             className="shrink-0 min-h-[44px] rounded-full inline-flex items-center justify-center gap-1.5 text-[12.5px] font-extrabold"
             style={draft.pinned
               ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
-              : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+              : { background: "rgba(128,128,128,.10)", color: "var(--tab-idle)" }}
           >
             <PushPin weight={draft.pinned ? "fill" : "duotone"} size={14} />
             {draft.pinned ? "Épinglée" : "Épingler"}
@@ -228,9 +226,7 @@ export default function NotesPanel({
                   onClick={() => setTone(t as NoteTone | "all")}
                   aria-pressed={on}
                   className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-3 rounded-full text-[12px] font-extrabold transition-all"
-                  style={on
-                    ? { background: m ? m.soft : "rgba(0,0,0,.07)", color: m ? m.color : "#1C1C1C", boxShadow: `inset 0 0 0 1.5px ${m ? m.color : "rgba(0,0,0,.25)"}` }
-                    : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+                  style={toneChipStyle(t as NoteTone | "all", on)}
                 >
                   {m && <NoteToneIcon tone={t as NoteTone} size={13} color={on ? m.color : "var(--tab-idle)"} />}
                   {m ? m.label : "Tout"}

@@ -7,7 +7,7 @@ import {
   filterNotes, TONES, MAX_TITLE, MAX_BODY, shouldPinByDefault,
   type GuestNote, type NoteTone,
 } from "@/lib/notes";
-import { toneMeta } from "@/lib/note-tone";
+import { toneMeta, toneChipStyle } from "@/lib/note-tone";
 import NoteToneIcon from "./NoteToneIcon";
 import type { NotesApi } from "@/hooks/useGuestNotes";
 import type { NoteDraft } from "./NotesPanel";
@@ -221,9 +221,7 @@ export default function NotesModal({
                       onClick={() => setTone(t as NoteTone | "all")}
                       aria-pressed={on}
                       className="shrink-0 inline-flex items-center gap-1.5 min-h-[46px] px-4 rounded-full text-[13px] font-extrabold transition-all active:scale-[0.97]"
-                      style={on
-                        ? { background: m ? m.soft : "rgba(0,0,0,.09)", color: m ? m.color : undefined, boxShadow: `inset 0 0 0 1.5px ${m ? m.color : "rgba(0,0,0,.22)"}` }
-                        : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+                      style={toneChipStyle(t as NoteTone | "all", on)}
                     >
                       {m && <NoteToneIcon tone={t as NoteTone} size={14} color={on ? m.color : "var(--tab-idle)"} />}
                       {m ? m.label : "Tout"}
@@ -295,9 +293,7 @@ export default function NotesModal({
                       aria-pressed={on}
                       data-role="note-tone"
                       className="shrink-0 inline-flex items-center gap-2 min-h-[46px] px-4 rounded-full text-[13.5px] font-extrabold transition-all active:scale-[0.97]"
-                      style={on
-                        ? { background: m.soft, color: m.color, boxShadow: `inset 0 0 0 1.5px ${m.color}` }
-                        : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+                      style={toneChipStyle(tn, on)}
                     >
                       <NoteToneIcon tone={tn} size={15} color={on ? m.color : "var(--tab-idle)"} />
                       {m.label}
@@ -310,7 +306,7 @@ export default function NotesModal({
                   className="shrink-0 inline-flex items-center gap-2 min-h-[46px] px-4 rounded-full text-[13.5px] font-extrabold transition-all active:scale-[0.97]"
                   style={pinned
                     ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
-                    : { background: "rgba(0,0,0,.04)", color: "var(--tab-idle)" }}
+                    : { background: "rgba(128,128,128,.10)", color: "var(--tab-idle)" }}
                 >
                   <PushPin weight={pinned ? "fill" : "duotone"} size={15} />
                   {pinned ? "Épinglée" : "Épingler"}

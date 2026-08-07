@@ -13,6 +13,41 @@ git for those.
 
 ---
 
+## 2026-08-07 (night) — black ink on a black panel
+
+### "Tout" was selected and invisible (US-31)
+Angel photographed the guest screen's notes filters in dark mode: Alerte and
+Préférence legible, **Tout** a hole in the panel. The chip was doing its job —
+it just could not say so.
+
+The cause is worth naming because it is not a colour mistake. Every other chip
+takes its colour from a *tone*, and tones come from `--aur-*` tokens that flip
+with the theme. "Tout" has no tone, so at some point it had been handed
+`#1C1C1C` with a ring of `rgba(0,0,0,.25)` — black ink and a black ring on a
+near-black panel. **A literal is a colour that has only ever been checked
+against one background.**
+
+Fixed by giving "Tout" a tone's treatment rather than a special case: the gold
+that already means "this is the live one" everywhere else. The chip style now
+lives in `note-tone.ts` because it is drawn in three components, and
+`tone-chip.test.ts` refuses any literal in it — hex or pure-black rgba.
+
+Second half of the same bug, found by the test rather than the eye: the **Info**
+tone's ink was `--tab-idle`, the colour of a chip nobody has chosen. A chosen
+Info chip looked exactly like an unchosen one.
+
+### The rule that should have existed
+R18 sweeps `/search` and `/report` for WCAG contrast on real renders, in both
+themes. **The guest screen's side panel was never swept** — that is the gap this
+shipped through. R27 opens the guest, opens the Notes tab, and sweeps every text
+node in the panel, light and dark.
+
+Three contrast regressions on this project have now been dark-on-dark text. The
+pattern is always the same: a colour written as a literal at the one moment
+somebody was looking at one theme.
+
+---
+
 ## 2026-08-07 (evening) — three from the tablet
 
 ### The pad was cut off, and the app had never heard of the safe area
