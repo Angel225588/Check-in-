@@ -83,6 +83,26 @@ indicator in the bottom one, and the app has to keep out of both.
 | 3c.3 | Expand the list full screen | The same chips are there, with the same ticks |
 | 3c.4 | Untick everything | All group rooms again |
 
+## 3d · Paniers — the coach that leaves early (new)
+
+| | Check | Good |
+|---|---|---|
+| 3d.1 | **Recherche** → Groupes → tick one coach → **Paniers** | Its rooms, one line each, in **room order**, with a 0/N counter |
+| 3d.2 | Tap the green button on a line | The whole room is served at once, the line turns green, the counter moves |
+| 3d.3 | Tap the undo on a served line | It goes back to owed — and only for boxes this run recorded |
+| 3d.4 | A room that already ate in the restaurant | Shows as served, not as owed a bag |
+| 3d.5 | **Rapport** → that room's row | A **PANIER** chip beside the formule |
+| 3d.6 | The bar's ENTRÉS | Went up — a box IS breakfast |
+
+## 3e · The resting screen and the way back (changed)
+
+| | Check | Good |
+|---|---|---|
+| 3e.1 | **Recherche**, nothing typed, fresh install | The space above the pad is **empty** — the frame is off unless you ask |
+| 3e.2 | Drawer → **Aperçu au repos** on | The frame appears, and it is smaller than before |
+| 3e.3 | Type a room | The guest card **fills** the slot regardless of that switch |
+| 3e.4 | Top-left | A **back** button beside the burger, to the arrivals list |
+
 ## 4 · The activity panel (guest screen) — the contrast fix
 
 | | Check | Good |
@@ -118,10 +138,10 @@ indicator in the bottom one, and the app has to keep out of both.
 
 ## What I ran
 
-- `npx vitest run` — 511 tests across 41 files
+- `npx vitest run` — 542 tests across 45 files
 - `npx tsc --noEmit` — clean
 - `npm run build` — clean
-- `node scripts/design-rules.mjs` — **100/100**, no failures
+- `node scripts/design-rules.mjs` — **116/116**, no failures
 - A scripted pass on a real build at 820×1180, 390×844 and 1194×834 measuring
   the pad's last key against the viewport, the sheet's list against the pad, and
   the group filter's row counts before/after a tick

@@ -13,6 +13,26 @@ git for those.
 
 ---
 
+## 2026-08-07 (night) — the gate, 116/116
+
+**Branch** `claude/checkin-app-registration-bug-3lpy9c` · 542 tests across 45
+files · **116 design rules, all passing** — the first clean pass covering the
+whole day's work.
+
+Four failures on the way there, and what they were is the interesting part:
+
+- **R20 ×2, real, mine.** `.pt-safe` defaulted to 10px, which is off the 4pt
+  scale — so every header I converted to it drifted. The rule reads rendered
+  padding, and it caught a design-system regression introduced while fixing
+  something else. 12px now.
+- **R28 ×2, the rule's fault.** It measured the dock's box, and the dock is
+  SUPPOSED to reach the bottom edge — that is what cover buys. What must clear
+  the home indicator is the last key. The same mistake R26a exists to prevent,
+  made in my own rule one screen later, two days after writing the lesson down.
+
+Also on the way: run 5 died at 49 checks with a browser crash, unrelated to the
+app, and run 4's R25h crash turned out to be a rule whose assumption had expired.
+
 ## 2026-08-07 (night) — a quiet screen, and the way out
 
 ### The resting frame is off by default (US-35)
