@@ -13,6 +13,40 @@ git for those.
 
 ---
 
+## 2026-08-07 (night) — the gate, 100/100
+
+**Branch** `claude/checkin-app-registration-bug-3lpy9c` · 511 tests across 41
+files · **100 design rules, all passing**
+
+New this round: R26a (the report's pad and its LAST KEY inside the viewport, at
+four sizes), R26b (the arrival list expands with its search, and the pad is in
+the sheet's column rather than over it), R26c (Groupes narrows to the coach you
+tick and unticking means all of them again), R27 (contrast in the guest's
+activity panel, both themes).
+
+### R25h assumed a card with one face
+The first run went 83/83 and then crashed — a 30-second timeout waiting for
+`preview-open` on a card that was rendering it correctly. R25h swipes across the
+card and then taps it, which works only while the card has one face. The moment
+it gained Notes (US-17), the swipe did exactly its job and landed on a face with
+nothing to open.
+
+Verified on a real build before touching the rule: `slot=card,
+guest-preview=1, preview-open=1, pane=apercu, field="310"`. The element was
+there; the rule was looking for it at the wrong moment. It returns to the first
+face between the two halves now.
+
+**Said plainly, because changing a rule so a run goes green is the move that
+should never be quiet:** the assumption expired, not the assertion. A swipe must
+not navigate, a tap must, and both are still asserted.
+
+### One honest limit
+R27 sweeps 13 text nodes — the panel as it stands with no notes written. It
+covers the chips, which is where the bug was, but a panel full of notes has
+rows, dates and tone badges it does not yet see.
+
+---
+
 ## 2026-08-07 (night) — black ink on a black panel
 
 ### "Tout" was selected and invisible (US-31)

@@ -79,8 +79,7 @@ reopen the installed app.
 - `npx vitest run` — 511 tests across 41 files
 - `npx tsc --noEmit` — clean
 - `npm run build` — clean
-- `node scripts/design-rules.mjs` — the browser gate, result reported in the
-  devlog for the run it belongs to
+- `node scripts/design-rules.mjs` — **100/100**, no failures
 - A scripted pass on a real build at 820×1180, 390×844 and 1194×834 measuring
   the pad's last key against the viewport, the sheet's list against the pad, and
   the group filter's row counts before/after a tick
