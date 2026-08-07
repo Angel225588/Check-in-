@@ -13,6 +13,31 @@ git for those.
 
 ---
 
+## 2026-08-07 (night) — the tick that lost to the filter
+
+### Recency was the wrong rule (US-32, round two)
+"If I click one, it should take the place of the last one on the ranking."
+
+Round one made a full bar swap at all — the new pick took the last slot. From
+the desk that is still arbitrary: *last ticked* is not a fact about the morning.
+The one that should go is the one saying least, and the app already computes
+that score — it is what decides which extras earn a slot when nobody has chosen
+at all. A coach of 40 outranks 3 comps whatever order they were ticked in.
+
+`weakestMetric` is that score, read backwards. Core is never a candidate.
+
+### The bug under the complaint
+There was a second reason a tick could look dead. When a filter is live, its
+pill is forced onto the bar so nobody stares at four rows wondering why — and
+it was forcing itself into the same slot the new pick had just taken. Tick Comp
+with Groupes filtering: Comp went into the list, Groupes overwrote it on the
+bar, and the checklist showed a tick for something that never appeared.
+
+The live filter is now **pinned** — passed to `toggleMetric` as `keep`, so the
+new pick displaces the weakest thing that is not the filter. And when the filter
+does have to force its way on, it displaces the weakest pill rather than
+whatever happens to be last.
+
 ## 2026-08-07 (night) — the coach that leaves before the restaurant opens
 
 ### Paniers (US-34)

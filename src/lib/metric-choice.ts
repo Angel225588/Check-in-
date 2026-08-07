@@ -1,4 +1,4 @@
-import { compactMetrics, type MetricCandidate } from "@/lib/portrait";
+import { compactMetrics, weakestMetric, type MetricCandidate } from "@/lib/portrait";
 
 /**
  * US-19 — which metrics are on the bar.
@@ -52,20 +52,28 @@ export function chooseMetrics(
  *
  * The last one cannot be removed. An empty bar is not a preference.
  *
- * **On a full bar, the new one takes the last slot.** It used to append, and
+ * **On a full bar, the new one displaces the weakest.** It used to append, and
  * `chooseMetrics` slices to the slots — so the fifth tick landed in fifth place
- * and nothing on screen moved. From the desk that is a checkbox that does not
- * work: you tick Comp, the bar does not change, and the only way through is to
- * work out for yourself that something has to come off first.
+ * and nothing on screen moved: a checkbox that does not work.
  *
- * The LAST slot, not the oldest: the three that answer "where are we" stay put,
- * and the slot you are choosing is always the same one.
+ * Which one leaves is a ranking question, not a recency one. "The last one I
+ * ticked" is arbitrary from the desk; the one that should go is the one saying
+ * least about this morning — and that score already exists, because it is what
+ * decides which extras earn a slot when nobody has chosen at all. A coach of 40
+ * outranks 3 comps whatever order they were ticked in.
+ *
+ * `keep` is for anything that must not be displaced whatever it scores — the
+ * live filter above all: a list filtered by a pill you cannot see is four rows
+ * and no explanation.
  */
 export function toggleMetric(
   chosen: string[] | null | undefined,
   key: string,
   visibleNow: string[],
-  slots?: number
+  slots?: number,
+  all?: MetricCandidate[],
+  rooms?: number,
+  keep: string[] = []
 ): string[] {
   const base = chosen && chosen.length > 0 ? [...chosen] : [...visibleNow];
   const at = base.indexOf(key);
@@ -74,6 +82,11 @@ export function toggleMetric(
     base.splice(at, 1);
     return base;
   }
-  if (slots && base.length >= slots) return [...base.slice(0, slots - 1), key];
+  if (slots && base.length >= slots) {
+    const weakest = all ? weakestMetric(base, all, rooms ?? 0, [...keep, key]) : null;
+    // No ranking to go on — the last slot still beats a tick that does nothing.
+    const drop = weakest ?? base[base.length - 1];
+    return [...base.filter((k) => k !== drop), key];
+  }
   return [...base, key];
 }

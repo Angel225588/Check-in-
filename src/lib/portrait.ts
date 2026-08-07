@@ -72,6 +72,32 @@ const WEIGHT: Record<string, number> = {
  * (`tile-rank.ts`). A metric the day has none of is never shown: a zero
  * occupies a slot to say nothing.
  */
+/**
+ * The weakest metric on the bar — what a new pick displaces.
+ *
+ * Ranking, not recency. "The last one I ticked" is arbitrary from the desk:
+ * the one that should go is the one saying least about this morning, and the
+ * same score already decides which extras earn a slot when nobody has chosen.
+ * Core is never a candidate — the trio answers "where are we".
+ *
+ * Null when there is nothing but core: at that point the bar is as small as it
+ * is allowed to get, and the caller must not evict anything.
+ */
+export function weakestMetric(
+  shown: string[],
+  all: MetricCandidate[],
+  rooms: number,
+  keep: string[] = [],
+): string | null {
+  const value = new Map(all.map((m) => [m.key, m.value]));
+  const scale = rooms > 0 ? rooms : 1;
+  const candidates = shown
+    .filter((k) => !CORE.includes(k) && !keep.includes(k))
+    .map((k) => ({ key: k, score: ((value.get(k) ?? 0) / scale) * (WEIGHT[k] ?? 1) }))
+    .sort((a, b) => a.score - b.score);
+  return candidates.length ? candidates[0].key : null;
+}
+
 export function compactMetrics(all: MetricCandidate[], rooms: number, max = 4): string[] {
   const present = new Map(all.map((m) => [m.key, m.value]));
   const core = CORE.filter((k) => present.has(k));

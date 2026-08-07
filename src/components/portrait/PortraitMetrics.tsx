@@ -6,6 +6,7 @@ import { getTotalGuests, getCheckedInCount, getCompStats, needsPaymentChoice, is
 import { subsetProgress } from "@/lib/metric-progress";
 import { getChildrenCount, getGroupStats, groupBlocks } from "@/lib/groups";
 import { chooseMetrics, toggleMetric, CORE_METRICS as CORE } from "@/lib/metric-choice";
+import { weakestMetric } from "@/lib/portrait";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import type { MetricFilter } from "@/components/MetricsBar";
 
@@ -95,10 +96,17 @@ export default function PortraitMetrics({
   }, []);
   const candidates = all.map((m) => ({ key: m.key, value: m.value }));
   const choice = chooseMetrics(candidates, chosen, clients.length, slots);
-  // A filter running from off-screen is how you end up staring at four rows
-  // wondering why — the same rule the report's tile row follows.
+  /* A filter running from off-screen is how you end up staring at four rows
+     wondering why — the same rule the report's tile row follows. When it has to
+     force its way on, it displaces the weakest pill rather than whatever
+     happens to be last, so the bar keeps its own ranking. */
   const keys = activeFilter && !choice.shown.includes(activeFilter)
-    ? [...choice.shown.slice(0, choice.shown.length - 1), activeFilter]
+    ? [
+        ...choice.shown.filter(
+          (k) => k !== (weakestMetric(choice.shown, candidates, clients.length, [activeFilter]) ?? choice.shown[choice.shown.length - 1])
+        ),
+        activeFilter,
+      ]
     : choice.shown;
   const shown = keys.map((k) => all.find((m) => m.key === k)!).filter(Boolean);
   const hidden = choice.hidden;
@@ -170,7 +178,7 @@ export default function PortraitMetrics({
               <div>
                 <b className="text-[15px] text-dark block">Sur la barre</b>
                 <span className="text-[12px] font-semibold" style={{ color: "var(--tab-idle)" }}>
-                  {slots} places · une nouvelle prend la dernière
+                  {slots} places · une nouvelle remplace la moins parlante
                 </span>
               </div>
               <button onClick={() => setSheet(false)} aria-label="Fermer"
@@ -192,7 +200,7 @@ export default function PortraitMetrics({
                   role="checkbox"
                   aria-checked={on}
                   disabled={absent}
-                  onClick={() => onChoose(toggleMetric(chosen, m.key, keys, slots))}
+                  onClick={() => onChoose(toggleMetric(chosen, m.key, keys, slots, candidates, clients.length, activeFilter ? [activeFilter] : []))}
                   className="min-h-[56px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98] disabled:opacity-40"
                   style={{
                     background: on ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
