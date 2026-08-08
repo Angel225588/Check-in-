@@ -13,6 +13,32 @@ git for those.
 
 ---
 
+## 2026-08-08 (night) — shipped to a pull request
+
+**PR #4** · 562 tests across 50 files · **118/118 design rules** · **33/33 story
+pass** · **24/24 preflight** · fast-forward from `main`, no conflicts.
+
+### The demo loader does not go to the desk
+"Charger un service de démo" REPLACES today's data — on a real morning that is
+the whole service gone in one mis-tap, with no undo.
+
+Behind `NEXT_PUBLIC_TEST_TOOLS=1` rather than deleted, because deleting it would
+also blind the two harnesses that click through the app's own demo loader — the
+ones that caught the seeder writing UTC timestamps into Récents. A check that
+cannot run is a check that does not exist.
+
+Anything other than an exact `"1"` is off: a flag that guesses is a flag that
+ships the demo loader to a desk one typo later. `/debug` refuses in words rather
+than relying on nobody typing the URL.
+
+Verified both ways on real builds: production has 0 test-tool buttons and a
+refusing `/debug`; the flagged build still drives 24/24 preflight and 33/33
+story checks.
+
+**The one thing this cannot verify from here:** whether
+`NEXT_PUBLIC_TEST_TOOLS` is set in the Vercel production environment. It is
+inlined at build time, so if it is set there, none of the above holds.
+
 ## 2026-08-08 (evening) — the exit that moved
 
 ### Handedness took the back button with it (US-39)

@@ -165,10 +165,10 @@ never happened sitting in tomorrow's report.
 
 ## What I ran
 
-- `npx vitest run` — 559 tests across 49 files
+- `npx vitest run` — 562 tests across 50 files
 - `npx tsc --noEmit` — clean
 - `npm run build` — clean
-- `node scripts/design-rules.mjs` — **117/117**, no failures
+- `node scripts/design-rules.mjs` — **118/118**, no failures
 - `node scripts/preflight.mjs` — **24/24**, both orientations, driving the app's
   own demo data through a real check-in
 - `node scripts/story-pass.mjs` — **33/33**, reception's morning end to end:
