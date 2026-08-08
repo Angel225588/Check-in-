@@ -697,7 +697,10 @@ async function main() {
     // three working features looked broken on the tablet because of it.
     ...["201", "202", "203"].map((r, i) =>
       mk(r, `MEUNIER/GROUPE${i + 1}`, 2, 0, "BKF GRP", { rateCode: "TOMEU", arrivalDate: DAY_MINUS3, departureDate: DAY_TODAY })),
-    ...["301", "302"].map((r, i) =>
+    /* Three rooms, because a block is three or more now (US-39): two rooms on
+       one rate is a couple, and counting those as tours is what put ten
+       "groups" on a morning with none. */
+    ...["301", "302", "303"].map((r, i) =>
       mk(r, `ALPINE/TOUR${i + 1}`, 2, 1, "BKF GRP", { rateCode: "TOALP", arrivalDate: DAY_MINUS1, departureDate: DAY_PLUS2 })),
   ];
   // room, people, hour, minute
@@ -1186,7 +1189,7 @@ async function main() {
       const p = document.querySelector('[data-role="report-groups"]');
       if (!p) return { blocks: 0, depart: false };
       return {
-        blocks: p.querySelectorAll('[data-role="report-groups-filter"] > span').length,
+        blocks: p.querySelectorAll('[data-role="report-group-row"]').length,
         depart: /DÉPART/i.test(p.textContent || ""),
       };
     });
