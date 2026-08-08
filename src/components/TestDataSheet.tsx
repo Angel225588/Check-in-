@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DotsThree, Flask, TrashSimple, Bug, X } from "@phosphor-icons/react/dist/ssr";
 import { seedMockData, wipeMockData } from "@/lib/mock-seeder";
+import { testToolsEnabled } from "@/lib/test-tools";
 
 /**
  * The way back into the test tools once the app is installed.
@@ -32,6 +33,12 @@ export default function TestDataSheet() {
     const n = wipeMockData();
     setFlash(`${n} clés effacées`);
   };
+
+  /* Not on the desk's tablet. "Charger un service de démo" REPLACES today's
+     data, and at 07:40 that is the whole morning gone in one mis-tap. The
+     production build does not set the flag, so this returns before rendering
+     anything at all. */
+  if (!testToolsEnabled()) return null;
 
   const row =
     "w-full min-h-[56px] px-4 rounded-[16px] flex items-center gap-3 glass-liquid text-left active:scale-[0.98] transition-transform";

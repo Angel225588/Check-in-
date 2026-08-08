@@ -3,9 +3,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { seedMockData, wipeMockData } from "@/lib/mock-seeder";
 import { getSettings, saveSettings } from "@/lib/storage";
+import { testToolsEnabled } from "@/lib/test-tools";
 
 export default function DebugPage() {
   const router = useRouter();
+  /* Reachable by typing the URL, so it refuses in production rather than
+     relying on nobody finding it. Hooks run first — this is a screen, and a
+     conditional return above them would break the rules of hooks. */
+  const enabled = testToolsEnabled();
   const [info, setInfo] = useState<{ key: string; size: string }[]>([]);
   const [totalSize, setTotalSize] = useState("0");
   const [dailyKeys, setDailyKeys] = useState<string[]>([]);
@@ -81,6 +86,23 @@ export default function DebugPage() {
       refresh();
     }, 100);
   };
+
+  if (!enabled) {
+    return (
+      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 max-w-2xl mx-auto screen-safe flex flex-col items-center justify-center gap-4">
+        <p className="text-[15px] font-bold text-dark text-center">
+          Les outils de test ne sont pas disponibles sur cette version.
+        </p>
+        <button
+          onClick={() => router.push("/upload")}
+          className="min-h-[52px] px-5 rounded-full glass-liquid text-[15px] font-black"
+          style={{ color: "var(--brand-ink)" }}
+        >
+          Retour
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 max-w-2xl mx-auto screen-safe">
