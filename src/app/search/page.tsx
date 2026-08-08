@@ -900,6 +900,8 @@ export default function SearchPage() {
               activeFilter={activeFilter}
               onFilterChange={handleFilterChange}
               expected={expectedToday}
+              chosen={chosenMetrics}
+              onChoose={chooseMetricsFor}
               hideNav
             />
           </div>

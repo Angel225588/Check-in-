@@ -13,6 +13,45 @@ git for those.
 
 ---
 
+## 2026-08-08 — before production
+
+### Récents was showing fiction (US-36)
+Angel, testing on the demo day: a room he had just checked in was not at the top
+of Récents. Two faults, one line of code.
+
+`${date}T08:30:00.000Z` — the **Z is UTC**, and reception is in Paris. A
+breakfast seeded for 08:30 read 10:30 on the tablet, which is why the demo's
+Récents looked like a lunch service.
+
+Worse, and the reason it would have hurt this morning: a seeded arrival ahead of
+the clock **sorts above every real check-in** in a newest-first list. At 07:00
+during service the room just entered would sit under a pile of guests who
+"arrived" at 13:00 and had not arrived at all. The one question Récents answers
+is "did I already do 224?" — and it would have answered with fiction.
+
+`serviceStamp` is local time, clamped to now.
+
+**Why no rule caught this.** `design-rules.mjs` seeds localStorage itself, so it
+has never once run the seeder. A harness that builds its own fixtures cannot
+see a bug in the fixture builder. `scripts/preflight.mjs` clicks "Charger un
+service de démo" like a person, then checks a guest in and asks the screen
+whether it noticed: 24 checks across both orientations.
+
+### One bar, two hands (US-37)
+"On the horizontal, the metrics are too much." They were: up to eight pills,
+each narrower than the last, the label the first casualty — 128px a pill on an
+iPad.
+
+Landscape is the portrait bar now — six slots, ranked, funnel for the rest. Not
+a copy of the logic: the same `metric-choice`, the same checklist sheet
+(extracted to `MetricChecklistSheet`), the same stored preference, so a choice
+made sideways holds when the tablet is stood up. Two bars that disagreed about
+which metrics exist would be two mental models for one number, and reception
+turns the tablet round twenty times a morning.
+
+Measured: 6 pills at 111px minimum in landscape (was 8), 4 at 148px in portrait,
+one funnel each, and the same nine options behind it.
+
 ## 2026-08-07 (night) — the gate, 116/116
 
 **Branch** `claude/checkin-app-registration-bug-3lpy9c` · 542 tests across 45

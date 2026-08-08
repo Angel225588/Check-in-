@@ -1,8 +1,14 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FunnelSimple } from "@phosphor-icons/react/dist/ssr";
 import { Client, CheckInRecord } from "@/lib/types";
-import { getTotalGuests, getCheckedInCount, getCompStats } from "@/lib/utils";
-import { getChildrenCount, getGroupStats } from "@/lib/groups";
+import { getTotalGuests, getCheckedInCount, needsPaymentChoice, isComp } from "@/lib/utils";
+import { getChildrenCount, getGroupStats, groupBlocks } from "@/lib/groups";
+import { chooseMetrics, toggleMetric } from "@/lib/metric-choice";
+import { weakestMetric } from "@/lib/portrait";
+import { subsetProgress } from "@/lib/metric-progress";
+import MetricChecklistSheet from "@/components/MetricChecklistSheet";
 import { useApp } from "@/contexts/AppContext";
 import AnimatedNumber from "@/components/AnimatedNumber";
 
@@ -20,8 +26,24 @@ interface MetricsBarProps {
    *  forecast — omitted entirely when there is no previous day to measure
    *  against, because a confident zero would be a lie. */
   expected?: { people: number; basedOn: string | null };
+  /** Reception's own list, shared with portrait. null means "you decide". */
+  chosen?: string[] | null;
+  onChoose?: (next: string[]) => void;
 }
 
+/**
+ * The metrics bar, landscape.
+ *
+ * It used to render every metric the day had — up to eight pills across the
+ * top, each one narrower than the last, and the labels the first casualty.
+ * Angel, holding the tablet: "too much options, too much metrics".
+ *
+ * It is the same bar as portrait now: six slots, ranked, with the funnel for
+ * the rest. Not a copy of the logic — the same `metric-choice`, the same
+ * checklist sheet, the same stored preference. Two bars that disagree about
+ * which metrics exist would be two mental models for one number, and reception
+ * turns the tablet round twenty times a morning.
+ */
 export default function MetricsBar({
   clients,
   checkIns,
@@ -30,17 +52,73 @@ export default function MetricsBar({
   onFilterChange,
   hideNav = false,
   expected,
+  chosen,
+  onChoose,
 }: MetricsBarProps) {
   const { t } = useApp();
   const router = useRouter();
-  const total = getTotalGuests(clients);
-  const entered = getCheckedInCount(checkIns);
-  const comp = getCompStats(clients, checkIns);
-  const vipCount = clients.filter((c) => c.isVip).length;
-  const children = getChildrenCount(clients);
-  // Groups get their own tile because forty people off one coach are not forty
-  // individuals: they arrive together and they decide the peak.
-  const groups = getGroupStats(clients);
+
+  const { total, entered, groups, groupRooms, children, vipCount, notIncluded } = useMemo(() => ({
+    total: getTotalGuests(clients),
+    entered: getCheckedInCount(checkIns),
+    groups: getGroupStats(clients),
+    groupRooms: new Set(groupBlocks(clients).flatMap((b) => b.roomNumbers)),
+    children: getChildrenCount(clients),
+    vipCount: clients.filter((c) => c.isVip).length,
+    notIncluded: clients.filter((c) => needsPaymentChoice(c)).length,
+  }), [clients, checkIns]);
+
+  /* How many are due and how many came — the half a bare number drops. */
+  const progress = useMemo(() => ({
+    comp: subsetProgress(clients, checkIns, (c) => isComp(c)),
+    vip: subsetProgress(clients, checkIns, (c) => !!c.isVip),
+    groups: subsetProgress(clients, checkIns, (c) => groupRooms.has(c.roomNumber)),
+    children: subsetProgress(clients, checkIns, (c) => (c.children || 0) > 0),
+    notincluded: subsetProgress(clients, checkIns, (c) => needsPaymentChoice(c)),
+  } as Record<string, ReturnType<typeof subsetProgress>>), [clients, checkIns, groupRooms]);
+
+  const all: { key: MetricFilter & string; label: string; value: number }[] = [
+    { key: "total", label: t("metrics.total"), value: total },
+    { key: "entered", label: t("metrics.entered"), value: entered },
+    /* Never negative: more people down than the sheet expected is an écart, a
+       fact the report carries, not minus sixteen people still to come. */
+    { key: "remaining", label: t("metrics.remaining"), value: Math.max(0, total - entered) },
+    ...(expected?.basedOn ? [{ key: "expected" as const, label: "Attendus", value: expected.people }] : []),
+    { key: "children" as const, label: "Enfants", value: children },
+    { key: "groups" as const, label: "Groupes", value: groups.people },
+    { key: "comp" as const, label: t("metrics.comp"), value: clients.filter((c) => isComp(c)).length },
+    { key: "vip" as const, label: "VIP", value: vipCount },
+    { key: "notincluded" as const, label: "Non inclus", value: notIncluded },
+  ];
+
+  const [sheet, setSheet] = useState(false);
+  /* Six across a 1194px iPad is 170px a pill — room for the label and two
+     numbers. Eight was 128px and the labels were being cut. Five below 900px,
+     where the column shares the row with the nav tiles. */
+  const [slots, setSlots] = useState(6);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1100px)");
+    const apply = () => setSlots(mq.matches ? 6 : 5);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const candidates = all.map((m) => ({ key: m.key, value: m.value }));
+  const choice = chooseMetrics(candidates, chosen, clients.length, slots);
+  /* A filter running from off-screen is how you end up staring at four rows
+     wondering why. When it has to force its way on it displaces the weakest
+     pill, so the bar keeps its own ranking. */
+  const keys = activeFilter && !choice.shown.includes(activeFilter)
+    ? [
+        ...choice.shown.filter(
+          (k) => k !== (weakestMetric(choice.shown, candidates, clients.length, [activeFilter]) ?? choice.shown[choice.shown.length - 1])
+        ),
+        activeFilter,
+      ]
+    : choice.shown;
+  const shown = keys.map((k) => all.find((m) => m.key === k)!).filter(Boolean);
+  const hidden = choice.hidden;
 
   const handleFilter = (filter: MetricFilter) => {
     if (!onFilterChange) return;
@@ -48,115 +126,69 @@ export default function MetricsBar({
   };
 
   const pillBase =
-    "flex-1 text-center py-1.5 md:py-2 px-1 rounded-xl transition-all cursor-pointer active:scale-[0.96]";
+    "flex-1 min-w-0 text-center py-1.5 md:py-2 px-1 rounded-xl transition-all cursor-pointer active:scale-[0.96]";
 
   return (
-    <div className="flex items-center gap-1 md:gap-1.5 p-2 surface-chrome rounded-[14px]" role="group" aria-label="Guest metrics">
-      <button
-        onClick={() => handleFilter("total")}
-        className={`${pillBase} ${
-          activeFilter === "total"
-            ? "glass-liquid-active"
-            : "hover:bg-white/30 dark:hover:bg-white/5"
-        }`}
-      >
-        <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.total")}</div>
-        <AnimatedNumber value={total} className="text-xl md:text-2xl font-bold text-dark" />
-      </button>
-      <button
-        onClick={() => handleFilter("entered")}
-        className={`${pillBase} ${
-          activeFilter === "entered"
-            ? "glass-liquid-active"
-            : "hover:bg-white/30 dark:hover:bg-white/5"
-        }`}
-      >
-        <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.entered")}</div>
-        <AnimatedNumber value={entered} className="text-xl md:text-2xl font-bold text-dark" />
-      </button>
-      <button
-        onClick={() => handleFilter("remaining")}
-        className={`${pillBase} ${
-          activeFilter === "remaining"
-            ? "glass-liquid-active"
-            : "hover:bg-white/30 dark:hover:bg-white/5"
-        }`}
-      >
-        <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.remaining")}</div>
-        <AnimatedNumber value={total - entered} className="text-2xl md:text-[28px] font-black text-brand" />
-      </button>
-      {expected && expected.basedOn && (
+    <div className="flex items-center gap-1 md:gap-1.5 p-2 surface-chrome rounded-[14px]" role="group" aria-label="Guest metrics" data-role="metrics-bar">
+      {shown.map((m) => {
+        const on = activeFilter === m.key;
+        const p = progress[m.key];
+        return (
+          <button
+            key={m.key}
+            data-role="metric"
+            data-metric={m.key}
+            aria-pressed={on}
+            onClick={() => handleFilter(m.key)}
+            className={`${pillBase} ${on ? "glass-liquid-active" : "hover:bg-white/30 dark:hover:bg-white/5"}`}
+          >
+            <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide truncate">{m.label}</div>
+            {p ? (
+              <div className="text-xl md:text-2xl font-bold text-dark tabular-nums">
+                <AnimatedNumber value={p.done} />
+                <span className="text-muted text-sm font-semibold">/{p.of}</span>
+              </div>
+            ) : (
+              <AnimatedNumber
+                value={m.value}
+                className={`font-bold tabular-nums ${m.key === "remaining" ? "text-2xl md:text-[28px] font-black text-brand" : "text-xl md:text-2xl text-dark"}`}
+              />
+            )}
+          </button>
+        );
+      })}
+
+      {hidden.length > 0 && (
         <button
-          onClick={() => handleFilter("expected")}
-          title={`D'après le service du ${expected.basedOn}`}
-          className={`${pillBase} ${
-            activeFilter === "expected"
-              ? "glass-liquid-active"
-              : "hover:bg-white/30 dark:hover:bg-white/5"
-          }`}
+          onClick={() => setSheet(true)}
+          data-role="metric-more"
+          aria-label={`Choisir les métriques (${hidden.length} de côté)`}
+          className="relative shrink-0 w-[46px] self-stretch min-h-[52px] rounded-xl grid place-items-center transition-transform active:scale-[0.94] hover:bg-white/30 dark:hover:bg-white/5"
         >
-          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">Attendus</div>
-          <AnimatedNumber value={expected.people} className="text-xl md:text-2xl font-bold text-dark" />
+          <FunnelSimple size={18} weight="bold" style={{ color: "var(--tab-idle)" }} />
+          <span className="absolute bottom-1 text-[9px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
+            +{hidden.length}
+          </span>
         </button>
       )}
-      {children > 0 && (
-        <button
-          onClick={() => handleFilter("children")}
-          className={`${pillBase} ${
-            activeFilter === "children"
-              ? "glass-liquid-active"
-              : "hover:bg-white/30 dark:hover:bg-white/5"
-          }`}
-        >
-          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">Enfants</div>
-          <AnimatedNumber value={children} className="text-xl md:text-2xl font-bold text-dark" />
-        </button>
+
+      {sheet && onChoose && (
+        <MetricChecklistSheet
+          all={all}
+          candidates={candidates}
+          shown={keys}
+          chosen={chosen}
+          progress={progress}
+          slots={slots}
+          rooms={clients.length}
+          activeFilter={activeFilter}
+          onChoose={onChoose}
+          onClose={() => setSheet(false)}
+        />
       )}
-      {groups.blocks > 0 && (
-        <button
-          onClick={() => handleFilter("groups")}
-          className={`${pillBase} ${
-            activeFilter === "groups"
-              ? "glass-liquid-active"
-              : "hover:bg-white/30 dark:hover:bg-white/5"
-          }`}
-        >
-          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">Groupes</div>
-          {/* People over blocks: "62/3" is the number that matters and the
-              number of coaches it arrives on, in one glance. */}
-          <div className="text-xl md:text-2xl font-bold text-dark tabular-nums">
-            {groups.people}<span className="text-muted text-sm font-semibold">/{groups.blocks}</span>
-          </div>
-        </button>
-      )}
-      <button
-        onClick={() => handleFilter("comp")}
-        className={`${pillBase} ${
-          activeFilter === "comp"
-            ? "glass-liquid-active"
-            : "hover:bg-white/30 dark:hover:bg-white/5"
-        }`}
-      >
-        <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide">{t("metrics.comp")}</div>
-        <div className="text-xl md:text-2xl font-bold text-dark">
-          {comp.total > 0 ? <><AnimatedNumber value={comp.entered} />/<AnimatedNumber value={comp.total} /></> : <AnimatedNumber value={0} />}
-        </div>
-      </button>
-      {vipCount > 0 && (
-        <button
-          onClick={() => handleFilter("vip")}
-          className={`${pillBase} ${
-            activeFilter === "vip"
-              ? "bg-gradient-to-b from-brand/20 to-brand-light/10 ring-1 ring-brand/30"
-              : "hover:bg-white/30 dark:hover:bg-white/5"
-          }`}
-        >
-          <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide font-bold">VIP</div>
-          <AnimatedNumber value={vipCount} className="text-xl md:text-2xl font-bold text-dark" />
-        </button>
-      )}
+
       {!hideNav && (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5 shrink-0">
           <button
             onClick={onHistoryToggle}
             className="p-1.5 md:p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:bg-white/50 transition-colors"

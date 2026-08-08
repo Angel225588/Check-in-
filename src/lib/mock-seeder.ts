@@ -195,7 +195,7 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
       const totalMinutes = 6 * 60 + minutesFromStart;
       const hour = Math.floor(totalMinutes / 60);
       const minute = totalMinutes % 60;
-      const ts = `${date}T${pad(hour)}:${pad(minute)}:00.000Z`;
+      const ts = serviceStamp(date, hour, minute);
 
       // ~5% extras (entered > expected)
       const expected = c.adults + c.children;
@@ -221,6 +221,26 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
   }
 
   return { clients, checkIns };
+}
+
+
+/**
+ * A demo arrival, on the same clock as the desk.
+ *
+ * The seeder used to write `${date}T08:30:00.000Z`. The Z is UTC and reception
+ * is in Paris, so a breakfast seeded for 08:30 read 10:30 on the tablet and
+ * Récents looked like a lunch service.
+ *
+ * And it clamps to now. A seeded arrival seeded ahead of the clock sorts ABOVE
+ * every real check-in in a newest-first list — so at 07:00 during service the
+ * room you just entered would sit under a pile of guests who "arrived" at 13:00
+ * and had not arrived at all. The one question Récents answers is "did I
+ * already do 224?", and it must not answer it with fiction.
+ */
+export function serviceStamp(date: string, hour: number, minute: number, now: Date = new Date()): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const at = new Date(y, (m || 1) - 1, d || 1, hour, minute, 0, 0);
+  return (at.getTime() > now.getTime() ? now : at).toISOString();
 }
 
 /** dd/mm/yy — the shape the hotel's report uses. */
@@ -266,7 +286,7 @@ export function seedMockData(): { sessions: number; clientsToday: number } {
     );
     sessions.push({
       date,
-      closedAt: `${date}T11:30:00.000Z`,
+      closedAt: serviceStamp(date, 11, 30),
       totalRooms: day.clients.length,
       totalGuests,
       totalEntered,
@@ -354,14 +374,14 @@ function buildCompactDay(date: string, scale: number): SessionRecord {
           roomNumber: "000",
           clientName: "(demo)",
           peopleEntered: totalEntered,
-          timestamp: `${date}T08:30:00.000Z`,
+          timestamp: serviceStamp(date, 8, 30),
         },
       ]
     : [];
 
   return {
     date,
-    closedAt: `${date}T11:30:00.000Z`,
+    closedAt: serviceStamp(date, 11, 30),
     totalRooms,
     totalGuests,
     totalEntered,
@@ -449,7 +469,7 @@ export function seedDemoMonths(
       );
       sessions.push({
         date,
-        closedAt: `${date}T11:30:00.000Z`,
+        closedAt: serviceStamp(date, 11, 30),
         totalRooms: day.clients.length,
         totalGuests,
         totalEntered,

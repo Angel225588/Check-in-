@@ -586,6 +586,46 @@ that lies about it.**
     filter, and a door that renames itself once you walk through it is not a
     door — while the list narrows to the coach you ticked.
 
+### US-36 — The demo day keeps the desk's clock — BUILT
+
+    As      Réception
+    I need  a check-in I just made to be the newest thing in Récents
+    So that "did I already do 224?" is answered by the screen, not by memory
+
+    Scenario: testing on the demo day before service
+      Given  the demo service is loaded
+      When   I check a room in
+      Then   it is the first row of Récents, at the time on the wall clock
+
+    Never:  a seeded arrival stamped in the future. Newest-first means a mock
+            guest who "arrived" at 13:00 sits above every real check-in for the
+            whole morning — the one question Récents answers, answered with
+            fiction.
+    Never:  UTC. The seeder wrote `${date}T08:30:00.000Z`; reception is in
+            Paris, so a breakfast seeded for 08:30 read 10:30 on the tablet and
+            Récents looked like a lunch service.
+    Proof:  mock-clock.test.ts (5 cases) · scripts/preflight.mjs
+
+### US-37 — The same bar in both hands — BUILT
+
+    As      Réception
+    I need  landscape's metrics bar to show five or six, not everything
+    So that the labels are readable and the rest is one tap away
+
+    Scenario: a day with eight metrics in it
+      Given  I am holding the tablet sideways
+      Then   six pills, each wide enough for its label, and a funnel carrying
+             the rest
+
+    Never:  two bars that disagree about which metrics exist. Same
+            `metric-choice`, same checklist sheet, same stored preference —
+            reception turns the tablet round twenty times a morning.
+    Proof:  preflight.mjs (metrics-count · metrics-width · metrics-funnel ·
+            checklist-opens, both orientations)
+
+    Six across a 1194px iPad is ~170px a pill. Eight was 128px and the label was
+    the first casualty — a number with no name on it.
+
 ### US-35 — A quiet screen at rest, and a way back — BUILT
 
     As      Réception
