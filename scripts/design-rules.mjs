@@ -1591,13 +1591,25 @@ async function main() {
   {
     const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
     const field = () => page.locator('[data-role="search-field"] input, input[placeholder*="Chambre"]').first();
+    /* Whichever pad is on screen. Starting a note switches the app to letters
+       (US-17), so a rule that assumes digits are always there waits thirty
+       seconds for a key the app was right not to be showing — which is how the
+       first version of this rule crashed the gate. */
+    const toDigits = async () => {
+      if (await page.locator('[data-role="alpha-keypad"]').count()) {
+        await page.locator('[data-role="pad-123"]').click();
+        await page.waitForTimeout(350);
+      }
+    };
     const type = async (d) => {
+      await toDigits();
       await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${d}$`) }).first().click();
       await page.waitForTimeout(200);
     };
     const clearField = async () => {
       for (let i = 0; i < 6; i++) {
-        await page.locator('[data-role="numeric-keypad"] button[aria-label="Backspace"]').click();
+        await page.locator('[data-role="numeric-keypad"] button[aria-label="Backspace"], [data-role="alpha-keypad"] button[aria-label="Backspace"]')
+          .first().click().catch(() => {});
         await page.waitForTimeout(90);
       }
     };
@@ -1628,8 +1640,10 @@ async function main() {
       await page.waitForTimeout(400);
       await page.locator('[data-role="note-new"]').click().catch(() => {});
       await page.waitForTimeout(400);
-      await type(7);
-      await page.waitForTimeout(200);
+      // Put a character in the draft with whichever pad the app switched to.
+      await page.locator('[data-role="alpha-keypad"] button, [data-role="numeric-keypad"] button')
+        .first().click().catch(() => {});
+      await page.waitForTimeout(250);
     }
     states.push(await typesHere("after an abandoned note"));
 
