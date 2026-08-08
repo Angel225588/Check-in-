@@ -1467,7 +1467,7 @@ async function main() {
       return (cs.backdropFilter || cs.webkitBackdropFilter || "none") !== "none";
     });
     const controls = [];
-    for (const role of ["drawer-recents", "drawer-report", "drawer-hand", "drawer-swipe", "drawer-close-day"]) {
+    for (const role of ["drawer-recents", "drawer-report", "drawer-hand", "drawer-close-day"]) {
       if ((await page.locator(`[data-role="${role}"]`).count()) !== 1) controls.push(role);
     }
     const leavesRoom = !!box && box.width < 390 * 0.92;
@@ -1478,18 +1478,21 @@ async function main() {
     await ctx.close();
   }
 
-  // R25d — turning the swipe off costs nothing. Every face stays on a dot,
-  // which is why declining the shortcut can never hide information.
+  // R25d — the dots are the guarantee, with or without the gesture.
+  //
+  // This used to turn Balayage off in the drawer first. Reception asked for that
+  // switch to go — "we don't need it" — and US-23's promise survives without it,
+  // because it never rested on the toggle: every face of the carousel is also on
+  // a dot, so the swipe has always been a shortcut rather than the only way
+  // through. The rule asserts the thing that matters and no longer asserts the
+  // control that carried it.
   {
     const { ctx, page } = await openDay("/search", { w: 390, h: 844 });
     await page.locator('[data-role="portrait-menu"]').click();
     await page.waitForTimeout(350);
-    await page.locator('[data-role="drawer-swipe"]').click();
-    await page.waitForTimeout(200);
     // The frame is off by default now (US-35); this rule is about its dots.
     await page.locator('[data-role="drawer-preview"]').click();
     await page.waitForTimeout(200);
-    const stateOff = await page.locator('[data-role="drawer-swipe"]').getAttribute("aria-checked");
     await page.locator('[data-role="nav-drawer"] [aria-label="Fermer le menu"]').click();
     await page.waitForTimeout(400);
     const carousel = page.locator('[data-role="preview-carousel"]');
@@ -1500,9 +1503,9 @@ async function main() {
     await dots.nth(n - 1).click();
     await page.waitForTimeout(350);
     const moved = await carousel.getAttribute("data-pane");
-    record("R25d-swipe-optional", "Swipe off leaves every face reachable by a dot",
-      stateOff === "false" && flag === "off" && n > 1 && moved !== first,
-      `switch=${stateOff} carousel=${flag} dots=${n} ${first}→${moved}`);
+    record("R25d-dots-reach-every-face", "Every face of the carousel is reachable without the gesture",
+      n > 1 && moved !== first && moved !== null,
+      `dots=${n} ${first}→${moved} (carousel swipe=${flag})`);
     await ctx.close();
   }
 
@@ -1573,6 +1576,36 @@ async function main() {
       rows === 0 ? "no rows in the sheet" :
       field !== 1 ? "no search field in the sheet" :
       clear ? `${rows} rows` : `list ends ${list ? (list.y + list.height).toFixed(0) : "?"}, pad starts ${pad?.y.toFixed(0)}`);
+    await ctx.close();
+  }
+
+  // R32 — the way out never moves.
+  //
+  // Handedness reverses the top row so the burger falls under the thumb that is
+  // free. It took the back button with it, and a control whose whole job is
+  // "get me out of here" is the one that cannot change corner: you do not hunt
+  // for an exit. Same x, same size, same glyph, whichever hand is set.
+  {
+    const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
+    const box = async () => {
+      const b = await page.locator('[data-role="portrait-back"]').boundingBox();
+      return b ? { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } : null;
+    };
+    const left = await box();
+    await page.locator('[data-role="portrait-menu"]').click();
+    await page.waitForTimeout(350);
+    await page.locator('[data-role="drawer-hand"]').click();
+    await page.waitForTimeout(300);
+    await page.locator('[data-role="nav-drawer"] [aria-label="Fermer le menu"]').click().catch(() => {});
+    await page.waitForTimeout(500);
+    const right = await box();
+    const same = !!left && !!right &&
+      left.x === right.x && left.y === right.y && left.w === right.w && left.h === right.h;
+    record("R32-back-never-moves", "The back button is in the same place for either hand",
+      same,
+      !left || !right ? "back button missing in one of the two states"
+        : same ? `x=${left.x} y=${left.y} ${left.w}x${left.h} in both`
+        : `left-hand ${JSON.stringify(left)} vs right-hand ${JSON.stringify(right)}`);
     await ctx.close();
   }
 

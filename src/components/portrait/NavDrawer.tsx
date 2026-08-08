@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import {
-  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, HandSwipeRight, Cards, ArrowsOutSimple,
+  Clock, ChartBar, ArrowsHorizontal, Check, X, UploadSimple, Cards, ArrowsOutSimple,
 } from "@phosphor-icons/react/dist/ssr";
 import type { RecentEntry } from "@/components/PreviewPanes";
 import ArrivalRow from "@/components/portrait/ArrivalRow";
@@ -31,14 +31,12 @@ export default function NavDrawer({
   onClose,
   handSide,
   side,
-  swipe,
   idlePreview,
   onIdlePreviewToggle,
   recents,
   onPickRoom,
   onReport,
   onFlipSide,
-  onSwipeToggle,
   onCloseDay,
   onUpload,
   onUndoRow,
@@ -51,7 +49,6 @@ export default function NavDrawer({
    *  free; a drawer that always opens on the left is a drawer a left-hander
    *  reaches across the screen for, every time. */
   side: "left" | "right";
-  swipe: boolean;
   idlePreview: boolean;
   onIdlePreviewToggle: () => void;
   /** The service so far, newest first. */
@@ -59,7 +56,6 @@ export default function NavDrawer({
   onPickRoom: (room: string) => void;
   onReport: () => void;
   onFlipSide: () => void;
-  onSwipeToggle: () => void;
   onCloseDay: () => void;
   onUpload: () => void;
   /** Undo one arrival, in place. The drawer used to carry a button to a screen
@@ -189,14 +185,20 @@ export default function NavDrawer({
         </div>
 
         {/* Preferences last, where a mis-tap costs nothing. */}
-        {/* Preferences, as switches. Both are "do I want this", not "do this",
-            so neither closes the drawer — watching it vanish would hide whether
-            the flip took. */}
+        {/* Preferences, as switches: "do I want this", not "do this", so they do
+            not close the drawer — watching it vanish would hide whether the
+            flip took.
+
+            **Balayage was removed at reception's request.** The swipe itself
+            stays on; what went is the control for turning it off. US-23's
+            promise survives without it, because it never rested on the toggle:
+            every face of the carousel is also on a dot, so the gesture has
+            always been a shortcut rather than the only way through. A setting
+            nobody wants is a decision reception has to make on a screen they
+            opened for something else. */}
         {([
           { role: "drawer-preview", icon: <Cards size={19} weight="duotone" style={{ opacity: .75 }} />,
             label: "Aperçu au repos", on: idlePreview, act: onIdlePreviewToggle },
-          { role: "drawer-swipe", icon: <HandSwipeRight size={19} weight="duotone" style={{ opacity: .75 }} />,
-            label: "Balayage", on: swipe, act: onSwipeToggle },
         ] as const).map((s) => (
           <button
             key={s.role}

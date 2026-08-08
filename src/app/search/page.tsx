@@ -106,12 +106,6 @@ export default function SearchPage() {
     saveSettings({ ...getSettings(), handSide: next });
   };
 
-  const flipSwipe = () => {
-    const next = !swipe;
-    setSwipe(next);
-    saveSettings({ ...getSettings(), swipe: next });
-  };
-
   /** Undo an arrival from wherever it is listed. The drawer used to carry a
    *  button to a screen whose only job was this, which is a trip to correct a
    *  typo you are already looking at. */
@@ -835,14 +829,12 @@ export default function SearchPage() {
           onClose={() => setDrawerOpen(false)}
           handSide={handSide}
           side={handSide}
-          swipe={swipe}
           idlePreview={idlePreview}
           onIdlePreviewToggle={flipIdlePreview}
           recents={recents}
           onPickRoom={openRoom}
           onReport={() => { rememberOrigin("search"); router.push("/report"); }}
           onFlipSide={flipSide}
-          onSwipeToggle={flipSwipe}
           onCloseDay={closeDayConfirmed}
           /* The sheet, not the upload screen. "Charger la liste" means pick a
              PDF or a photo — the screen it used to open is a detour with its

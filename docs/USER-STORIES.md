@@ -586,6 +586,28 @@ that lies about it.**
     filter, and a door that renames itself once you walk through it is not a
     door — while the list narrows to the coach you ticked.
 
+### US-39 — The way out never moves — BUILT
+
+    As      Réception
+    I need  the back button in the same corner whichever hand is set
+    So that leaving a screen is never something I have to look for
+
+    Scenario: a left-hander takes over the desk
+      Given  the drawer's Gaucher / Droitier is flipped
+      Then   the burger moves to the other thumb and the back button does not
+
+    Never:  an exit that changes corner. Handedness reverses the top row so the
+            menu falls under the free thumb — it took the way out with it, and
+            you do not hunt for an exit.
+    Proof:  R32 (same x, y, width and height for either hand)
+
+    **Balayage is gone from the drawer**, at reception's request. The swipe
+    itself stays on; what went is the control for turning it off. US-23's
+    promise survives without it, because it never rested on the toggle: every
+    face of the carousel is also on a dot, so the gesture has always been a
+    shortcut rather than the only way through. R25d asserts that directly now
+    instead of asserting the switch.
+
 ### US-38 — The pad always types — BUILT
 
     As      Réception

@@ -193,12 +193,14 @@ export default function PortraitSearch({
           numbers are read between guests, not scrolled to. */}
       <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-3">
         {/* The menu is not a metric. Inside the tinted bar it read as a fifth
-            pill; beside it, it reads as what it is. */}
-        <div className={`flex items-stretch gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
-          {/* Back to the arrivals list. Portrait had none: search is the root
-              of the service, so I had left it out — but reception's route back
-              to the upload screen was the drawer, two taps deep, and the app
-              looks trapped without it. Beside the burger, on the same hand. */}
+            pill; beside it, it reads as what it is.
+
+            The BACK BUTTON does not move. Handedness reverses this row, which
+            swung back and burger from one edge to the other — and a way out
+            that changes corner is a way out you have to look for. The one
+            control whose whole job is "get me out of here" is the one that must
+            be in the same place every time, so it sits outside the reversal. */}
+        <div className="flex items-stretch gap-2">
           <button
             onClick={onBack}
             data-role="portrait-back"
@@ -207,6 +209,7 @@ export default function PortraitSearch({
           >
             <CaretLeft size={18} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
+          <div className={`flex-1 min-w-0 flex items-stretch gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>
           <button
             onClick={onMenu}
             data-role="portrait-menu"
@@ -215,16 +218,17 @@ export default function PortraitSearch({
           >
             <List size={22} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
-          <div className="flex-1 min-w-0">
-            <PortraitMetrics
-              clients={clients}
-              checkIns={checkIns}
-              activeFilter={activeFilter}
-              onFilterChange={onFilterChange}
-              expected={expected}
-              chosen={chosenMetrics}
-              onChoose={onChooseMetrics}
-            />
+            <div className="flex-1 min-w-0">
+              <PortraitMetrics
+                clients={clients}
+                checkIns={checkIns}
+                activeFilter={activeFilter}
+                onFilterChange={onFilterChange}
+                expected={expected}
+                chosen={chosenMetrics}
+                onChoose={onChooseMetrics}
+              />
+            </div>
           </div>
         </div>
         <RoomSearchField value={query} onChange={setQuery} onClear={clear} />

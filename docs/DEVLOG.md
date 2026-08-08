@@ -13,6 +13,36 @@ git for those.
 
 ---
 
+## 2026-08-08 (evening) — the exit that moved
+
+### Handedness took the back button with it (US-39)
+Flipping Gaucher / Droitier reverses the top row so the burger lands under the
+free thumb. The back button was in that row, so it swung from one edge to the
+other — and a control whose whole job is "get me out of here" is the one that
+must never change corner. You do not hunt for an exit.
+
+It sits outside the reversal now. Measured, both hands: `x=10 y=12 44x72` in
+each, while the burger moves to x=754 — so handedness still does the job it
+exists for.
+
+### Balayage removed
+"We don't need it." The swipe stays on; the switch for turning it off is gone.
+US-23's promise survives, because it never rested on the toggle: every face of
+the carousel is also on a dot, so the gesture has always been a shortcut rather
+than the only way through. R25d asserted the switch; it asserts the dots now —
+which is the thing the story actually promises. A preference nobody wants is a
+decision reception has to make on a screen they opened for something else.
+
+### Asked and answered: the points swap IS on the report
+"How can we see that on the report?" It is already there, on the row: the
+Formule column reads **Échangé** for a points-to-breakfast swap, and it is the
+one that gets a green tint. Every other outcome has its own word too — Inclus,
+COMP, Points, Chambre, Carte, Cash, Superviseur, À encaisser — so what happened
+in a room is readable from the list without opening it.
+
+What the expanded list does NOT yet do is let you filter by that column, which
+is the next conversation.
+
 ## 2026-08-08 (evening) — the production pass
 
 **Branch** `claude/checkin-app-registration-bug-3lpy9c` · 559 tests across 49
