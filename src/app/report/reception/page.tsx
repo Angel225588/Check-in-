@@ -64,7 +64,7 @@ export default function ReceptionReportWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
+        <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
           <div className="text-muted">Loading…</div>
         </div>
       }
@@ -164,7 +164,7 @@ function ReceptionReportPage() {
 
   if (!loaded) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         <div className="text-muted">Loading…</div>
       </div>
     );
@@ -180,10 +180,10 @@ function ReceptionReportPage() {
         }
       `}</style>
 
-      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         {/* HEADER */}
         <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#12100E]/90 backdrop-blur-xl">
-          <div className="max-w-2xl mx-auto px-4 pt-safe pb-2">
+          <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
               <Button
                 variant="glass"

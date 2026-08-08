@@ -43,14 +43,18 @@ describe("group blocks", () => {
     expect(blocks[0].people).toBe(5);
   });
 
+  /* Three rooms a side, because MIN_BLOCK_ROOMS is 3 now: on the hotel's real
+     list, two rooms sharing a rate is a couple or a family split in two, and
+     counting those as tours produced ten "groups" on a morning with none. */
   it("keeps two tours apart when their stay windows differ", () => {
     const blocks = groupBlocks([
       ...tour,
       mk("301", 2, 0, "BKF GRP", "CMXC", "02/08/26", "05/08/26"),
       mk("302", 2, 0, "BKF GRP", "CMXC", "02/08/26", "05/08/26"),
+      mk("303", 2, 0, "BKF GRP", "CMXC", "02/08/26", "05/08/26"),
     ]);
     expect(blocks).toHaveLength(2);
-    expect(blocks.map((b) => b.people).sort()).toEqual([4, 5]);
+    expect(blocks.map((b) => b.people).sort()).toEqual([5, 6]);
   });
 
   it("keeps two tours apart when their rate codes differ", () => {
@@ -58,6 +62,7 @@ describe("group blocks", () => {
       ...tour,
       mk("401", 2, 0, "BKF GRP", "TOUR2", "01/08/26", "04/08/26"),
       mk("402", 2, 0, "BKF GRP", "TOUR2", "01/08/26", "04/08/26"),
+      mk("403", 2, 0, "BKF GRP", "TOUR2", "01/08/26", "04/08/26"),
     ]);
     expect(blocks).toHaveLength(2);
   });
@@ -96,11 +101,13 @@ describe("group totals for the metrics bar", () => {
     const stats = getGroupStats([
       mk("201", 2, 0, "BKF GRP", "A"),
       mk("202", 2, 0, "BKF GRP", "A"),
+      mk("203", 2, 0, "BKF GRP", "A"),
       mk("301", 2, 1, "BKF GRP", "B"),
       mk("302", 2, 1, "BKF GRP", "B"),
+      mk("303", 2, 1, "BKF GRP", "B"),
       mk("101", 2, 0, "BKF INC", ""),
     ]);
-    expect(stats).toEqual({ blocks: 2, rooms: 4, people: 10 });
+    expect(stats).toEqual({ blocks: 2, rooms: 6, people: 15 });
   });
 
   it("is all zeroes when there is no group at all", () => {

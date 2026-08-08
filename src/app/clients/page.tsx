@@ -187,7 +187,7 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 screen-safe">
         <div className="skeleton h-8 w-40 mb-3" />
         <div className="grid grid-cols-5 gap-1.5 mb-3">
           {[0, 1, 2, 3, 4].map((i) => (
@@ -205,9 +205,9 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
       {/* Header */}
-      <div className="shrink-0 p-3 pt-safe pb-0">
+      <div className="shrink-0 p-3 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => router.push(hasActiveSession ? "/search" : "/upload")}

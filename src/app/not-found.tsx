@@ -2,7 +2,7 @@
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] px-6">
+    <div className="flex flex-col items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] px-6 screen-safe">
       <div className="glass-liquid rounded-[20px] p-8 max-w-sm w-full text-center">
         <div className="text-6xl font-black text-brand/20 mb-2">404</div>
         <h2 className="text-lg font-bold text-dark mb-1">Page introuvable</h2>

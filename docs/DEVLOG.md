@@ -13,6 +13,60 @@ git for those.
 
 ---
 
+## 2026-08-08 (afternoon) — ten groups on a morning with none
+
+### Where the group data comes from, and why it was wrong
+Angel: "I don't really have a group at the hotel", with a report showing **10
+blocs** and chips reading PV2G, PV2B, PV2A, ESPC.
+
+The chain, in full: the arrivals list's **column 12** is the package code; a
+room counts as a group room when it matches `BKF GRP`; rooms are then clustered
+by **rate code + arrival + departure**, and any cluster of more than one room
+became a block. The name on the chip is the **rate code** — the list has no
+group-name column, so the app never had a tour's name to show.
+
+Nothing was invented. The design was wrong, in two ways his own data made
+obvious:
+
+- **Two rooms is not a coach.** A pair on one rate arriving the same day is a
+  couple, or a family split over two rooms.
+- **26/06 → 24/08 is not a tour.** A two-month stay on a shared rate is a
+  contract — crew, long-stay corporate — and it never arrives together, so it
+  changes nothing about the peak.
+
+`MIN_BLOCK_ROOMS = 3`, `MAX_BLOCK_NIGHTS = 14`, and a block whose dates cannot
+be read is not a block: OCR loses a date often enough that "unknown" must not
+default to "short". On the fixture built from his screenshot, ten blocks become
+three.
+
+Both numbers are conservative on purpose. A missed coach shows up as a queue
+reception can see; a phantom one quietly makes "10 blocs" mean nothing, and a
+number nobody trusts is worse than no number at all.
+
+### "I click one and they all get selected"
+Literally true, and not the filter's fault: `DayGroups` was **one button around
+every row**, and each row took its colour from the filter's own state. Turning
+Groupes on painted all ten gold.
+
+A row is a block now — it lights when that block is picked and tapping it picks
+it, sharing the same state as the chips, so the panel and the checklist cannot
+tell different stories. And when two blocks share a rate code the chips carry
+the arrival date, because two identical chips is a control you cannot aim.
+
+### The top margin, on screens that are STATES not routes
+`/upload` alone has four views. R30 sweeps routes at rest, so it never reached
+"Traitement en cours" — the header Angel photographed under the iPad's clock.
+
+The inset moved up an altitude: `.screen-safe` on the container that claims the
+display, not on each header that has to remember. `box-sizing: border-box` is
+what makes it safe on `h-dvh` — the padding comes out of the 100dvh instead of
+adding to it. **47 screens** carried it after one pass.
+
+`safe-area-shells.test.ts` reads every `.tsx` in the repo and fails on a shell
+without it, which is the half a browser sweep cannot do: it sees the view
+nobody opened, and the one somebody adds next month. Verified on a real build
+across five states, including the PDF screen.
+
 ## 2026-08-08 — before production
 
 **Branch** `claude/checkin-app-registration-bug-3lpy9c` · 547 tests across 46

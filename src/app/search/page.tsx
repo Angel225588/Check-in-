@@ -440,7 +440,7 @@ export default function SearchPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 screen-safe">
         <div className="skeleton h-14 w-full mb-3" />
         <div className="skeleton h-10 w-full mb-3" />
         <div className="space-y-2">
@@ -455,7 +455,7 @@ export default function SearchPage() {
   if (!hasData) {
     router.push("/upload");
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         <div className="text-muted">Loading...</div>
       </div>
     );
@@ -587,7 +587,7 @@ export default function SearchPage() {
 
       {/* Upload action sheet */}
       {uploadSheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setUploadSheetOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center screen-safe" onClick={() => setUploadSheetOpen(false)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
             className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
@@ -638,7 +638,7 @@ export default function SearchPage() {
 
       {/* Add client modal */}
       {addClientOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60" onClick={() => setAddClientOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe" onClick={() => setAddClientOpen(false)}>
           <div
             className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
@@ -852,8 +852,8 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
-      <div className="shrink-0 px-3 pt-safe pb-0">
+    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="shrink-0 px-3 pt-3 pb-0">
         {/* Header row: back button + logo */}
         <div className="flex items-center justify-between mb-2 md:mb-3">
           <button

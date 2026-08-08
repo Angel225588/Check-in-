@@ -140,7 +140,7 @@ export default function NotesModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/45 backdrop-blur-md animate-[nFade_.18s_ease-out]"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/45 backdrop-blur-md animate-[nFade_.18s_ease-out] screen-safe"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

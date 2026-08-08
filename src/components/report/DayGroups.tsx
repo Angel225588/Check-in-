@@ -19,12 +19,17 @@ export default function DayGroups({
   today,
   onFilter,
   active,
+  picked = [],
+  onPick,
 }: {
   blocks: GroupBlock[];
   /** dd/mm/yy as the report writes it, for spotting a departure today. */
   today: string;
   onFilter: () => void;
   active: boolean;
+  /** Which blocks the list is narrowed to. Empty means all of them. */
+  picked?: string[];
+  onPick?: (next: string[]) => void;
 }) {
   if (blocks.length === 0) return null;
   const people = blocks.reduce((n, b) => n + b.people, 0);
@@ -40,20 +45,34 @@ export default function DayGroups({
         </b>
       </div>
 
-      <button
-        onClick={onFilter}
+      {/* One button per block, not one button around all of them.
+          It used to be a single control whose rows all took the filter's own
+          colour, so turning Groupes on painted every row gold — "I click one
+          and they all get selected". A row is a block now: it lights when THAT
+          block is picked, and tapping it picks it. */}
+      <div
         data-role="report-groups-filter"
-        aria-pressed={active}
         className="flex flex-col gap-2 text-left max-h-[196px] overflow-y-auto no-scrollbar"
       >
         {blocks.map((b) => {
           const leavingToday = !!today && b.departureDate === today;
+          /* Nothing picked means all of them — same rule as the chips, so the
+             panel and the checklist can never tell different stories. */
+          const on = active && (picked.length === 0 || picked.includes(b.key));
           return (
-            <span
+            <button
               key={b.key}
-              className="flex items-center gap-3 rounded-[14px] px-3 py-2"
+              type="button"
+              data-role="report-group-row"
+              data-group={b.key}
+              aria-pressed={on}
+              onClick={() => {
+                if (!active) onFilter();
+                if (onPick) onPick(picked.includes(b.key) ? picked.filter((k) => k !== b.key) : [...picked, b.key]);
+              }}
+              className="flex items-center gap-3 rounded-[14px] px-3 py-2 text-left transition-transform active:scale-[0.99]"
               style={{
-                background: active ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
+                background: on ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
                 boxShadow: leavingToday ? "inset 0 0 0 1.5px var(--aur-warn)" : "inset 0 0 0 1px rgba(128,128,128,.12)",
               }}
             >
@@ -74,10 +93,10 @@ export default function DayGroups({
                   Départ
                 </span>
               )}
-            </span>
+            </button>
           );
         })}
-      </button>
+      </div>
     </div>
   );
 }

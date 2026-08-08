@@ -142,7 +142,7 @@ export default function ReportTiles({
       </div>
 
       {sheet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onClick={() => setSheet(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 screen-safe" onClick={() => setSheet(false)}>
           <div className="absolute inset-0 bg-black/35 dark:bg-black/60" />
           <div
             className="relative w-full max-w-[420px] rounded-[24px] p-4 flex flex-col gap-2 animate-[cardIn_.2s_cubic-bezier(.2,.9,.25,1)]"

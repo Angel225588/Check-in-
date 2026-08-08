@@ -67,7 +67,7 @@ export default function ReportsListPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 screen-safe">
         <div className="skeleton h-8 w-32 mb-4" />
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
@@ -79,9 +79,9 @@ export default function ReportsListPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
       {/* Header */}
-      <div className="shrink-0 p-3 pt-safe pb-0">
+      <div className="shrink-0 p-3 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => router.push(hasActiveSession ? "/search" : "/upload")}

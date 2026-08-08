@@ -81,9 +81,15 @@ export default function GroupPicker({
               {on && <Check size={11} weight="bold" color="#fff" />}
             </span>
             {/* The rate code is what the tour is called at the desk — it is on
-                the arrivals list and on the coach's paperwork. */}
+                the arrivals list and on the coach's paperwork. It is not unique
+                though: two blocks can share one code and differ only by their
+                stay window, and two identical chips is a control you cannot
+                aim. The arrival date is what separates them. */}
             <span className="text-[13px] font-black text-dark whitespace-nowrap">
               {b.rateCode || "Groupe"}
+              {blocks.filter((x) => x.rateCode === b.rateCode).length > 1 && (
+                <span className="font-bold" style={{ color: "var(--tab-idle)" }}> · {b.arrivalDate.slice(0, 5)}</span>
+              )}
             </span>
             <b className="text-[13px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
               {b.rooms}

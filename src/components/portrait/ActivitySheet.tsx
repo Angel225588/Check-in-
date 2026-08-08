@@ -96,8 +96,8 @@ export default function ActivitySheet({
   const backspace = () => setQuery((p) => p.slice(0, -1));
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-[#FBF8F3] dark:bg-[#12100E]" data-role="activity-sheet">
-      <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-safe">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-[#FBF8F3] dark:bg-[#12100E] screen-safe" data-role="activity-sheet">
+      <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-3">
         <div className="flex items-center gap-2">
           <div className="surface-field flex-1 min-w-0 flex items-center gap-3 px-4 min-h-[60px] rounded-[18px]">
             <MagnifyingGlass size={20} weight="bold" style={{ color: "var(--tab-idle)" }} className="shrink-0" />

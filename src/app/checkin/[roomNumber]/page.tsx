@@ -246,7 +246,7 @@ export default function CheckInPage({
 
   if (!client) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 screen-safe">
         <div className="skeleton h-8 w-24 mb-4" />
         <div className="skeleton h-14 w-40 mb-2" />
         <div className="skeleton h-6 w-56 mb-6" />
@@ -349,10 +349,10 @@ export default function CheckInPage({
   return (
     // `flex-row-reverse` mirrors the whole layout when the panel is set to the
     // right, so the docked column and every control follow the working hand.
-    <div className="h-dvh w-full flex flex-col overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+    <div className="h-dvh w-full flex flex-col overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
       {/* ===== SUCCESS overlay ===== */}
       {checkInSuccess && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.09s_ease-out] pointer-events-none">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-green-500/20 dark:bg-green-500/10 backdrop-blur-sm animate-[fadeIn_0.09s_ease-out] pointer-events-none screen-safe">
           <div className="flex flex-col items-center gap-3 animate-[popIn_0.18s_cubic-bezier(0.175,0.885,0.32,1.4)]">
             <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center shadow-2xl shadow-green-500/40">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -364,7 +364,7 @@ export default function CheckInPage({
 
       {/* ===== SAVE-FAILURE overlay ===== */}
       {checkInError && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out] p-6">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out] p-6 screen-safe">
           <div className="w-full max-w-sm bg-[#FBF8F3] dark:bg-[#1B1815] rounded-[24px] p-6 shadow-2xl text-center animate-[popIn_0.25s_cubic-bezier(0.175,0.885,0.32,1.4)]">
             <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/40">
               <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -381,7 +381,7 @@ export default function CheckInPage({
           main column, so opening the activity rail pushed it 300px to the
           right — the one control that has to be in the same place every time
           was the one moving most. */}
-      <div className="shrink-0 flex items-center gap-2 px-3 pt-safe pb-2 min-h-[68px]">
+      <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 min-h-[68px]">
 
             <button
               onClick={() => router.push(takeOrigin())}

@@ -826,6 +826,17 @@ html.dark .vip-glow {
 .pt-safe {
   padding-top: calc(var(--chrome-pad, 12px) + var(--safe-top, env(safe-area-inset-top, 0px)));
 }
+
+/* The screen owns the inset, once.
+   Per-header padding was the wrong altitude: /upload alone has four views, each
+   with its own header, and the one nobody had photographed drew "Traitement en
+   cours" under the iPad's clock. A header cannot know whether it is the top of
+   the display; the container that claims the whole display does.
+   `box-sizing: border-box` is what makes this safe on an `h-dvh` element — the
+   padding comes out of the 100dvh instead of adding to it. */
+.screen-safe {
+  padding-top: var(--safe-top, env(safe-area-inset-top, 0px));
+}
 .pb-safe {
   padding-bottom: calc(var(--dock-pad, 10px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 }

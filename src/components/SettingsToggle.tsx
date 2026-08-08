@@ -82,7 +82,7 @@ export default function SettingsToggle() {
       {/* Confirmation dialog */}
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe"
           onClick={() => setConfirmOpen(false)}
         >
           <div

@@ -42,7 +42,7 @@ export default function MetricChecklistSheet({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center screen-safe" onClick={onClose}>
       <div className="absolute inset-0 bg-black/35 dark:bg-black/60" />
       <div
         onClick={(e) => e.stopPropagation()}

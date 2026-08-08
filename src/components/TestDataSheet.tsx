@@ -49,7 +49,7 @@ export default function TestDataSheet() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center screen-safe" onClick={() => setOpen(false)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
             className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-4 pb-8 flex flex-col gap-2 animate-[slideUp_0.2s_ease-out]"

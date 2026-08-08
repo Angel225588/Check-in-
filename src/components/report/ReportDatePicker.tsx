@@ -86,7 +86,7 @@ export default function ReportDatePicker({
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 screen-safe" onClick={() => setOpen(false)}>
           <div className="absolute inset-0 bg-black/35 dark:bg-black/60" />
           <div
             onClick={(e) => e.stopPropagation()}

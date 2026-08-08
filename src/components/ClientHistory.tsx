@@ -99,7 +99,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
 
       {/* Undo confirmation */}
       {confirmUndo && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center" onClick={() => setConfirmUndo(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center screen-safe" onClick={() => setConfirmUndo(null)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
             className="relative w-full max-w-sm bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"

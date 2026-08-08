@@ -58,10 +58,10 @@ function HistoryDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex screen-safe">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
-        <div className="shrink-0 p-4 pt-safe flex items-center justify-between">
+        <div className="shrink-0 p-4 pt-3 flex items-center justify-between">
           <h2 className="text-xl font-bold text-dark">{t("history.pastSessions")}</h2>
           <button onClick={onClose} className="p-2 glass-liquid rounded-full active:scale-95 transition-transform">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,11 +138,11 @@ function SessionDetailDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex screen-safe">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="ml-auto relative w-full max-w-lg bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         {/* Header */}
-        <div className="shrink-0 p-4 pt-safe">
+        <div className="shrink-0 p-4 pt-3">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="text-lg font-black text-dark">{session.date}</h2>
@@ -613,14 +613,14 @@ export default function UploadPage() {
   // ─── HOME VIEW ───
   if (view === "home") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         {/* Background decorative gradient */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-brand/[0.04] blur-3xl" />
           <div className="absolute -bottom-40 -left-20 w-96 h-96 rounded-full bg-brand-light/[0.03] blur-3xl" />
         </div>
 
-        <div className="relative flex-1 flex flex-col px-5 pt-safe pb-5">
+        <div className="relative flex-1 flex flex-col px-5 pt-6 pb-5">
           {/* Add-mode banner */}
           {isAddMode && (
             <div className="mb-3 flex items-center gap-2 bg-brand/10 dark:bg-brand/15 rounded-[14px] px-4 py-2">
@@ -821,7 +821,7 @@ export default function UploadPage() {
 
         {/* Action Sheet — bottom sheet with 4 options */}
         {actionSheetOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60" onClick={() => setActionSheetOpen(false)}>
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe" onClick={() => setActionSheetOpen(false)}>
             <div
               className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
               onClick={(e) => e.stopPropagation()}
@@ -941,7 +941,7 @@ export default function UploadPage() {
 
         {/* Add Client bottom sheet */}
         {addClientOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60" onClick={() => setAddClientOpen(false)}>
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe" onClick={() => setAddClientOpen(false)}>
             <div
               className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
               onClick={(e) => e.stopPropagation()}
@@ -1039,7 +1039,7 @@ export default function UploadPage() {
   // ─── PROCESSING VIEW: Scanning & processing pages ───
   if (view === "processing") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         {/* Header */}
         <div className="shrink-0 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-4">
@@ -1114,7 +1114,7 @@ export default function UploadPage() {
     const totalClients = pdfUploads.reduce((s, p) => s + p.clients.length, 0);
 
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         <div className="shrink-0 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-4">
             <button
@@ -1243,7 +1243,7 @@ export default function UploadPage() {
 
   // ─── REVIEW VIEW: After data is captured ───
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
       {/* Header */}
       <div className="shrink-0 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3" />

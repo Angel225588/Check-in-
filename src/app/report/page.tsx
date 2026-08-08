@@ -34,7 +34,7 @@ export default function ReportPageWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="h-dvh w-full bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-safe flex flex-col gap-3">
+        <div className="h-dvh w-full bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 flex flex-col gap-3 screen-safe">
           <div className="skeleton h-10 w-56" />
           <div className="flex-1 flex gap-3 min-h-0">
             <div className="flex-1 flex flex-col gap-3">
@@ -145,7 +145,7 @@ function ReportV2() {
 
   if (!report) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         <div className="text-muted">Chargement…</div>
       </div>
     );
@@ -244,9 +244,9 @@ function ReportV2() {
   );
 
   return (
-    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]">
+    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-3 px-3 pt-safe pb-2 flex-wrap" data-role="report-header">
+      <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2 flex-wrap" data-role="report-header">
         <button
           onClick={() => router.push(isHistorical ? "/reports" : "/search")}
           className="min-h-[46px] px-4 rounded-full flex items-center gap-1.5 glass-liquid active:scale-[0.96] transition-transform"
@@ -366,6 +366,8 @@ function ReportV2() {
             today={todayShort}
             active={filter === "groupe"}
             onFilter={() => setFilter(filter === "groupe" ? "all" : "groupe")}
+            picked={pickedGroups}
+            onPick={setPickedGroups}
           />
 
           <div className="surface-card rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 md:flex-1 md:min-h-0 min-h-[240px] [@media(max-height:720px)]:flex-none [@media(max-height:720px)]:shrink-0">
@@ -392,8 +394,8 @@ function ReportV2() {
           with the panel, so closing it leaves you exactly where you were —
           two views of one state, not two lists. */}
       {expanded && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[#FBF8F3] dark:bg-[#12100E]" data-role="report-list-sheet">
-          <div className="shrink-0 flex items-center gap-3 px-3 pt-safe pb-2">
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#FBF8F3] dark:bg-[#12100E] screen-safe" data-role="report-list-sheet">
+          <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2">
             <span className="text-[15px] font-black" style={{ color: "var(--brand-ink)" }}>
               Par ordre d&apos;arrivée
             </span>

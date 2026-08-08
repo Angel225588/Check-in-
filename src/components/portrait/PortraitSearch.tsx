@@ -186,12 +186,12 @@ export default function PortraitSearch({
 
   return (
     <div
-      className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E]"
+      className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe"
       data-role="portrait-shell"
     >
       {/* Top: where we are, then what you are looking for. Both fixed — the
           numbers are read between guests, not scrolled to. */}
-      <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-safe">
+      <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-3">
         {/* The menu is not a metric. Inside the tinted bar it read as a fifth
             pill; beside it, it reads as what it is. */}
         <div className={`flex items-stretch gap-2 ${handSide === "right" ? "flex-row-reverse" : ""}`}>

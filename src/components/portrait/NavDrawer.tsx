@@ -90,7 +90,7 @@ export default function NavDrawer({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex ${side === "right" ? "justify-end" : ""}`}
+      className={`fixed inset-0 z-50 flex ${side === "right" ? "justify-end" : ""} screen-safe`}
       data-role="nav-drawer"
       data-side={side}
       onClick={onClose}
@@ -100,7 +100,7 @@ export default function NavDrawer({
       <aside
         onClick={(e) => e.stopPropagation()}
         data-role="nav-drawer-panel"
-        className={`relative w-[min(340px,88vw)] h-full flex flex-col p-3 pt-safe ${
+        className={`relative w-[min(340px,88vw)] h-full flex flex-col p-3 pt-3 ${
           side === "right"
             ? "animate-[drawerInRight_.24s_cubic-bezier(.2,.9,.25,1)]"
             : "animate-[drawerInLeft_.24s_cubic-bezier(.2,.9,.25,1)]"

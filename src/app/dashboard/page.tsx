@@ -676,8 +676,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E]">
-      <div className="max-w-6xl mx-auto px-4 pt-safe py-5 pb-20">
+    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="max-w-6xl mx-auto px-4 pt-3 py-5 pb-20">
         {/* BACK BUTTON — top-left, matches other screens */}
         <div className="mb-3">
           <button
