@@ -1630,7 +1630,12 @@ async function main() {
     await page.locator('[data-role="portrait-metric"][aria-pressed="true"]').first().click().catch(() => {});
     await page.waitForTimeout(300);
 
-    // After a note was started on a guest and the guest was left behind.
+    /* A note STARTED and then walked away from — Angel's actual path.
+       While the editor is on screen the keys belong to the note, and that is
+       correct: this rule's first version asserted the opposite and failed the
+       app for obeying US-17. What must never happen is the draft outliving the
+       card, so the guest is dismissed with the field's own clear button before
+       the keys are counted. */
     await clearField();
     await type(3); await type(1); await type(0);
     await page.waitForTimeout(500);
@@ -1640,11 +1645,13 @@ async function main() {
       await page.waitForTimeout(400);
       await page.locator('[data-role="note-new"]').click().catch(() => {});
       await page.waitForTimeout(400);
-      // Put a character in the draft with whichever pad the app switched to.
       await page.locator('[data-role="alpha-keypad"] button, [data-role="numeric-keypad"] button')
         .first().click().catch(() => {});
       await page.waitForTimeout(250);
     }
+    // Dismiss the guest: the card goes, and the draft must go with it.
+    await page.locator('[data-role="search-field"] button[aria-label="Effacer"]').click().catch(() => {});
+    await page.waitForTimeout(500);
     states.push(await typesHere("after an abandoned note"));
 
     // After the drawer and the activity sheet have been through.
