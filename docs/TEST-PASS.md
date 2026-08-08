@@ -1,4 +1,4 @@
-# Test pass — 2026-08-07
+# Test pass — before production
 
 What to check on the tablet, in the order it makes sense to check it. Each line
 says what "good" looks like, so a disagreement is a fact and not an impression.
@@ -83,6 +83,33 @@ indicator in the bottom one, and the app has to keep out of both.
 | 3c.3 | Expand the list full screen | The same chips are there, with the same ticks |
 | 3c.4 | Untick everything | All group rooms again |
 
+## 3f · The demo day, before you trust anything (new)
+
+The seeder stamped arrivals in UTC and could put them **ahead of the clock** —
+newest-first, that buried every real check-in under guests who had not arrived.
+Fixed, and worth one minute of your time because it is what you will be testing
+on.
+
+| | Check | Good |
+|---|---|---|
+| 3f.1 | Load **Charger un service de démo**, look at Récents | The times look like a breakfast service (06:30–10:30), not a lunch |
+| 3f.2 | No seeded arrival is later than the clock on the wall | — |
+| 3f.3 | Check a room in | It is the **first** row of Récents, at the current time |
+| 3f.4 | Same on the guest's own screen | Today's entry is there with the right hour |
+
+**Before the real service:** wipe the demo (**Effacer les données de démo**) and
+upload the morning's real list. A demo day left in place is 100 arrivals that
+never happened sitting in tomorrow's report.
+
+## 3g · Landscape metrics (changed)
+
+| | Check | Good |
+|---|---|---|
+| 3g.1 | Hold the tablet **sideways**, look at the bar | **Six** pills at most, each label fully readable — not eight squeezed |
+| 3g.2 | The funnel at the right | Opens the same checklist as portrait |
+| 3g.3 | Tick something there, then stand the tablet **up** | Portrait shows the same choice — one preference, two shells |
+| 3g.4 | COMP / VIP / Groupes | Two numbers (came / due), same as portrait |
+
 ## 3d · Paniers — the coach that leaves early (new)
 
 | | Check | Good |
@@ -138,10 +165,12 @@ indicator in the bottom one, and the app has to keep out of both.
 
 ## What I ran
 
-- `npx vitest run` — 542 tests across 45 files
+- `npx vitest run` — 547 tests across 46 files
 - `npx tsc --noEmit` — clean
 - `npm run build` — clean
 - `node scripts/design-rules.mjs` — **116/116**, no failures
+- `node scripts/preflight.mjs` — **24/24**, both orientations, driving the app's
+  own demo data through a real check-in
 - A scripted pass on a real build at 820×1180, 390×844 and 1194×834 measuring
   the pad's last key against the viewport, the sheet's list against the pad, and
   the group filter's row counts before/after a tick

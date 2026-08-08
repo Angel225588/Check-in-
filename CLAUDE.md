@@ -19,15 +19,20 @@ The user is standing, one-handed, with a queue in front of them between 06:30 an
 1. **Write tests FIRST** before implementing any feature or fix
 2. Tests live in `src/__tests__/` with pattern `*.test.ts`
 3. Run tests: `npx vitest run` — single file: `npx vitest run src/__tests__/x.test.ts`
-4. All tests must pass before committing — **542 tests across 45 files**
+4. All tests must pass before committing — **547 tests across 46 files**
 5. Layout and behaviour that a unit test cannot see belong in the design rules,
    not in a screenshot: `node scripts/design-rules.mjs` (116 checks, real browser)
    — and **a rule that can be satisfied by a broken screen is not a rule**: R25a
    passed while the card painted over the commit button, because it measured the
    dock's own box and nothing about what was drawn on top of it
-6. Performance claims get measured: `node scripts/pad-latency.mjs` times
+6. **The seeder is not exempt.** `design-rules.mjs` builds its own fixtures, so
+   it can never see a bug in the fixture builder — that is how the demo day
+   shipped with UTC timestamps that buried real check-ins. `node
+   scripts/preflight.mjs` clicks through the app's own demo loader instead
+   (24 checks, both orientations)
+7. Performance claims get measured: `node scripts/pad-latency.mjs` times
    key-down to digit-on-screen against a full house and 30 days of history
-7. Full gate: `bash scripts/validate.sh` — tsc, vitest, build, end-to-end.
+8. Full gate: `bash scripts/validate.sh` — tsc, vitest, build, end-to-end.
    Never rebuild while it runs: `next build` under a live `next start` is the
    stale-manifest trap the harness exists to catch, and it will crash the run.
    The trap has a second face: **kill the server before you build, not after.**

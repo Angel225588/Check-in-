@@ -15,6 +15,10 @@ git for those.
 
 ## 2026-08-08 — before production
 
+**Branch** `claude/checkin-app-registration-bug-3lpy9c` · 547 tests across 46
+files · **116/116 design rules** · **24/24 preflight**, both orientations, on a
+real build driving the app's own demo data.
+
 ### Récents was showing fiction (US-36)
 Angel, testing on the demo day: a room he had just checked in was not at the top
 of Récents. Two faults, one line of code.
