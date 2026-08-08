@@ -32,9 +32,8 @@ const INTL_NAMES = [
 const ROOM_TYPES = ["DLXK", "PRMK", "STHT", "STKD", "STKG", "EXST"];
 const VIP_LEVELS = ["X4", "X5", "Platinum", "Gold", "Silver", "Bronze"];
 const PACKAGES = [
-  { code: "BKF INC", weight: 5 },   // 50% — included in rate
-  { code: "BKF GRP", weight: 2 },
-  { code: "BKF COMP", weight: 1 },  // 10% — compliments
+  { code: "BKF INC", weight: 6 },   // included in rate
+  { code: "BKF COMP", weight: 1 },  // compliments
   { code: "BKF EXCL", weight: 1 },
   { code: "", weight: 1 },          // some without breakfast pkg
 ];
@@ -60,16 +59,22 @@ function pad(n: number): string {
 function buildClient(
   roomNumber: string,
   name: string,
-  opts: Partial<Client> = {}
+  opts: Partial<Client> = {},
+  /** The day this client is in the house for. Empty dates made the stay chip
+   *  and the departure cliff invisible in the demo, so both looked broken. */
+  day = todayStr()
 ): Client {
+  const arrived = -(1 + Math.floor(Math.random() * 3));
+  // One room in six leaves this morning — enough that a tester meets one.
+  const leaves = Math.random() < 0.17 ? 0 : 1 + Math.floor(Math.random() * 3);
   return {
     roomNumber,
     roomType: pick(ROOM_TYPES),
     rtc: "",
     confirmationNumber: String(Math.floor(80000000 + Math.random() * 19999999)),
     name,
-    arrivalDate: "",
-    departureDate: "",
+    arrivalDate: shortDate(day, arrived),
+    departureDate: shortDate(day, leaves),
     reservationStatus: "CKIN",
     adults: 1 + Math.floor(Math.random() * 2),
     children: Math.random() < 0.2 ? 1 : 0,
@@ -97,7 +102,7 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
     used.add(room);
 
     const name = allNames[i % allNames.length];
-    clients.push(buildClient(room, name));
+    clients.push(buildClient(room, name, {}, date));
   }
 
   // Sprinkle VIPs from the breakfast list (scale with room count)
@@ -107,6 +112,35 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
     if (c) {
       c.isVip = true;
       c.vipLevel = pick(VIP_LEVELS);
+    }
+  }
+
+  // Two coaches. A tour books as a block: one rate code, one stay window, a
+  // run of rooms. Without that the demo's BKF GRP rooms all shared a blank
+  // rate code and blank dates, so every one of them collapsed into a single
+  // meaningless "group" and the Groupes panel said nothing.
+  const TOURS = [
+    { rate: "TOMEU", rooms: 5, arrive: -3, leave: 0 },   // leaves this morning
+    { rate: "TOALP", rooms: 4, arrive: -1, leave: 2 },
+  ];
+  for (const tour of TOURS) {
+    const floor = 2 + Math.floor(Math.random() * 6);
+    let n = 1;
+    for (let i = 0; i < tour.rooms; i++) {
+      let room = "";
+      do { room = `${floor}${pad(n++)}`; } while (used.has(room) && n < 40);
+      if (used.has(room)) break;
+      used.add(room);
+      clients.push(
+        buildClient(room, `${pick(allNames)}`, {
+          packageCode: "BKF GRP",
+          rateCode: tour.rate,
+          arrivalDate: shortDate(date, tour.arrive),
+          departureDate: shortDate(date, tour.leave),
+          adults: 2,
+          children: 0,
+        }, date)
+      );
     }
   }
 
@@ -125,7 +159,7 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
         vipLevel: pick(VIP_LEVELS),
         vipSource: "list_only",
         packageCode: "",
-      })
+      }, date)
     );
   }
 
@@ -145,7 +179,7 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
         adults: 1,
         children: 0,
         packageCode: "",
-      })
+      }, date)
     );
   }
 
@@ -161,7 +195,7 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
       const totalMinutes = 6 * 60 + minutesFromStart;
       const hour = Math.floor(totalMinutes / 60);
       const minute = totalMinutes % 60;
-      const ts = `${date}T${pad(hour)}:${pad(minute)}:00.000Z`;
+      const ts = serviceStamp(date, hour, minute);
 
       // ~5% extras (entered > expected)
       const expected = c.adults + c.children;
@@ -187,6 +221,34 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
   }
 
   return { clients, checkIns };
+}
+
+
+/**
+ * A demo arrival, on the same clock as the desk.
+ *
+ * The seeder used to write `${date}T08:30:00.000Z`. The Z is UTC and reception
+ * is in Paris, so a breakfast seeded for 08:30 read 10:30 on the tablet and
+ * Récents looked like a lunch service.
+ *
+ * And it clamps to now. A seeded arrival seeded ahead of the clock sorts ABOVE
+ * every real check-in in a newest-first list — so at 07:00 during service the
+ * room you just entered would sit under a pile of guests who "arrived" at 13:00
+ * and had not arrived at all. The one question Récents answers is "did I
+ * already do 224?", and it must not answer it with fiction.
+ */
+export function serviceStamp(date: string, hour: number, minute: number, now: Date = new Date()): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const at = new Date(y, (m || 1) - 1, d || 1, hour, minute, 0, 0);
+  return (at.getTime() > now.getTime() ? now : at).toISOString();
+}
+
+/** dd/mm/yy — the shape the hotel's report uses. */
+function shortDate(base: string, offsetDays = 0): string {
+  const d = new Date(base + "T12:00:00");
+  d.setDate(d.getDate() + offsetDays);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
 }
 
 function todayStr(offsetDays = 0): string {
@@ -224,7 +286,7 @@ export function seedMockData(): { sessions: number; clientsToday: number } {
     );
     sessions.push({
       date,
-      closedAt: `${date}T11:30:00.000Z`,
+      closedAt: serviceStamp(date, 11, 30),
       totalRooms: day.clients.length,
       totalGuests,
       totalEntered,
@@ -312,14 +374,14 @@ function buildCompactDay(date: string, scale: number): SessionRecord {
           roomNumber: "000",
           clientName: "(demo)",
           peopleEntered: totalEntered,
-          timestamp: `${date}T08:30:00.000Z`,
+          timestamp: serviceStamp(date, 8, 30),
         },
       ]
     : [];
 
   return {
     date,
-    closedAt: `${date}T11:30:00.000Z`,
+    closedAt: serviceStamp(date, 11, 30),
     totalRooms,
     totalGuests,
     totalEntered,
@@ -407,7 +469,7 @@ export function seedDemoMonths(
       );
       sessions.push({
         date,
-        closedAt: `${date}T11:30:00.000Z`,
+        closedAt: serviceStamp(date, 11, 30),
         totalRooms: day.clients.length,
         totalGuests,
         totalEntered,

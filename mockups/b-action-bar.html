@@ -1,0 +1,75 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  .wrap{height:100vh;display:flex;flex-direction:column;padding:18px 20px;gap:14px;}
+  .top{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;align-items:stretch;}
+  .hero{border-radius:20px;padding:18px 22px;}
+  .room{font-size:60px;font-weight:900;color:var(--gold);line-height:.9;}
+  .name{font-size:30px;}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{padding:12px;text-align:center;} .stat .v{font-size:26px;font-weight:800;} .stat .v.g{color:var(--gold);}
+  .vipbar{border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;}
+  .mid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0;}
+  .panel{border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
+  .pay{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  /* persistent bottom action bar spanning full width */
+  .bar{border-radius:22px;padding:14px 18px;display:flex;align-items:center;gap:22px;}
+  .counter .n{font-size:44px;} .counter button{width:48px;height:48px;font-size:22px;}
+  .enter{flex:1;padding:20px;font-size:28px;}
+</style></head>
+<body>
+<div class="badge-label">CONCEPT B — Wide info + full-width action bar (CTA pinned bottom)</div>
+<div class="wrap">
+  <div class="top">
+    <div class="hero glass">
+      <a class="back">‹ Rechercher</a>
+      <div style="display:flex;align-items:baseline;gap:16px;margin-top:10px;flex-wrap:wrap;">
+        <div class="room">524</div><div class="name serif">Sedalo, Tete</div>
+      </div>
+      <div style="margin-top:8px;"><span class="tag-comp">COMP · 104€</span></div>
+    </div>
+    <div class="facts">
+      <div class="stat"><div class="k">Adultes</div><div class="v">2</div></div>
+      <div class="stat"><div class="k">Enfants</div><div class="v">2</div></div>
+      <div class="stat"><div class="k">Total</div><div class="v g">4</div></div>
+      <div class="stat"><div class="k">Restants</div><div class="v g">3</div></div>
+    </div>
+    <div class="stat" style="text-align:left;padding:14px 16px;">
+      <div class="k">Séjour</div>
+      <div style="font-weight:700;margin-top:6px;">19/07 → 22/07/26</div>
+      <div class="k" style="margin-top:8px;">Forfait</div>
+      <div style="font-weight:700;">BKF COMP</div>
+    </div>
+  </div>
+
+  <div class="vipbar vip"><span style="font-size:20px;">★</span>
+    <b style="letter-spacing:.08em;">VIP ×4</b><span style="opacity:.9;font-size:13px;">Client VIP — accueil prioritaire</span>
+    <span style="margin-left:auto;font-size:12px;opacity:.85;">Progression 1/4</span>
+  </div>
+
+  <div class="mid">
+    <div class="panel glass">
+      <div class="k">Mode de paiement — <span style="color:var(--gold)">demande au client</span></div>
+      <div class="pay">
+        <div class="pill active"><span class="ic">🏨</span>Chambre</div>
+        <div class="pill"><span class="ic">⭐</span>Points</div>
+        <div class="pill"><span class="ic">💵</span>Cash</div>
+        <div class="pill"><span class="ic">💳</span>Carte</div>
+        <div class="pill"><span class="ic">👤</span>Superv.</div>
+      </div>
+    </div>
+    <div class="panel glass">
+      <div class="k">Historique</div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;">
+        <span>08:23 — 1 personne</span><span style="color:#c0392b;">annuler ↩</span></div>
+      <div class="progress" style="margin-top:auto;"><i></i></div>
+    </div>
+  </div>
+
+  <div class="bar glass">
+    <div class="k" style="white-space:nowrap;">Personnes<br>qui entrent</div>
+    <div class="counter"><button>−</button><div class="n">3</div><button>+</button></div>
+    <button class="enter">Enregistrer&nbsp;·&nbsp;3 personnes</button>
+  </div>
+</div>
+</body></html>

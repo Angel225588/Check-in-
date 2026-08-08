@@ -2,12 +2,13 @@
   "name": "Breakfast Check-in",
   "short_name": "Check-in",
   "start_url": "/",
-  "display": "fullscreen",
-  "orientation": "portrait",
+  "display": "standalone",
+  "orientation": "any",
   "background_color": "#FBF8F3",
   "theme_color": "#A66914",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

@@ -131,15 +131,26 @@ describe("saveClientsMerged under localStorage quota pressure", () => {
  * multi-MB raw OCR dumps already sitting in storage. reclaimStorageSpace()
  * runs at startup and trims them so today's session can save again.
  */
+
+/** Days relative to today — the retention window is 30 days, and a fixture
+ *  pinned to a fixed date silently ages out of it. */
+function dayAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split("T")[0];
+}
+
 describe("reclaimStorageSpace strips pre-existing bloat", () => {
+  const DAY_KEY = "dailyData_" + dayAgo(1);
+  const TODAY_KEY = "dailyData_" + dayAgo(0);
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 
   it("trims giant rawUploadText from existing history + daily data, keeps rooms", () => {
     const bloatedHistory = [
       {
-        date: "2026-05-24",
-        closedAt: "2026-05-24T08:00:00Z",
+        date: dayAgo(6),
+        closedAt: dayAgo(6) + "T08:00:00Z",
         totalRooms: 2,
         totalGuests: 4,
         totalEntered: 0,
@@ -152,9 +163,9 @@ describe("reclaimStorageSpace strips pre-existing bloat", () => {
     ];
     localStorage.setItem("sessionHistory", JSON.stringify(bloatedHistory));
     localStorage.setItem(
-      "dailyData_2026-05-30",
+      DAY_KEY,
       JSON.stringify({
-        date: "2026-05-30",
+        date: dayAgo(1),
         clients: [makeClient("201", "Yesterday Guest")],
         checkIns: [],
         rawUploadText: "B".repeat(2_000_000),
@@ -163,14 +174,14 @@ describe("reclaimStorageSpace strips pre-existing bloat", () => {
 
     const before =
       (localStorage.getItem("sessionHistory")?.length ?? 0) +
-      (localStorage.getItem("dailyData_2026-05-30")?.length ?? 0);
+      (localStorage.getItem(DAY_KEY)?.length ?? 0);
 
     const reclaimed = reclaimStorageSpace();
     expect(reclaimed).toBeGreaterThan(3_000_000);
 
     const after =
       (localStorage.getItem("sessionHistory")?.length ?? 0) +
-      (localStorage.getItem("dailyData_2026-05-30")?.length ?? 0);
+      (localStorage.getItem(DAY_KEY)?.length ?? 0);
     expect(after).toBeLessThan(before);
 
     // Rooms preserved, raw text trimmed.
@@ -178,23 +189,23 @@ describe("reclaimStorageSpace strips pre-existing bloat", () => {
     expect(hist[0].clients.length).toBe(2);
     expect(hist[0].rawUploadText.length).toBeLessThanOrEqual(30_000);
 
-    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-30")!);
+    const day = JSON.parse(localStorage.getItem(DAY_KEY)!);
     expect(day.clients.length).toBe(1);
     expect(day.rawUploadText.length).toBeLessThanOrEqual(30_000);
   });
 
   it("is a no-op when nothing is bloated", () => {
     localStorage.setItem(
-      "dailyData_2026-05-31",
+      TODAY_KEY,
       JSON.stringify({
-        date: "2026-05-31",
+        date: dayAgo(0),
         clients: [makeClient("301", "Today")],
         checkIns: [],
         rawUploadText: "tiny",
       })
     );
     expect(reclaimStorageSpace()).toBe(0);
-    const day = JSON.parse(localStorage.getItem("dailyData_2026-05-31")!);
+    const day = JSON.parse(localStorage.getItem(TODAY_KEY)!);
     expect(day.rawUploadText).toBe("tiny");
   });
 });

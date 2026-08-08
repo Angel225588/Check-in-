@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notes — chips + detail</title>
+<style>
+  :root{
+    --gold:#A66914;--gold-l:#DD9C28;--bg:#FBF8F3;--card:#FFFFFF;--ink:#20201C;--muted:#8A857C;--line:rgba(0,0,0,.06);
+    --alerte:#E23B3B;--pref:#3B82F6;--fid:#DD9C28;--event:#8B5CF6;--info:#9AA0A6;
+    --tint-alerte:#FDEDED;--tint-fid:#FBF1DE;--tint-pref:#EDF3FE;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  .serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+  .frame{height:100vh;display:flex;overflow:hidden;padding:14px;gap:14px}
+
+  /* lateral bar */
+  .panel{width:360px;flex:none;height:100%;background:var(--card);border:1px solid var(--line);border-radius:26px;
+    box-shadow:0 26px 60px -26px rgba(60,40,10,.28),0 2px 8px rgba(0,0,0,.04);display:flex;flex-direction:column;overflow:hidden}
+  .phead{padding:18px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+  .phead b{font-size:17px;display:flex;align-items:center;gap:8px}
+  .phead .back{border:0;background:transparent;color:var(--gold);font-weight:800;font-size:14px;display:flex;align-items:center;gap:5px}
+  .iconbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--muted);display:grid;place-items:center;font-size:14px}
+  .plist{flex:1;overflow-y:auto;padding:0 16px 18px}
+  .pl-note{border-radius:16px;padding:12px 14px;margin-bottom:10px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--info);box-shadow:0 6px 16px -12px rgba(0,0,0,.25)}
+  .pl-note.alerte{border-left-color:var(--alerte)} .pl-note.fid{border-left-color:var(--fid)} .pl-note.pref{border-left-color:var(--pref)}
+  .pl-note .s{font-size:11px;font-weight:900;color:var(--muted)} .pl-note.alerte .s{color:var(--alerte)} .pl-note.fid .s{color:var(--gold)} .pl-note.pref .s{color:var(--pref)}
+  .pl-note .h{font-weight:900;font-size:14.5px;margin:2px 0} .pl-note .p{font-size:13.5px;color:#4a463f}
+
+  /* ===== DETAIL VIEW (shared markup, used in lateral OR center) ===== */
+  .detail{display:flex;flex-direction:column;gap:12px}
+  .d-tone{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;font-weight:900;font-size:12.5px}
+  .d-tone .dot{width:11px;height:11px;border-radius:50%}
+  .d-tone.alerte{background:var(--tint-alerte);color:var(--alerte)} .d-tone.alerte .dot{background:var(--alerte)}
+  .d-tone.fid{background:var(--tint-fid);color:var(--gold)} .d-tone.fid .dot{background:var(--fid)}
+  .d-title{font-size:24px;font-weight:900;line-height:1.1}
+  .d-desc{font-size:15.5px;line-height:1.5;color:#3f3b34}
+  .d-by{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted)}
+  .avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;display:grid;place-items:center;font-size:12px;font-weight:900}
+  .d-activity{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg)}
+  .d-activity summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:8px}
+  .d-activity summary::-webkit-details-marker{display:none}
+  .d-activity summary .chev{margin-left:auto;color:var(--muted);transition:.2s}
+  .d-activity[open] summary .chev{transform:rotate(90deg)}
+  .d-log{padding:0 14px 12px}
+  .d-log .row{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
+  .d-log .row .t{color:var(--muted)}
+  .d-actions{display:flex;gap:9px;margin-top:2px}
+  .d-actions button{flex:1;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-weight:800;font-size:14px;color:var(--ink)}
+  .d-actions .del{color:var(--alerte);background:var(--tint-alerte);border-color:transparent}
+  .d-actions .primary{color:#fff;background:linear-gradient(90deg,var(--gold),var(--gold-l));border-color:transparent}
+
+  /* check-in context */
+  .context{flex:1;height:100%;display:flex;flex-direction:column;gap:14px;min-width:0;position:relative}
+  .scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+  .roomcard{border-radius:22px;padding:20px 22px;background:var(--card);border:1px solid var(--line);box-shadow:0 10px 30px -18px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:flex-start}
+  .rc-id{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .rc-id .num{font-size:56px;font-weight:900;color:var(--gold);line-height:.85;font-family:ui-monospace,monospace}
+  .rc-id .nm{font-size:36px}
+  .tags{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .tag{font-size:12.5px;font-weight:800;padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:#5a564e}
+  .tag.comp{background:#F3EEFD;color:var(--event);border-color:transparent}
+  .paxbox{min-width:64px;text-align:center;border-radius:15px;padding:8px 10px;background:var(--bg);border:1px solid var(--line)}
+  .paxbox .k{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:800}.paxbox .v{font-size:22px;font-weight:900}
+
+  .zt{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:800;display:flex;align-items:center;gap:6px;margin:0 2px 10px}
+  /* HOLOGRAPHIC CHIPS — horizontal scroll */
+  .chips{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .hchip{position:relative;overflow:hidden;flex:none;width:236px;height:118px;border-radius:20px;padding:15px;border:1px solid rgba(255,255,255,.75);
+    background:linear-gradient(135deg,#fbe9f2 0%,#efe7fb 26%,#e7f0fb 50%,#e7fbf1 73%,#fdf6e6 100%);
+    box-shadow:0 14px 30px -16px rgba(90,70,130,.4);cursor:pointer;transition:transform .15s}
+  .hchip:active{transform:scale(.97)}
+  .hchip::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.4) 0 1px,transparent 1px 7px);opacity:.55}
+  .hchip::after{content:"";position:absolute;right:-28%;top:-45%;width:78%;height:190%;
+    background:conic-gradient(from 200deg,#ff9ecd,#b39bff,#8fd0ff,#9bffd0,#ffe59b,#ff9ecd);filter:blur(24px);opacity:.34}
+  .hchip .ic{position:relative;font-size:22px}
+  .hchip .dot{position:absolute;top:15px;right:15px;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 3px rgba(255,255,255,.6)}
+  .hchip .t{position:absolute;left:15px;bottom:13px;right:15px;font-weight:800;font-size:16px;color:#1b1b22;line-height:1.15}
+
+  .actionbox{flex:none;border-radius:24px;padding:16px;background:var(--card);border:1px solid var(--line);box-shadow:0 -8px 30px -20px rgba(0,0,0,.25)}
+  .counter{display:flex;align-items:center;justify-content:center;gap:26px;margin-bottom:12px}
+  .counter .rnd{width:50px;height:50px;border-radius:50%;background:var(--bg);border:1px solid var(--line);font-size:22px;color:var(--gold);display:grid;place-items:center}
+  .counter .n{font-size:38px;font-weight:900}
+  .cta{width:100%;border:0;border-radius:44px;padding:16px;font-size:21px;font-weight:900;color:#fff;background:linear-gradient(90deg,#16a34a,#22c55e);box-shadow:0 14px 30px -12px rgba(22,163,74,.5)}
+
+  /* Variant B — center overlay */
+  .cscrim{position:absolute;inset:0;background:rgba(30,24,12,.32);backdrop-filter:blur(6px);display:grid;place-items:center;opacity:0;pointer-events:none;transition:.24s;z-index:20;padding:18px}
+  .cscrim.on{opacity:1;pointer-events:auto}
+  .cbox{width:min(560px,94%);background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 40px 90px -30px rgba(0,0,0,.5);padding:20px 22px;transform:scale(.94);transition:.26s}
+  .cscrim.on .cbox{transform:none}
+  .cbox .x{position:absolute}
+
+  .modeswitch{position:fixed;top:8px;right:12px;z-index:60;display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px;box-shadow:0 8px 20px -10px rgba(0,0,0,.3)}
+  .modeswitch button{border:0;background:transparent;font-weight:800;font-size:12px;padding:6px 12px;border-radius:999px;color:var(--muted)}
+  .modeswitch button.on{background:var(--ink);color:#fff}
+
+  /* ---- PHONE: the panel is a full-screen sheet, never a flex sibling ---- */
+  @media (max-width: 900px){
+    .frame{flex-direction:column;padding:10px;gap:10px}
+    .panel{position:fixed;inset:0;width:100%;max-width:none;border-radius:0;z-index:60;
+      transform:translateX(-100%);transition:transform .28s cubic-bezier(.22,.9,.3,1)}
+    .panel.open{transform:none}
+    .context{width:100%;flex:1;min-height:0}
+    .modal,.cbox{width:94vw}
+    .hchip{width:min(72vw,250px)}
+  }
+</style>
+</head>
+<body>
+<div class="modeswitch"><button id="mA" class="on" onclick="setMode('A')">A · Latéral</button><button id="mB" onclick="setMode('B')">B · Centre</button></div>
+
+<div class="frame">
+  <!-- LATERAL BAR -->
+  <aside class="panel">
+    <!-- list mode -->
+    <div id="pane-list" style="display:flex;flex-direction:column;height:100%">
+      <div class="phead"><b>🗒️ Notes</b><button class="iconbtn">✕</button></div>
+      <div class="plist">
+        <div class="pl-note alerte" onclick="openNote('n1')"><div class="s">ALERTE 📌</div><div class="h">Allergie arachides</div><div class="p">Réaction sévère — prévenir la cuisine.</div></div>
+        <div class="pl-note fid" onclick="openNote('n2')"><div class="s">FIDÉLITÉ 📌</div><div class="h">Habitué — 5ᵉ séjour</div><div class="p">Offrir une viennoiserie ce matin.</div></div>
+        <div class="pl-note pref" onclick="openNote('n3')"><div class="s">PRÉFÉRENCE</div><div class="h">Table &amp; café</div><div class="p">Près de la fenêtre · lait d'avoine.</div></div>
+      </div>
+    </div>
+    <!-- detail mode (Variant A) -->
+    <div id="pane-detail" style="display:none;flex-direction:column;height:100%">
+      <div class="phead"><button class="back" onclick="closeNote()">‹ Notes</button><button class="iconbtn" onclick="expandNote()" aria-label="Agrandir" title="Agrandir">⤢</button></div>
+      <div class="plist"><div id="detailA"></div></div>
+    </div>
+  </aside>
+
+  <!-- CHECK-IN CONTEXT -->
+  <main class="context">
+    <div class="scroll">
+      <div class="roomcard">
+        <div>
+          <div class="rc-id"><span class="num">524</span><span class="nm serif">Sedalo, Tete</span></div>
+          <div class="tags"><span class="tag comp">COMP</span><span class="tag">🛬 19/07</span><span class="tag">🛫 22/07</span></div>
+        </div>
+        <div style="display:flex;gap:10px"><div class="paxbox"><div class="k">Adultes</div><div class="v">2</div></div><div class="paxbox"><div class="k">Enfants</div><div class="v">2</div></div></div>
+      </div>
+
+      <div>
+        <div class="zt">📌 À retenir pour ce client · glisser pour voir</div>
+        <div class="chips">
+          <div class="hchip" onclick="openNote('n1')"><span class="dot" style="background:var(--alerte)"></span><span class="ic">🥜</span><span class="t">Allergie arachides</span></div>
+          <div class="hchip" onclick="openNote('n2')"><span class="dot" style="background:var(--fid)"></span><span class="ic">⭐</span><span class="t">Habitué — 5ᵉ séjour</span></div>
+          <div class="hchip" onclick="openNote('n3')"><span class="dot" style="background:var(--pref)"></span><span class="ic">☕</span><span class="t">Table &amp; café</span></div>
+          <div class="hchip" onclick="openNote('n1')"><span class="dot" style="background:var(--event)"></span><span class="ic">🎉</span><span class="t">Anniversaire</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actionbox">
+      <div class="counter"><div class="rnd">−</div><div class="n">4</div><div class="rnd">＋</div></div>
+      <button class="cta">Enregistrer</button>
+    </div>
+
+    <!-- Variant B — center overlay -->
+    <div class="cscrim" id="cscrim" onclick="if(event.target===this)closeNote()">
+      <div class="cbox" id="detailB"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  var NOTES={
+    n1:{cat:"alerte",tone:"ALERTE",icon:"🥜",title:"Allergie arachides",desc:"Réaction sévère aux arachides. Prévenir la cuisine avant chaque service et vérifier le buffet (pas de traces). Le client a un stylo d'adrénaline.",by:"Sofia",when:"12 mai",log:[["Marc","modifiée","14 mai · 08:12"],["Sofia","créée","12 mai · 07:40"]]},
+    n2:{cat:"fid",tone:"FIDÉLITÉ",icon:"⭐",title:"Habitué — 5ᵉ séjour",desc:"5ᵉ séjour cette année. Offrir une viennoiserie ce matin et le saluer par son nom.",by:"Sofia",when:"2 avr",log:[["Sofia","créée","2 avr · 09:02"]]},
+    n3:{cat:"pref",tone:"PRÉFÉRENCE",icon:"☕",title:"Table & café",desc:"Préfère une table près de la fenêtre. Lait d'avoine pour le café.",by:"Marc",when:"12 mai",log:[["Marc","créée","12 mai · 07:55"]]}
+  };
+  var mode="A", currentId=null;
+  function setMode(m){mode=m;document.getElementById('mA').classList.toggle('on',m==="A");document.getElementById('mB').classList.toggle('on',m==="B");closeNote();}
+  // ⤢ — promote the lateral detail into the centered reading box (long notes)
+  function expandNote(){ if(!currentId)return; var n=NOTES[currentId];
+    document.getElementById('detailB').innerHTML='<div style="display:flex;justify-content:flex-end;margin:-6px -6px 4px"><button class="iconbtn" onclick="closeNote()">✕</button></div>'+detailHTML(n);
+    document.getElementById('cscrim').classList.add('on'); }
+  function detailHTML(n){
+    return '<div class="detail">'+
+      '<span class="d-tone '+n.cat+'"><span class="dot"></span>'+n.tone+' · 📌 épinglée</span>'+
+      '<div class="d-title">'+n.title+'</div>'+
+      '<div class="d-desc">'+n.desc+'</div>'+
+      '<div class="d-by"><span class="avatar">'+n.by[0]+'</span>Ajoutée par '+n.by+' · '+n.when+'</div>'+
+      '<details class="d-activity"><summary>🕘 Activité · '+n.log.length+' modif.<span class="chev">›</span></summary>'+
+        '<div class="d-log">'+n.log.map(function(r){return '<div class="row"><span class="avatar" style="width:22px;height:22px;font-size:10px">'+r[0][0]+'</span><div><b>'+r[0]+'</b> '+r[1]+'<div class="t">'+r[2]+'</div></div></div>';}).join('')+'</div>'+
+      '</details>'+
+      '<div class="d-actions"><button class="del">🗑️ Supprimer</button><button>📌 Épinglée</button><button class="primary">✏️ Modifier</button></div>'+
+    '</div>';
+  }
+  function openNote(id){
+    var n=NOTES[id]; if(!n)return; currentId=id;
+    if(mode==="A"){
+      document.getElementById('detailA').innerHTML=detailHTML(n);
+      document.getElementById('pane-list').style.display="none";
+      document.getElementById('pane-detail').style.display="flex";
+    }else{
+      document.getElementById('detailB').innerHTML='<div style="display:flex;justify-content:flex-end;margin:-6px -6px 4px"><button class="iconbtn" onclick="closeNote()">✕</button></div>'+detailHTML(n);
+      document.getElementById('cscrim').classList.add('on');
+    }
+  }
+  function closeNote(){
+    document.getElementById('pane-list').style.display="flex";
+    document.getElementById('pane-detail').style.display="none";
+    document.getElementById('cscrim').classList.remove('on');
+  }
+</script>
+</body>
+</html>

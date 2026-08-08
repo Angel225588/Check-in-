@@ -1,0 +1,74 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  .wrap{height:100vh;display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:16px;padding:20px;}
+  .col{display:flex;flex-direction:column;gap:12px;min-height:0;}
+  .card{border-radius:18px;padding:16px 18px;}
+  .stat{padding:12px;text-align:center;} .stat .v{font-size:26px;font-weight:800;} .v.g{color:var(--gold);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  /* CENTER = hero action */
+  .center{border-radius:22px;padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+  .room{font-size:64px;font-weight:900;color:var(--gold);line-height:.9;}
+  .name{font-size:30px;}
+  .counter .n{font-size:64px;} .counter button{width:60px;height:60px;font-size:28px;}
+  .enter{padding:24px;font-size:32px;}
+  .pay{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;width:100%;}
+  .pill{padding:8px 2px;font-size:11px;} .pill .ic{width:32px;height:32px;font-size:16px;}
+</style></head>
+<body>
+<div class="badge-label">CONCEPT C — Center hero action + two side rails (max lateral use)</div>
+<div class="wrap">
+  <!-- LEFT rail: identity + stats -->
+  <div class="col">
+    <div class="card glass">
+      <a class="back">‹ Rechercher</a>
+      <div class="room" style="margin-top:12px;">524</div>
+      <div class="name serif">Sedalo, Tete</div>
+      <div style="margin-top:10px;"><span class="tag-comp">COMP · 104€</span></div>
+    </div>
+    <div class="row2">
+      <div class="stat"><div class="k">Adultes</div><div class="v">2</div></div>
+      <div class="stat"><div class="k">Enfants</div><div class="v">2</div></div>
+      <div class="stat"><div class="k">Total</div><div class="v g">4</div></div>
+      <div class="stat"><div class="k">Restants</div><div class="v g">3</div></div>
+    </div>
+    <div class="card glass" style="flex:1;">
+      <div class="k">Séjour</div>
+      <div style="font-weight:700;margin:6px 0;">19/07 → 22/07/26</div>
+      <div class="k">Forfait</div><div style="font-weight:700;">BKF COMP</div>
+    </div>
+  </div>
+
+  <!-- CENTER: the one thing you're here to do -->
+  <div class="center glass">
+    <div class="vip" style="padding:8px 16px;font-size:13px;display:flex;gap:8px;align-items:center;">★ <b>VIP ×4</b> · accueil prioritaire</div>
+    <div style="text-align:center;">
+      <div class="k">Personnes qui entrent</div>
+      <div class="counter" style="margin-top:8px;"><button>−</button><div class="n">3</div><button>+</button></div>
+      <div class="k" style="margin-top:6px;">sur 4 restants · 1/4 fait</div>
+    </div>
+    <button class="enter">Enregistrer</button>
+  </div>
+
+  <!-- RIGHT rail: payment + history -->
+  <div class="col">
+    <div class="card glass">
+      <div class="k" style="margin-bottom:10px;">Mode de paiement</div>
+      <div class="pay">
+        <div class="pill active"><span class="ic">🏨</span>Chambre</div>
+        <div class="pill"><span class="ic">⭐</span>Points</div>
+        <div class="pill"><span class="ic">💵</span>Cash</div>
+        <div class="pill"><span class="ic">💳</span>Carte</div>
+        <div class="pill"><span class="ic">👤</span>Superv.</div>
+      </div>
+      <div class="k" style="margin-top:6px;color:var(--gold);">demande au client</div>
+    </div>
+    <div class="card glass" style="flex:1;">
+      <div class="k">Historique</div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:8px;">
+        <span>08:23 — 1 pers.</span><span style="color:#c0392b;">↩</span></div>
+      <div class="progress" style="margin-top:14px;"><i></i></div>
+    </div>
+  </div>
+</div>
+</body></html>

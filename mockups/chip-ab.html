@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Pinned notes — chip A/B</title>
+<style>
+  :root{--gold:#A66914;--gold-3:#DD9C28;--bg:#FBF8F3;--card:#fff;--ink:#2a2620;--muted:#8b8377;
+    --line:rgba(42,38,32,.07);--bad:#a13b2c;--bad-soft:rgba(161,59,44,.10);
+    --good:#2f6f4f;--good-soft:rgba(47,111,79,.10);--info:#3b6d8b;--info-soft:rgba(59,109,139,.10);
+    --gold-soft:rgba(166,105,20,.10);
+    --sw2:0 1px 2px rgba(74,67,57,.05),0 12px 28px -10px rgba(120,84,30,.18);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Nunito',-apple-system,Arial,sans-serif;padding:26px 30px}
+  h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px;font-weight:800}
+  .sub{font-size:13px;color:var(--muted);margin:0 0 14px}
+  .zt{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500;margin:0 2px 10px}
+  section{margin-bottom:34px}
+
+  /* ---------- A · refined holographic ---------- */
+  .rowA{display:flex;gap:12px;flex-wrap:wrap}
+  .hchip{position:relative;overflow:hidden;width:250px;height:104px;border-radius:18px;padding:14px 15px;
+    border:1px solid rgba(255,255,255,.8);box-shadow:var(--sw2);cursor:pointer;
+    background:linear-gradient(135deg,#fdf3ec 0%,#f7eee6 40%,#f3eef1 70%,#eef1f0 100%)}
+  .hchip::after{content:"";position:absolute;right:-30%;top:-60%;width:80%;height:220%;
+    background:conic-gradient(from 210deg,#f6cfae,#e9d4c4,#dcd7e6,#cfe0dc,#f6e6c8,#f6cfae);
+    filter:blur(26px);opacity:.30}
+  .hchip.alert{background:linear-gradient(135deg,#fdeeea 0%,#fae5e0 45%,#f7ece6 100%);border-color:rgba(161,59,44,.22)}
+  .hchip.alert::after{background:conic-gradient(from 210deg,#f0b3a4,#eec3ae,#e7cdbe,#f2c4b2,#f0b3a4);opacity:.4}
+  .hchip .ic{position:relative;display:block;color:var(--gold)}
+  .hchip.alert .ic{color:var(--bad)}
+  .hchip .t{position:absolute;left:15px;bottom:12px;right:15px;font-weight:800;font-size:15.5px;line-height:1.15}
+  .hchip .k{position:absolute;top:14px;right:15px;font-size:9.5px;letter-spacing:.12em;font-weight:800;color:var(--muted)}
+  .hchip.alert .k{color:var(--bad)}
+  .more{width:96px;height:104px;border-radius:18px;border:1px dashed rgba(42,38,32,.18);background:transparent;
+    display:grid;place-items:center;color:var(--muted);font-weight:800;font-size:13px;cursor:pointer}
+
+  /* ---------- B · white card + colored rule ---------- */
+  .rowB{display:flex;gap:12px;flex-wrap:wrap}
+  .wcard{width:250px;height:104px;border-radius:18px;padding:14px 15px;background:var(--card);
+    border:1px solid var(--line);border-left:4px solid var(--muted);box-shadow:var(--sw2);cursor:pointer;position:relative}
+  .wcard.alert{border-left-color:var(--bad)} .wcard.fid{border-left-color:var(--gold)} .wcard.pref{border-left-color:var(--info)}
+  .wcard .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--gold-soft);color:var(--gold)}
+  .wcard.alert .ic{background:var(--bad-soft);color:var(--bad)} .wcard.pref .ic{background:var(--info-soft);color:var(--info)}
+  .wcard .k{position:absolute;top:15px;right:15px;font-size:9.5px;letter-spacing:.12em;font-weight:800;color:var(--muted)}
+  .wcard.alert .k{color:var(--bad)}
+  .wcard .t{position:absolute;left:15px;bottom:12px;right:15px;font-weight:800;font-size:15.5px;line-height:1.15}
+</style></head>
+<body>
+<section>
+  <h2>A · Holographique affiné</h2>
+  <p class="sub">Nacre chaude (plus de cyan/violet froid) · l'alerte vire au rouge · icônes réelles · 3 max + “＋2”.</p>
+  <div class="zt">📌 À retenir pour ce client</div>
+  <div class="rowA">
+    <div class="hchip alert"><span class="k">ALERTE</span><svg class="ic" width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M128 24a104 104 0 1 0 104 104A104.11 104.11 0 0 0 128 24Zm-8 56a8 8 0 0 1 16 0v56a8 8 0 0 1-16 0Zm8 104a12 12 0 1 1 12-12 12 12 0 0 1-12 12Z"/></svg><span class="t">Allergie arachides</span></div>
+    <div class="hchip"><span class="k">FIDÉLITÉ</span><svg class="ic" width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="m234.5 114.4-45.1 39.1 13.5 58.2a16 16 0 0 1-23.8 17.3L128 198.5l-51.1 30.5a16 16 0 0 1-23.8-17.3l13.5-58.2-45.1-39.1A16 16 0 0 1 30.4 86.5l59.4-5.1 23.2-55.1a16 16 0 0 1 29.5 0l23.2 55.1 59.4 5.1a16 16 0 0 1 9.4 27.9Z"/></svg><span class="t">Habitué — 5ᵉ séjour</span></div>
+    <div class="hchip"><span class="k">PRÉFÉRENCE</span><svg class="ic" width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M208 80h-16V56a24 24 0 0 0-24-24H48a24 24 0 0 0-24 24v96a48 48 0 0 0 48 48h64a48 48 0 0 0 47.3-40H208a40 40 0 0 0 0-80Zm0 64h-16V96h16a24 24 0 0 1 0 48Z"/></svg><span class="t">Table &amp; café</span></div>
+    <div class="more">＋2</div>
+  </div>
+</section>
+
+<section>
+  <h2>B · Carte blanche + filet de couleur</h2>
+  <p class="sub">Même langage que les notes de la barre latérale · la couleur porte le sens, pas la texture.</p>
+  <div class="zt">📌 À retenir pour ce client</div>
+  <div class="rowB">
+    <div class="wcard alert"><span class="k">ALERTE</span><span class="ic"><svg width="19" height="19" viewBox="0 0 256 256" fill="currentColor"><path d="M128 24a104 104 0 1 0 104 104A104.11 104.11 0 0 0 128 24Zm-8 56a8 8 0 0 1 16 0v56a8 8 0 0 1-16 0Zm8 104a12 12 0 1 1 12-12 12 12 0 0 1-12 12Z"/></svg></span><span class="t">Allergie arachides</span></div>
+    <div class="wcard fid"><span class="k">FIDÉLITÉ</span><span class="ic"><svg width="19" height="19" viewBox="0 0 256 256" fill="currentColor"><path d="m234.5 114.4-45.1 39.1 13.5 58.2a16 16 0 0 1-23.8 17.3L128 198.5l-51.1 30.5a16 16 0 0 1-23.8-17.3l13.5-58.2-45.1-39.1A16 16 0 0 1 30.4 86.5l59.4-5.1 23.2-55.1a16 16 0 0 1 29.5 0l23.2 55.1 59.4 5.1a16 16 0 0 1 9.4 27.9Z"/></svg></span><span class="t">Habitué — 5ᵉ séjour</span></div>
+    <div class="wcard pref"><span class="k">PRÉFÉRENCE</span><span class="ic"><svg width="19" height="19" viewBox="0 0 256 256" fill="currentColor"><path d="M208 80h-16V56a24 24 0 0 0-24-24H48a24 24 0 0 0-24 24v96a48 48 0 0 0 48 48h64a48 48 0 0 0 47.3-40H208a40 40 0 0 0 0-80Zm0 64h-16V96h16a24 24 0 0 1 0 48Z"/></svg></span><span class="t">Table &amp; café</span></div>
+    <div class="more">＋2</div>
+  </div>
+</section>
+</body></html>

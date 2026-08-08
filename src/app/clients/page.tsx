@@ -58,7 +58,7 @@ function ClientRow({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+      className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
     >
       {/* Room number */}
       <div className="shrink-0 w-14 text-center">
@@ -187,7 +187,7 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-3">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 screen-safe">
         <div className="skeleton h-8 w-40 mb-3" />
         <div className="grid grid-cols-5 gap-1.5 mb-3">
           {[0, 1, 2, 3, 4].map((i) => (
@@ -205,7 +205,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
       {/* Header */}
       <div className="shrink-0 p-3 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
@@ -282,7 +282,7 @@ export default function ClientsPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("clients.searchPlaceholder")}
             aria-label={t("clients.searchPlaceholder")}
-            className="w-full pl-10 pr-10 py-2.5 glass-liquid rounded-[14px] text-sm text-dark placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+            className="w-full pl-10 pr-10 py-2 glass-liquid rounded-[14px] text-sm text-dark placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
           />
           {search && (
             <button
@@ -393,7 +393,7 @@ export default function ClientsPage() {
                     return (
                       <div
                         key={`past-${session.date}-${client.roomNumber}-${i}`}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 glass-liquid rounded-[14px] opacity-80"
+                        className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-[14px] opacity-80"
                       >
                         <div className="shrink-0 w-14 text-center">
                           <span className="font-mono font-bold text-base text-dark">{client.roomNumber}</span>

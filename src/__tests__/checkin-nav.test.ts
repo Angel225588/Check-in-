@@ -56,3 +56,37 @@ describe("checkin-nav — PII-free routing", () => {
     expect(readSelection(b)?.roomNumber).toBe("102");
   });
 });
+
+describe("checkin-nav — the arrival count travels with the selection", () => {
+  beforeEach(() => sessionStorageMock.clear());
+
+  // The search screen's − N + stepper was decorative until this existed: you
+  // set 2, landed on the check-in screen, and it had defaulted itself back to
+  // everyone the sheet expected.
+  it("carries a count through the token", () => {
+    const token = stashSelection({ roomNumber: "224", ci: 0, count: 2 });
+    expect(readSelection(token)?.count).toBe(2);
+  });
+
+  it("puts the count in the href without putting it in the path", () => {
+    const href = checkinHref("224", 0, 3);
+    const token = href.replace("/checkin/", "");
+    expect(href).not.toContain("224");
+    expect(readSelection(token)).toEqual({ roomNumber: "224", ci: 0, count: 3 });
+  });
+
+  it("omits an absent count rather than inventing one", () => {
+    const token = stashSelection({ roomNumber: "224" });
+    expect(readSelection(token)?.count).toBeUndefined();
+  });
+
+  it("rejects a nonsense count instead of trusting it", () => {
+    for (const bad of [0, -2, 2.5, Number.NaN, "3" as unknown as number]) {
+      sessionStorage.setItem(
+        "checkin_sel_bad",
+        JSON.stringify({ roomNumber: "224", count: bad })
+      );
+      expect(readSelection("bad")?.count).toBeUndefined();
+    }
+  });
+});

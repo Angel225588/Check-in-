@@ -5,6 +5,16 @@ import { getClientHistory, removeCheckIn } from "@/lib/storage";
 import { formatTime } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 
+/** "dimanche 2 août" — the weekday matters as much as the number when the
+ *  afternoon team reads this back. */
+function dayLabel(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" });
+  } catch {
+    return "";
+  }
+}
+
 interface ClientHistoryProps {
   roomNumber: string;
   clientName: string;
@@ -56,9 +66,17 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
       {hasTodayEntries && (
         <div className="space-y-1.5">
           {todayCheckIns.map((ci) => (
-            <div key={ci.id} className="flex items-center gap-2 glass rounded-[10px] px-3 py-2">
-              <span className="text-xs text-muted font-mono w-12 shrink-0">{formatTime(ci.timestamp)}</span>
-              <span className="text-xs font-semibold text-dark flex-1">
+            <div key={ci.id} className="flex items-center gap-3 surface-card rounded-[12px] px-3 py-2">
+              {/* Day, date and hour, not just the hour. "15:21 · 2 personnes"
+                  reads fine while you are standing there and means nothing in
+                  a briefing the next afternoon. */}
+              <span className="shrink-0 leading-tight">
+                <span className="block text-[13px] font-extrabold text-dark tabular-nums">{formatTime(ci.timestamp)}</span>
+                <span className="block text-[10.5px] first-letter:uppercase" style={{ color: "var(--tab-idle)" }}>
+                  {dayLabel(ci.timestamp)}
+                </span>
+              </span>
+              <span className="text-[13px] font-bold text-dark flex-1">
                 {ci.peopleEntered} {ci.peopleEntered === 1 ? t("undo.person") : t("undo.people")}
               </span>
               {ci.paymentAction && (
@@ -67,7 +85,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
               <button
                 onClick={() => setConfirmUndo(ci)}
                 aria-label={`Undo check-in at ${ci.timestamp}`}
-                className="p-2.5 -m-1.5 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
+                className="p-2 -m-1.5 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
               >
                 <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H7" />
@@ -81,7 +99,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
 
       {/* Undo confirmation */}
       {confirmUndo && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center" onClick={() => setConfirmUndo(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center screen-safe" onClick={() => setConfirmUndo(null)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
             className="relative w-full max-w-sm bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"

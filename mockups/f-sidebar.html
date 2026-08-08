@@ -1,0 +1,158 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  body{overflow:hidden}
+  .switch{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:80;display:flex;gap:6px;background:rgba(0,0,0,.82);padding:5px;border-radius:999px;}
+  .switch button{border:0;background:transparent;color:#fff;font:700 12px/1 system-ui;padding:8px 14px;border-radius:999px;cursor:pointer;opacity:.6;}
+  .switch button.on{background:#fff;color:#111;opacity:1;}
+
+  .stage{height:100vh;display:grid;grid-template-columns:1fr 348px;gap:18px;padding:60px 20px 20px;transition:.35s cubic-bezier(.2,.8,.2,1);}
+  .stage.collapsed{grid-template-columns:1fr 0;}
+  .main{display:flex;flex-direction:column;gap:16px;min-height:0;}
+
+  /* IDENTITY CARD */
+  .idcard{border-radius:24px;padding:22px 26px;position:relative;transition:.3s;display:flex;gap:20px;align-items:center;}
+  .idcard.plain{background:rgba(255,255,255,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.6);box-shadow:0 8px 30px -12px rgba(60,40,10,.2);}
+  .idcard.vip{background:linear-gradient(135deg,#B9781B,#DD9C28 48%,#A66914);box-shadow:0 16px 44px -14px rgba(166,105,20,.6);color:#fff;}
+  .idcard.vip .k,.idcard.vip .name{color:#fff;}
+  .idmain{flex:1;min-width:0;}
+  .idrow{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;}
+  .room{font-size:70px;font-weight:900;line-height:.85;letter-spacing:-3px;color:var(--gold);}
+  .idcard.vip .room{color:#fff;}
+  .name{font-size:36px;}
+  .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .tag{font-size:13px;font-weight:800;padding:7px 12px;border-radius:999px;display:inline-flex;gap:6px;align-items:center;background:rgba(0,0,0,.05);color:var(--ink);}
+  .idcard.vip .tag{background:rgba(255,255,255,.22);color:#fff;}
+  .tag.comp{background:rgba(124,58,237,.12);color:var(--purple);}
+  .idcard.vip .tag.comp{background:rgba(255,255,255,.9);color:var(--purple);}
+  .tag.warn{background:#E23B3B;color:#fff;box-shadow:0 4px 14px -4px rgba(226,59,59,.7);}
+  .chips{display:flex;gap:10px;}
+  .chip{min-width:72px;text-align:center;background:rgba(255,255,255,.55);border:1px solid var(--line);border-radius:16px;padding:12px 10px;}
+  .idcard.vip .chip{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);}
+  .chip .v{font-size:25px;font-weight:800;} .chip .v.g{color:var(--gold);} .idcard.vip .chip .v,.idcard.vip .chip .v.g{color:#fff;}
+  .viptag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:6px 13px;font-weight:900;font-size:14px;margin-bottom:10px;}
+
+  /* NOT-INCLUDED alert + payment (only vipnobkf) */
+  .alert,.pay-wrap{display:none;}
+  body[data-state="vipnobkf"] .alert{display:flex;}
+  body[data-state="vipnobkf"] .pay-wrap{display:block;}
+  .alert{align-items:center;gap:14px;border-radius:18px;padding:14px 18px;background:linear-gradient(90deg,#FFF4E0,#FFE9C7);border:1.5px solid #E7A427;box-shadow:0 8px 24px -12px rgba(180,110,10,.5);}
+  .alert .big{font-weight:900;color:#9a5b00;font-size:16px;} .alert .sub{color:#7a5010;font-size:12.5px;font-weight:600;}
+  .alert .bell{width:42px;height:42px;border-radius:12px;background:#E7A427;display:grid;place-items:center;font-size:20px;flex:none;}
+  .pay{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+  .gpill{border-radius:18px;padding:13px 6px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;background:rgba(255,255,255,.5);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.75);box-shadow:0 8px 22px -14px rgba(60,40,10,.4),inset 0 1px 0 rgba(255,255,255,.8);font-weight:800;font-size:13.5px;color:var(--ink);}
+  .gpill .ic{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:20px;background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.55));border:1px solid rgba(255,255,255,.85);box-shadow:inset 0 1px 2px rgba(255,255,255,.9);}
+  .gpill.active{background:rgba(42,32,22,.92);color:#fff;} .gpill.active .ic{background:linear-gradient(135deg,var(--gold),var(--gold-light));}
+
+  /* BOTTOM ACTION BOX — counter stuck on top of the juicy button */
+  .spacer{flex:1;}
+  .actionbox{background:rgba(255,255,255,.55);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.7);border-radius:26px;padding:16px 18px 18px;box-shadow:0 10px 34px -16px rgba(60,40,10,.28);}
+  .cline{display:flex;align-items:center;justify-content:center;gap:22px;margin-bottom:14px;}
+  .cline .lab{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .counter{display:flex;align-items:center;gap:20px;}
+  .counter .n{font-size:54px;font-weight:900;font-variant-numeric:tabular-nums;min-width:76px;text-align:center;}
+  .counter button{width:54px;height:54px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:26px;color:var(--gold);cursor:pointer;box-shadow:0 5px 14px -8px rgba(0,0,0,.25);}
+  .enter{width:100%;padding:22px;border:0;border-radius:44px;cursor:pointer;font-size:29px;font-weight:900;color:#fff;background:linear-gradient(90deg,#16a34a,#22c55e);box-shadow:0 16px 40px -12px rgba(22,163,74,.6),inset 0 1px 0 rgba(255,255,255,.4);}
+
+  /* ACTIVITY SIDEBAR — shown by default, toggleable */
+  .side{background:rgba(255,255,255,.72);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.7);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;box-shadow:0 10px 34px -18px rgba(60,40,10,.3);}
+  .collapsed .side{opacity:0;pointer-events:none;}
+  .sidehead{display:flex;align-items:center;justify-content:space-between;}
+  .firsttime{border-radius:16px;padding:14px;background:linear-gradient(135deg,rgba(221,156,40,.16),rgba(166,105,20,.10));border:1px solid rgba(221,156,40,.4);position:relative;overflow:hidden;box-shadow:0 0 0 4px rgba(221,156,40,.08);}
+  .firsttime .newbadge{display:inline-block;background:var(--gold);color:#fff;font-size:10px;font-weight:900;letter-spacing:.08em;padding:3px 9px;border-radius:999px;}
+  .hitem{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:13px;background:rgba(0,0,0,.03);font-weight:700;font-size:14px;}
+  .notes-soon{margin-top:auto;border:1.5px dashed rgba(166,105,20,.35);border-radius:14px;padding:12px;color:var(--gold);font-weight:800;font-size:12.5px;display:flex;align-items:center;gap:8px;background:rgba(221,156,40,.05);}
+  .toggle{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:16px;}
+  .fabtoggle{position:fixed;top:14px;right:16px;z-index:80;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.85);cursor:pointer;font-size:18px;box-shadow:0 6px 16px -8px rgba(0,0,0,.25);}
+</style></head>
+<body data-state="vip">
+
+<div class="switch">
+  <button data-s="incl">Inclus</button>
+  <button data-s="vip" class="on">VIP</button>
+  <button data-s="vipnobkf">VIP · sans petit-déj</button>
+</div>
+<button class="fabtoggle" onclick="document.getElementById('stage').classList.toggle('collapsed')" title="Activité">🕐</button>
+
+<div class="stage" id="stage">
+  <!-- MAIN -->
+  <div class="main">
+    <div class="idcard vip" id="idcard">
+      <div class="idmain">
+        <div class="viptag" id="viptag">★ VIP ×4</div>
+        <div class="idrow"><div class="room">524</div><div class="name serif">Sedalo, Tete</div></div>
+        <div class="tags" id="tags">
+          <span class="tag comp">COMP · 104€</span>
+          <span class="tag">🛬 19/07</span>
+          <span class="tag">🛫 22/07</span>
+          <span class="tag warn" id="bkfwarn" style="display:none;">☕✕ PETIT-DÉJ NON INCLUS</span>
+        </div>
+      </div>
+      <div class="chips">
+        <div class="chip"><div class="k">Adultes</div><div class="v">2</div></div>
+        <div class="chip"><div class="k">Enfants</div><div class="v">2</div></div>
+        <div class="chip"><div class="k">Total</div><div class="v g">4</div></div>
+      </div>
+    </div>
+
+    <div class="alert">
+      <div class="bell">☕✕</div>
+      <div><div class="big">Petit-déjeuner NON inclus — à encaisser</div>
+        <div class="sub">Demandez au client : l'ajouter à la chambre, ou payer maintenant ?</div></div>
+    </div>
+    <div class="pay-wrap">
+      <div class="pay">
+        <div class="gpill active"><span class="ic">🏨</span>Chambre</div>
+        <div class="gpill"><span class="ic">💳</span>Carte</div>
+        <div class="gpill"><span class="ic">💵</span>Cash</div>
+        <div class="gpill"><span class="ic">🧑‍💼</span>Supervisor</div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <!-- action box: counter stuck on top of the juicy button -->
+    <div class="actionbox">
+      <div class="cline">
+        <span class="lab">Personnes qui entrent<br>sur 4 restants</span>
+        <div class="counter"><button>−</button><div class="n">3</div><button>+</button></div>
+      </div>
+      <button class="enter">Enregistrer · 3 personnes</button>
+    </div>
+  </div>
+
+  <!-- ACTIVITY SIDEBAR -->
+  <div class="side">
+    <div class="sidehead"><b style="font-size:17px;">🕐 Activité</b>
+      <button class="toggle" onclick="document.getElementById('stage').classList.add('collapsed')">✕</button></div>
+
+    <div class="firsttime">
+      <span class="newbadge">PREMIÈRE VISITE</span>
+      <div style="font-weight:900;margin-top:8px;">Comment fonctionne le buffet ☕</div>
+      <div style="font-size:12.5px;color:#6a5433;margin-top:4px;line-height:1.5;">
+        Comptez les personnes qui entrent, choisissez le paiement si besoin, puis « Enregistrer ». Chaque entrée s'ajoute à l'historique.</div>
+      <button style="margin-top:10px;border:0;background:var(--gold);color:#fff;font-weight:800;border-radius:999px;padding:8px 14px;font-size:12px;cursor:pointer;">Voir le guide rapide →</button>
+    </div>
+
+    <div class="k">Aujourd'hui — Ch. 524</div>
+    <div class="hitem"><span>08:23 — 1 personne</span><span style="color:#c0392b;">↩</span></div>
+    <div class="hitem" style="opacity:.5;"><span>Aucune autre entrée</span><span></span></div>
+
+    <div class="notes-soon">📝 Notes & préférences — bientôt (chiffré · sans fuite)</div>
+  </div>
+</div>
+
+<script>
+  const body=document.body, card=document.getElementById('idcard'), viptag=document.getElementById('viptag'), warn=document.getElementById('bkfwarn');
+  window.set=function(s){
+    body.dataset.state=s;
+    document.querySelectorAll('.switch button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+    const vip=s!=='incl';
+    card.classList.toggle('vip',vip); card.classList.toggle('plain',!vip);
+    viptag.style.display=vip?'inline-flex':'none';
+    warn.style.display=(s==='vipnobkf')?'inline-flex':'none';
+  };
+  document.querySelectorAll('.switch button').forEach(b=>b.addEventListener('click',()=>set(b.dataset.s)));
+  set('vip');
+</script>
+</body></html>

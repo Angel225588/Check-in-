@@ -33,7 +33,7 @@ export default function SettingsToggle() {
         <button
           onClick={toggleLang}
           aria-label={fr ? "Switch to English" : "Passer en français"}
-          className="px-2.5 py-1.5 text-xs font-bold rounded-full transition-all active:scale-90 text-dark dark:text-white/90 hover:bg-white/30 dark:hover:bg-white/10"
+          className="px-2 py-1.5 text-xs font-bold rounded-full transition-all active:scale-90 text-dark dark:text-white/90 hover:bg-white/30 dark:hover:bg-white/10"
         >
           {fr ? "FR" : "EN"}
         </button>
@@ -82,7 +82,7 @@ export default function SettingsToggle() {
       {/* Confirmation dialog */}
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe"
           onClick={() => setConfirmOpen(false)}
         >
           <div

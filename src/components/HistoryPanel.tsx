@@ -58,10 +58,10 @@ export default function HistoryPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex screen-safe">
       <div className="absolute inset-0 glass-dark" onClick={onClose} />
-      <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#0A0A0F] h-full shadow-xl flex flex-col">
-        <div className="shrink-0 glass border-b border-white/20 dark:border-white/5 p-4 flex items-center justify-between">
+      <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col">
+        <div className="shrink-0 glass border-b border-white/20 dark:border-white/5 p-4 pt-3 flex items-center justify-between">
           <h2 className="text-xl font-bold text-dark">{t("history.title")}</h2>
           <button onClick={onClose} aria-label="Close history" className="p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-xl active:scale-90 transition-all">
             <svg className="w-6 h-6 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,13 +89,13 @@ export default function HistoryPanel({
                 <div className="text-sm text-muted truncate">{record.clientName}</div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="glass-brand text-brand px-2.5 py-1 rounded-full text-sm font-bold">
+                <span className="glass-brand text-brand px-2 py-1 rounded-full text-sm font-bold">
                   {record.peopleEntered}
                 </span>
                 <span
                   role="button"
                   onClick={(e) => { e.stopPropagation(); setConfirmUndo(record); }}
-                  className="p-2.5 -m-1 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
+                  className="p-2 -m-1 rounded-full hover:bg-red-500/10 active:scale-90 transition-all"
                   aria-label={`${t("undo.confirm")} ${record.clientName}`}
                   title={t("undo.confirm")}
                 >
@@ -124,7 +124,7 @@ export default function HistoryPanel({
 
       {/* Undo confirmation bottom-sheet */}
       {confirmUndo && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center" onClick={() => setConfirmUndo(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center screen-safe" onClick={() => setConfirmUndo(null)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
             className="relative w-full max-w-sm bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
@@ -157,7 +157,7 @@ export default function HistoryPanel({
 
       {/* Undo success toast */}
       {undoToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2 bg-red-500 text-white px-4 py-2.5 rounded-full shadow-lg animate-[slideDown_0.2s_ease-out]">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full shadow-lg animate-[slideDown_0.2s_ease-out]">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>

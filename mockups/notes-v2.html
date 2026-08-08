@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notes v2 — panneau central</title>
+<style>
+  :root{
+    --bg:#12100E; --surface:#1B1815; --surface-2:#221E1A;
+    --key:#2A2621; --key-edge:#463F35;
+    --ink:#F4EFE6; --ink-2:#DDD5C7; --muted:#ABA294;
+    --gold:#DD9C28; --gold-deep:#A66914; --gold-ink:#E9B44C;
+    --good:#2F6F4F; --good-ink:#6FD3A0;
+    --bad:#E0685A; --bad-ink:#F5A196;
+    --info:#3B6D8B; --info-ink:#8FC2DE;
+    --violet:#B99BE8; --violet-ink:#CDB6F0;
+    --r-lg:22px; --r-md:16px;
+  }
+  body.light{
+    --bg:#FBF8F3; --surface:#FFFFFF; --surface-2:#F5F0E7;
+    --key:#FFFFFF; --key-edge:#D8CBB3;
+    --ink:#241F19; --ink-2:#3C352C; --muted:#6B6355;
+    --gold-ink:#7F4E0E; --good-ink:#1F5638; --bad-ink:#8C2F22;
+    --info-ink:#245A78; --violet-ink:#4A2E78;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:'Nunito',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+  .stage{position:relative;width:1194px;height:834px;margin:16px auto;border-radius:26px;
+    overflow:hidden;background:var(--bg);box-shadow:0 30px 90px -30px rgba(0,0,0,.6)}
+  /* stand-in for the check-in screen behind the panel */
+  .behind{position:absolute;inset:0;padding:26px;opacity:.5;filter:saturate(.7)}
+  .behind .card{border-radius:20px;padding:22px;background:linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C)}
+  .behind .rm{font-size:74px;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:.9}
+  .behind .nm{font-size:26px;font-weight:700;color:#fff;margin-top:4px}
+
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(14px)}
+
+  /* ── the panel ──────────────────────────────────────────────────────
+     Centred and rectangular. A 248px lateral column is a bad place to
+     read a paragraph and a worse place to write one. */
+  .panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(760px,92%);display:flex;flex-direction:column;border-radius:var(--r-lg);
+    background:var(--surface);overflow:hidden;
+    box-shadow:0 40px 90px -24px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.07);
+    animation:pop .24s cubic-bezier(.2,.9,.25,1)}
+  @keyframes pop{from{opacity:0;transform:translate(-50%,-46%) scale(.97)}}
+
+  .phead{flex:none;display:flex;align-items:center;gap:20px;padding:24px 24px 22px;
+    border-bottom:1px solid rgba(255,255,255,.06)}
+  .phead .rm{font-size:46px;font-weight:800;letter-spacing:-.035em;line-height:1;
+    font-variant-numeric:tabular-nums}
+  .phead .who{flex:1;min-width:0}
+  .phead .nm{font-size:22px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .phead .sub{font-size:13px;color:var(--muted);font-weight:600;margin-top:3px}
+  .icon{width:46px;height:46px;flex:none;border-radius:50%;border:none;cursor:pointer;
+    display:grid;place-items:center;color:var(--ink-2);
+    background:rgba(255,255,255,.05)}
+  body.light .icon{background:rgba(42,38,32,.06)}
+  .icon svg{width:19px;height:19px}
+
+  .pbody{flex:1;min-height:0;overflow-y:auto;padding:16px 20px}
+  .pfoot{flex:none;padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,.06)}
+
+  /* list */
+  /* A search field only appears once the list is long enough to need one.
+     For a guest with three notes it is furniture that costs height in a panel
+     already competing with the keyboard. */
+  .nsearch{display:flex;align-items:center;gap:11px;padding:0 16px;min-height:52px;
+    border-radius:var(--r-md);margin-bottom:11px;background:rgba(255,255,255,.05);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+  body.light .nsearch{background:#FBF7F0;box-shadow:inset 0 0 0 1px rgba(42,38,32,.12)}
+  .nsearch svg{width:19px;height:19px;color:var(--muted);flex:none}
+  .nsearch input{flex:1;min-width:0;border:none;outline:none;background:none;font:inherit;
+    font-size:16px;font-weight:700;color:var(--ink)}
+  .nsearch input::placeholder{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    font-style:italic;font-weight:400;color:var(--muted)}
+  .filters{display:flex;gap:7px;overflow-x:auto;padding-bottom:12px}
+  .fil{color:var(--muted);flex:none;min-height:44px;padding:0 14px;border-radius:999px;border:none;cursor:pointer;
+    font-size:12.5px;font-weight:800;background:rgba(255,255,255,.04);color:var(--muted)}
+  body.light .fil{background:rgba(42,38,32,.05)}
+  .note{color:var(--ink);position:relative;width:100%;text-align:left;display:flex;gap:13px;align-items:flex-start;
+    padding:14px 16px 14px 18px;border-radius:var(--r-md);cursor:pointer;margin-bottom:9px;
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.05);overflow:hidden}
+  body.light .note{background:#FFF;border:1px solid rgba(42,38,32,.09)}
+  .note .rail{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .note h4{font-size:16.5px;font-weight:800;line-height:1.25}
+  .note p{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .note .meta{font-size:11.5px;color:var(--muted);margin-top:6px;font-weight:600}
+  .note.alert{background:rgba(224,104,90,.10)}
+  body.light .note.alert{background:rgba(161,59,44,.07)}
+  .pin{position:absolute;right:14px;top:14px;font-size:12px}
+  .empty{text-align:center;padding:46px 10px;color:var(--muted);font-size:14.5px;line-height:1.6}
+
+  .cta{width:100%;min-height:58px;border:none;border-radius:44px;cursor:pointer;
+    background:var(--good);color:#fff;font-size:18px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    box-shadow:0 10px 26px -12px rgba(47,111,79,.6)}
+  .cta.ghost{background:transparent;color:var(--ink-2);
+    box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.10)}
+
+  /* compose — the fields ARE the screen */
+  .fld{width:100%;border:none;outline:none;font:inherit;color:var(--ink);
+    background:rgba(255,255,255,.05);border-radius:var(--r-md);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+  body.light .fld{background:#FBF7F0;box-shadow:inset 0 0 0 1px rgba(42,38,32,.12)}
+  #ttl{min-height:66px;padding:0 18px;font-size:23px;font-weight:800;margin-bottom:10px}
+  #bdy{min-height:150px;padding:14px 18px;font-size:18px;line-height:1.5;resize:none}
+  .fld::placeholder{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    font-style:italic;font-weight:400;color:var(--muted);opacity:.8}
+  .tlabel{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;
+    color:var(--muted);margin:16px 0 8px}
+  /* One scrollable row. Keeping it to a single compact strip is what stops
+     classification outweighing the note, not where it sits on the panel. */
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:14px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{color:var(--muted);flex:none;min-height:46px;padding:0 16px;border:none;border-radius:999px;
+    cursor:pointer;font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.045)}
+  body.light .tab{background:rgba(42,38,32,.055)}
+  .tab .dot{width:9px;height:9px;border-radius:50%}
+  .tones{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tone{color:var(--muted);min-height:50px;border:none;border-radius:13px;cursor:pointer;font-size:13px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    background:rgba(255,255,255,.04);color:var(--muted)}
+  body.light .tone{background:rgba(42,38,32,.05)}
+  .tone .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+
+  .tools{width:1194px;margin:0 auto 8px;display:flex;gap:8px;align-items:center;
+    font-family:system-ui;font-size:13px;color:#8a8175;flex-wrap:wrap}
+  .tools button{padding:7px 13px;border-radius:999px;border:1px solid #55504a;
+    background:#221E1A;color:#DDD5C7;cursor:pointer;font-weight:700}
+  body.light .tools button{background:#fff;color:#3C352C;border-color:#D8CBB3}
+  /* the iPad keyboard, simulated, so the panel can be judged with it up */
+  .kb{position:absolute;left:0;right:0;bottom:0;height:372px;z-index:5;
+    background:linear-gradient(180deg,#2C2C2E,#1C1C1E);border-top:1px solid #3A3A3C;
+    display:none;align-items:center;justify-content:center;color:#8E8E93;
+    font-size:14px;font-weight:700;letter-spacing:.04em}
+  body.kbd .kb{display:flex}
+</style>
+</head>
+<body>
+
+<div class="tools">
+  <button onclick="document.body.classList.toggle('light')">Clair / Sombre</button>
+  <button onclick="document.body.classList.toggle('kbd');fit()">Simuler le clavier iPad</button>
+  <button onclick="go('list')">Liste</button>
+  <button onclick="go('compose')">Nouvelle note</button>
+  <span>— cliquez sur une note pour la lire</span>
+</div>
+
+<div class="stage" id="stage">
+  <div class="behind">
+    <div class="card"><div class="rm">224</div><div class="nm">Angel Polanco</div></div>
+  </div>
+  <div class="scrim"></div>
+
+  <div class="panel" id="panel">
+    <div class="phead">
+      <div class="rm">224</div>
+      <div class="who">
+        <div class="nm" id="hnm">Notes — Angel Polanco</div>
+        <div class="sub" id="hsub">Habitué · 6ᵉ séjour · 3 pers.</div>
+      </div>
+      <button class="icon" id="back" style="visibility:hidden" aria-label="Retour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="icon" aria-label="Fermer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="pbody" id="pbody"></div>
+    <div class="pfoot" id="pfoot"></div>
+  </div>
+
+  <div class="kb">clavier iPad</div>
+</div>
+
+<script>
+const TONES = {
+  alert:{l:"Alerte",  c:"var(--bad-ink)",   s:"var(--bad)"},
+  pref: {l:"Préférence",c:"var(--info-ink)", s:"var(--info)"},
+  loy:  {l:"Fidélité", c:"var(--gold-ink)",  s:"var(--gold)"},
+  ev:   {l:"Événement",c:"var(--violet-ink)",s:"var(--violet)"},
+  info: {l:"Info",     c:"var(--muted)",     s:"var(--muted)"},
+};
+let NOTES = [
+  {id:1,t:"alert",ti:"Allergie arachide",bo:"Choc anaphylactique. EpiPen dans le sac à main. Prévenir la cuisine avant tout service.",au:"Sofia",d:"12 juil.",pin:true},
+  {id:2,t:"pref", ti:"Œufs au plat",      bo:"Aime les œufs sunny side up, jamais brouillés.",au:"Marc",d:"12 juil.",pin:false},
+  {id:3,t:"loy",  ti:"6ᵉ séjour",         bo:"Toujours la même table près de la fenêtre.",au:"Sofia",d:"3 juin",pin:false},
+];
+let view="list", tone="info", editing=null;
+const $=(i)=>document.getElementById(i);
+const PIN=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6z"/><path d="M12 15v5"/></svg>`;
+
+function go(v){ view=v; render(); }
+
+function render(){
+  $("back").style.visibility = view === "list" ? "hidden" : "visible";
+  $("hnm").textContent = view==="compose" ? (editing?"Modifier la note":"Nouvelle note")
+                       : view==="detail" ? "Note" : "Notes — Angel Polanco";
+  if(view==="list") return renderList();
+  if(view==="compose") return renderCompose();
+  renderDetail();
+}
+
+const SEARCH_AFTER = 8;   // below this, the tabs are enough
+let q = "";
+function renderList(){
+  const fold=(x)=>x.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  const hit=(n)=>!q || fold(n.ti+" "+n.bo).includes(fold(q));
+  const sorted=[...NOTES].filter(hit)
+    .sort((a,b)=>(a.t==="alert"?0:a.pin?1:2)-(b.t==="alert"?0:b.pin?1:2));
+  $("pbody").innerHTML =
+    (NOTES.length > SEARCH_AFTER ? `<div class="nsearch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="nq" placeholder="Chercher dans les notes…" value="${q}">
+    </div>` : "")
+    + `<div class="filters">${["Tout","Alerte","Préférence","Fidélité","Événement","Info"]
+      .map((f,i)=>`<button class="fil" ${i===0?'style="background:rgba(255,255,255,.09);color:var(--ink)"':''}>${f}</button>`).join("")}</div>`
+    + (sorted.length ? sorted.map(n=>{
+        const T=TONES[n.t];
+        return `<button class="note ${n.t==="alert"?"alert":""}" onclick="open_(${n.id})">
+          <span class="rail" style="background:${T.s}"></span>
+          <span style="flex:1;min-width:0">
+            <h4 style="${n.t==="alert"?`color:${T.c}`:""}">${n.ti}</h4>
+            <p>${n.bo}</p>
+            <span class="meta">${T.l} · ${n.au} · ${n.d}</span>
+          </span>
+          ${n.pin?`<span class="pin" style="color:${T.c}">${PIN}</span>`:""}
+        </button>`;}).join("")
+      : `<div class="empty">Aucune note pour ce client.<br>Allergie, préférence, événement…</div>`);
+  $("pfoot").innerHTML = `<button class="cta" onclick="newNote()">+ Nouvelle note</button>`;
+  const qi = document.getElementById("nq");
+  if(qi){ qi.oninput = (e)=>{ q = e.target.value; renderList(); qi.focus(); }; }
+  fit();
+}
+
+function newNote(){ editing=null; tone="info"; go("compose"); }
+
+function renderCompose(){
+  $("pbody").innerHTML = `
+    <div class="tabs">${Object.entries(TONES).map(([k,T])=>`
+      <button class="tab" data-t="${k}" onclick="pick('${k}')"
+        style="${tone===k?`background:color-mix(in srgb,${T.s} 18%,transparent);color:${T.c};box-shadow:inset 0 0 0 1.5px ${T.s}`:""}">
+        <span class="dot" style="background:${tone===k?T.c:"var(--muted)"}"></span>${T.l}</button>`).join("")}
+      <button class="tab" id="pinbtn" onclick="togglePin(this)">${PIN} Épingler</button>
+    </div>
+    <input class="fld" id="ttl" placeholder="Titre — ex. Allergie arachide" value="${editing?editing.ti:""}">
+    <textarea class="fld" id="bdy" placeholder="Ce que la réception doit savoir…">${editing?editing.bo:""}</textarea>`;
+  $("pfoot").innerHTML = `<button class="cta" onclick="save()">✓ Enregistrer</button>`;
+  setTimeout(()=>$("ttl").focus(),60);
+  fit();
+}
+
+function togglePin(b){
+  b.classList.toggle("on");
+  b.style.cssText = b.classList.contains("on")
+    ? "background:rgba(221,156,40,.16);color:var(--gold-ink);box-shadow:inset 0 0 0 1.5px var(--gold)" : "";
+}
+function pick(k){
+  tone = k;
+  document.querySelectorAll(".tabs .tab[data-t]").forEach(btn=>{
+    const T = TONES[btn.dataset.t], on = btn.dataset.t === k;
+    btn.style.cssText = on
+      ? `background:color-mix(in srgb,${T.s} 18%,transparent);color:${T.c};box-shadow:inset 0 0 0 1.5px ${T.s}`
+      : "";
+    btn.querySelector(".dot").style.background = on ? T.c : "var(--muted)";
+  });
+}
+
+function save(){
+  const ti=$("ttl").value.trim(), bo=$("bdy").value.trim();
+  if(!ti && !bo) return;
+  if(editing){ editing.ti=ti; editing.bo=bo; editing.t=tone; }
+  else NOTES.unshift({id:Date.now(),t:tone,ti,bo,au:"Réception",d:"auj.",pin:tone==="alert"||tone==="ev"});
+  editing=null; go("list");
+}
+
+let current=null;
+function open_(id){ current=NOTES.find(n=>n.id===id); go("detail"); }
+
+function renderDetail(){
+  const n=current, T=TONES[n.t];
+  $("pbody").innerHTML = `
+    <span style="display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;
+      font-size:12.5px;font-weight:800;color:${T.c};background:color-mix(in srgb,${T.s} 14%,transparent)">
+      <span class="dot" style="width:9px;height:9px;border-radius:50%;background:${T.c}"></span>${T.l}</span>
+    <h3 style="font-size:27px;font-weight:800;line-height:1.2;margin:14px 0 10px">${n.ti}</h3>
+    <p style="font-size:18px;line-height:1.6;color:var(--ink-2)">${n.bo}</p>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:16px;font-weight:600">${n.au} · ${n.d}</div>`;
+  $("pfoot").innerHTML = `
+    <div style="display:flex;gap:9px">
+      <button class="cta ghost" style="flex:1" onclick="editing=current;tone=current.t;go('compose')">Modifier</button>
+      <button class="cta" style="flex:1" onclick="go('list')">Terminé</button>
+    </div>`;
+  fit();
+}
+
+$("back").onclick = ()=>go("list");
+
+/* The panel is sized against the VISIBLE viewport, so when the iPad keyboard
+   opens it shrinks and the save button stays on screen rather than being
+   pushed underneath the keys. */
+function fit(){
+  const kb = document.body.classList.contains("kbd") ? 372 : 0;
+  const stage = $("stage").getBoundingClientRect().height;
+  const avail = stage - kb;
+  const p = $("panel");
+  p.style.maxHeight = Math.max(260, avail - 40) + "px";
+  p.style.top = (avail/2) + "px";
+}
+window.addEventListener("resize", fit);
+if(window.visualViewport) window.visualViewport.addEventListener("resize", fit);
+
+render();
+</script>
+</body>
+</html>

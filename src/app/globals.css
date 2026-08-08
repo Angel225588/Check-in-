@@ -13,12 +13,18 @@
   --color-slate: #555759;
   --color-teal: #425563;
   --color-forest: #303939;
-  --color-muted: #707070;
+  --color-muted: #6A645A;
   --color-border: #C4C4C4;
   --color-error: #D0021B;
   --color-bg-alt: #F4F4F4;
   --radius-card: 14px;
   --radius-pill: 52px;
+  /* Brand gold for SMALL text. #A66914 measures 4.44:1 on glass, and even a
+     mid gold sat at 4.37:1 on the tinted active-payment chip — both under
+     AA — so text-sized gold uses this darker ink. Large/decorative gold
+     keeps --color-brand. */
+  --brand-ink: #7F4E0E;
+  --tab-idle: #5C564C;
 
   /* shadcn/ui tokens — Courtyard by Marriott brand mapping */
   --color-background: #FBF8F3;
@@ -32,7 +38,7 @@
   --color-secondary: #F5E6C8;
   --color-secondary-foreground: #1C1C1C;
   --color-muted-bg: #F4F4F4;
-  --color-muted-foreground: #707070;
+  --color-muted-foreground: #6A645A;
   --color-accent: #DD9C28;
   --color-accent-foreground: #1C1C1C;
   --color-destructive: #D0021B;
@@ -60,6 +66,20 @@
   --aur-gold-3: #dd9c28;
   --aur-gold-soft: rgba(166, 105, 20, 0.10);
   --aur-gold-soft-2: rgba(166, 105, 20, 0.18);
+  /* Soft depth, borrowed from the neumorphic reference and not its palette.
+     Two shadows: a light one from the top-left and a dark one from the
+     bottom-right, so a pill reads as pressed into the page rather than drawn
+     on it. It costs nothing — box-shadow is not backdrop-filter, there is no
+     compositing pass and no blur of live pixels behind it, which is why this
+     is affordable on the iPad where glass was not. */
+  --inset-hi: rgba(255, 255, 255, 0.9);
+  --inset-lo: rgba(70, 58, 40, 0.13);
+
+  /* The one surface that earns a backdrop-filter: the portrait drawer. It is a
+     single element with a real screen behind it, so the blur is visible and is
+     paid for once. Opaque enough that its own text keeps AA whatever the
+     screen underneath happens to be. */
+  --aur-drawer: rgba(251, 247, 238, 0.86);
   --aur-good: #2f6f4f;
   --aur-good-soft: rgba(47, 111, 79, 0.10);
   --aur-warn: #b87333;
@@ -68,6 +88,14 @@
   --aur-bad-soft: rgba(161, 59, 44, 0.10);
   --aur-info: #3b6d8b;
   --aur-info-soft: rgba(59, 109, 139, 0.10);
+  /* Text-on-surface variants of the semantic hues. The plain tokens above are
+     fills that carry white text; these are for type and icons sitting on a
+     page or a -soft wash, where the fill colour is too dark (light theme) or
+     too dark again (dark theme) to read. */
+  --aur-good-ink: #1f5638;
+  --aur-warn-ink: #7a4a12;
+  --aur-bad-ink: #8c2f22;
+  --aur-info-ink: #2b5a72;
   --aur-pm-comp: #7a5d2a;
   --aur-pm-inclus: #2f6f4f;
   --aur-pm-points: #5a3b8f;
@@ -75,6 +103,24 @@
   --aur-pm-cash: #b87333;
   --font-aur-serif: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
   --font-aur-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+  /* Spacing scale — 4pt, and nothing off it.
+     Two rules do the work: things that belong together sit closer than the
+     space around them, and every vertical gap is a multiple of 4. Ad-hoc
+     values are what made the same app look assembled by different people. */
+  --sp-1: 4px;   /* inside a chip */
+  --sp-2: 8px;   /* between related lines */
+  --sp-3: 12px;  /* between panels */
+  --sp-4: 16px;  /* screen gutter, panel padding */
+  --sp-5: 20px;
+  --sp-6: 24px;  /* between unrelated groups */
+  /* Radius scale — three steps only. Chips/inputs, cards, hero surfaces.
+     Buttons stay --radius-pill. Keeps one screen from mixing 6 radii. */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  /* Warm elevation: neutral black shadows go muddy over the cream bg. */
+  --shadow-warm-1: 0 1px 2px rgba(74,67,57,0.05), 0 4px 12px -6px rgba(120,84,30,0.14);
+  --shadow-warm-2: 0 1px 2px rgba(74,67,57,0.05), 0 12px 28px -10px rgba(120,84,30,0.18);
   --shadow-aur-1: 0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(42,38,32,0.04);
   --shadow-aur-2: 0 1px 0 rgba(255,255,255,0.7) inset, 0 6px 20px -8px rgba(42,38,32,0.18);
   --shadow-aur-glass: 0 1px 0 rgba(255,255,255,0.55) inset, 0 8px 28px -10px rgba(42,38,32,0.22);
@@ -86,11 +132,13 @@
 }
 
 html.dark {
-  --color-background: #0A0A0F;
+  --brand-ink: #E3AA45;
+  --tab-idle: #B4ADA1;
+  --color-background: #12100E;
   --color-foreground: #F0F0F5;
-  --color-card: #14141A;
+  --color-card: #1B1815;
   --color-card-foreground: #F0F0F5;
-  --color-popover: #14141A;
+  --color-popover: #1B1815;
   --color-popover-foreground: #F0F0F5;
   --color-primary: #DD9C28;
   --color-primary-foreground: #1C1C1C;
@@ -104,11 +152,66 @@ html.dark {
   --color-destructive-foreground: #FFFFFF;
   --color-input: #2A2A35;
   --color-ring: #DD9C28;
+
+  /* The Aurelle palette had no dark half. Anything built on it rendered white
+     slabs on a near-black page in the dark theme — the report's cards and rows
+     were exactly that until this existed. The hues are the same; only the
+     surfaces and the ink invert. */
+  --aur-bg: #12100E;
+  --aur-bg-elev: #1B1815;
+  --aur-surface: #1E1A16;
+  --aur-surface-2: #262019;
+  --aur-border: #2F2822;
+  --aur-border-strong: #3D352C;
+  --aur-hairline: rgba(255, 255, 255, 0.08);
+  --aur-ink: #F4EFE6;
+  --aur-ink-2: #DDD5C7;
+  --aur-muted: #ABA294;
+  --aur-muted-2: #8E8778;
+  /* Deep golds go muddy against near-black; lift them. */
+  --aur-gold: #DD9C28;
+  --aur-gold-2: #C08A3A;
+  --aur-gold-3: #E9B44C;
+  --aur-gold-soft: rgba(221, 156, 40, 0.12);
+  --aur-gold-soft-2: rgba(221, 156, 40, 0.20);
+  --aur-drawer: rgba(27, 24, 21, 0.88);
+  /* On a near-black page the highlight has to be a lift, not white paint. */
+  --inset-hi: rgba(255, 255, 255, 0.045);
+  --inset-lo: rgba(0, 0, 0, 0.5);
+  /* The semantic hues do NOT move. Each one is a solid fill carrying white
+     text somewhere (the Enregistrer CTA, the NON INCLUS badge), and lifting
+     them for dark mode dropped those pairs to 1.8:1. Text keeps to the -ink
+     tokens below; fills keep to these. */
+  --aur-good-soft: rgba(79, 169, 122, 0.16);
+  --aur-warn-soft: rgba(216, 154, 78, 0.16);
+  --aur-bad-soft: rgba(201, 86, 74, 0.18);
+  --aur-info-soft: rgba(59, 109, 139, 0.20);
+  --aur-good-ink: #6FD3A0;
+  --aur-warn-ink: #EFC07A;
+  --aur-bad-ink: #F5A196;
+  --aur-info-ink: #8FC3DF;
+  --aur-pm-comp: #D8B26A;
+  --aur-pm-inclus: #6FD3A0;
+  --aur-pm-points: #BCA0E8;
+  --aur-pm-chambre: #8FC3DF;
+  --aur-pm-cash: #EFC07A;
+  --shadow-aur-1: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-aur-2: 0 1px 0 rgba(255,255,255,0.05) inset, 0 6px 20px -8px rgba(0,0,0,0.6);
+  --shadow-aur-glass: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 28px -10px rgba(0,0,0,0.65);
 }
 
 @layer base {
   html.dark {
-    background-color: #0A0A0F;
+    background-color: #12100E;
+  }
+
+  /* The frames do not move; only what is inside them does.
+     Without this, a swipe on the preview that drifted a few degrees off
+     horizontal panned the whole document — iOS rubber-banding the page under a
+     gesture aimed at a card. Inner scrollers set overscroll-behavior: contain
+     so their own bounce stops at their own edge too. */
+  html, body {
+    overscroll-behavior: none;
   }
 
   body {
@@ -123,15 +226,25 @@ html.dark {
   .dark body,
   html.dark body {
     color: #F0F0F5;
-    background: #0A0A0F;
+    background: #12100E;
+  }
+
+  /* Touch defaults for a device that is only ever touched.
+     manipulation removes iOS's wait for a possible double-tap-to-zoom, which is
+     most of the "the pad feels laggy" on an iPad; the grey flash and the
+     long-press callout are desktop-browser habits that read as glitches here. */
+  button, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
 }
 
 @layer utilities {
   .glass {
     background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     border: 1px solid rgba(255, 255, 255, 0.4);
   }
   .dark .glass {
@@ -141,8 +254,8 @@ html.dark {
 
   .glass-dark {
     background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
   }
   .dark .glass-dark {
     background: rgba(0, 0, 0, 0.7);
@@ -150,8 +263,8 @@ html.dark {
 
   .glass-brand {
     background: rgba(166, 105, 20, 0.12);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     border: 1px solid rgba(166, 105, 20, 0.2);
   }
   .dark .glass-brand {
@@ -160,9 +273,7 @@ html.dark {
   }
 
   .glass-key {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
   .dark .glass-key {
@@ -173,8 +284,8 @@ html.dark {
 
   .glass-surface {
     background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
   }
   .dark .glass-surface {
     background: rgba(255, 255, 255, 0.08);
@@ -188,40 +299,28 @@ html.dark {
       rgba(255, 252, 245, 0.66) 50%,
       rgba(255, 253, 248, 0.80) 100%
     );
-    backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
-    -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
     border: 1px solid rgba(28, 28, 28, 0.05);
     box-shadow:
-      /* top-edge highlight (premium glass reflection) */
       inset 0 1px 0 rgba(255, 252, 245, 0.95),
-      /* inner light ring for depth */
-      inset 0 0 0 1px rgba(255, 252, 245, 0.35),
-      /* hairline close shadow (definition) */
-      0 1px 2px rgba(28, 28, 28, 0.04),
-      /* medium lift shadow */
-      0 6px 16px -3px rgba(40, 40, 45, 0.09),
-      /* ambient distant shadow */
-      0 24px 48px -12px rgba(20, 20, 25, 0.11),
-      /* warm glow underneath */
-      0 32px 64px -16px rgba(166, 105, 20, 0.06);
+      0 1px 2px rgba(28, 28, 28, 0.05),
+      0 10px 26px -8px rgba(40, 40, 45, 0.13);
   }
   .dark .glass-liquid {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.09) 50%,
-      rgba(255, 255, 255, 0.12) 100%
+      rgba(255, 250, 240, 0.13) 0%,
+      rgba(255, 250, 240, 0.08) 50%,
+      rgba(255, 250, 240, 0.11) 100%
     );
-    backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
-    -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(0.95);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    border: 1px solid rgba(221, 156, 40, 0.14);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-      0 1px 2px rgba(0, 0, 0, 0.3),
-      0 6px 16px -3px rgba(0, 0, 0, 0.45),
-      0 24px 48px -12px rgba(0, 0, 0, 0.55),
-      0 32px 64px -16px rgba(0, 0, 0, 0.4);
+      0 1px 2px rgba(0, 0, 0, 0.35),
+      0 10px 26px -8px rgba(0, 0, 0, 0.55);
   }
 
   .glass-liquid-active {
@@ -231,8 +330,6 @@ html.dark {
       rgba(221, 156, 40, 0.1) 50%,
       rgba(166, 105, 20, 0.12) 100%
     );
-    backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
-    -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
     border: 1px solid rgba(166, 105, 20, 0.3);
     box-shadow:
       0 0 0 0.5px rgba(166, 105, 20, 0.2) inset,
@@ -253,18 +350,66 @@ html.dark {
       0 0 24px rgba(221, 156, 40, 0.1) inset;
   }
 
+  /* ── Surface tiers ────────────────────────────────────────────────────
+     Everything on a screen is one of three things, and it should look like
+     which one it is: furniture you look past, the one field you act in, or a
+     card carrying data. Before this, the metrics bar, the search field and a
+     result row were all `glass-liquid` at the same weight and the same radius,
+     so the eye had nothing to sort them by. Use these instead of reaching for
+     glass-liquid on anything structural. */
+
+  /* Furniture. Recessed, no lift — it is a container, not a thing to press. */
+  .surface-chrome {
+    background: rgba(36, 31, 25, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(36, 31, 25, 0.06);
+  }
+  .dark .surface-chrome {
+    background: rgba(255, 250, 240, 0.045);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  /* The live field. A well you type into, ringed in brand so it is obviously
+     the one place on the screen that takes input. */
+  .surface-field {
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow:
+      inset 0 2px 5px rgba(36, 31, 25, 0.07),
+      inset 0 0 0 1.5px rgba(166, 105, 20, 0.22);
+  }
+  .dark .surface-field {
+    background: rgba(255, 250, 240, 0.055);
+    box-shadow:
+      inset 0 2px 6px rgba(0, 0, 0, 0.4),
+      inset 0 0 0 1.5px rgba(221, 156, 40, 0.24);
+  }
+
+  /* Data. Lifts off the page, because these are the things you act on. */
+  .surface-card {
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow:
+      inset 0 0 0 1px rgba(36, 31, 25, 0.05),
+      0 1px 2px rgba(28, 28, 28, 0.05),
+      0 8px 20px -10px rgba(40, 40, 45, 0.18);
+  }
+  .dark .surface-card {
+    background: rgba(255, 250, 240, 0.075);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+      0 8px 22px -10px rgba(0, 0, 0, 0.6);
+  }
+
   /* Dark mode floating settings pill */
   .glass-dark-float {
     background: rgba(20, 20, 28, 0.85);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   }
 
   /* Dark mode overrides for common Tailwind colors */
-  .dark .bg-\[\#F2F2F7\] { background-color: #0A0A0F !important; }
-  .dark .bg-\[\#FBF8F3\] { background-color: #0A0A0F !important; }
+  .dark .bg-\[\#F2F2F7\] { background-color: #12100E !important; }
+  .dark .bg-\[\#FBF8F3\] { background-color: #12100E !important; }
   .dark .text-dark { color: #F0F0F5 !important; }
   .dark .text-muted { color: #A0A0A8 !important; }
   .dark .text-slate { color: #B0B0B8 !important; }
@@ -274,7 +419,7 @@ html.dark {
   .dark .bg-brand-light\/15 { background-color: rgba(221, 156, 40, 0.12) !important; }
   .dark .bg-black\/5 { background-color: rgba(255, 255, 255, 0.10) !important; }
   .dark .border-border { border-color: rgba(255, 255, 255, 0.1) !important; }
-  .dark .bg-bg-alt { background-color: #0A0A0F !important; }
+  .dark .bg-bg-alt { background-color: #12100E !important; }
   .dark .bg-white\/50 { background-color: rgba(255, 255, 255, 0.08) !important; }
   .dark .bg-white\/60 { background-color: rgba(255, 255, 255, 0.10) !important; }
   .dark .bg-white\/40 { background-color: rgba(255, 255, 255, 0.08) !important; }
@@ -310,6 +455,17 @@ html.dark {
     animation: fadeUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
   }
 
+  /* A scrolling strip whose own scrollbar would eat the row height it needs.
+     Used where the overflow is discoverable by other means (a tile clipped at
+     the edge, a chip that moves under the thumb). */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Skeleton shimmer for loading states */
   .skeleton {
     background: linear-gradient(
@@ -340,6 +496,20 @@ html.dark {
   /* Section reveal */
   .animate-sectionIn {
     animation: sectionIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+}
+
+/* Cards that swap into a slot that was already occupied — the guest preview,
+   the check-in confirmation. Global because two components share the slot and
+   a styled-jsx keyframe is scoped to whichever one declared it. */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -441,7 +611,7 @@ html.dark {
 }
 html.dark .aur-time-toggle button[aria-pressed="true"] {
   background: var(--aur-gold);
-  color: #0a0a0f;
+  color: #12100e;
 }
 .aur-anomaly {
   display: flex;
@@ -604,4 +774,69 @@ html.dark .vip-glow {
     0 4px 14px -4px rgba(221, 156, 40, 0.55),
     0 14px 40px -8px rgba(221, 156, 40, 0.65),
     0 0 90px -8px rgba(221, 156, 40, 0.50);
+}
+
+
+/* ── Depth ────────────────────────────────────────────────────────────────
+   From the neumorphic reference: the shape is cut into the surface rather
+   than outlined on it. Used where a row of equal things has to read as a row
+   of separate things without a border between each one — the metrics pills,
+   the keys. Nothing here paints over live pixels, so unlike glass it is free.
+
+   Reduced to two shadows, not four: the reference stacks a highlight and a
+   shadow on each side, which at our radius reads as a halo rather than depth. */
+.surface-inset {
+  background: var(--aur-surface);
+  box-shadow:
+    inset 2px 2px 5px var(--inset-lo),
+    inset -2px -2px 5px var(--inset-hi);
+}
+.surface-raised {
+  background: var(--aur-surface);
+  box-shadow:
+    -3px -3px 7px var(--inset-hi),
+    3px 3px 7px var(--inset-lo);
+}
+/* Pressed: the raised key inverts on touch, which is the whole appeal of the
+   style — the surface responds like a physical thing. */
+.surface-raised:active {
+  box-shadow:
+    inset 2px 2px 5px var(--inset-lo),
+    inset -2px -2px 5px var(--inset-hi);
+}
+
+
+/* ── The edges of the screen ──────────────────────────────────────────────
+   `viewport-fit: cover` hands the app the WHOLE screen, status bar and home
+   indicator included. That is what we want — a dock flush to the bottom edge
+   rather than a white letterbox — but it is a bargain: the app now owns two
+   strips that iOS is also drawing in, and it has to keep its own furniture out
+   of them at BOTH ends.
+
+   Bottom only was half a fix, and the half we shipped: the burger and the
+   metrics bar went straight under the clock and the battery on a real iPad.
+
+   The insets go through a variable so the harness can fake them. A desktop
+   browser reports 0 on every edge, so a rule written against `env()` alone
+   proves nothing at all — it passes on the one machine where the bug cannot
+   happen. Setting `--safe-top` to 44px is the iPad, on any machine. */
+/* 12px, not 10: the scale is 4pt above 8, and R20 reads the RENDERED padding —
+   so a utility with a 10px default quietly takes every header it is applied to
+   off the scale. The rule caught it the first time this shipped. */
+.pt-safe {
+  padding-top: calc(var(--chrome-pad, 12px) + var(--safe-top, env(safe-area-inset-top, 0px)));
+}
+
+/* The screen owns the inset, once.
+   Per-header padding was the wrong altitude: /upload alone has four views, each
+   with its own header, and the one nobody had photographed drew "Traitement en
+   cours" under the iPad's clock. A header cannot know whether it is the top of
+   the display; the container that claims the whole display does.
+   `box-sizing: border-box` is what makes this safe on an `h-dvh` element — the
+   padding comes out of the 100dvh instead of adding to it. */
+.screen-safe {
+  padding-top: var(--safe-top, env(safe-area-inset-top, 0px));
+}
+.pb-safe {
+  padding-bottom: calc(var(--dock-pad, 10px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 }

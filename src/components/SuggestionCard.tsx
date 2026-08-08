@@ -1,6 +1,6 @@
 "use client";
 import { Client, CheckInRecord } from "@/lib/types";
-import { getRemainingForRoom, isComp } from "@/lib/utils";
+import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { findGuest, getGuestBadge, BADGE_CONFIG } from "@/lib/guests";
 import { useApp } from "@/contexts/AppContext";
 
@@ -26,65 +26,70 @@ export default function SuggestionCard({
   const badge = guest ? getGuestBadge(guest.visitCount) : null;
   const badgeConf = badge ? BADGE_CONFIG[badge] : null;
 
+  const needsPay = needsPaymentChoice(client);
+  const visits = guest?.visitCount ?? 0;
+
   return (
     <button
       onClick={() => onSelect(client.roomNumber, clientIndex)}
-      className={`w-full text-left p-4 md:p-5 rounded-[14px] flex items-center gap-4 transition-all active:scale-[0.98] ${
-        allCheckedIn
-          ? "opacity-50 bg-green-50/60 dark:bg-green-900/10 border border-green-200/60 dark:border-green-800/30 backdrop-blur-sm"
-          : "glass hover:bg-white/80 dark:hover:bg-white/8"
-      }`}
+      data-role="room-row"
+      data-room={client.roomNumber}
+      className={`w-full text-left rounded-[16px] px-4 py-3 flex items-center gap-4 min-h-[88px]
+        surface-card active:scale-[0.995] transition-transform ${allCheckedIn ? "opacity-50" : ""}`}
     >
-      <div
-        className={`w-1.5 h-12 md:h-14 rounded-full ${
-          client.isVip ? "bg-brand-light" : comp ? "bg-purple-500" : "bg-teal"
-        }`}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl md:text-3xl font-bold font-mono text-dark">
-            {client.roomNumber}
+      <span className="text-[34px] font-black tabular-nums leading-none min-w-[86px]">
+        {client.roomNumber}
+      </span>
+
+      <span className="flex-1 min-w-0">
+        <span className="block text-[19.5px] font-bold truncate">{client.name}</span>
+        <span className="block text-[13px] mt-0.5" style={{ color: "var(--tab-idle)" }}>
+          {allCheckedIn
+            ? "Tous entrés"
+            : visits > 0
+              ? `Habitué · ${visits}ᵉ séjour`
+              : "1ʳᵉ visite"}
+        </span>
+      </span>
+
+      {/* Only the states that change what reception does next carry colour. */}
+      <span className="flex items-center gap-2 shrink-0">
+        {comp && (
+          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
+            style={{ background: "rgba(90,59,143,.16)", color: "var(--aur-pm-points)", opacity: .8 }}>
+            COMP
           </span>
-          {client.isVip && (
-            <span className="text-sm md:text-base bg-gradient-to-r from-brand to-brand-light text-white px-3 py-1 rounded-full font-black shadow-sm shadow-brand/20 tracking-wide">
-              VIP{client.vipLevel ? ` ${client.vipLevel}` : ""}
-            </span>
-          )}
-          {comp && (
-            <span className="text-sm md:text-base bg-purple-600 text-white px-3 py-1 rounded-full font-black shadow-sm shadow-purple-500/20 tracking-wide">
-              COMP
-            </span>
-          )}
-          {allCheckedIn && (
-            <span className="text-xs md:text-sm bg-green-100/70 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-medium backdrop-blur-sm">
-              DONE
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm md:text-base text-muted truncate">{client.name}</span>
-          {badgeConf && badge !== "new" && (
-            <span className={`text-[9px] md:text-[10px] ${badgeConf.color} ${badgeConf.bg} px-1.5 py-0.5 rounded-full font-bold shrink-0`}>
-              {lang === "fr" ? badgeConf.labelFr : badgeConf.label}
-              {guest && guest.visitCount > 1 ? ` ×${guest.visitCount}` : ""}
-            </span>
-          )}
-          {guest?.birthday && (() => {
-            const today = new Date();
-            const [m, d] = guest.birthday!.split("-").map(Number);
-            if (today.getMonth() + 1 === m && today.getDate() === d) {
-              return <span className="text-sm shrink-0">🎂</span>;
-            }
-            return null;
-          })()}
-        </div>
-      </div>
-      <div className="text-right shrink-0">
-        <div className="text-lg md:text-xl font-bold text-dark">
-          {remaining}/{total}
-        </div>
-        <div className="text-xs md:text-sm text-muted">{t("card.remaining")}</div>
-      </div>
+        )}
+        {client.isVip && (
+          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
+            style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", opacity: .85 }}>
+            {client.vipLevel || "VIP"}
+          </span>
+        )}
+        {needsPay && (
+          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
+            style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
+            À ENCAISSER
+          </span>
+        )}
+      </span>
+
+      {/* Adults and children as their own boxes — the same shape the check-in
+          screen uses, so both screens agree on what a room holds. */}
+      <span className="flex gap-2 shrink-0">
+        {[
+          { k: "Adultes", v: client.adults },
+          { k: "Enfants", v: client.children },
+        ].map((b) => (
+          <span key={b.k} className="min-w-[70px] text-center rounded-[14px] px-2 py-1.5"
+            style={{ background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.05)" }}>
+            <span className="block text-[9.5px] font-black uppercase tracking-[0.10em]"
+              style={{ color: "var(--tab-idle)" }}>{b.k}</span>
+            <span className="block text-[21px] font-bold tabular-nums leading-tight"
+              style={{ color: b.v ? undefined : "var(--tab-idle)" }}>{b.v}</span>
+          </span>
+        ))}
+      </span>
     </button>
   );
 }

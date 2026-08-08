@@ -3,9 +3,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { seedMockData, wipeMockData } from "@/lib/mock-seeder";
 import { getSettings, saveSettings } from "@/lib/storage";
+import { testToolsEnabled } from "@/lib/test-tools";
 
 export default function DebugPage() {
   const router = useRouter();
+  /* Reachable by typing the URL, so it refuses in production rather than
+     relying on nobody finding it. Hooks run first — this is a screen, and a
+     conditional return above them would break the rules of hooks. */
+  const enabled = testToolsEnabled();
   const [info, setInfo] = useState<{ key: string; size: string }[]>([]);
   const [totalSize, setTotalSize] = useState("0");
   const [dailyKeys, setDailyKeys] = useState<string[]>([]);
@@ -82,8 +87,25 @@ export default function DebugPage() {
     }, 100);
   };
 
+  if (!enabled) {
+    return (
+      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 max-w-2xl mx-auto screen-safe flex flex-col items-center justify-center gap-4">
+        <p className="text-[15px] font-bold text-dark text-center">
+          Les outils de test ne sont pas disponibles sur cette version.
+        </p>
+        <button
+          onClick={() => router.push("/upload")}
+          className="min-h-[52px] px-5 rounded-full glass-liquid text-[15px] font-black"
+          style={{ color: "var(--brand-ink)" }}
+        >
+          Retour
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F] p-4 max-w-2xl mx-auto">
+    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 max-w-2xl mx-auto screen-safe">
       <h1 className="text-xl font-bold text-dark mb-1">Storage Debug</h1>
       <p className="text-sm text-muted mb-4">Total: {totalSize} / 5 MB</p>
 
@@ -97,7 +119,7 @@ export default function DebugPage() {
         </p>
         <button
           onClick={handleLocalOCRToggle}
-          className={`w-full py-2.5 rounded-full font-bold text-sm active:scale-[0.97] transition-all ${
+          className={`w-full py-2 rounded-full font-bold text-sm active:scale-[0.97] transition-all ${
             localOCR
               ? "bg-green-500 text-white"
               : "bg-brand/15 text-brand"
@@ -118,14 +140,14 @@ export default function DebugPage() {
           <button
             onClick={handleSeed}
             disabled={!!busy}
-            className="flex-1 py-2.5 rounded-full bg-brand text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
+            className="flex-1 py-2 rounded-full bg-brand text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
           >
             {busy === "seed" ? "Seeding…" : "🌱 Seed Mock Data"}
           </button>
           <button
             onClick={handleWipe}
             disabled={!!busy}
-            className="flex-1 py-2.5 rounded-full bg-red-500/90 text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
+            className="flex-1 py-2 rounded-full bg-red-500/90 text-white font-bold text-sm active:scale-[0.97] transition-all disabled:opacity-50"
           >
             {busy === "wipe" ? "Wiping…" : "🧹 Clear All"}
           </button>

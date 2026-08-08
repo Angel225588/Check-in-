@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notes flow — Check-in</title>
+<style>
+  :root{
+    --gold:#A66914; --gold-l:#DD9C28;
+    --bg:#FBF8F3; --card:#FFFFFF; --ink:#20201C; --muted:#8A857C; --line:rgba(0,0,0,.06);
+    --alerte:#E23B3B; --pref:#3B82F6; --fid:#DD9C28; --event:#8B5CF6; --info:#9AA0A6;
+    --tint-alerte:#FDEDED; --tint-pref:#EDF3FE; --tint-fid:#FBF1DE; --tint-event:#F3EEFD; --tint-info:#F1F1F3;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  .serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+  .frame{height:100vh;display:flex;overflow:hidden;padding:14px;gap:14px}
+
+  /* ===== LATERAL BAR — distinct elevated floating panel ===== */
+  .panel{width:360px;flex:none;height:100%;background:var(--card);border:1px solid var(--line);border-radius:26px;
+    box-shadow:0 26px 60px -26px rgba(60,40,10,.28), 0 2px 8px rgba(0,0,0,.04);display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .phead{padding:18px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+  .phead b{font-size:17px;display:flex;align-items:center;gap:8px}
+  .iconbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--muted);display:grid;place-items:center;font-size:14px}
+
+  /* unified chip = same size for Activity tabs AND Notes filters */
+  .chiprow{display:flex;gap:8px;padding:0 18px 12px;overflow-x:auto;scrollbar-width:none}
+  .chiprow::-webkit-scrollbar{display:none}
+  .chip{flex:none;height:40px;display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-radius:999px;
+    border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:13.5px;font-weight:800;white-space:nowrap}
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip.on{background:var(--card);color:var(--c,var(--gold));border:1.5px solid var(--c,var(--gold));box-shadow:0 5px 14px -8px rgba(0,0,0,.22)}
+
+  .list{flex:1;overflow-y:auto;padding:2px 16px 118px}
+  .sect{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 4px 8px;font-weight:800;display:flex;align-items:center;gap:6px}
+  .note{position:relative;border-radius:16px;padding:12px 14px;margin:0 0 10px;background:var(--card);border:1px solid var(--line);border-left-width:4px;box-shadow:0 6px 16px -12px rgba(0,0,0,.25)}
+  .note .top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .note .sit{font-size:11.5px;font-weight:900}
+  .note .pin{margin-left:auto;font-size:12px;opacity:.6}
+  .note .ttl{font-weight:900;font-size:14.5px;margin-bottom:2px}
+  .note .body{font-size:14px;line-height:1.35;color:#4a463f}
+  .note .meta{margin-top:7px;font-size:11px;color:var(--muted)}
+  .note.alerte{border-left-color:var(--alerte)} .note.alerte .sit{color:var(--alerte)}
+  .note.pref{border-left-color:var(--pref)} .note.pref .sit{color:var(--pref)}
+  .note.fid{border-left-color:var(--fid)} .note.fid .sit{color:var(--gold)}
+  .note.event{border-left-color:var(--event)} .note.event .sit{color:var(--event)}
+  .note.info{border-left-color:var(--info)} .note.info .sit{color:#6b7076}
+
+  .addbar{position:absolute;left:0;right:0;bottom:0;padding:14px 18px 18px;background:linear-gradient(180deg,transparent,var(--card) 36%)}
+  .add{width:100%;border:0;border-radius:16px;padding:15px;font-size:15px;font-weight:900;color:#fff;background:linear-gradient(90deg,var(--gold),var(--gold-l));box-shadow:0 12px 26px -10px rgba(166,105,20,.7);display:flex;align-items:center;justify-content:center;gap:9px}
+
+  /* ===== CHECK-IN CONTEXT (right) ===== */
+  .context{flex:1;height:100%;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+  .roomcard{border-radius:22px;padding:20px 22px;background:var(--card);border:1px solid var(--line);box-shadow:0 10px 30px -18px rgba(0,0,0,.25)}
+  .rc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .rc-id{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .rc-id .num{font-size:58px;font-weight:900;color:var(--gold);line-height:.85;font-family:ui-monospace,monospace}
+  .rc-id .nm{font-size:38px}
+  .tags{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .tag{font-size:12.5px;font-weight:800;padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:#5a564e}
+  .tag.comp{background:var(--tint-event);color:var(--event);border-color:transparent}
+  .paxbox{min-width:66px;text-align:center;border-radius:15px;padding:8px 10px;background:var(--bg);border:1px solid var(--line)}
+  .paxbox .k{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .paxbox .v{font-size:22px;font-weight:900}
+
+  /* pinned notes surfaced on the check-in screen (the empty area) */
+  .pinzone{display:flex;flex-direction:column;gap:10px}
+  .pinzone .zt{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:800;display:flex;align-items:center;gap:6px;margin:2px 2px -2px}
+  .pinnote{display:flex;gap:12px;align-items:flex-start;border-radius:16px;padding:13px 15px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--info);box-shadow:0 8px 22px -16px rgba(0,0,0,.3)}
+  .pinnote .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:16px;flex:none}
+  .pinnote.alerte{border-left-color:var(--alerte)} .pinnote.alerte .ic{background:var(--tint-alerte)}
+  .pinnote.pref{border-left-color:var(--pref)} .pinnote.pref .ic{background:var(--tint-pref)}
+  .pinnote.fid{border-left-color:var(--fid)} .pinnote.fid .ic{background:var(--tint-fid)}
+  .pinnote b{font-size:14.5px}
+  .pinnote p{margin:2px 0 0;font-size:13.5px;color:#4a463f;line-height:1.34}
+
+  .actionbox{flex:none;border-radius:24px;padding:16px;background:var(--card);border:1px solid var(--line);box-shadow:0 -8px 30px -20px rgba(0,0,0,.25)}
+  .counter{display:flex;align-items:center;justify-content:center;gap:26px;margin-bottom:12px}
+  .counter .rnd{width:52px;height:52px;border-radius:50%;background:var(--bg);border:1px solid var(--line);font-size:24px;color:var(--gold);display:grid;place-items:center}
+  .counter .n{font-size:40px;font-weight:900}
+  .cta{width:100%;border:0;border-radius:44px;padding:17px;font-size:22px;font-weight:900;color:#fff;background:linear-gradient(90deg,#16a34a,#22c55e);box-shadow:0 14px 30px -12px rgba(22,163,74,.5)}
+
+  /* ===== COMPOSER MODAL — centered, blurred bg, fade+scale in ===== */
+  .scrim{position:fixed;inset:0;background:rgba(30,24,12,.42);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+    display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .26s ease;z-index:50;padding:20px}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .modal{width:min(560px,92vw);background:var(--card);border-radius:26px;border:1px solid var(--line);
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.5);padding:20px 22px 22px;
+    transform:scale(.92) translateY(8px);opacity:0;transition:transform .3s cubic-bezier(.2,.9,.3,1.1),opacity .26s}
+  .scrim.on .modal{transform:none;opacity:1}
+  .mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .mhead .t{font-size:12px;color:var(--muted);font-weight:800}
+  .mhead .t b{display:block;font-size:16px;color:var(--ink)}
+  .mhead .r{display:flex;gap:8px}
+  .pinbtn{height:38px;padding:0 15px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-weight:800;font-size:13px;display:inline-flex;align-items:center;gap:7px}
+  .pinbtn.on{background:var(--tint-fid);color:var(--gold);border-color:transparent}
+  .xbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:15px}
+
+  .mlabel{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:2px 2px 9px}
+  .tones{display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap}
+  .tone{height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 15px;border-radius:999px;border:1.5px solid transparent;font-weight:800;font-size:13.5px}
+  .tone .dot{width:11px;height:11px;border-radius:50%}
+  .tone.alerte{background:var(--tint-alerte);color:var(--alerte)} .tone.alerte .dot{background:var(--alerte)}
+  .tone.pref{background:var(--tint-pref);color:var(--pref)} .tone.pref .dot{background:var(--pref)}
+  .tone.fid{background:var(--tint-fid);color:var(--gold)} .tone.fid .dot{background:var(--fid)}
+  .tone.event{background:var(--tint-event);color:var(--event)} .tone.event .dot{background:var(--event)}
+  .tone.info{background:var(--tint-info);color:#6b7076} .tone.info .dot{background:var(--info)}
+  .tone.on{border-color:currentColor}
+
+  .titlein{width:100%;border:0;border-bottom:1.5px solid var(--line);background:transparent;color:var(--ink);
+    font-size:22px;font-weight:900;padding:6px 2px 10px;margin-bottom:12px;font-family:inherit}
+  .titlein::placeholder{color:#c8c3b8}
+  .titlein:focus{outline:none;border-color:var(--gold)}
+  .bodyin{width:100%;min-height:96px;resize:none;border:0;background:transparent;color:#3f3b34;font-size:16px;
+    font-family:inherit;line-height:1.45;padding:2px}
+  .bodyin:focus{outline:none}
+  .bodyin::placeholder{color:#c8c3b8}
+  .mfoot{display:flex;align-items:center;gap:12px;margin-top:10px;border-top:1px solid var(--line);padding-top:14px}
+  .qhint{font-size:12px;color:var(--muted);font-weight:700}
+  .done{margin-left:auto;border:0;border-radius:999px;padding:13px 30px;font-weight:900;font-size:15px;color:#fff;background:linear-gradient(90deg,var(--gold),var(--gold-l));box-shadow:0 12px 24px -10px rgba(166,105,20,.6)}
+  .done[disabled]{opacity:.38;box-shadow:none}
+  .delbtn{border:1px solid var(--tint-alerte);background:var(--tint-alerte);color:var(--alerte);border-radius:999px;padding:11px 16px;font-weight:800;font-size:13px}
+
+  /* ---- PHONE: the panel is a full-screen sheet, never a flex sibling ---- */
+  @media (max-width: 900px){
+    .frame{flex-direction:column;padding:10px;gap:10px}
+    .panel{position:fixed;inset:0;width:100%;max-width:none;border-radius:0;z-index:60;
+      transform:translateX(-100%);transition:transform .28s cubic-bezier(.22,.9,.3,1)}
+    .panel.open{transform:none}
+    .context{width:100%;flex:1;min-height:0}
+    .modal,.cbox{width:94vw}
+    .hchip{width:min(72vw,250px)}
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <!-- LATERAL BAR -->
+  <aside class="panel">
+    <div class="phead"><b>🗒️ Notes</b><button class="iconbtn">✕</button></div>
+
+    <!-- Activity tabs — SAME chip size as the notes filters below -->
+    <div class="chiprow">
+      <button class="chip">Tout</button>
+      <button class="chip">Visites</button>
+      <button class="chip on">Notes</button>
+    </div>
+    <!-- Notes filters — identical chip size, light tints -->
+    <div class="chiprow" id="filters">
+      <button class="chip on" data-f="all">Toutes</button>
+      <button class="chip" data-f="alerte" style="--c:var(--alerte)"><span class="dot" style="background:var(--alerte)"></span>Alerte</button>
+      <button class="chip" data-f="pref" style="--c:var(--pref)"><span class="dot" style="background:var(--pref)"></span>Préférence</button>
+      <button class="chip" data-f="fid" style="--c:var(--gold)"><span class="dot" style="background:var(--fid)"></span>Fidélité</button>
+      <button class="chip" data-f="event" style="--c:var(--event)"><span class="dot" style="background:var(--event)"></span>Événement</button>
+      <button class="chip" data-f="info" style="--c:#6b7076"><span class="dot" style="background:var(--info)"></span>Info</button>
+    </div>
+
+    <div class="list" id="list">
+      <div class="sect" data-sect>📌 Épinglées</div>
+      <div class="note alerte" data-cat="alerte" data-pin="1">
+        <div class="top"><span class="sit">ALERTE</span><span class="pin">📌</span></div>
+        <div class="ttl">Allergie arachides</div>
+        <div class="body">Réaction sévère — prévenir la cuisine avant le service.</div>
+        <div class="meta">Sofia · 12 mai</div>
+      </div>
+      <div class="sect" data-sect>Toutes les notes</div>
+      <div class="note pref" data-cat="pref" data-pin="0">
+        <div class="top"><span class="sit">PRÉFÉRENCE</span></div>
+        <div class="ttl">Table &amp; café</div>
+        <div class="body">Près de la fenêtre · lait d'avoine.</div>
+        <div class="meta">Marc · 12 mai</div>
+      </div>
+      <div class="note fid" data-cat="fid" data-pin="0">
+        <div class="top"><span class="sit">FIDÉLITÉ</span></div>
+        <div class="ttl">Habitué</div>
+        <div class="body">5ᵉ séjour cette année — offrir une viennoiserie.</div>
+        <div class="meta">Sofia · 2 avr</div>
+      </div>
+      <div class="note event" data-cat="event" data-pin="0">
+        <div class="top"><span class="sit">ÉVÉNEMENT</span></div>
+        <div class="ttl">Anniversaire de mariage</div>
+        <div class="body">Pendant le séjour — petite attention appréciée.</div>
+        <div class="meta">Léa · 2 avr</div>
+      </div>
+    </div>
+
+    <div class="addbar"><button class="add" onclick="openModal()">＋ Ajouter une note</button></div>
+  </aside>
+
+  <!-- CHECK-IN CONTEXT -->
+  <main class="context">
+    <div class="scroll">
+      <div class="roomcard">
+        <div class="rc-top">
+          <div>
+            <div class="rc-id"><span class="num">524</span><span class="nm serif">Sedalo, Tete</span></div>
+            <div class="tags"><span class="tag comp">COMP</span><span class="tag">🛬 19/07</span><span class="tag">🛫 22/07</span></div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <div class="paxbox"><div class="k">Adultes</div><div class="v">2</div></div>
+            <div class="paxbox"><div class="k">Enfants</div><div class="v">2</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- the previously-empty area now shows the guest's pinned notes -->
+      <div class="pinzone">
+        <div class="zt">📌 À retenir pour ce client</div>
+        <div class="pinnote alerte"><span class="ic">🥜</span><div><b>Allergie arachides</b><p>Réaction sévère — prévenir la cuisine.</p></div></div>
+        <div class="pinnote fid"><span class="ic">⭐</span><div><b>Habitué — 5ᵉ séjour</b><p>Offrir une viennoiserie ce matin.</p></div></div>
+      </div>
+    </div>
+
+    <div class="actionbox">
+      <div class="counter"><div class="rnd">−</div><div class="n">4</div><div class="rnd">＋</div></div>
+      <button class="cta">Enregistrer</button>
+    </div>
+  </main>
+</div>
+
+<!-- ===== COMPOSER MODAL ===== -->
+<div class="scrim" id="scrim" onclick="if(event.target===this)closeModal()">
+  <div class="modal" role="dialog" aria-label="Nouvelle note">
+    <div class="mhead">
+      <div class="t"><span id="mtitle">Nouvelle note</span><b>ch. 524 · Sedalo, Tete</b></div>
+      <div class="r">
+        <button class="pinbtn" id="pinbtn" onclick="togglePin()"><span>📌</span>Épingler</button>
+        <button class="xbtn" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+
+    <div class="mlabel">Ton de la note</div>
+    <div class="tones" id="tones">
+      <button class="tone alerte" data-c="alerte"><span class="dot"></span>Alerte</button>
+      <button class="tone pref" data-c="pref"><span class="dot"></span>Préférence</button>
+      <button class="tone fid" data-c="fid"><span class="dot"></span>Fidélité</button>
+      <button class="tone event" data-c="event"><span class="dot"></span>Événement</button>
+      <button class="tone info on" data-c="info"><span class="dot"></span>Info</button>
+    </div>
+
+    <input class="titlein" id="title" placeholder="Titre (ex. Allergie arachides)" />
+    <textarea class="bodyin" id="body" placeholder="Écrire la note…"></textarea>
+
+    <div class="mfoot">
+      <button class="delbtn" id="delbtn" onclick="deleteNote()" style="display:none">🗑️ Supprimer</button>
+      <span class="qhint" id="qhint">⌨️ Clavier du iPad</span>
+      <button class="done" id="done" onclick="saveNote()">Terminé</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var LABEL={alerte:"ALERTE",pref:"PRÉFÉRENCE",fid:"FIDÉLITÉ",event:"ÉVÉNEMENT",info:"INFO"};
+  var cur="info", pinned=false, editing=null;
+  function setTone(c){cur=c;[].forEach.call(document.querySelectorAll('#tones .tone'),function(t){t.classList.toggle('on',t.dataset.c===c);});}
+  document.getElementById('tones').addEventListener('click',function(e){var b=e.target.closest('.tone');if(b)setTone(b.dataset.c);});
+  function setPin(v){pinned=v;document.getElementById('pinbtn').classList.toggle('on',pinned);}
+  function togglePin(){setPin(!pinned);}
+  function syncDone(){document.getElementById('done').disabled=!(document.getElementById('title').value.trim()||document.getElementById('body').value.trim());}
+  document.getElementById('title').addEventListener('input',syncDone);
+  document.getElementById('body').addEventListener('input',syncDone);
+
+  function openModal(){ // new note
+    editing=null;
+    document.getElementById('mtitle').textContent="Nouvelle note";
+    document.getElementById('delbtn').style.display="none";
+    document.getElementById('title').value="";document.getElementById('body').value="";
+    setTone("info");setPin(false);
+    show();setTimeout(function(){document.getElementById('title').focus();},260);
+  }
+  function editNote(el){ // tap a note to edit it
+    editing=el;
+    document.getElementById('mtitle').textContent="Modifier la note";
+    document.getElementById('delbtn').style.display="";
+    document.getElementById('title').value=(el.querySelector('.ttl')||{}).textContent||"";
+    document.getElementById('body').value=(el.querySelector('.body')||{}).textContent||"";
+    setTone(el.dataset.cat);setPin(el.dataset.pin==="1");
+    show();
+  }
+  function show(){document.getElementById('scrim').classList.add('on');syncDone();}
+  function closeModal(){document.getElementById('scrim').classList.remove('on');}
+
+  function noteHTML(ttl,bd){
+    return '<div class="top"><span class="sit">'+LABEL[cur]+'</span>'+(pinned?'<span class="pin">📌</span>':'')+'</div>'+
+      (ttl?'<div class="ttl">'+ttl.replace(/</g,"&lt;")+'</div>':'')+
+      (bd?'<div class="body">'+bd.replace(/</g,"&lt;")+'</div>':'')+
+      '<div class="meta">vous · à l\'instant</div>';
+  }
+  function saveNote(){
+    var ttl=document.getElementById('title').value.trim(), bd=document.getElementById('body').value.trim();
+    if(!ttl&&!bd)return;
+    if(editing){
+      editing.className="note "+cur;editing.dataset.cat=cur;editing.dataset.pin=pinned?"1":"0";
+      editing.innerHTML=noteHTML(ttl,bd);editing.onclick=function(){editNote(editing);};
+    }else{
+      var n=document.createElement('div');n.className="note "+cur;n.dataset.cat=cur;n.dataset.pin=pinned?"1":"0";
+      n.innerHTML=noteHTML(ttl,bd);n.onclick=(function(el){return function(){editNote(el);};})(n);
+      var list=document.getElementById('list');
+      if(pinned)list.insertBefore(n,list.children[1]); else list.appendChild(n);
+    }
+    closeModal();
+  }
+  function deleteNote(){ if(editing){editing.remove();editing=null;} closeModal(); }
+  // make existing notes editable
+  [].forEach.call(document.querySelectorAll('#list .note'),function(el){el.style.cursor="pointer";el.onclick=function(){editNote(el);};});
+  document.getElementById('filters').addEventListener('click',function(e){
+    var b=e.target.closest('.chip'); if(!b)return;
+    [].forEach.call(this.children,function(c){c.classList.toggle('on',c===b);});
+    var f=b.dataset.f;
+    [].forEach.call(document.querySelectorAll('#list .note'),function(n){n.style.display=(f==="all"||n.dataset.cat===f)?"":"none";});
+    [].forEach.call(document.querySelectorAll('#list [data-sect]'),function(s){s.style.display=(f==="all")?"":"none";});
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  body{overflow:hidden}
+  .switch{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:80;display:flex;gap:6px;
+    background:rgba(0,0,0,.82);padding:5px;border-radius:999px;}
+  .switch button{border:0;background:transparent;color:#fff;font:700 12px/1 system-ui;padding:8px 14px;border-radius:999px;cursor:pointer;opacity:.6;}
+  .switch button.on{background:#fff;color:#111;opacity:1;}
+
+  .stage{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:64px 24px 24px;gap:18px;}
+  .col{width:min(940px,92vw);display:flex;flex-direction:column;gap:16px;}
+
+  /* IDENTITY CARD */
+  .idcard{border-radius:24px;padding:22px 26px;position:relative;transition:.3s;display:flex;gap:20px;align-items:center;}
+  .idcard.plain{background:rgba(255,255,255,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.6);box-shadow:0 8px 30px -12px rgba(60,40,10,.2);}
+  .idcard.vip{background:linear-gradient(135deg,#B9781B,#DD9C28 48%,#A66914);box-shadow:0 16px 44px -14px rgba(166,105,20,.6);color:#fff;}
+  .idcard.vip .k,.idcard.vip .name{color:#fff;}
+  .idmain{flex:1;min-width:0;}
+  .idrow{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;}
+  .room{font-size:72px;font-weight:900;line-height:.85;letter-spacing:-3px;color:var(--gold);}
+  .idcard.vip .room{color:#fff;}
+  .name{font-size:38px;}
+  .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .tag{font-size:13px;font-weight:800;padding:7px 12px;border-radius:999px;display:inline-flex;gap:6px;align-items:center;background:rgba(0,0,0,.05);color:var(--ink);}
+  .idcard.vip .tag{background:rgba(255,255,255,.22);color:#fff;}
+  .tag.comp{background:rgba(124,58,237,.12);color:var(--purple);}
+  .idcard.vip .tag.comp{background:rgba(255,255,255,.9);color:var(--purple);}
+  .tag.warn{background:#E23B3B;color:#fff;box-shadow:0 4px 14px -4px rgba(226,59,59,.7);}
+  /* stat chips sit on the right of the card */
+  .chips{display:flex;gap:10px;}
+  .chip{min-width:74px;text-align:center;background:rgba(255,255,255,.55);border:1px solid var(--line);border-radius:16px;padding:12px 10px;}
+  .idcard.vip .chip{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);}
+  .chip .v{font-size:26px;font-weight:800;} .chip .v.g{color:var(--gold);} .idcard.vip .chip .v,.idcard.vip .chip .v.g{color:#fff;}
+  .viptag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:6px 13px;font-weight:900;font-size:14px;margin-bottom:10px;}
+
+  /* NOT-INCLUDED alert */
+  .alert{display:none;align-items:center;gap:14px;border-radius:18px;padding:16px 20px;
+    background:linear-gradient(90deg,#FFF4E0,#FFE9C7);border:1.5px solid #E7A427;box-shadow:0 8px 24px -12px rgba(180,110,10,.5);}
+  .alert .big{font-weight:900;color:#9a5b00;font-size:17px;}
+  .alert .sub{color:#7a5010;font-size:13px;font-weight:600;}
+  .alert .bell{width:44px;height:44px;border-radius:12px;background:#E7A427;display:grid;place-items:center;font-size:22px;flex:none;}
+  body[data-state="vipnobkf"] .alert{display:flex;}
+
+  /* COUNTER — now below the card, centered */
+  .counter{display:flex;align-items:center;justify-content:center;gap:26px;}
+  .counter .n{font-size:88px;font-weight:900;font-variant-numeric:tabular-nums;min-width:110px;text-align:center;}
+  .counter button{width:70px;height:70px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:34px;color:var(--gold);cursor:pointer;box-shadow:0 6px 16px -8px rgba(0,0,0,.25);}
+  .counter-wrap{text-align:center;}
+  .prog{height:5px;border-radius:999px;background:rgba(0,0,0,.06);overflow:hidden;width:220px;margin:10px auto 0;opacity:.5;}
+  .prog>i{display:block;height:100%;width:25%;background:linear-gradient(90deg,var(--gold),var(--gold-light));}
+
+  /* GLASSY payment — only for vip-no-breakfast */
+  .pay-wrap{display:none;} body[data-state="vipnobkf"] .pay-wrap{display:block;}
+  .pay{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:720px;margin:0 auto;}
+  .gpill{border-radius:20px;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;
+    background:rgba(255,255,255,.45);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.7);
+    box-shadow:0 8px 24px -14px rgba(60,40,10,.4), inset 0 1px 0 rgba(255,255,255,.7);font-weight:800;font-size:14px;color:var(--ink);transition:.2s;}
+  .gpill .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;
+    background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(255,255,255,.5));border:1px solid rgba(255,255,255,.8);box-shadow:inset 0 1px 2px rgba(255,255,255,.9);}
+  .gpill.active{background:rgba(42,32,22,.92);color:#fff;box-shadow:0 12px 28px -10px rgba(0,0,0,.5);}
+  .gpill.active .ic{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#fff;}
+
+  /* FLOATING GLASS CTA */
+  .fab{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:40;width:min(560px,64vw);padding:22px;border:0;border-radius:52px;cursor:pointer;
+    font-size:30px;font-weight:900;color:#fff;background:linear-gradient(90deg,rgba(22,163,74,.92),rgba(34,197,94,.92));
+    backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.35);box-shadow:0 18px 46px -10px rgba(22,163,74,.6),inset 0 1px 0 rgba(255,255,255,.4);}
+
+  /* HISTORY DRAWER — double-tap to open */
+  .scrim{position:fixed;inset:0;background:rgba(20,12,4,.28);opacity:0;pointer-events:none;transition:.25s;z-index:50;}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:340px;z-index:60;transform:translateX(100%);transition:.3s cubic-bezier(.2,.8,.2,1);
+    background:rgba(255,255,255,.9);backdrop-filter:blur(18px);border-left:1px solid rgba(0,0,0,.06);box-shadow:-20px 0 50px -20px rgba(60,40,10,.35);padding:22px;}
+  .open .scrim{opacity:1;pointer-events:auto;} .open .drawer{transform:translateX(0);}
+  .hitem{display:flex;justify-content:space-between;align-items:center;padding:14px;border-radius:14px;background:rgba(0,0,0,.03);margin-top:10px;font-weight:700;}
+  .hint{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);z-index:30;color:var(--muted);font-size:12px;font-weight:600;opacity:.7;}
+</style></head>
+<body data-state="vip">
+
+<div class="switch">
+  <button data-s="incl">Inclus</button>
+  <button data-s="vip" class="on">VIP</button>
+  <button data-s="vipnobkf">VIP · sans petit-déj</button>
+</div>
+
+<div class="stage" id="stage" ondblclick="document.getElementById('root').classList.add('open')">
+  <div class="col">
+    <!-- IDENTITY -->
+    <div class="idcard vip" id="idcard">
+      <div class="idmain">
+        <div class="viptag" id="viptag">★ VIP ×4</div>
+        <div class="idrow"><div class="room">524</div><div class="name serif">Sedalo, Tete</div></div>
+        <div class="tags" id="tags">
+          <span class="tag comp">COMP · 104€</span>
+          <span class="tag">🛬 19/07</span>
+          <span class="tag">🛫 22/07</span>
+          <span class="tag" id="bkftag">☕ Petit-déj inclus</span>
+        </div>
+      </div>
+      <div class="chips">
+        <div class="chip"><div class="k">Adultes</div><div class="v">2</div></div>
+        <div class="chip"><div class="k">Enfants</div><div class="v">2</div></div>
+        <div class="chip"><div class="k">Total</div><div class="v g">4</div></div>
+      </div>
+    </div>
+
+    <!-- NOT-INCLUDED alert (only vip-no-bkf) -->
+    <div class="alert">
+      <div class="bell">☕✕</div>
+      <div>
+        <div class="big">Petit-déjeuner NON inclus — à encaisser</div>
+        <div class="sub">Demandez au client : l'ajouter à la chambre, ou payer maintenant ?</div>
+      </div>
+    </div>
+
+    <!-- COUNTER below the card -->
+    <div class="counter-wrap">
+      <div class="k">Personnes qui entrent · sur 4 restants</div>
+      <div class="counter" style="margin-top:8px;"><button>−</button><div class="n">3</div><button>+</button></div>
+      <div class="prog"><i></i></div>
+    </div>
+
+    <!-- GLASSY payment (only vip-no-bkf) -->
+    <div class="pay-wrap">
+      <div class="pay">
+        <div class="gpill active"><span class="ic">🏨</span>Chambre</div>
+        <div class="gpill"><span class="ic">💳</span>Carte</div>
+        <div class="gpill"><span class="ic">💵</span>Cash</div>
+        <div class="gpill"><span class="ic">🧑‍💼</span>Supervisor</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hint">Double-tap n'importe où pour l'historique</div>
+<button class="fab">Enregistrer · 3</button>
+
+<div id="root">
+  <div class="scrim" onclick="this.parentElement.classList.remove('open')"></div>
+  <div class="drawer">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <b style="font-size:18px;">🕐 Activité</b>
+      <button class="iconbtn" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;" onclick="document.getElementById('root').classList.remove('open')">✕</button>
+    </div>
+    <div class="k" style="margin-top:6px;">Ch. 524 · Sedalo, Tete</div>
+    <div class="hitem"><span>08:23 — 1 personne</span><span style="color:#c0392b;">annuler ↩</span></div>
+    <div class="hitem" style="opacity:.5;"><span>Aucune autre entrée</span><span></span></div>
+    <div class="k" style="margin-top:18px;">3 sur 4 restants</div>
+  </div>
+</div>
+
+<script>
+  const body=document.body, card=document.getElementById('idcard'), viptag=document.getElementById('viptag'), bkf=document.getElementById('bkftag');
+  function set(s){
+    body.dataset.state=s;
+    document.querySelectorAll('.switch button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+    const vip = s!=='incl';
+    card.classList.toggle('vip',vip); card.classList.toggle('plain',!vip);
+    viptag.style.display = vip?'inline-flex':'none';
+    if(s==='vipnobkf'){ bkf.className='tag warn'; bkf.textContent='☕✕ PETIT-DÉJ NON INCLUS'; }
+    else { bkf.className='tag'; bkf.textContent='☕ Petit-déj inclus'; }
+  }
+  document.querySelectorAll('.switch button').forEach(b=>b.addEventListener('click',()=>set(b.dataset.s)));
+  set('vip');
+</script>
+</body></html>

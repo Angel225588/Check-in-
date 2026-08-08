@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recherche v2 — maquette</title>
+<style>
+  :root{
+    --bg:#12100E; --surface:#1B1815; --surface-2:#221E1A;
+    --key:#2A2621; --key-edge:#463F35; --key-press:#3A342C;
+    --ink:#F4EFE6; --ink-2:#DDD5C7; --muted:#ABA294;
+    --gold:#DD9C28; --gold-deep:#A66914;
+    /* Same green as the check-in CTA. White on a lighter green measured
+       2.34:1 — the exact trap this token already solves. */
+    --good:#2F6F4F; --bad:#E0685A; --violet:#B99BE8;
+    /* "-ink" variants are for text sitting ON a tinted wash of the same hue,
+       where the solid colour is far too close to its own background. */
+    --gold-ink:#E9B44C; --bad-ink:#F5A196; --violet-ink:#CDB6F0; --good-ink:#6FD3A0;
+    --r-lg:20px; --r-md:14px; --r-sm:11px;
+  }
+  body.light{
+    --bg:#FBF8F3; --surface:#FFFFFF; --surface-2:#F5F0E7;
+    --key:#FFFFFF; --key-edge:#D8CBB3; --key-press:#EFE7D9;
+    --ink:#241F19; --ink-2:#3C352C; --muted:#6B6355;
+    --good:#2F6F4F; --bad:#A13B2C; --violet:#5A3B8F; --gold:#A66914;
+    --gold-ink:#7F4E0E; --bad-ink:#8C2F22; --violet-ink:#4A2E78; --good-ink:#1F5638;
+  }
+  /* In light mode the same panes are tinted with ink, not light — a white
+     wash on a cream ground has nothing to catch. */
+  body.light .metrics,body.light .searchbar,body.light .detail,
+  body.light .nav,body.light .k,body.light .row{
+    background:linear-gradient(180deg,#FFFFFF,#FBF7F0);
+    border:1px solid rgba(42,38,32,.10);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 10px 26px -18px rgba(90,70,40,.45)}
+  body.light .m.focal{
+    background:linear-gradient(180deg,rgba(166,105,20,.16),rgba(166,105,20,.05));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 10px 24px -14px rgba(166,105,20,.45)}
+  body.light .row.hit{
+    background:linear-gradient(180deg,rgba(166,105,20,.15),rgba(166,105,20,.04));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 10px 24px -16px rgba(166,105,20,.4)}
+  /* ── ATTENTION BUDGET ──────────────────────────────────────────────
+     Three tiers, and only tier 1 is allowed to be loud. Adding emphasis to
+     everything is the same as adding it to nothing.
+
+       T1  decide      the guest on screen, the CTA, RESTANTS, an alert
+       T2  scan        room numbers, names, the clock
+       T3  reference   labels, counts, keypad, nav, the other metrics
+
+     The keypad is deliberately T3: nobody READS a number pad, they aim at
+     it. It was the brightest block on the screen and carried no information.
+  ────────────────────────────────────────────────────────────────── */
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Nunito',-apple-system,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .frame{position:relative;width:1194px;height:834px;margin:18px auto;display:flex;flex-direction:column;
+    gap:10px;padding:12px;background:var(--bg);border-radius:26px;overflow:hidden;
+    box-shadow:0 30px 90px -30px rgba(0,0,0,.6)}
+
+  /* ── header ─────────────────────────────────────────── */
+  /* The top row uses the SAME two-column split as the body, so the metrics
+     bar ends exactly where the search bar ends and the nav sits above the
+     preview card. Edges that nearly line up read as a mistake. */
+  .top{display:flex;align-items:stretch;gap:10px}
+  .btn-back{display:flex;align-items:center;gap:7px;padding:0 18px;min-height:56px;
+    background:var(--surface);border:1px solid var(--key-edge);border-radius:999px;
+    color:var(--gold-ink);font-weight:800;font-size:15px;cursor:pointer}
+  /* Glass: a translucent pane with a lit top edge, not a flat fill with a
+     stroke around it. */
+  .metrics{flex:1;min-width:0;display:flex;align-items:center;border-radius:var(--r-lg);padding:6px;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+    backdrop-filter:blur(18px) saturate(1.15);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 34px -22px rgba(0,0,0,.9)}
+  .m{flex:1;text-align:center;padding:8px 4px;border-radius:var(--r-md);cursor:pointer}
+  .m:hover{background:var(--surface-2)}
+  .m .lab{font-size:10px;letter-spacing:.10em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;opacity:.85}
+  .m .val{font-size:25px;font-weight:700;line-height:1.05;margin-top:2px;
+    font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  /* ONE accent: what is still outstanding. Everything else is cream. */
+  /* The focal cell was a 1.5px gold ring — a hard outline reads as a cheap
+     highlighter pass. It is now a lit pane: warm translucent fill, a bright
+     top edge where light would catch, and a soft glow beneath. No stroke. */
+  .m.focal{
+    background:linear-gradient(180deg,rgba(221,156,40,.20),rgba(221,156,40,.055));
+    box-shadow:inset 0 1px 0 rgba(255,222,160,.28),
+               inset 0 -1px 0 rgba(0,0,0,.22),
+               0 10px 26px -14px rgba(221,156,40,.55)}
+  .m.focal .val{color:var(--gold-ink);font-size:36px;font-weight:800}
+  .m.focal .lab{color:var(--gold-ink);opacity:1}
+  body.rainbow .m.entered .val{color:var(--good)}
+  body.rainbow .m.comp .val{color:var(--violet-ink)}
+  body.rainbow .m.vip .val{color:var(--gold-ink)}
+  .navbtns{display:flex;gap:8px;width:392px;flex:none}
+  .nav{flex:1;min-height:60px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;border-radius:var(--r-md);
+    color:var(--ink-2);cursor:pointer;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 10px 26px -18px rgba(0,0,0,.9)}
+  .nav:hover{background:var(--surface-2)}
+  .nav svg{width:19px;height:19px;opacity:.72}
+  .nav span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted)}
+  /* Clôture ends the service day and is not easily undone, so it does not get
+     to look like the two controls beside it that are used constantly. */
+  .nav.danger span{color:var(--bad-ink)}
+
+  /* ── body split ─────────────────────────────────────── */
+  .body{flex:1;display:flex;gap:10px;min-height:0}
+  .left{flex:1;display:flex;flex-direction:column;gap:9px;min-width:0}
+  .right{width:392px;display:flex;flex-direction:column;gap:9px}
+
+  .sec{font-size:10.5px;opacity:.85;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);font-weight:800;padding-left:3px}
+
+  /* search bar — the keypad fills it with digits, the on-screen ABC or a
+     paired keyboard fills it with a name. One field, two ways in. */
+  .searchbar{display:flex;align-items:center;gap:16px;padding:0 24px;min-height:96px;
+    border-radius:var(--r-lg);
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+    backdrop-filter:blur(18px) saturate(1.15);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 34px -22px rgba(0,0,0,.9)}
+  .searchbar svg{width:29px;height:29px;color:var(--muted);flex:none}
+  .searchbar input{flex:1;min-width:0;background:none;border:none;outline:none;
+    font:inherit;font-size:31px;font-weight:700;color:var(--ink)}
+  .searchbar input::placeholder{
+    font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    font-style:italic;font-weight:400;font-size:29px;letter-spacing:.005em;
+    color:var(--muted);opacity:.85}
+  .clearq{width:52px;height:52px;border-radius:999px;border:none;background:var(--key);
+    color:var(--ink-2);font-size:17px;cursor:pointer;flex:none}
+
+  /* recents strip */
+  .recents{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .chip{flex:none;display:flex;align-items:center;gap:9px;padding:0 14px;min-height:52px;
+    background:var(--surface);border:1px solid var(--key-edge);border-radius:999px;cursor:pointer}
+  .chip b{font-size:17px;font-variant-numeric:tabular-nums}
+  .chip .who{font-size:13px;color:var(--muted);max-width:110px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .pax{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;
+    font-size:13px;font-weight:800;border:2px solid var(--gold);color:var(--gold-ink)}
+
+  /* results */
+  .list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px}
+  .row{display:flex;align-items:center;gap:16px;padding:12px 14px;border-radius:var(--r-md);
+    cursor:pointer;min-height:88px;
+    background:rgba(255,255,255,.028);
+    border:1px solid rgba(255,255,255,.045)}
+  .row:hover{background:var(--surface-2)}
+  .row.hit{background:linear-gradient(180deg,rgba(221,156,40,.18),rgba(221,156,40,.05));
+    box-shadow:inset 0 1px 0 rgba(255,222,160,.24),0 10px 26px -16px rgba(221,156,40,.5)}
+  .rm{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;min-width:70px}
+  .nm{flex:1;min-width:0}
+  .nm .n{font-size:19.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nm .s{font-size:13px;color:var(--muted);margin-top:1px}
+  .tags{display:flex;gap:6px;align-items:center}
+  .tag{font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap;
+    opacity:.72}
+  .t-alert{opacity:1}   /* the one tag that changes what you do next */
+  .t-vip{background:rgba(221,156,40,.16);color:var(--gold-ink)}
+  .t-alert{background:rgba(224,104,90,.16);color:var(--bad-ink)}
+  .t-comp{background:rgba(185,155,232,.16);color:var(--violet-ink)}
+  .t-pay{background:rgba(224,104,90,.16);color:var(--bad-ink)}
+  /* Adults and children as their own boxes — the same pattern the check-in
+     screen already uses, so the two screens agree on what a room contains.
+     The row no longer carries an Entrer button: tapping the row selects the
+     guest into the preview and the CTA below the keypad commits, which keeps
+     a full keyboard/tap-only path for anyone who cannot swipe. */
+  .paxbox{display:flex;gap:9px;flex:none}
+  .pbox{min-width:68px;text-align:center;border-radius:13px;padding:6px 9px;
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.05)}
+  .pbox span{display:block;font-size:9.5px;letter-spacing:.10em;text-transform:uppercase;
+    font-weight:800;color:var(--muted)}
+  .pbox b{display:block;font-size:20px;font-weight:700;line-height:1.15;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .pbox.zero b{color:var(--muted)}
+  body.light .pbox{background:linear-gradient(180deg,#FFFFFF,#F7F2E9);
+    border:1px solid rgba(42,38,32,.10)}
+  .rowmark{flex:none;min-width:86px;text-align:right;font-size:13px;font-weight:800;
+    color:var(--muted)}
+    /* A guest carrying an alert, or one who still owes for breakfast, cannot be
+     waved through from the list. The row sends you to the fiche instead. */
+  .go.needs{background:transparent;border:1.5px solid var(--key-edge);color:var(--ink-2)}
+
+  /* ── swipe ──────────────────────────────────────────────
+     Right = finish the room. Left = add one, row stays with live progress.
+     The buttons above remain the primary route: a gesture is invisible, and
+     an invisible-only action is unusable for anyone who cannot perform it. */
+  .swipe{flex:none;position:relative;border-radius:var(--r-md);overflow:hidden}
+  .sw-bg{position:absolute;inset:0;display:flex;align-items:center;padding:0 24px;
+    font-weight:800;font-size:15.5px;color:#fff;opacity:0}
+  .sw-all{background:var(--good);justify-content:flex-start}
+  .sw-one{background:var(--gold-deep);justify-content:flex-end}
+  .swipe .row{position:relative;touch-action:pan-y;will-change:transform;user-select:none}
+  .swipe .row.snap{transition:transform .24s cubic-bezier(.2,.85,.25,1)}
+  .swipe.locked .sw-bg{background:var(--key)}
+  .prog{height:5px;border-radius:999px;background:var(--key);overflow:hidden;
+    margin-top:5px;max-width:190px;border:1px solid var(--key-edge)}
+  .prog i{display:block;height:100%;background:var(--good);border-radius:999px;
+    transition:width .3s cubic-bezier(.2,.85,.25,1)}
+  .pop{position:absolute;right:150px;top:50%;transform:translateY(-50%);
+    font-size:23px;font-weight:800;color:var(--good-ink);pointer-events:none;
+    animation:popUp .62s cubic-bezier(.2,.8,.2,1) forwards}
+  @keyframes popUp{
+    0%{opacity:0;transform:translateY(-50%) scale(.6)}
+    22%{opacity:1;transform:translateY(-95%) scale(1.18)}
+    100%{opacity:0;transform:translateY(-210%) scale(1)}}
+
+  .toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:14px;padding:0 10px 0 20px;min-height:56px;
+    background:var(--surface);border:1px solid var(--key-edge);border-radius:999px;
+    box-shadow:0 18px 44px -14px rgba(0,0,0,.6);font-size:14.5px;font-weight:700;
+    z-index:40;animation:tIn .2s ease-out}
+  .toast button{min-height:44px;padding:0 18px;border-radius:999px;border:none;
+    background:var(--gold);color:#241F19;font-weight:800;font-size:14px;cursor:pointer}
+  @keyframes tIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+  .row.done{opacity:.5}
+  .row.done .go{background:transparent;color:var(--gold-ink);border:1.5px solid var(--key-edge)}
+
+  /* ── right column ───────────────────────────────────── */
+  /* One box, two jobs. Idle it is the service clock; searching it is the
+     guest preview. Height is FIXED so the keypad never shifts under a
+     thumb that is already moving toward it. */
+  /* The preview/clock takes ALL the space above; the keypad and its CTA are
+     pinned to the bottom of the column. Same rule as R1 on the check-in
+     screen: the thing you must reach never drifts away from the thumb. */
+  .detail{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+    backdrop-filter:blur(18px) saturate(1.15);border:1px solid rgba(255,255,255,.08);
+    border-radius:var(--r-lg);padding:18px 20px;flex:1;min-height:158px;display:flex;
+    flex-direction:column;justify-content:center;overflow:hidden}
+  .detail:has(.pcard){padding:0;background:none;border:none}
+  .detail .pcard{flex:1;display:flex;flex-direction:column;justify-content:center}
+  .pad,.enter,.secondary{flex:none}
+
+  /* idle — service clock */
+  .clockrow{display:flex;align-items:baseline;gap:10px}
+  .clock{font-size:108px;font-weight:300;line-height:.92;letter-spacing:-.045em;
+    font-variant-numeric:tabular-nums;display:flex}
+  .clock .d{display:inline-block}
+  .clock .sep{display:inline-flex;flex-direction:column;justify-content:center;
+    gap:.16em;padding:0 .10em;align-self:center}
+  .clock .sep i{display:block;width:.085em;height:.085em;border-radius:50%;
+    background:currentColor;opacity:.42;animation:blink 2s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:.42}50%{opacity:.16}}
+  /* Each minute the digits that actually changed give a single tick, so the
+     clock reads as running without anything moving the rest of the time. */
+  .clock .d.chg{animation:tickIn .34s cubic-bezier(.2,.9,.25,1)}
+  @keyframes tickIn{
+    0%{opacity:.15;transform:translateY(-.14em) scale(.93)}
+    60%{opacity:1;transform:translateY(.012em) scale(1.015)}
+    100%{transform:none}}
+  .rush{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    padding:4px 9px;border-radius:999px;background:rgba(221,156,40,.16);color:var(--gold-ink)}
+  /* Day progress hugs the bottom edge of the box, like a transport bar. */
+  .bar{position:absolute;left:0;right:0;bottom:0;height:7px;overflow:hidden;
+    background:rgba(255,255,255,.05);border-radius:0 0 var(--r-lg) var(--r-lg)}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));
+    box-shadow:0 0 16px -2px rgba(221,156,40,.8)}
+  .svc{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);
+    font-weight:600;margin-top:14px}
+  /* The clock never rotates away — it is a glance target, and a glance that
+     lands on something else is a regression. Only the strip beneath it cycles. */
+  .rota{margin-top:14px;min-height:62px;position:relative}
+  .rota > div{position:absolute;inset:0;opacity:0;transition:opacity .45s ease}
+  .rota > div.on{opacity:1}
+  .exp{display:flex;flex-direction:column;gap:6px}
+  .exp .hd{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;
+    color:var(--gold-ink)}
+  .exp .g{display:flex;align-items:baseline;gap:9px;font-size:14.5px;font-weight:700}
+  .exp .g b{font-variant-numeric:tabular-nums}
+  .exp .g em{font-style:normal;margin-left:auto;font-size:13px;color:var(--muted);
+    font-variant-numeric:tabular-nums}
+  .dots{display:flex;gap:5px;justify-content:center;margin-top:8px}
+  .dots i{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.3;
+    transition:opacity .3s}
+  .dots i.on{opacity:.9;background:var(--gold)}
+  .svc b{color:var(--ink-2);font-weight:700}
+
+  /* searching — guest preview, treated as a key card rather than a text block.
+     Small-caps labels over large values (Shangri-La Circle), and the VIP
+     variant reuses the exact gold gradient from the check-in identity card so
+     the two screens read as the same object. */
+  .pcard{position:relative;overflow:hidden;border-radius:18px;padding:20px 22px;
+    background:linear-gradient(158deg,var(--surface-2),var(--surface));
+    box-shadow:inset 0 0 0 1px var(--key-edge);
+    animation:cardIn .34s cubic-bezier(.2,.9,.25,1)}
+  .pcard.vip{background:linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C);
+    box-shadow:0 16px 44px -14px rgba(120,74,12,.55)}
+  .pcard.vip,.pcard.vip .lab-mini{color:#fff}
+  .pcard::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(105deg,transparent 32%,rgba(255,255,255,.16) 46%,transparent 62%);
+    transform:translateX(-130%);animation:sheen 1.05s .12s ease-out}
+  @keyframes sheen{to{transform:translateX(130%)}}
+  @keyframes cardIn{from{opacity:0;transform:translateY(9px) scale(.985)}to{opacity:1;transform:none}}
+
+  .lab-mini{font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+    font-weight:800;color:var(--muted)}
+  .roomnum{display:flex;font-size:92px;font-weight:800;letter-spacing:-.045em;
+    line-height:.86;font-variant-numeric:tabular-nums;margin:6px 0 2px}
+  .roomnum.txt{font-size:44px;letter-spacing:-.02em;line-height:1}
+  .digit{display:inline-block;animation:rollIn .30s cubic-bezier(.2,.9,.25,1) backwards}
+  @keyframes rollIn{from{opacity:0;transform:translateY(.34em) scale(.86)}to{opacity:1;transform:none}}
+  .pname{font-size:29px;font-weight:700;line-height:1.06;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .pmeta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:9px}
+  /* On the gold card the tinted washes are the wrong ground entirely — they
+     were tuned against the dark neutral surface. A dark scrim with white text
+     is what the check-in identity card already does for the same reason. */
+  .pcard.vip .who-badge,.pcard.vip .tag{background:rgba(0,0,0,.34);color:#fff}
+  .pcard .swipehint{position:absolute;right:16px;bottom:14px;font-size:11px;
+    font-weight:800;color:var(--muted);letter-spacing:.04em}
+  .pcard.vip .swipehint{color:rgba(255,255,255,.92)}
+
+  /* searching — guest preview */
+  .typed{font-size:50px;font-weight:800;letter-spacing:.10em;font-variant-numeric:tabular-nums;
+    line-height:1}
+  .typed .ph{color:var(--muted);opacity:.45}
+  .prow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .dname{font-size:23px;font-weight:700;margin-top:6px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  .dsub{font-size:13.5px;color:var(--muted);margin-top:4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .dnone{font-size:14px;color:var(--muted);margin-top:8px}
+  .who-badge{flex:none;font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:999px}
+  .b-first{background:rgba(221,156,40,.16);color:var(--gold-ink)}
+  .b-freq{background:rgba(47,111,79,.20);color:var(--good-ink)}
+
+  .secondary{min-height:44px;border:none;background:none;color:var(--muted);
+    font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:7px;text-decoration:underline;text-underline-offset:3px}
+  .secondary[disabled]{display:none}
+  .enter{min-height:96px;font-size:24px}
+
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .k{height:88px;border-radius:var(--r-md);color:var(--ink);font-size:40px;font-weight:600;
+    background:linear-gradient(180deg,rgba(255,255,255,.038),rgba(255,255,255,.012));
+    border:1px solid rgba(255,255,255,.05);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    cursor:pointer;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+  .k:active{background:var(--key-press)}
+  .k.alt{font-size:19px;font-weight:700;color:var(--ink-2)}
+  .enter{min-height:70px;border:none;border-radius:var(--r-md);background:var(--good);
+    color:#fff;font-size:21px;font-weight:800;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;gap:10px}
+  .enter[disabled]{opacity:.32;cursor:default}
+
+  /* toolbar (mockup only) */
+  .tools{width:1194px;margin:0 auto 6px;display:flex;gap:8px;align-items:center;
+    font-family:system-ui;font-size:13px;color:#8a8175}
+  .tools button{padding:7px 13px;border-radius:999px;border:1px solid #55504a;
+    background:#221E1A;color:#DDD5C7;cursor:pointer;font-weight:700}
+  body.light .tools button{background:#fff;color:#3C352C;border-color:#D8CBB3}
+</style>
+</head>
+<body>
+
+<div class="tools">
+  <button onclick="document.body.classList.toggle('light')">Clair / Sombre</button>
+  <button onclick="document.body.classList.toggle('rainbow')">Comparer : 1 accent ⇄ 5 couleurs</button>
+  <button onclick="document.body.classList.toggle('mirror')">Inverser (gaucher / droitier)</button>
+  <button onclick="rota=rota?0:1;render()">Alterner service ⇄ attendus</button>
+  <button onclick="clockM=(clockM+1)%60; if(!clockM) clockH=(clockH+1)%24; if(!typed) render();">+1 minute (voir le tic)</button>
+  <span>— maquette interactive : tapez au clavier ou sur le pavé</span>
+</div>
+
+<div class="frame" id="frame">
+
+  <!-- header -->
+  <div class="top">
+    <div class="metrics">
+      <div class="m"><div class="lab">Total</div><div class="val">164</div></div>
+      <div class="m entered"><div class="lab">Entrés</div><div class="val">126</div></div>
+      <div class="m focal"><div class="lab">Restants</div><div class="val" id="mRest">38</div></div>
+      <div class="m comp"><div class="lab">Offert</div><div class="val">9/12</div></div>
+      <div class="m vip"><div class="lab">VIP</div><div class="val">15</div></div>
+    </div>
+    <div class="navbtns">
+      <div class="nav" title="Historique des check-ins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Récents</span></div>
+      <div class="nav" title="Rapport du service"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 20V10M12 20V4M19 20v-6"/></svg><span>Rapport</span></div>
+      <div class="nav" id="sideBtn" title="Passer les commandes à gauche ou à droite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7L4 11l4 4M16 7l4 4-4 4M4 11h16"/></svg><span id="sideLab">Droitier</span></div>
+      <div class="nav danger" title="Clôturer la journée"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg><span>Clôture</span></div>
+    </div>
+  </div>
+
+  <!-- body -->
+  <div class="body" id="split">
+    <div class="left">
+      <div class="searchbar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" placeholder="Chambre ou nom du client…" autocomplete="off">
+        <button class="clearq" id="clearq" aria-label="Effacer">✕</button>
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="right">
+      <div class="detail" id="detail"></div>
+      <div class="pad" id="pad"></div>
+      <button class="enter" id="enter" disabled>⏎ Entrer</button>
+      <button class="secondary" id="openfile" disabled>Ouvrir la fiche →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROOMS = [
+  {a:2, c:1, r:"224", n:"Angel Polanco",      p:3, vip:true,  alert:"Allergie arachide", visits:6},
+  {a:2, c:0, r:"385", n:"Maria Dupont",       p:2, visits:0},
+  {a:2, c:2, r:"402", n:"Chen Wei",           p:4, comp:true, visits:2},
+  {a:1, c:0, r:"418", n:"Sofia Marchand",     p:1, pay:true, visits:0},
+  {a:2, c:0, r:"501", n:"Julien Fabre",       p:2, vip:true, visits:11},
+  {a:2, c:2, r:"524", n:"Tete Sedalo",        p:4, pay:true, visits:0},
+  {a:2, c:0, r:"608", n:"Amira Haddad",       p:2},
+  {a:1, c:0, r:"619", n:"Julie David",        p:1},
+  {a:2, c:0, r:"702", n:"Lucas Moreau",       p:2, done:true},
+  {a:2, c:1, r:"715", n:"Nina Kowalski",      p:3},
+  {a:2, c:0, r:"801", n:"Omar Benali",        p:2},
+  {a:1, c:0, r:"822", n:"Claire Lefèvre",     p:1, vip:true},
+];
+const RECENT = ["224","385","402","501"];
+
+let typed = "";
+
+const el = (id)=>document.getElementById(id);
+
+/* keypad */
+const KEYS = ["1","2","3","4","5","6","7","8","9","ABC","0","⌫"];
+el("pad").innerHTML = KEYS.map(k=>
+  `<button class="k ${/[0-9]/.test(k)?"":"alt"}" data-k="${k}">${k}</button>`).join("");
+el("pad").addEventListener("click", e=>{
+  const b = e.target.closest("[data-k]"); if(!b) return;
+  press(b.dataset.k);
+});
+document.addEventListener("keydown", e=>{
+  if(/^[0-9]$/.test(e.key)) press(e.key);
+  else if(e.key==="Backspace") press("⌫");
+  else if(e.key==="Enter") doEnter();
+});
+function press(k){
+  if(k==="⌫") typed = typed.slice(0,-1);
+  else if(k==="ABC"){ el("q").focus(); return; }
+  else if(typed.length<12) typed += k;
+  el("q").value = typed;
+  render();
+}
+
+const isNum = (q)=>/^\d+$/.test(q);
+const fold = (s)=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function match(){
+  const q = typed.trim().toLowerCase();
+  if(!q) return ROOMS;
+  return isNum(q) ? ROOMS.filter(x=>x.r.startsWith(q))
+                  : ROOMS.filter(x=>fold(x.n).includes(fold(q)));
+}
+/* A "hit" is an unambiguous target: the exact room, or the only name left. */
+function exact(){
+  const q = typed.trim().toLowerCase(); if(!q) return null;
+  if(isNum(q)) return q.length>=3 ? ROOMS.find(x=>x.r===q) : null;
+  const m = match();
+  return q.length>=2 && m.length===1 ? m[0] : null;
+}
+
+function tagsFor(x){
+  let t="";
+  if(x.alert) t+=`<span class="tag t-alert">⚠ ${x.alert}</span>`;
+  if(x.vip)   t+=`<span class="tag t-vip">VIP</span>`;
+  if(x.comp)  t+=`<span class="tag t-comp">OFFERT</span>`;
+  if(x.pay)   t+=`<span class="tag t-pay">À ENCAISSER</span>`;
+  return t;
+}
+
+function whoBadge(x){
+  // Frequent vs first visit, straight in the preview: it changes how you
+  // greet them, and it is the single thing reception asks for by name.
+  return x.visits > 0
+    ? `<span class="who-badge b-freq">Habitué · ${x.visits}ᵉ séjour</span>`
+    : `<span class="who-badge b-first">1ʳᵉ visite</span>`;
+}
+
+/* Service window — breakfast runs 06:30 to 10:30. */
+const SVC_START = 6.5, SVC_END = 10.5;
+let clockH = 7, clockM = 12, prev4 = null, rota = 0;
+
+/* Guests whose arrival time is PREDICTABLE — three or more prior stays. One
+   visit is not a pattern, and guessing from it would put a wrong name in
+   someone's mouth, which is worse than saying nothing.
+   Deliberately room-number-led: this panel can be read from across the
+   counter, and a guest list on an idle screen is a leak. */
+const EXPECTED = ROOMS.filter(x => x.visits >= 3).slice(0,3)
+  .map((x,i) => ({ r:x.r, n:x.n.split(" ").slice(-1)[0], t:`07:${15+i*6}` }));
+function serviceBox(){
+  const now = clockH + clockM/60;
+  const pct = Math.max(0, Math.min(1, (now - SVC_START) / (SVC_END - SVC_START)));
+  const leftMin = Math.max(0, Math.round((SVC_END - now) * 60));
+  const rush = now >= 7.5 && now <= 9 ? `<span class="rush">Pointe</span>` : "";
+  const now4 = String(clockH).padStart(2,"0") + String(clockM).padStart(2,"0");
+  const digits = now4.split("").map((d,i)=>{
+    const changed = prev4 && prev4[i] !== d;
+    return `<span class="d ${changed?"chg":""}" style="animation-delay:${i*30}ms">${d}</span>`
+         + (i===1 ? `<span class="sep"><i></i><i></i></span>` : "");
+  }).join("");
+  prev4 = now4;
+  return `
+    <div class="clockrow">
+      <div class="clock">${digits}</div>
+      ${rush}
+    </div>
+    <div class="rota">
+      <div class="${rota===0?"on":""}">
+        <div class="svc" style="margin-top:2px">
+          <span>Service <b>06:30 – 10:30</b></span>
+          <span><b>${Math.floor(leftMin/60)}h${String(leftMin%60).padStart(2,"0")}</b> restantes</span>
+        </div>
+      </div>
+      <div class="${rota===1?"on":""}">
+        <div class="exp">
+          <span class="hd">Attendus bientôt</span>
+          ${EXPECTED.map(e=>`<span class="g"><b>${e.r}</b> ${e.n}<em>~${e.t}</em></span>`).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="dots"><i class="${rota===0?"on":""}"></i><i class="${rota===1?"on":""}"></i></div>
+    <div class="bar"><i style="width:${(pct*100).toFixed(1)}%"></i></div>`;
+}
+
+var render = function(){
+  const hit = exact();
+  const near = match();
+
+  /* ── the box: clock when idle, guest preview when searching ── */
+  if(!typed){
+    el("detail").innerHTML = serviceBox();
+  } else if(hit){
+    const digits = hit.r.split("").map((d,i)=>
+      `<span class="digit" style="animation-delay:${i*55}ms">${d}</span>`).join("");
+    el("detail").innerHTML = `
+      <div class="pcard ${hit.vip?"vip":""}" id="pcard">
+        <div class="prow">
+          <span class="lab-mini">Chambre</span>
+          ${whoBadge(hit)}
+        </div>
+        <div class="roomnum">${digits}</div>
+        <div class="pname">${hit.n}</div>
+        <div class="pmeta"><b>${hit.p} pers.</b> ${tagsFor(hit)}</div>
+        ${(hit.alert||hit.pay) ? "" : `<span class="swipehint">glisser →</span>`}
+      </div>`;
+  } else {
+    el("detail").innerHTML = `
+      <div class="typed">${isNum(typed)?typed.split("").join(" "):typed}</div>
+      <div class="dnone">${near.length} résultat(s) pour « ${typed} »</div>`;
+  }
+
+  /* ── actions ── */
+  const enter = el("enter"), open = el("openfile");
+  enter.disabled = !hit;
+  open.disabled  = !hit;
+  if(hit){
+    // A guest who needs money taken, or carries an alert, must not be
+    // waved through with one tap — the fiche is the primary action there.
+    // The primary slot never moves; only what it commits to changes.
+    const mustOpen = !!(hit.alert || hit.pay);
+    if(mustOpen){
+      enter.innerHTML = hit.alert ? `⚠ Ouvrir la fiche →` : `Encaisser · ouvrir →`;
+      enter.onclick = ()=> alert("→ fiche client (maquette)");
+      open.innerHTML = `Entrer quand même (${hit.p})`;
+      open.onclick = doEnter;
+    } else {
+      enter.innerHTML = `⏎ Entrer &nbsp;<b>${hit.p}</b>`;
+      enter.onclick = doEnter;
+      open.innerHTML = `Ouvrir la fiche →`;
+      open.onclick = ()=> alert("→ fiche client (maquette)");
+    }
+  } else {
+    enter.innerHTML = `⏎ Entrer`;
+    open.innerHTML = `Ouvrir la fiche →`;
+  }
+
+  /* ── list ── */
+  const shown = typed ? near : ROOMS;
+  el("list").innerHTML = shown.map(x=>{
+    const inn = x.in || 0, rem = x.p - inn, done = rem <= 0;
+    const locked = !!(x.alert || x.pay);   // no gesture past an allergy or a bill
+    return `
+    <div class="swipe ${locked?"locked":""}" data-r="${x.r}">
+      <div class="sw-bg sw-all">✓ Entrer tous (${rem})</div>
+      <div class="sw-bg sw-one">+1 personne</div>
+      <div class="row ${done?"done":""} ${hit&&hit.r===x.r?"hit":""}">
+        <div class="rm">${x.r}</div>
+        <div class="nm">
+          <div class="n">${x.n}</div>
+          <div class="s">${done ? "tous entrés"
+            : inn ? `${inn}/${x.p} entrés`
+            : x.visits > 0 ? `Habitué · ${x.visits}ᵉ séjour` : "1ʳᵉ visite"}</div>
+          ${inn && !done ? `<div class="prog"><i style="width:${(inn/x.p*100)}%"></i></div>` : ""}
+        </div>
+        <div class="tags">${tagsFor(x)}</div>
+        <div class="paxbox">
+          <div class="pbox"><span>Adultes</span><b>${x.a}</b></div>
+          <div class="pbox ${x.c?"":"zero"}"><span>Enfants</span><b>${x.c}</b></div>
+        </div>
+        ${done ? `<div class="rowmark" style="color:var(--good-ink)">✓ Entré</div>` : ""}
+      </div>
+    </div>`;}).join("");
+};
+
+
+el("q").addEventListener("input", (e)=>{ typed = e.target.value; render(); });
+el("clearq").addEventListener("click", ()=>{ typed=""; el("q").value=""; el("q").focus(); render(); });
+
+function doEnter(){
+  const hit = exact(); if(!hit) return;
+  const b=el("enter"); b.textContent="✓ Enregistré"; b.style.background="var(--gold-deep)";
+  setTimeout(()=>{ typed=""; render(); b.style.background=""; },700);
+}
+/* ── swipe ───────────────────────────────────────────────────────────
+   Right past the threshold finishes the room; left adds exactly one and
+   leaves the row in place with live progress. Under the threshold it
+   snaps back, so a stray horizontal nudge during a vertical scroll costs
+   nothing. Every committed swipe is undoable. */
+const THRESHOLD = 88;
+let drag = null;
+
+/* The preview card takes the same gesture as a row, so the hand learns one
+   rule: swipe right finishes the room. On release the card flies out and the
+   guest lands in Récents (the Historique panel). */
+(function(){
+  let d=null;
+  const box = el("detail");
+  box.addEventListener("pointerdown",(e)=>{
+    const c = e.target.closest("#pcard"); if(!c) return;
+    const x = exact(); if(!x || x.alert || x.pay) return;
+    d = {c, x0:e.clientX, dx:0, x};
+    c.style.transition="none"; c.setPointerCapture(e.pointerId);
+  });
+  box.addEventListener("pointermove",(e)=>{
+    if(!d) return;
+    d.dx = e.clientX - d.x0;
+    d.c.style.transform = `translateX(${Math.max(-40,Math.min(200,d.dx))}px) rotate(${d.dx*0.012}deg)`;
+  });
+  const up = ()=>{
+    if(!d) return;
+    const {c,dx,x} = d; d=null;
+    c.style.transition="transform .3s cubic-bezier(.2,.85,.25,1), opacity .3s ease";
+    if(dx >= 92){
+      c.style.transform="translateX(420px) rotate(7deg)"; c.style.opacity="0";
+      setTimeout(()=>{ commit(x, x.p - (x.in||0), null); typed=""; el("q").value=""; render(); },230);
+    } else { c.style.transform="translateX(0)"; }
+  };
+  box.addEventListener("pointerup",up);
+  box.addEventListener("pointercancel",up);
+})();
+
+/* keep the visible field authoritative after programmatic changes */
+const _r = render; render = function(){ if(el("q").value !== typed) el("q").value = typed; _r(); };
+
+el("list").addEventListener("click", (e)=>{
+  const w = e.target.closest(".swipe"); if(!w) return;
+  if(drag) return;                    // a swipe already handled it
+  typed = w.dataset.r; el("q").value = typed; render();
+});
+
+el("list").addEventListener("pointerdown", (e)=>{
+  const row = e.target.closest(".swipe .row"); if(!row) return;
+  if(e.target.closest("button")) return;
+  const wrap = row.parentElement;
+  if(wrap.classList.contains("locked")) return;
+  const x = ROOMS.find(r=>r.r===wrap.dataset.r);
+  if(!x || (x.in||0) >= x.p) return;
+  drag = { row, wrap, x, x0:e.clientX, dx:0 };
+  row.classList.remove("snap");
+  row.setPointerCapture(e.pointerId);
+});
+
+el("list").addEventListener("pointermove", (e)=>{
+  if(!drag) return;
+  drag.dx = e.clientX - drag.x0;
+  const d = Math.max(-160, Math.min(160, drag.dx));
+  drag.row.style.transform = `translateX(${d}px)`;
+  const over = Math.min(1, Math.abs(d)/THRESHOLD);
+  drag.wrap.querySelector(".sw-all").style.opacity = d > 0 ? over : 0;
+  drag.wrap.querySelector(".sw-one").style.opacity = d < 0 ? over : 0;
+});
+
+function endDrag(){
+  if(!drag) return;
+  const {row, wrap, x, dx} = drag;
+  row.classList.add("snap");
+  row.style.transform = "translateX(0)";
+  wrap.querySelectorAll(".sw-bg").forEach(b=>b.style.opacity=0);
+  if(dx >= THRESHOLD)      commit(x, x.p - (x.in||0), row);   // everyone left
+  else if(dx <= -THRESHOLD) commit(x, 1, row);                // one more
+  drag = null;
+}
+el("list").addEventListener("pointerup", endDrag);
+el("list").addEventListener("pointercancel", endDrag);
+
+function commit(x, n, row){
+  // A real save can fail (storage full). The animation must never claim a
+  // success the write did not earn — this is the check-in bug as a gesture.
+  const ok = saveCheckIn(x, n);
+  if(!ok){ toast(`Chambre ${x.r} — NON enregistré`, null); render(); return; }
+  if(n === 1 && row){
+    const pop = document.createElement("div");
+    pop.className = "pop"; pop.textContent = "+1";
+    row.appendChild(pop); setTimeout(()=>pop.remove(), 640);
+  }
+  render();
+  toast(`${x.r} · ${n} personne${n>1?"s":""} entrée${n>1?"s":""}`, ()=>{
+    x.in = Math.max(0, (x.in||0) - n); render();
+  });
+}
+
+/* stand-in for addCheckIn(); returns false when the write would not land */
+function saveCheckIn(x, n){ x.in = (x.in||0) + n; return true; }
+
+let toastT = null;
+function toast(msg, undo){
+  document.querySelector(".toast")?.remove();
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.innerHTML = `<span>${msg}</span>`;
+  if(undo){
+    const b = document.createElement("button");
+    b.textContent = "Annuler";
+    b.onclick = ()=>{ undo(); t.remove(); };
+    t.appendChild(b);
+  }
+  document.getElementById("frame").appendChild(t);
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>t.remove(), 4200);
+}
+
+
+setInterval(()=>{ clockM=(clockM+1)%60; if(clockM===0) clockH=(clockH+1)%24; if(!typed) render(); }, 60000);
+/* 10s a pane, and only while nothing is being searched. */
+setInterval(()=>{ if(!typed && EXPECTED.length){ rota = rota ? 0 : 1; render(); } }, 10000);
+
+/* handedness mirror */
+new MutationObserver(()=>{
+  el("split").style.flexDirection =
+    document.body.classList.contains("mirror") ? "row-reverse" : "row";
+}).observe(document.body,{attributes:true,attributeFilter:["class"]});
+
+el("sideBtn").addEventListener("click", ()=>{
+  document.body.classList.toggle("mirror");
+  el("sideLab").textContent = document.body.classList.contains("mirror") ? "Gaucher" : "Droitier";
+});
+
+render();
+
+/* Keep the pinned CTA above the software keyboard. Without this the keyboard
+   covers the bottom of a landscape iPad and re-creates the original bug:
+   a primary action you cannot reach. */
+if(window.visualViewport){
+  const fit = ()=>{
+    const f = document.getElementById("frame");
+    const vh = window.visualViewport.height;
+    f.style.height = Math.min(834, vh - 36) + "px";
+  };
+  window.visualViewport.addEventListener("resize", fit);
+}
+</script>
+</body>
+</html>

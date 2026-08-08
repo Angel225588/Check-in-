@@ -210,6 +210,91 @@ async function main() {
     await ctx.close();
   }
 
+  // ── C. The whole morning, in one pass ────────────────────────────────────
+  //
+  // Every check above proves one guarantee in isolation. This walks the errand
+  // reception actually runs — find a guest, write something about them, check
+  // them in, read the report, open them again from it — because the seams
+  // between screens are where this has broken before: a note written on one
+  // screen that the next screen cannot see, a back button that moves, a row
+  // that leads nowhere.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1194, height: 834 }, deviceScaleFactor: 1 });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/upload`, { waitUntil: "networkidle" });
+    // Breakfast INCLUDED on purpose: the one-tap shortcut is armed for this
+    // guest, so when the alert disarms it we know the note did it and not a
+    // missing package.
+    await page.evaluate(() => {
+      const today = new Date().toISOString().split("T")[0];
+      localStorage.setItem("dailyData_" + today, JSON.stringify({
+        date: today, rawUploadText: "", checkIns: [],
+        clients: [{
+          roomNumber: "410", roomType: "DLXK", rtc: "", confirmationNumber: "941000",
+          name: "PAUL BERNARD", arrivalDate: "18/07/26", departureDate: "22/07/26",
+          reservationStatus: "CKIN", adults: 2, children: 0, rateCode: "", packageCode: "BKF INC",
+        }],
+      }));
+    });
+    await page.goto(`${BASE}/search`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(700);
+
+    // 1 — find the room on the pad.
+    for (const k of ["4", "1", "0"]) {
+      await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${k}$`) }).first().click();
+    }
+    await page.waitForTimeout(800);
+    const resolved = await page.locator('[data-role="guest-preview"]').isVisible().catch(() => false);
+    const armed = await page.locator('[data-role="search-enter"]').getAttribute("data-mode");
+    record("C1-flow-resolve", "Typing a room resolves the guest, shortcut armed",
+      resolved && armed === "commit", `preview=${resolved}, CTA=${armed}`);
+
+    // 2 — write a note about them without leaving the search screen.
+    await page.locator('[data-role="preview-compose"]').click();
+    await page.waitForTimeout(500);
+    const modal = page.locator('[data-role="notes-modal"]');
+    await modal.getByRole("button", { name: "Alerte", exact: true }).click();
+    await modal.locator('[data-role="note-title"]').fill("Allergie arachides");
+    await modal.locator('[data-role="note-save"]').click();
+    await page.waitForTimeout(900);
+    await shot(page, "06-flow-note-from-search.png");
+
+    // 3 — that alert must now disarm the one-tap shortcut (US-2: a check-in is
+    // not worth one tap if the tap skips an allergy).
+    const after = await page.locator('[data-role="search-enter"]').getAttribute("data-mode");
+    record("C2-flow-alert-blocks-shortcut", "An alert written here disarms the one-tap check-in",
+      armed === "commit" && after === "open", `${armed} -> ${after}`);
+
+    // 4 — open the room; the note is on the card without opening anything.
+    await page.locator('[data-role="search-enter"]').click();
+    await page.waitForTimeout(1000);
+    const onCard = await page.locator('[data-role="pinned-chip"]').first().isVisible().catch(() => false);
+    record("C3-flow-alert-on-card", "The note reaches the room's card, unopened", onCard);
+
+    const save = page.getByRole("button", { name: /Enregistrer/i }).first();
+    await save.waitFor({ state: "visible", timeout: 8000 });
+    await save.click();
+    await page.waitForTimeout(1400);
+
+    // 5 — the report shows the arrival, and its row opens the guest again.
+    await page.goto(`${BASE}/report`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(1000);
+    const rowCount = await page.locator('[data-role="report-row"]').count();
+    await shot(page, "07-flow-report.png");
+    record("C4-flow-report-has-arrival", "The check-in reaches the report", rowCount > 0, `${rowCount} row(s)`);
+
+    if (rowCount > 0) {
+      await page.locator('[data-role="report-row"]').first().click();
+      await page.waitForTimeout(1000);
+    }
+    const backOnGuest = /\/checkin\//.test(page.url());
+    record("C5-flow-report-to-guest", "A report row opens the guest's screen",
+      backOnGuest, page.url().replace(BASE, ""));
+    await shot(page, "08-flow-guest-from-report.png");
+
+    await ctx.close();
+  }
+
   await browser.close();
 
   // ── Report ──

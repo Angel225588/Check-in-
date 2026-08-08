@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import InstallPrompt from "@/components/InstallPrompt";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
 import AnalyticsSafe from "@/components/AnalyticsSafe";
@@ -17,6 +18,12 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#A66914",
+  /* Installed on an iPad there is no browser chrome, and the home indicator
+     sits over the last ~20px of the screen. Without this the OS shrinks the
+     viewport and 100dvh lies about how much of it is usable; with it we get
+     the whole screen and take responsibility for the insets — which the docks
+     do, via env(safe-area-inset-bottom). */
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -44,6 +51,7 @@ export default function RootLayout({
         </Script>
         <AppProvider>
           {children}
+          <InstallPrompt />
         </AppProvider>
         <AnalyticsSafe />
       </body>

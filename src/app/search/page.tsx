@@ -4,26 +4,53 @@ import { useRouter } from "next/navigation";
 import { useDailyData } from "@/hooks/useDailyData";
 import { useSearch } from "@/hooks/useSearch";
 import { useApp } from "@/contexts/AppContext";
-import { addClient, mergeVipIntoSession } from "@/lib/storage";
+import { addClient, mergeVipIntoSession, getSessionHistory, getSettings, saveSettings, closeDay, addCheckIn, removeCheckIn } from "@/lib/storage";
+import { v4 as uuidv4 } from "uuid";
+import { Check, WarningCircle, NotePencil } from "@phosphor-icons/react/dist/ssr";
+import { useGuestNotes } from "@/hooks/useGuestNotes";
 import { Client } from "@/lib/types";
 import MetricsBar, { MetricFilter } from "@/components/MetricsBar";
-import SearchInput from "@/components/SearchInput";
+import RoomSearchField from "@/components/RoomSearchField";
+import ServiceClock, { ExpectedGuest } from "@/components/ServiceClock";
+import SearchNav from "@/components/SearchNav";
+import GuestPreviewCard from "@/components/GuestPreviewCard";
+import PreviewCarousel, { type Pane } from "@/components/PreviewCarousel";
+import { ExpectedPane, RecentsPane, HistoryPane, type RecentEntry, type StayEntry } from "@/components/PreviewPanes";
+import NotesFrame, { type NoteDraft } from "@/components/NotesFrame";
 import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
 import HistoryPanel from "@/components/HistoryPanel";
+import NotesModal from "@/components/NotesModal";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
-import { getRemainingForRoom, isComp } from "@/lib/utils";
+import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { checkinHref } from "@/lib/checkin-nav";
+import { rememberOrigin } from "@/lib/back-nav";
+import { groupBlocks } from "@/lib/groups";
+import { pickGroups } from "@/lib/group-pick";
+import { boxRows, boxRecord, type BoxRow } from "@/lib/box-list";
+import GroupPicker from "@/components/GroupPicker";
+import { expectedFromYesterday } from "@/lib/expected";
+import { capRows } from "@/lib/row-cap";
+import { swipeEnabled, idlePreviewEnabled } from "@/lib/gestures";
+import { padTarget } from "@/lib/pad-target";
+import { usePortrait } from "@/hooks/usePortrait";
+import PortraitSearch from "@/components/portrait/PortraitSearch";
+import NavDrawer from "@/components/portrait/NavDrawer";
+import ActivitySheet from "@/components/portrait/ActivitySheet";
 
 export default function SearchPage() {
   const router = useRouter();
   const { t } = useApp();
   const { clients, checkIns, hasData, loading, refresh } = useDailyData();
-  const { query, mode, results, appendKey, backspace, clear, toggleMode } =
+  const { query, setQuery, mode, results, appendKey, backspace, clear } =
     useSearch(clients);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MetricFilter>(null);
+  /** Which coach, when there is more than one. Empty means all of them. */
+  const [pickedGroups, setPickedGroups] = useState<string[]>([]);
+  /** US-34 — the box run. A mode, not a screen: same rooms, one tap each. */
+  const [boxMode, setBoxMode] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
   const [newRoom, setNewRoom] = useState("");
   const [newName, setNewName] = useState("");
@@ -32,7 +59,267 @@ export default function SearchPage() {
   const [vipMergedMsg, setVipMergedMsg] = useState(false);
   const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
   const [mergeBanner, setMergeBanner] = useState<{ added: number; skipped: number; total: number } | null>(null);
+  const queryRef = useRef<HTMLInputElement>(null);
+  const [handSide, setHandSide] = useState<"left" | "right">("left");
+  /** One column and one thumb, or two columns and a resting hand. Not a width
+   *  test: a landscape iPad zoomed to 150% is 796px wide and still landscape. */
+  const portrait = usePortrait();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  /** US-23 — the swipe is a shortcut, never the only path. */
+  const [swipe, setSwipe] = useState(true);
+  /** US-19 — reception's own metrics bar. null means "you decide". */
+  const [chosenMetrics, setChosenMetrics] = useState<string[] | null>(null);
+  /** The frame at rest. Never governs the resolved guest card. */
+  const [idlePreview, setIdlePreview] = useState(true);
+  /** How many of the room are actually walking in. Defaults to everyone still
+   *  expected, because that is the common case; the stepper handles the rest
+   *  without loading the check-in screen. */
+  const [count, setCount] = useState(1);
+  /** Which pad is showing. Digits by default — most guests are found by room. */
+  const [pad, setPad] = useState<"num" | "abc">("num");
+  // Writing a note about the guest in front of you used to mean opening their
+  // room first. The slot is where the eye already is, so it is where the pencil
+  // goes.
+  const [noteFor, setNoteFor] = useState<Client | null>(null);
+  /**
+   * A note being written in the preview frame (US-17/US-18).
+   *
+   * It lives here rather than in the frame because the app's pad is what types
+   * into it — the keyboard is already on screen six inches below, and building
+   * a second one inside a 340px box was never going to fit. While a draft is
+   * open the pad's keys go to the note instead of the search field.
+   */
+  const [noteDraft, setNoteDraft] = useState<NoteDraft | null>(null);
+
+  useEffect(() => {
+    const st = getSettings();
+    setHandSide(st.handSide === "right" ? "right" : "left");
+    setSwipe(swipeEnabled(st));
+    setChosenMetrics(st.metrics && st.metrics.length ? st.metrics : null);
+    setIdlePreview(idlePreviewEnabled(st));
+  }, []);
+
+  const flipSide = () => {
+    const next = handSide === "left" ? "right" : "left";
+    setHandSide(next);
+    saveSettings({ ...getSettings(), handSide: next });
+  };
+
+  /** Undo an arrival from wherever it is listed. The drawer used to carry a
+   *  button to a screen whose only job was this, which is a trip to correct a
+   *  typo you are already looking at. */
+  const undoCheckIn = (id: string) => {
+    removeCheckIn(id);
+    refresh();
+  };
+
+  const chooseMetricsFor = (next: string[]) => {
+    setChosenMetrics(next);
+    saveSettings({ ...getSettings(), metrics: next });
+  };
+
+  const flipIdlePreview = () => {
+    const next = !idlePreview;
+    setIdlePreview(next);
+    saveSettings({ ...getSettings(), idlePreview: next });
+  };
+
+  const closeDayConfirmed = () => {
+    if (confirm("Clôturer la journée ?")) { closeDay(); refresh(); }
+  };
+
+  /** The single unambiguous target, if there is one: an exact room, or the only
+   *  guest a name still matches. Drives the CTA — nothing else may commit. */
+  const hit = useMemo(() => {
+    const q = query.trim();
+    if (!q) return null;
+    if (/^\d+$/.test(q)) return q.length >= 3 ? results.find((c) => c.roomNumber === q) ?? null : null;
+    return q.length >= 2 && results.length === 1 ? results[0] : null;
+  }, [query, results]);
+
+  const maxCount = hit ? getRemainingForRoom(hit, checkIns) : 0;
+  useEffect(() => { setCount(Math.max(1, maxCount)); }, [hit?.roomNumber, maxCount]);
+
+  /** The pad, pointed at whatever is being typed. Search by default; the note
+   *  while one is open. One keyboard, two destinations — not two keyboards. */
+  const padAppend = (k: string) =>
+    padTarget({ draft: noteDraft, hasGuest: !!hit }) === "note" && noteDraft
+      ? setNoteDraft({ ...noteDraft, text: noteDraft.text + k })
+      : appendKey(k);
+  const padBackspace = () =>
+    padTarget({ draft: noteDraft, hasGuest: !!hit }) === "note" && noteDraft
+      ? setNoteDraft({ ...noteDraft, text: noteDraft.text.slice(0, -1) })
+      : backspace();
+
+  /* A draft cannot outlive the guest it is about. Without this the editor
+     disappears with the card and the draft stays behind, eating every key
+     meant for the next room — a dead pad with nothing on screen to explain it
+     and nothing but a reload to clear it. */
+  useEffect(() => {
+    if (!hit && noteDraft) setNoteDraft(null);
+  }, [hit, noteDraft]);
+
+  /** Switching alphabet clears the search field — which, mid-note, would drop
+   *  the guest the note is about and take the frame with it. While a draft is
+   *  open the switch only switches. */
+  const padToggle = (next: "num" | "abc") => {
+    if (padTarget({ draft: noteDraft, hasGuest: !!hit }) !== "note") clear();
+    setPad(next);
+  };
+
+  /** Starting a note switches to letters: a note is words, and leaving the pad
+   *  on digits would make the first thing anyone types a wrong one. */
+  const startDraft = (d: NoteDraft | null) => {
+    setNoteDraft(d);
+    if (d) setPad("abc");
+  };
+
+  /** Notes for the one resolved room — one decrypt per resolved guest, not per
+   *  row. An alert here is the whole reason the shortcut must not fire. */
+  const hitNotes = useGuestNotes(hit?.roomNumber ?? "", hit?.name ?? "", "reception");
+
+  /**
+   * Can this be committed from here, or does it need the room's own screen?
+   *
+   * The shortcut only fires when nothing on the check-in screen would have
+   * asked the receptionist a question: no payment to take, no flagged
+   * reservation, no alert note, and someone still expected. Everything else
+   * opens the screen that shows what needs deciding — a check-in is not worth
+   * one tap if the tap skips an allergy.
+   */
+  const needsScreen =
+    !hit ||
+    maxCount === 0 ||
+    !hitNotes.ready ||
+    needsPaymentChoice(hit) ||
+    hit.pendingPaymentAction === "alert" ||
+    hitNotes.notes.some((n) => n.tone === "alert");
+
+  const [flash, setFlash] = useState<{ room: string; n: number } | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  /** Commit from the search screen, honestly: a check-in that did not persist
+   *  must say so rather than flash green. */
+  const commitHere = () => {
+    if (!hit) return;
+    const ok = addCheckIn({
+      id: uuidv4(),
+      roomNumber: hit.roomNumber,
+      clientName: hit.name,
+      peopleEntered: count,
+      timestamp: new Date().toISOString(),
+      ...(hit.pendingPaymentAction ? { paymentAction: hit.pendingPaymentAction } : {}),
+    });
+    if (!ok) { setSaveFailed(true); return; }
+    setSaveFailed(false);
+    setFlash({ room: hit.roomNumber, n: count });
+    clear();
+    refresh();
+    setTimeout(() => setFlash(null), 2200);
+  };
+
+  /** The last people through the door — the "did I already do 224?" check. */
+  const recents = useMemo<RecentEntry[]>(() => {
+    return [...checkIns]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      // The pane scrolls, so this is not "the last three" any more — it is the
+      // whole service, newest first, for the "did I already do 224?" question.
+      .slice(0, 40)
+      .map((c) => ({
+        id: c.id,
+        roomNumber: c.roomNumber,
+        name: c.clientName,
+        pax: c.peopleEntered,
+        at: new Date(c.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      }));
+  }, [checkIns]);
+
+  /** The arrivals, each with the booking behind it — the sheet's lenses need
+   *  the client, not just the name that was recorded at the time. */
+  const activityRows = useMemo(
+    () => recents.map((r) => ({ ...r, client: clients.find((c) => c.roomNumber === r.roomNumber) })),
+    [recents, clients]
+  );
+
+  /** Who came down yesterday and has not checked out. A fact from two records
+   *  we already keep — no attendance model, no prediction. */
+  const expectedToday = useMemo(
+    () => expectedFromYesterday(clients, getSessionHistory(), new Date().toISOString().split("T")[0]),
+    [clients]
+  );
+  const cameYesterday = useMemo(() => {
+    const hist = getSessionHistory();
+    const todayIso = new Date().toISOString().split("T")[0];
+    const last = hist.filter((s) => s.date < todayIso).sort((a, b) => b.date.localeCompare(a.date))[0];
+    if (!last) return new Set<string>();
+    const key = (n: string) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+    return new Set(last.checkIns.map((c) => key(c.clientName)));
+  }, [clients]);
+
+  /**
+   * The history, walked ONCE, into two lookups: how many prior stays a guest
+   * has, and what those stays were.
+   *
+   * Both used to be computed from `getSessionHistory()` at the point of use,
+   * and the second one was not memoised at all — so every keystroke and every
+   * tap of the stepper re-parsed thirty days of JSON and re-walked every guest
+   * of every session, while someone stood at the counter waiting for a digit
+   * to appear. Measured at 71ms median on a desktop, which is several times
+   * that on the iPad. That is the whole of "the pad is not very reactive".
+   */
+  const staysIndex = useMemo(() => {
+    const counts = new Map<string, number>();
+    const stays = new Map<string, StayEntry[]>();
+    const today = new Date().toISOString().split("T")[0];
+    for (const s of getSessionHistory()) {
+      if (s.date === today) continue;
+      const seen = new Set<string>();
+      for (const c of s.clients) {
+        const k = c.name.trim().toUpperCase();
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+        // One row per stay, not one per matching line: a shared room lists the
+        // same guest twice and that is still one night.
+        if (!seen.has(k)) {
+          seen.add(k);
+          (stays.get(k) ?? stays.set(k, []).get(k)!).push({
+            date: s.date, roomNumber: c.roomNumber, pax: c.adults + c.children,
+          });
+        }
+      }
+    }
+    for (const list of stays.values()) list.sort((a, b) => b.date.localeCompare(a.date));
+    return { counts, stays };
+  }, []);
+  const visitsFor = (name: string) => staysIndex.counts.get(name.trim().toUpperCase()) ?? 0;
+
+  /** Guests whose arrival time is predictable: three or more prior stays. One
+   *  visit is not a pattern, and a wrong prediction puts a wrong name in
+   *  someone's mouth. Surname only — this panel is readable across a counter. */
+  const expected = useMemo<ExpectedGuest[]>(() => {
+    const seen = new Map<string, number>();
+    for (const s of getSessionHistory()) {
+      for (const c of s.clients) {
+        const k = c.name.trim().toUpperCase();
+        seen.set(k, (seen.get(k) ?? 0) + 1);
+      }
+    }
+    const done = new Set(checkIns.map((c) => c.roomNumber));
+    return clients
+      .filter((c) => !done.has(c.roomNumber) && (seen.get(c.name.trim().toUpperCase()) ?? 0) >= 3)
+      .slice(0, 3)
+      .map((c, i) => ({
+        roomNumber: c.roomNumber,
+        surname: c.name.split(/[\/,]/)[0].trim().split(/\s+/)[0],
+        at: `0${7}:${String(15 + i * 6).padStart(2, "0")}`,
+      }));
+  }, [clients, checkIns]);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
+
+  /* One walk of the house per upload, not one per keystroke: the group blocks
+     feed both the picker and the filter. */
+  const blocks = useMemo(() => groupBlocks(clients), [clients]);
 
   const filteredClients = useMemo(() => {
     if (!activeFilter) return [];
@@ -52,14 +339,57 @@ export default function SearchPage() {
         return clients.filter((c) => isComp(c));
       case "vip":
         return clients.filter((c) => c.isVip);
+      case "children":
+        return clients.filter((c) => (c.children || 0) > 0);
+      case "expected": {
+        const key = (n: string) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
+          .replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+        return clients.filter((c) => cameYesterday.has(key(c.name)));
+      }
+      /* The guests whose answer to "petit-déjeuner ?" is not yes. This is the
+         only route to the points swap: it lives on a VIP's own screen, and
+         before this there was no way to find that VIP among two hundred rooms
+         except by knowing their number. A switch nobody can reach is a switch
+         nobody built. */
+      case "notincluded":
+        return clients.filter((c) => needsPaymentChoice(c));
+      /* Not "the groups" — the ones ticked. Nothing ticked is all of them, so
+         the pill on its own behaves exactly as it always did. */
+      case "groups":
+        return pickGroups(clients, blocks, pickedGroups);
       default:
         return [];
     }
-  }, [activeFilter, clients, checkIns]);
+  }, [activeFilter, clients, checkIns, cameYesterday, blocks, pickedGroups]);
 
-  const handleSelectRoom = (roomNumber: string, clientIndex?: number) => {
+  /* The rooms of the picked coach, one line each. `filteredClients` is already
+     the group filter's own answer, so the run and the list can never disagree
+     about who is on the coach. */
+  const boxRowsToday = useMemo(
+    () => (activeFilter === "groups" ? boxRows(filteredClients, checkIns) : []),
+    [activeFilter, filteredClients, checkIns]
+  );
+
+  const serveBox = (row: BoxRow) => {
+    const rec = boxRecord(row.client, checkIns, uuidv4());
+    // Null means the room owes nothing — a second tap must not double-count.
+    if (rec && addCheckIn(rec)) refresh();
+  };
+
+  const undoBox = (row: BoxRow) => {
+    /* Only what this run recorded. Undoing a restaurant arrival from the box
+       list would delete a fact somebody else entered on another screen. */
+    const mine = checkIns.filter((c) => c.roomNumber === row.roomNumber && c.viaBox);
+    const last = mine[mine.length - 1];
+    if (last) { removeCheckIn(last.id); refresh(); }
+  };
+
+  const handleSelectRoom = (roomNumber: string, clientIndex?: number, people?: number) => {
     // PII-free navigation: room number goes to sessionStorage, not the URL.
-    router.push(checkinHref(roomNumber, clientIndex));
+    // The arrival count rides along, so the stepper you just set is the number
+    // waiting on the check-in screen rather than a figure you set twice.
+    rememberOrigin("search");
+    router.push(checkinHref(roomNumber, clientIndex, people));
   };
 
   const handleAddClient = () => {
@@ -117,7 +447,7 @@ export default function SearchPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#0A0A0F] p-3">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 screen-safe">
         <div className="skeleton h-14 w-full mb-3" />
         <div className="skeleton h-10 w-full mb-3" />
         <div className="space-y-2">
@@ -132,7 +462,7 @@ export default function SearchPage() {
   if (!hasData) {
     router.push("/upload");
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#0A0A0F]">
+      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
         <div className="text-muted">Loading...</div>
       </div>
     );
@@ -147,151 +477,104 @@ export default function SearchPage() {
     }
   };
 
+  /* ── The preview slot's faces ──────────────────────────────────────────
+     Idle rotates on its own; a resolved room never does. Both are reachable
+     by swipe or by tapping a dot — see PreviewCarousel. */
+  /** Open a guest from a row in one of the idle faces. Rooms that have left
+   *  the list since it was drawn simply do nothing rather than opening a
+   *  screen about nobody. */
+  const openRoom = (roomNumber: string) => {
+    const i = clients.findIndex((c) => c.roomNumber === roomNumber);
+    if (i < 0) return;
+    handleSelectRoom(roomNumber, i);
+  };
+
+  const idlePanes: Pane[] = [
+    { key: "clock", label: "Heure", node: <ServiceClock checkIns={checkIns} onOpen={() => { rememberOrigin("search"); router.push("/report"); }} /> },
+    { key: "expected", label: "Attendus bientôt", node: <ExpectedPane expected={expected} onPick={openRoom} /> },
+    { key: "recents", label: "Récents", node: <RecentsPane recents={recents} onPick={openRoom} /> },
+  ];
+
+  // A map lookup, not a parse of every night the hotel has had.
+  const hitStays: StayEntry[] = hit
+    ? staysIndex.stays.get(hit.name.trim().toUpperCase()) ?? []
+    : [];
+
+  const hitToday: RecentEntry[] = hit
+    ? checkIns
+        .filter((c) => c.roomNumber === hit.roomNumber)
+        .map((c) => ({
+          roomNumber: c.roomNumber,
+          name: c.clientName,
+          pax: c.peopleEntered,
+          at: new Date(c.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        }))
+    : [];
+
+  const hitPanes: Pane[] = hit
+    ? [
+        {
+          key: "apercu",
+          label: "Aperçu",
+          node: (
+            <GuestPreviewCard
+              client={hit}
+              visits={visitsFor(hit.name)}
+              notes={hitNotes.notes}
+              /* Same destination as "Ouvrir la fiche", and it carries the
+                 stepper's count so the number set here is the number waiting
+                 on the room's own screen. */
+              onOpen={() => handleSelectRoom(hit.roomNumber, clients.indexOf(hit), maxCount > 0 ? count : undefined)}
+            />
+          ),
+          // The VIP card is a gold fill in both themes, so its dots stay white.
+          onDark: !!hit.isVip,
+        },
+        {
+          key: "notes",
+          label: "Notes",
+          node: (
+            <NotesFrame
+              notes={hitNotes.notes}
+              ready={hitNotes.ready}
+              draft={noteDraft}
+              onDraftChange={startDraft}
+              saveError={hitNotes.saveError}
+              onSave={async (d) => {
+                const text = d.text.trim();
+                if (!text) return;
+                if (d.editing) await hitNotes.edit(d.editing, { tone: d.tone, title: text });
+                else await hitNotes.add({ tone: d.tone, title: text, body: "" });
+                startDraft(null);
+              }}
+              onDelete={(id) => hitNotes.remove(id)}
+              onPin={(id) => hitNotes.pin(id)}
+            />
+          ),
+        },
+        { key: "historique", label: "Historique", node: <HistoryPane stays={hitStays} today={hitToday} /> },
+      ]
+    : [];
+
   const showFiltered = activeFilter && !query;
-  const displayClients = showFiltered ? filteredClients : results;
+  const { shown: displayClients, more: hiddenRows } =
+    capRows(query ? results : showFiltered ? filteredClients : []);
   const filterLabels: Record<string, string> = {
     total: t("search.allClients"),
     entered: t("search.entered"),
     remaining: t("search.remaining"),
     comp: t("search.comp"),
     vip: "VIP",
+    children: "Enfants",
+    groups: "Groupes",
+    expected: "Attendus",
   };
 
-  return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#0A0A0F]">
-      <div className="shrink-0 p-2 md:p-3 pt-2 md:pt-3">
-        {/* Header row: back button + logo */}
-        <div className="flex items-center justify-between mb-2 md:mb-3">
-          <button
-            onClick={() => router.push("/upload")}
-            className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
-          >
-            <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="text-sm font-medium text-brand">{t("search.upload")}</span>
-          </button>
-
-          <div className="flex flex-col items-end">
-            <span className="text-sm md:text-base font-bold tracking-[0.08em] text-brand leading-tight" style={{ fontFamily: "'Nunito', sans-serif" }}>
-              COURTYARD
-            </span>
-            <span className="text-[10px] md:text-xs text-muted leading-tight">
-              by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
-            </span>
-          </div>
-        </div>
-
-        {mergeBanner && (
-          <div className="mb-2 p-2.5 glass-liquid rounded-[12px] flex items-center gap-2 animate-fadeUp">
-            <div className="w-7 h-7 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-            </div>
-            <div className="text-xs text-dark">
-              <span className="font-bold">+{mergeBanner.added}</span> {t("upload.newRoomsAdded")}
-              {mergeBanner.skipped > 0 && <span className="text-muted"> · {mergeBanner.skipped} {t("upload.duplicatesSkipped")}</span>}
-              <span className="text-muted"> · {mergeBanner.total} {t("upload.totalRoomsNow")}</span>
-            </div>
-          </div>
-        )}
-
-        <MetricsBar
-          clients={clients}
-          checkIns={checkIns}
-          onHistoryToggle={() => setHistoryOpen(true)}
-          activeFilter={activeFilter}
-          onFilterChange={handleFilterChange}
-        />
-      </div>
-
-      <div className="shrink-0 px-2 md:px-3 pb-1">
-        <SearchInput query={query} mode={mode} onClear={clear} />
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-3 py-1 space-y-1.5 md:space-y-2">
-        {showFiltered && (
-          <div className="flex items-center justify-between px-1 py-1">
-            <span className="text-xs md:text-sm font-semibold text-muted uppercase tracking-wide">
-              {filterLabels[activeFilter]} ({filteredClients.length} {t("upload.rooms")})
-            </span>
-            <button
-              onClick={() => setActiveFilter(null)}
-              className="text-xs md:text-sm text-brand font-medium active:opacity-70"
-            >
-              {t("upload.clear")}
-            </button>
-          </div>
-        )}
-        {displayClients.map((client, i) => {
-          const ci = clients.indexOf(client);
-          return (
-            <div
-              key={`${client.roomNumber}-${i}`}
-              className="animate-fadeUp"
-              style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
-            >
-              <SuggestionCard
-                client={client}
-                checkIns={checkIns}
-                onSelect={handleSelectRoom}
-                clientIndex={ci >= 0 ? ci : undefined}
-              />
-            </div>
-          );
-        })}
-        {query && results.length === 0 && (
-          <div className="flex flex-col items-center gap-3 py-6">
-            <div className="text-muted text-sm">{t("search.noRooms")}</div>
-            <button
-              onClick={() => {
-                setNewRoom(query);
-                setNewName("");
-                setNewAdults("1");
-                setNewChildren("0");
-                setAddClientOpen(true);
-              }}
-              className="flex items-center gap-2 px-5 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              {t("search.addRoom")} {mode === "numeric" ? query : ""}
-            </button>
-          </div>
-        )}
-        {showFiltered && filteredClients.length === 0 && (
-          <div className="text-center text-muted py-4 text-sm md:text-base">{t("search.noClients")}</div>
-        )}
-        {/* Upload button — inside scroll area, not overlaying keypad */}
-        <div className="flex justify-end py-2">
-          <button
-            onClick={() => setUploadSheetOpen(true)}
-            className="w-11 h-11 rounded-full glass-liquid border border-brand/20 text-brand shadow-sm flex items-center justify-center active:scale-90 transition-all"
-            title={t("search.upload")}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div className="shrink-0 p-2 md:p-3 pt-0">
-        {mode === "numeric" ? (
-          <NumericKeypad
-            onKeyPress={appendKey}
-            onBackspace={backspace}
-            onToggleMode={toggleMode}
-          />
-        ) : (
-          <AlphaKeypad
-            onKeyPress={appendKey}
-            onBackspace={backspace}
-            onToggleMode={toggleMode}
-          />
-        )}
-      </div>
-
+  /* Everything that floats over either shell: the sheets, the composer, the
+     history drawer. They are fixed-position, so they belong to the page rather
+     than to a layout, and neither shell has to carry a copy. */
+  const overlays = (
+    <>
       {/* Hidden VIP PhotoCapture */}
       <div className="hidden">
         <PhotoCapture ref={vipCaptureRef} onProcessed={handleVipProcessed} apiEndpoint="/api/ocr-unified" />
@@ -299,7 +582,7 @@ export default function SearchPage() {
 
       {/* VIP merged success toast */}
       {vipMergedMsg && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-500 text-white px-4 py-2.5 rounded-full shadow-lg shadow-green-500/30 animate-[slideDown_0.2s_ease-out]">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg shadow-green-500/30 animate-[slideDown_0.2s_ease-out]">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
@@ -311,7 +594,7 @@ export default function SearchPage() {
 
       {/* Upload action sheet */}
       {uploadSheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setUploadSheetOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center screen-safe" onClick={() => setUploadSheetOpen(false)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
             className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
@@ -362,7 +645,7 @@ export default function SearchPage() {
 
       {/* Add client modal */}
       {addClientOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60" onClick={() => setAddClientOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe" onClick={() => setAddClientOpen(false)}>
           <div
             className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
@@ -378,7 +661,7 @@ export default function SearchPage() {
                   inputMode="numeric"
                   value={newRoom}
                   onChange={(e) => setNewRoom(e.target.value)}
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="101"
                   maxLength={10}
                   autoFocus
@@ -390,7 +673,7 @@ export default function SearchPage() {
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Dupont"
                   maxLength={100}
                 />
@@ -407,7 +690,7 @@ export default function SearchPage() {
                   onChange={(e) => setNewAdults(e.target.value)}
                   min="0"
                   max="20"
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
               <div>
@@ -419,7 +702,7 @@ export default function SearchPage() {
                   onChange={(e) => setNewChildren(e.target.value)}
                   min="0"
                   max="20"
-                  className="w-full mt-1 px-3 py-2.5 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full mt-1 px-3 py-2 rounded-xl glass-liquid text-dark font-mono text-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
             </div>
@@ -443,6 +726,21 @@ export default function SearchPage() {
         </div>
       )}
 
+      {/* The composer, for the guest resolved in the slot. */}
+      {noteFor && (
+        <NotesModal
+          open
+          onClose={() => setNoteFor(null)}
+          initialView="compose"
+          closeOnSave
+          api={hitNotes}
+          roomNumber={noteFor.roomNumber}
+          guestName={noteFor.name}
+          visits={visitsFor(noteFor.name)}
+          pax={noteFor.adults + noteFor.children}
+        />
+      )}
+
       <HistoryPanel
         checkIns={checkIns}
         isOpen={historyOpen}
@@ -463,6 +761,413 @@ export default function SearchPage() {
           to { opacity: 1; transform: translate(-50%, 0); }
         }
       `}</style>
+    </>
+  );
+
+  /* Portrait is not landscape made narrower — it is a different shell over the
+     same state. Keeping them as two trees rather than one tree full of
+     breakpoints is what stops a portrait tweak from moving a tablet the hotel
+     is already using every morning. */
+  if (portrait) {
+    return (
+      <>
+        <PortraitSearch
+          clients={clients}
+          checkIns={checkIns}
+          query={query}
+          setQuery={setQuery}
+          clear={clear}
+          results={results}
+          hit={hit ?? null}
+          hitPanes={hitPanes}
+          idlePanes={idlePanes}
+          filteredClients={showFiltered ? filteredClients : []}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilterChange}
+          groupBlocks={blocks}
+          pickedGroups={pickedGroups}
+          onPickGroups={setPickedGroups}
+          boxMode={boxMode}
+          onBoxMode={setBoxMode}
+          boxRows={boxRowsToday}
+          onServeBox={serveBox}
+          onUndoBox={undoBox}
+          onMenu={() => setDrawerOpen(true)}
+          onBack={() => router.push("/upload")}
+          handSide={handSide}
+          chosenMetrics={chosenMetrics}
+          onChooseMetrics={chooseMetricsFor}
+          idlePreview={idlePreview}
+          onSelectRoom={handleSelectRoom}
+          onCompose={setNoteFor}
+          onAddRoom={() => {
+            setNewRoom(query);
+            setNewName("");
+            setNewAdults("1");
+            setNewChildren("0");
+            setAddClientOpen(true);
+          }}
+          expected={expectedToday}
+          swipe={swipe}
+          pad={pad}
+          setPad={setPad}
+          onPadToggle={padToggle}
+          appendKey={padAppend}
+          backspace={padBackspace}
+          count={count}
+          setCount={setCount}
+          maxCount={maxCount}
+          needsScreen={needsScreen}
+          onCommit={commitHere}
+          flash={flash}
+          saveFailed={saveFailed}
+          onDismissError={() => setSaveFailed(false)}
+          clientIndexOf={(c) => clients.indexOf(c)}
+        />
+        <NavDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          handSide={handSide}
+          side={handSide}
+          idlePreview={idlePreview}
+          onIdlePreviewToggle={flipIdlePreview}
+          recents={recents}
+          onPickRoom={openRoom}
+          onReport={() => { rememberOrigin("search"); router.push("/report"); }}
+          onFlipSide={flipSide}
+          onCloseDay={closeDayConfirmed}
+          /* The sheet, not the upload screen. "Charger la liste" means pick a
+             PDF or a photo — the screen it used to open is a detour with its
+             own layout and its own back button, for a choice of four. */
+          onUpload={() => setUploadSheetOpen(true)}
+          onUndoRow={undoCheckIn}
+          onExpandActivity={() => setActivityOpen(true)}
+        />
+        <ActivitySheet
+          open={activityOpen}
+          onClose={() => setActivityOpen(false)}
+          rows={activityRows}
+          clients={clients}
+          onPickRoom={openRoom}
+          onUndoRow={undoCheckIn}
+        />
+        {overlays}
+      </>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="shrink-0 px-3 pt-3 pb-0">
+        {/* Header row: back button + logo */}
+        <div className="flex items-center justify-between mb-2 md:mb-3">
+          <button
+            onClick={() => router.push("/upload")}
+            className="flex items-center gap-1.5 px-3 py-1.5 glass-liquid rounded-full active:scale-[0.96] transition-all"
+          >
+            <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            {/* brand-ink, not brand: #A66914 on the cream page measures 4.36:1,
+                just under AA. The ink variant is the same hue, one step deeper. */}
+            <span className="text-sm font-medium" style={{ color: "var(--brand-ink)" }}>{t("search.upload")}</span>
+          </button>
+
+          <div className="flex flex-col items-end">
+            <span className="text-sm md:text-base font-bold tracking-[0.08em] leading-tight" style={{ fontFamily: "'Nunito', sans-serif", color: "var(--brand-ink)" }}>
+              COURTYARD
+            </span>
+            <span className="text-[10px] md:text-xs text-muted leading-tight">
+              by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
+            </span>
+          </div>
+        </div>
+
+        {mergeBanner && (
+          <div className="mb-2 p-2 glass-liquid rounded-[12px] flex items-center gap-2 animate-fadeUp">
+            <div className="w-7 h-7 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
+              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <div className="text-xs text-dark">
+              <span className="font-bold">+{mergeBanner.added}</span> {t("upload.newRoomsAdded")}
+              {mergeBanner.skipped > 0 && <span className="text-muted"> · {mergeBanner.skipped} {t("upload.duplicatesSkipped")}</span>}
+              <span className="text-muted"> · {mergeBanner.total} {t("upload.totalRoomsNow")}</span>
+            </div>
+          </div>
+        )}
+
+        <div className={`flex gap-3 items-stretch ${handSide === "right" ? "flex-row-reverse" : ""}`}>
+          <div className="flex-1 min-w-0">
+            <MetricsBar
+              clients={clients}
+              checkIns={checkIns}
+              onHistoryToggle={() => setHistoryOpen(true)}
+              activeFilter={activeFilter}
+              onFilterChange={handleFilterChange}
+              expected={expectedToday}
+              chosen={chosenMetrics}
+              onChoose={chooseMetricsFor}
+              hideNav
+            />
+          </div>
+          <div className="hidden lg:block w-[392px] shrink-0">
+            <SearchNav
+              handSide={handSide}
+              onRecents={() => setHistoryOpen(true)}
+              onReport={() => router.push("/report")}
+              onFlipSide={flipSide}
+              onCloseDay={closeDayConfirmed}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Landscape splits into results + keypad; below lg it stays stacked.
+          In letter mode the keyboard leaves the column and claims the full
+          width underneath — AZERTY needs ten columns, and ten columns inside
+          392px would be 29px keys. */}
+      <div className="flex-1 min-h-0 flex flex-col">
+      <div className={`flex-1 min-h-0 flex flex-col lg:flex-row gap-3 px-3 pt-3 ${pad === "abc" ? "pb-0" : "pb-3"} ${handSide === "right" ? "lg:flex-row-reverse" : ""}`}>
+        <div className="flex-1 min-w-0 flex flex-col gap-3">
+          <RoomSearchField
+            value={query}
+            onChange={(v) => setQuery(v)}
+            onClear={clear}
+            inputRef={queryRef}
+          />
+
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
+        {showFiltered && (
+          <div className="flex items-center justify-between px-1 py-1">
+            <span className="text-xs md:text-sm font-semibold text-muted uppercase tracking-wide">
+              {filterLabels[activeFilter]} ({filteredClients.length} {t("upload.rooms")})
+            </span>
+            <button
+              onClick={() => setActiveFilter(null)}
+              className="text-xs md:text-sm text-brand font-medium active:opacity-70"
+            >
+              {t("upload.clear")}
+            </button>
+          </div>
+        )}
+        {showFiltered && activeFilter === "groups" && (
+          <GroupPicker blocks={blocks} picked={pickedGroups} onPick={setPickedGroups} />
+        )}
+        {displayClients.map((client, i) => {
+          const ci = clients.indexOf(client);
+          return (
+            <div
+              key={`${client.roomNumber}-${i}`}
+              className="animate-fadeUp"
+              style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
+            >
+              <SuggestionCard
+                client={client}
+                checkIns={checkIns}
+                onSelect={handleSelectRoom}
+                clientIndex={ci >= 0 ? ci : undefined}
+              />
+            </div>
+          );
+        })}
+        {hiddenRows > 0 && (
+          <div className="text-center py-3 text-sm font-bold text-muted" data-role="rows-capped">
+            +{hiddenRows} autre{hiddenRows > 1 ? "s" : ""} — tapez un chiffre de plus
+          </div>
+        )}
+        {query && results.length === 0 && (
+          <div className="flex flex-col items-center gap-3 py-6">
+            <div className="text-muted text-sm">{t("search.noRooms")}</div>
+            <button
+              onClick={() => {
+                setNewRoom(query);
+                setNewName("");
+                setNewAdults("1");
+                setNewChildren("0");
+                setAddClientOpen(true);
+              }}
+              className="flex items-center gap-2 px-5 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              {t("search.addRoom")} {mode === "numeric" ? query : ""}
+            </button>
+          </div>
+        )}
+        {showFiltered && filteredClients.length === 0 && (
+          <div className="text-center text-muted py-4 text-sm md:text-base">{t("search.noClients")}</div>
+        )}
+        {/* Upload button — inside scroll area, not overlaying keypad */}
+        <div className="flex justify-end py-2">
+          <button
+            onClick={() => setUploadSheetOpen(true)}
+            className="w-11 h-11 rounded-full glass-liquid border border-brand/20 text-brand shadow-sm flex items-center justify-center active:scale-90 transition-all"
+            title={t("search.upload")}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+        </div>
+
+        {/* Right column, top to bottom: what you are looking at, what you are
+            about to do, and the keys you do it with.
+
+            The commit row used to sit under the keypad. On a 13" screen that put
+            it at the far bottom edge — the longest reach on the screen, and the
+            furthest point from both the number just read and the keys just
+            pressed. Directly under the preview it is next to the thing being
+            confirmed and a short move from the pad. Its position never changes
+            between states, so the hand can learn it. */}
+        <div className="w-full lg:w-[392px] shrink-0 flex flex-col gap-3 min-h-0">
+          {/* Capped, not greedy: with flex-1 the preview swallowed every spare
+              pixel and then centred its content, manufacturing a band of air
+              above the keypad. Spare height goes to the keys instead. */}
+          <div className="hidden lg:flex flex-col shrink-0 h-[clamp(150px,26vh,240px)]">
+            {hit ? (
+              <PreviewCarousel
+                panes={hitPanes}
+                auto={false}
+                resetKey={hit.roomNumber}
+                actionHiddenOn={["notes"]}
+                action={
+                  <button
+                    onClick={() => setNoteFor(hit)}
+                    data-role="preview-compose"
+                    aria-label={`Écrire une note pour la chambre ${hit.roomNumber}`}
+                    className="w-11 h-11 rounded-[14px] grid place-items-center active:scale-[0.92] transition-transform"
+                    style={hit.isVip
+                      ? { background: "rgba(0,0,0,.34)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.22)" }
+                      : { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
+                  >
+                    <NotePencil size={19} weight="duotone" style={{ color: hit.isVip ? "#fff" : "var(--brand-ink)" }} />
+                  </button>
+                }
+              />
+            ) : flash ? (
+              /* Confirmation lands in the box the eye is already on, and the
+                 field is already cleared for the next guest. */
+              <div
+                data-role="checkin-flash"
+                className="relative flex-1 min-h-[150px] rounded-[24px] px-5 flex flex-col justify-center gap-1 text-white animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
+                style={{ background: "linear-gradient(150deg,#357D58,#255B41)", boxShadow: "0 16px 44px -14px rgba(30,80,55,.55)" }}
+              >
+                <span className="flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] opacity-90">
+                  <Check weight="bold" size={15} /> Enregistré
+                </span>
+                <span className="text-[clamp(40px,5vw,68px)] font-black leading-[0.9] tracking-[-0.045em] tabular-nums">
+                  {flash.room}
+                </span>
+                <span className="text-[17px] font-bold">{flash.n} pers. entrées</span>
+              </div>
+            ) : (
+              <PreviewCarousel panes={idlePanes} auto resetKey="idle" />
+            )}
+          </div>
+
+          {saveFailed && (
+            <div
+              data-role="checkin-save-error"
+              className="shrink-0 flex items-start gap-2 rounded-[16px] px-4 py-3"
+              style={{ background: "var(--aur-bad-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-bad)" }}
+            >
+              <WarningCircle weight="duotone" size={19} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
+              <div className="text-[13px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
+                NON enregistré — stockage plein. Ouvrez la fiche et réessayez.
+                <button onClick={() => setSaveFailed(false)} className="underline ml-1 font-black">Fermer</button>
+              </div>
+            </div>
+          )}
+          {/* − N + so a partial arrival is one tap away instead of a screen
+              away. The middle commits; the sides only change the number. */}
+          <div className="shrink-0 flex gap-2" data-role="search-cta">
+            <button
+              onClick={() => setCount((c) => Math.max(1, c - 1))}
+              disabled={!hit || count <= 1}
+              aria-label="Une personne de moins"
+              /* Bubbles, like the counter on the check-in screen. Round reads
+                 as "adjusts a number"; the square slabs read as another
+                 commit button sitting either side of the real one. */
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-[34px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
+            >
+              −
+            </button>
+            {/* Two actions, told apart by colour as well as words. Green
+                commits here and clears for the next guest; gold opens the room,
+                because something on that screen needs a decision — a payment to
+                take, a flagged reservation, an allergy. A room with nobody
+                outstanding also opens rather than offering "Entrer 1", which a
+                mis-tap would turn into a phantom guest. */}
+            <button
+              onClick={() =>
+                needsScreen
+                  ? hit && handleSelectRoom(hit.roomNumber, clients.indexOf(hit), maxCount > 0 ? count : undefined)
+                  : commitHere()
+              }
+              disabled={!hit}
+              data-role="search-enter"
+              data-mode={!hit ? "idle" : needsScreen ? "open" : "commit"}
+              className="flex-1 min-h-[clamp(64px,9vh,84px)] rounded-full text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
+              /* Idle keeps the resting green: gold means "this one needs you",
+                 and an empty field needs nothing. */
+              style={hit && needsScreen
+                ? { background: "linear-gradient(135deg,#A66914,#8A5010)", boxShadow: "0 10px 26px -12px rgba(120,74,12,.6)" }
+                : { background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
+            >
+              {!hit ? (
+                "Entrer"
+              ) : maxCount === 0 ? (
+                "Ouvrir la fiche"
+              ) : needsScreen ? (
+                <>Vérifier <b className="text-[30px] tabular-nums">{count}</b></>
+              ) : (
+                <><Check weight="bold" size={24} /> Entrer <b className="text-[30px] tabular-nums">{count}</b></>
+              )}
+            </button>
+            <button
+              onClick={() => setCount((c) => Math.min(Math.max(1, maxCount), c + 1))}
+              disabled={!hit || count >= maxCount}
+              aria-label="Une personne de plus"
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-[34px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
+            >
+              +
+            </button>
+          </div>
+
+          {/* The pad takes whatever height is left, so the keys grow on a big
+              screen instead of the layout growing a gap.
+
+              ABC swaps in the app's own letter pad. It used to focus the search
+              field, which raised the iPad keyboard over half the screen with no
+              reliable way back out. */}
+          {pad === "num" && (
+            <div className="flex-1 min-h-[196px]">
+              <NumericKeypad
+                onKeyPress={padAppend}
+                onBackspace={padBackspace}
+                onToggleMode={() => padToggle("abc")}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {pad === "abc" && (
+        <div className="shrink-0 px-3 pb-3 pt-3">
+          <AlphaKeypad
+            onKeyPress={padAppend}
+            onBackspace={padBackspace}
+            onToggleMode={() => padToggle("num")}
+          />
+        </div>
+      )}
+      </div>
+
+      {overlays}
     </div>
   );
 }

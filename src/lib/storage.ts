@@ -1,4 +1,4 @@
-import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry } from "./types";
+import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry, PaxDiscrepancy } from "./types";
 import { mergeVipIntoClients } from "./vip";
 import { mergeNewClients, MergeResult } from "./merge";
 
@@ -34,6 +34,10 @@ function asDailyData(v: unknown, fallbackDate: string): DailyData | null {
     clients: o.clients as Client[],
     checkIns: o.checkIns as CheckInRecord[],
     rawUploadText: typeof o.rawUploadText === "string" ? o.rawUploadText : "",
+    // Rebuilt field by field, so anything omitted here is silently dropped on
+    // the next read — which is exactly how a new array looks like it works
+    // until the page reloads.
+    discrepancies: Array.isArray(o.discrepancies) ? (o.discrepancies as PaxDiscrepancy[]) : [],
   };
 }
 
@@ -46,7 +50,7 @@ function asHistory(v: unknown): SessionRecord[] {
 const SETTINGS_KEY = "app_settings";
 
 export function getSettings(): AppSettings {
-  const defaults: AppSettings = { costPerCover: 26, localOCR: false };
+  const defaults: AppSettings = { costPerCover: 26, localOCR: false, handSide: "left" };
   if (typeof window === "undefined") return defaults;
   const raw = localStorage.getItem(SETTINGS_KEY);
   if (!raw) return defaults;
@@ -133,6 +137,7 @@ export function saveClientsMerged(newClients: Client[], rawText?: string): Merge
     clients: result.merged,
     checkIns: existing?.checkIns ?? [],
     rawUploadText: combinedRaw,
+    discrepancies: existing?.discrepancies ?? [],
   };
   // If the (capped) raw OCR text still pushes us over the localStorage quota
   // (common on iPad Safari / installed PWA), drop it and retry so the rooms
@@ -166,8 +171,68 @@ export function addClient(client: Client): void {
 export function updateClient(index: number, updates: Partial<Client>): void {
   const data = getTodayData();
   if (!data || !data.clients[index]) return;
-  data.clients[index] = { ...data.clients[index], ...updates };
+  const before = data.clients[index];
+  const after = { ...before, ...updates };
+
+  // A corrected guest count means the reception sheet was wrong. Record it
+  // rather than overwriting the evidence: the error rate is a daily figure
+  // worth watching, and every edit keeps its own entry so the trail survives.
+  const bT = before.adults + before.children;
+  const aT = after.adults + after.children;
+  if (after.adults !== before.adults || after.children !== before.children) {
+    if (!Array.isArray(data.discrepancies)) data.discrepancies = [];
+    data.discrepancies.push({
+      id: uid(),
+      roomNumber: before.roomNumber,
+      clientName: before.name,
+      beforeAdults: before.adults,
+      beforeChildren: before.children,
+      afterAdults: after.adults,
+      afterChildren: after.children,
+      delta: aT - bT,
+      at: new Date().toISOString(),
+    });
+  }
+
+  data.clients[index] = after;
   saveTodayData(data);
+}
+
+function uid(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch { /* fall through */ }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Reception count corrections recorded today. */
+export function getDiscrepancies(): PaxDiscrepancy[] {
+  const data = getTodayData();
+  return data && Array.isArray(data.discrepancies) ? data.discrepancies : [];
+}
+
+export interface DiscrepancySummary {
+  /** Distinct rooms touched — a room corrected twice still counts once. */
+  rooms: number;
+  corrections: number;
+  added: number;
+  removed: number;
+  net: number;
+}
+
+export function summarizeDiscrepancies(list: PaxDiscrepancy[]): DiscrepancySummary {
+  const safe = Array.isArray(list) ? list : [];
+  const added = safe.reduce((n, d) => n + Math.max(0, d.delta), 0);
+  const removed = safe.reduce((n, d) => n + Math.max(0, -d.delta), 0);
+  return {
+    rooms: new Set(safe.map((d) => d.roomNumber)).size,
+    corrections: safe.length,
+    added,
+    removed,
+    net: added - removed,
+  };
 }
 
 /**
@@ -304,6 +369,36 @@ export function reclaimStorageSpace(): number {
     }
   }
 
+  // 3) Drop whole days that have fallen out of the retention window. The
+  //    tablet is a cache; anything older lives in the report exports and,
+  //    later, in Supabase.
+  const todayIso = new Date().toISOString().split("T")[0];
+  const cutoff = Date.parse(todayIso + "T00:00:00Z") - RETENTION_DAYS * 86_400_000;
+  for (const key of dailyKeys) {
+    const day = key.slice("dailyData_".length);
+    const t = Date.parse(day + "T00:00:00Z");
+    if (!Number.isFinite(t) || t >= cutoff) continue;
+    const raw = localStorage.getItem(key);
+    localStorage.removeItem(key);
+    reclaimed += raw ? raw.length : 0;
+  }
+
+  // 4) Same window for the closed sessions.
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const history = JSON.parse(raw) as SessionRecord[];
+      const kept = pruneByAge(history.map(compactSession), todayIso);
+      if (kept.length !== history.length) {
+        const next = JSON.stringify(kept);
+        reclaimed += raw.length - next.length;
+        localStorage.setItem(HISTORY_KEY, next);
+      }
+    }
+  } catch {
+    // Corrupt history — the normal paths rebuild it.
+  }
+
   return reclaimed;
 }
 
@@ -370,6 +465,72 @@ export function freeUpSpace(): number {
   return freed;
 }
 
+/**
+ * How long a closed service stays on the tablet.
+ *
+ * The device is a cache, not the archive — Supabase will hold the real history.
+ * Thirty days is what the afternoon briefing and a month-end glance need; past
+ * that the data is dead weight competing with tomorrow's service for a very
+ * small localStorage quota.
+ */
+export const RETENTION_DAYS = 30;
+
+/**
+ * Strip a closed session down to what anything actually reads.
+ *
+ * The raw OCR dump is debugging output and by far the biggest thing we store;
+ * dropping it is the difference between a day costing kilobytes and costing
+ * megabytes.
+ */
+export function compactSession(s: SessionRecord): SessionRecord {
+  return { ...s, rawUploadText: "" };
+}
+
+/** Days within the retention window, newest first. */
+export function pruneByAge(
+  history: SessionRecord[],
+  todayIso: string,
+  days: number = RETENTION_DAYS
+): SessionRecord[] {
+  const today = Date.parse(todayIso + "T00:00:00Z");
+  const safe = Array.isArray(history) ? history : [];
+  const dated = safe
+    .map((s) => ({ s, t: Date.parse(s.date + "T00:00:00Z") }))
+    // A junk date can never age out, so it would live forever. Drop it.
+    .filter(({ t }) => Number.isFinite(t))
+    // Future dates are kept: a tablet with a skewed clock still recorded a
+    // real service, and deleting it would be the worse error.
+    // Inclusive at the far edge: "keep 30 days" should keep day 30.
+    .filter(({ t }) => t >= today - days * 86_400_000);
+  dated.sort((a, b) => b.t - a.t);
+  return dated.map((d) => d.s);
+}
+
+/**
+ * Write the history, evicting the oldest day at a time until it fits.
+ *
+ * A new session must ALWAYS be storable. Losing this morning because last
+ * month is still on disk is the wrong trade in every case — the old day is a
+ * convenience, the new one is the job.
+ */
+function saveHistoryEvictingOldest(history: SessionRecord[]): boolean {
+  const list = [...history];
+  while (list.length > 0) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      return true;
+    } catch {
+      list.pop(); // oldest, since the list is newest-first
+    }
+  }
+  try {
+    localStorage.setItem(HISTORY_KEY, "[]");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function closeDay(): SessionRecord | null {
   const data = getTodayData();
   if (!data) return null;
@@ -391,6 +552,7 @@ export function closeDay(): SessionRecord | null {
     totalEntered,
     totalRemaining: Math.max(0, totalGuests - totalEntered),
     totalVip: data.clients.filter((c) => c.isVip).length,
+    discrepancies: data.discrepancies ?? [],
     clients: data.clients,
     checkIns: data.checkIns,
     rawUploadText: data.rawUploadText,
@@ -404,32 +566,9 @@ export function closeDay(): SessionRecord | null {
   } else {
     history.unshift(record);
   }
-  if (history.length > 30) history.length = 30;
-
-  // Try saving — if quota exceeded, trim rawUploadText and retry
-  let saved = false;
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    saved = true;
-  } catch {
-    // Quota exceeded — strip rawUploadText from older sessions to free space
-    for (let i = history.length - 1; i >= 1; i--) {
-      history[i].rawUploadText = "";
-    }
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      saved = true;
-    } catch {
-      // Still failing — reduce to 15 sessions
-      if (history.length > 15) history.length = 15;
-      try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-        saved = true;
-      } catch {
-        // Cannot save — do NOT clear daily data
-      }
-    }
-  }
+  // Compact everything on the way in, then keep only the retention window.
+  const kept = pruneByAge(history.map(compactSession), record.date);
+  const saved = saveHistoryEvictingOldest(kept);
 
   // ONLY clear today's data if history was saved successfully
   if (saved) {
@@ -491,6 +630,7 @@ export function autoCloseStale(): number {
       totalEntered,
       totalRemaining: Math.max(0, totalGuests - totalEntered),
       totalVip: data.clients.filter((c) => c.isVip).length,
+      discrepancies: data.discrepancies ?? [],
       clients: data.clients,
       checkIns: data.checkIns,
       rawUploadText: data.rawUploadText,

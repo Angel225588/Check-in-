@@ -67,18 +67,32 @@ export function getCompStats(
   return { entered, total, rooms: uniqueRooms.size };
 }
 
+/** Strip diacritics so "lefevre" finds "LEFÈVRE". Without this, a receptionist
+ *  has to reproduce every accent exactly, and the on-screen keypad has none.
+ *  Exported: every list that can be searched has to fold the same way, or the
+ *  same query finds a guest on one screen and not on another. */
+export function fold(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 export function searchClients(
   clients: Client[],
   query: string,
   mode: "numeric" | "alpha"
 ): Client[] {
   if (!query.trim()) return [];
-  const q = query.trim().toLowerCase();
+  const q = fold(query.trim());
 
-  if (mode === "numeric") {
+  // The field is one input for both kinds of query, so the shape of what was
+  // typed decides — not which keypad happened to be showing.
+  const numeric = /^\d+$/.test(q);
+  if (numeric && mode === "numeric") {
     return clients.filter((c) => c.roomNumber.startsWith(q));
   }
-  return clients.filter((c) => c.name.toLowerCase().includes(q));
+  if (numeric) {
+    return clients.filter((c) => c.roomNumber.startsWith(q) || fold(c.name).includes(q));
+  }
+  return clients.filter((c) => fold(c.name).includes(q));
 }
 
 export function isComp(client: Client): boolean {
