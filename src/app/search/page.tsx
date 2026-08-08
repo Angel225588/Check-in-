@@ -33,6 +33,7 @@ import GroupPicker from "@/components/GroupPicker";
 import { expectedFromYesterday } from "@/lib/expected";
 import { capRows } from "@/lib/row-cap";
 import { swipeEnabled, idlePreviewEnabled } from "@/lib/gestures";
+import { padTarget } from "@/lib/pad-target";
 import { usePortrait } from "@/hooks/usePortrait";
 import PortraitSearch from "@/components/portrait/PortraitSearch";
 import NavDrawer from "@/components/portrait/NavDrawer";
@@ -149,15 +150,27 @@ export default function SearchPage() {
   /** The pad, pointed at whatever is being typed. Search by default; the note
    *  while one is open. One keyboard, two destinations — not two keyboards. */
   const padAppend = (k: string) =>
-    noteDraft ? setNoteDraft({ ...noteDraft, text: noteDraft.text + k }) : appendKey(k);
+    padTarget({ draft: noteDraft, hasGuest: !!hit }) === "note" && noteDraft
+      ? setNoteDraft({ ...noteDraft, text: noteDraft.text + k })
+      : appendKey(k);
   const padBackspace = () =>
-    noteDraft ? setNoteDraft({ ...noteDraft, text: noteDraft.text.slice(0, -1) }) : backspace();
+    padTarget({ draft: noteDraft, hasGuest: !!hit }) === "note" && noteDraft
+      ? setNoteDraft({ ...noteDraft, text: noteDraft.text.slice(0, -1) })
+      : backspace();
+
+  /* A draft cannot outlive the guest it is about. Without this the editor
+     disappears with the card and the draft stays behind, eating every key
+     meant for the next room — a dead pad with nothing on screen to explain it
+     and nothing but a reload to clear it. */
+  useEffect(() => {
+    if (!hit && noteDraft) setNoteDraft(null);
+  }, [hit, noteDraft]);
 
   /** Switching alphabet clears the search field — which, mid-note, would drop
    *  the guest the note is about and take the frame with it. While a draft is
    *  open the switch only switches. */
   const padToggle = (next: "num" | "abc") => {
-    if (!noteDraft) clear();
+    if (padTarget({ draft: noteDraft, hasGuest: !!hit }) !== "note") clear();
     setPad(next);
   };
 

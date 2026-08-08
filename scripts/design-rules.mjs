@@ -1573,6 +1573,90 @@ async function main() {
     await ctx.close();
   }
 
+  // R31 — the pad always types. In every state the search screen has.
+  //
+  // The app owns the keyboard, so the pad is the ONLY way to put a character on
+  // this screen: a swallowed keystroke is not a glitch, it is a dead tablet
+  // with a queue in front of it. It happened — a note draft outlived the card
+  // it was written on and ate every digit meant for the next room, invisibly,
+  // until someone reloaded.
+  //
+  // So this walks the states rather than testing the happy one: at rest, with
+  // a filter running, after a note was started and abandoned, after the drawer
+  // and the activity sheet have been opened and closed, and in letters as well
+  // as digits.
+  {
+    const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
+    const field = () => page.locator('[data-role="search-field"] input, input[placeholder*="Chambre"]').first();
+    const type = async (d) => {
+      await page.locator('[data-role="numeric-keypad"] button', { hasText: new RegExp(`^${d}$`) }).first().click();
+      await page.waitForTimeout(200);
+    };
+    const clearField = async () => {
+      for (let i = 0; i < 6; i++) {
+        await page.locator('[data-role="numeric-keypad"] button[aria-label="Backspace"]').click();
+        await page.waitForTimeout(90);
+      }
+    };
+    const typesHere = async (label) => {
+      await clearField();
+      await type(2); await type(2); await type(4);
+      const v = await field().inputValue().catch(() => "");
+      return { label, ok: v === "224", v };
+    };
+
+    const states = [];
+    states.push(await typesHere("at rest"));
+
+    // With a metric filter running — the state Angel photographed.
+    await page.locator('[data-role="portrait-metric"]').nth(1).click();
+    await page.waitForTimeout(400);
+    states.push(await typesHere("filter on"));
+    await page.locator('[data-role="portrait-metric"][aria-pressed="true"]').first().click().catch(() => {});
+    await page.waitForTimeout(300);
+
+    // After a note was started on a guest and the guest was left behind.
+    await clearField();
+    await type(3); await type(1); await type(0);
+    await page.waitForTimeout(500);
+    const dots = page.locator('[data-role="preview-dots"] button');
+    if (await dots.count() > 1) {
+      await dots.nth(1).click();
+      await page.waitForTimeout(400);
+      await page.locator('[data-role="note-new"]').click().catch(() => {});
+      await page.waitForTimeout(400);
+      await type(7);
+      await page.waitForTimeout(200);
+    }
+    states.push(await typesHere("after an abandoned note"));
+
+    // After the drawer and the activity sheet have been through.
+    await page.locator('[data-role="portrait-menu"]').click();
+    await page.waitForTimeout(350);
+    await page.locator('[data-role="drawer-expand-activity"]').click().catch(() => {});
+    await page.waitForTimeout(500);
+    await page.locator('[data-role="activity-close"]').click().catch(() => {});
+    await page.waitForTimeout(400);
+    await page.locator('[data-role="nav-drawer"] [aria-label="Fermer le menu"]').click().catch(() => {});
+    await page.waitForTimeout(400);
+    states.push(await typesHere("after the drawer and the sheet"));
+
+    // And the letters, which are the other half of the keyboard.
+    await clearField();
+    await page.locator('[data-role="pad-abc"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('[data-role="alpha-keypad"] button', { hasText: /^L$/ }).first().click();
+    await page.waitForTimeout(250);
+    const letters = await field().inputValue().catch(() => "");
+    states.push({ label: "letters", ok: letters.toUpperCase() === "L", v: letters });
+
+    const dead = states.filter((s) => !s.ok);
+    record("R31-pad-always-types", "The pad puts a character on screen in every state",
+      dead.length === 0,
+      dead.length ? dead.map((d) => `${d.label}→"${d.v}"`).join(" | ") : `${states.length} states`);
+    await ctx.close();
+  }
+
   // R30 — every screen, and every full-screen overlay, keeps out of the top
   // strip. Not two screens: all of them.
   //

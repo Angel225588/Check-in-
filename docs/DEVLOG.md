@@ -13,6 +13,36 @@ git for those.
 
 ---
 
+## 2026-08-08 (afternoon) — the pad went deaf
+
+### A keystroke with nowhere to go (US-38)
+Angel, on the search screen: "when typing a number or text it does not work".
+The worst possible bug on this app — the app owns the keyboard, so the pad is
+the only way to put a character on that screen. A swallowed key is not a glitch,
+it is a dead tablet with a queue in front of it, and the only cure was a reload.
+
+`padAppend` routed to the note draft whenever one existed:
+
+    noteDraft ? setNoteDraft(...) : appendKey(k)
+
+A draft outlives the screen it was written on. Start a note on a guest's card,
+tap a metric pill — the slot swaps to the list, the editor is gone, the draft is
+not. Every digit after that went into an invisible text box.
+
+The question is never "is there a draft" but **"is there an editor on screen to
+type into"**. A note is always about a guest, so no guest means no editor,
+whatever got left behind — and the draft is cleared when the guest goes as well.
+
+**R31 walks the states rather than the happy path**: at rest, with a filter
+running, after a note was started and abandoned, after the drawer and the
+activity sheet have been through, and in letters. Five for five.
+
+**My probe lied first.** It read `[data-role="search-field"]` — the wrapper div,
+not the input inside it — and reported all five states dead, including the one
+that had always worked. A green harness that measures the wrong element is the
+same failure as a red one, in the other direction; the difference is that this
+one was caught by disbelieving a result that was too bad to be true.
+
 ## 2026-08-08 (afternoon) — ten groups on a morning with none
 
 ### Where the group data comes from, and why it was wrong

@@ -586,6 +586,27 @@ that lies about it.**
     filter, and a door that renames itself once you walk through it is not a
     door — while the list narrows to the coach you ticked.
 
+### US-38 — The pad always types — BUILT
+
+    As      Réception
+    I need  a key press to put a character on screen, in every state
+    So that the tablet never goes deaf with a queue in front of it
+
+    Scenario: a note started and walked away from
+      Given  I began a note on a guest, then tapped a metric pill
+      When   I press 2 2 4
+      Then   the field reads 224
+
+    Never:  a keystroke swallowed by something not on screen. The app owns the
+            keyboard, so the pad is the ONLY way to type here — a lost key is
+            not a glitch, it is a dead tablet, and the only cure was a reload.
+    Proof:  pad-target.test.ts (4 cases) · R31 (five states, digits and letters)
+
+    The rule is not "is there a draft" but "is there an editor on screen to type
+    into". A note is always about a guest: no guest, no editor, whatever state
+    was left behind. The draft is cleared when the guest goes, too — belt and
+    braces, because this one costs a service.
+
 ### US-36 — The demo day keeps the desk's clock — BUILT
 
     As      Réception
