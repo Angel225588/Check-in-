@@ -165,12 +165,17 @@ never happened sitting in tomorrow's report.
 
 ## What I ran
 
-- `npx vitest run` — 547 tests across 46 files
+- `npx vitest run` — 559 tests across 49 files
 - `npx tsc --noEmit` — clean
 - `npm run build` — clean
-- `node scripts/design-rules.mjs` — **116/116**, no failures
+- `node scripts/design-rules.mjs` — **117/117**, no failures
 - `node scripts/preflight.mjs` — **24/24**, both orientations, driving the app's
   own demo data through a real check-in
+- `node scripts/story-pass.mjs` — **33/33**, reception's morning end to end:
+  one-tap commit, the shortcut refusing a decision, an unaccented query finding
+  an accented guest, a note unreadable in storage and alive after a reload, the
+  report with no money on it, the day closing clean, and no room number in any
+  URL or request
 - A scripted pass on a real build at 820×1180, 390×844 and 1194×834 measuring
   the pad's last key against the viewport, the sheet's list against the pad, and
   the group filter's row counts before/after a tick

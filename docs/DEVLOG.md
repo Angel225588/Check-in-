@@ -13,6 +13,43 @@ git for those.
 
 ---
 
+## 2026-08-08 (evening) — the production pass
+
+**Branch** `claude/checkin-app-registration-bug-3lpy9c` · 559 tests across 49
+files · **117/117 design rules** · **24/24 preflight** · **33/33 story pass**,
+both orientations, on the build that would ship.
+
+The story pass is new and is the one that answers "is it ready": it walks
+reception's morning and asserts each story's own **Never** line rather than the
+happy path. One-tap commit and the field clearing; the shortcut refusing on a
+room that needs a decision ("Vérifier 3"); an unaccented query finding *Michel
+Élise*; the entry just made being newest in Récents; a note unreadable in 341 KB
+of localStorage and still there after a reload; the report with no money on it;
+the day closing and the next starting clean; back returning to search; and no
+room number in the URL or in any of the 60 requests the pass makes.
+
+### Four rules, four wrong assumptions
+R23b counted `> span` after the rows became buttons. R31 asked for a digit key
+on a screen showing the alphabet, then asserted the search field should get keys
+that belong to an open note editor — the opposite of US-17. Earlier: R25h's
+one-face assumption, R28 measuring the dock's box.
+
+Every one of them failed the app for doing the right thing, and every one had
+the same cause: **the rule encoded what I remembered of the app instead of
+asking the screen what it was showing.** Worth more than the green number.
+
+### The security pass
+Notes: AES-GCM 256, key `extractable: false`, verified by scanning storage for
+the plaintext and not finding it. No key-shaped strings in the built bundle;
+`GEMINI_API_KEY` stays server-side. No `dangerouslySetInnerHTML`, no `eval`.
+OCR routes log lengths, never payloads. Guest data leaves the device only for
+our own OCR route.
+
+**Deleted `src/lib/supabase.ts`** — no importers, but it read two `NEXT_PUBLIC_`
+vars, and those are inlined into the client bundle at build time. Keys for a
+database this app never talks to would have shipped to the tablet if they were
+ever set.
+
 ## 2026-08-08 (afternoon) — the pad went deaf
 
 ### A keystroke with nowhere to go (US-38)
