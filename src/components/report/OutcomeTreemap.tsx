@@ -19,12 +19,16 @@ import { OutcomeSplit, ReportFilter, treemapShares } from "@/lib/report-v2";
  */
 export default function OutcomeTreemap({
   split,
+  people,
   vip,
   comp,
   filter,
   onFilter,
 }: {
   split: OutcomeSplit;
+  /** People behind each outcome, so a block says how much breakfast it was and
+   *  not only how many doors. Rooms are the area; people are the quantity. */
+  people?: { allIn: number; partial: number; noShow: number };
   vip: number;
   comp: number;
   filter: ReportFilter;
@@ -45,6 +49,7 @@ export default function OutcomeTreemap({
     label,
     Icon,
     value,
+    pax,
     pct,
     tight,
     bg,
@@ -55,6 +60,7 @@ export default function OutcomeTreemap({
     label: string;
     Icon: typeof Check;
     value: number;
+    pax?: number;
     pct: string;
     tight: boolean;
     bg: string;
@@ -93,7 +99,10 @@ export default function OutcomeTreemap({
       ) : (
         <>
           <span className="text-[26px] font-black leading-none tracking-[-0.03em] tabular-nums">{value}</span>
-          <span className="text-[13px] font-black tabular-nums opacity-95">{pct}</span>
+          <span className="text-[13px] font-black tabular-nums opacity-95">
+            {pct}
+            {pax !== undefined && <em className="not-italic opacity-80"> · {pax} pers.</em>}
+          </span>
         </>
       )}
     </button>
@@ -101,6 +110,12 @@ export default function OutcomeTreemap({
 
   return (
     <div className="flex flex-col gap-2 flex-1 min-h-0" data-role="report-treemap">
+      {/* Entrés was the one outcome drawn whether or not it happened. At 06:35,
+          with nobody down, its share is 0 — but a flex item with no basis still
+          paints its content, so a green sliver carrying the VIP and COMP chips
+          sat above a répartition that read "Absents 100 %". The other two blocks
+          have always been guarded; this one never was. */}
+      {split.allIn > 0 && (
       <button
         onClick={() => onFilter(filter === "in" ? "all" : "in")}
         data-role="treemap-block"
@@ -124,7 +139,10 @@ export default function OutcomeTreemap({
         ) : (
           <>
             <span className="text-[34px] font-black leading-none tracking-[-0.03em] tabular-nums mt-0.5">{split.allIn}</span>
-            <span className="text-[15px] font-black tabular-nums opacity-95">{pc(split.allIn)}</span>
+            <span className="text-[15px] font-black tabular-nums opacity-95">
+              {pc(split.allIn)}
+              {people && <em className="not-italic opacity-80"> · {people.allIn} pers.</em>}
+            </span>
             {(vip > 0 || comp > 0) && (
               <span className="flex gap-1 mt-2">
                 <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
@@ -144,6 +162,7 @@ export default function OutcomeTreemap({
           </>
         )}
       </button>
+      )}
 
       {rest > 0 && (
       <div className="flex gap-2 min-h-[72px]" style={{ flex: `${restS.share} 1 0` }}>
@@ -152,6 +171,7 @@ export default function OutcomeTreemap({
           label="Partiel"
           Icon={CircleHalf}
           value={split.partial}
+          pax={people?.partial}
           pct={pc(split.partial)}
           tight={paS.floored}
           bg="linear-gradient(150deg,#96622A,#77491B)"
@@ -165,6 +185,7 @@ export default function OutcomeTreemap({
           label="Absents"
           Icon={X}
           value={split.noShow}
+          pax={people?.noShow}
           pct={pc(split.noShow)}
           tight={noS.floored}
           bg="linear-gradient(150deg,#A93F32,#802A1F)"

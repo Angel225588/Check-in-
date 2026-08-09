@@ -96,9 +96,9 @@ describe("tilePeople", () => {
 
   it("counts VIP and COMP in people too", () => {
     const t = tilePeople([
-      row({ roomNumber: "301", isVip: true, entered: 2 }),
-      row({ roomNumber: "302", isComp: true, entered: 3 }),
-      row({ roomNumber: "303", isComp: true, isVip: true, entered: 1 }),
+      row({ roomNumber: "301", isVip: true, entered: 2, totalGuests: 2 }),
+      row({ roomNumber: "302", isComp: true, entered: 3, totalGuests: 3 }),
+      row({ roomNumber: "303", isComp: true, isVip: true, entered: 1, totalGuests: 1 }),
     ]);
     expect(t.vip).toEqual({ rooms: 2, people: 3 });
     expect(t.comp).toEqual({ rooms: 2, people: 4 });
@@ -111,6 +111,20 @@ describe("tilePeople", () => {
     expect(t.expected).toBe(67);
     expect(t.served).toBe(61);
     expect(t.percent).toBe(91);
+  });
+
+  it("counts VIP and COMP people before service starts, not after", () => {
+    // 06:35, nobody down yet. The VIP tile counts 18 rooms whether or not they
+    // came, so counting only ARRIVALS underneath it printed "18 ch. / 0 pers."
+    // — a tile disagreeing with itself. The people figure counts the same
+    // guests the room figure counts.
+    const early = [
+      row({ roomNumber: "301", isVip: true, status: "no-show", entered: 0, totalGuests: 2 }),
+      row({ roomNumber: "302", isComp: true, status: "no-show", entered: 0, totalGuests: 3 }),
+    ];
+    const t = tilePeople(early);
+    expect(t.vip).toEqual({ rooms: 1, people: 2 });
+    expect(t.comp).toEqual({ rooms: 1, people: 3 });
   });
 
   it("never reads over 100%, because more people turn up than the sheet said", () => {

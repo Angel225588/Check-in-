@@ -23,11 +23,43 @@ describe("the storage key itself leaks nothing", () => {
   // localStorage keys show up in devtools, in exported profiles, and in any
   // backup tooling. A key of `notes_524_POLANCO` would defeat the encryption
   // of the value it points at.
-  it("contains neither the room number nor the guest name", async () => {
+  it("contains no trace of the guest's name", async () => {
     const k = await guestKey(ROOM, NAME);
-    expect(k).not.toContain(ROOM);
     expect(k.toUpperCase()).not.toContain("POLANCO");
     expect(k.toUpperCase()).not.toContain("ANTHONIO");
+  });
+
+  /**
+   * The room number needs a different test, and the obvious one is a coin flip.
+   *
+   * `expect(key).not.toContain("524")` reads like a leak check and is not one:
+   * the key is 32 hex characters, so three decimal digits turn up in it by
+   * chance about once in every hundred and fifty runs. It failed exactly that
+   * way in a full-suite run — a security test crying wolf, which is how a real
+   * one comes to be re-run until it goes green.
+   *
+   * What actually rules out `notes_524_POLANCO` is that the key's SHAPE owes
+   * nothing to its inputs: same length for a three-digit room and a long one,
+   * same length for a short name and an absurd one. A key that embedded either
+   * would grow with them.
+   */
+  it("takes neither its length nor its shape from the room or the name", async () => {
+    const keys = await Promise.all([
+      guestKey("1", "A"),
+      guestKey(ROOM, NAME),
+      guestKey("100000000042", "VAN DER BERG-MONTGOMERY/MARIE-CHRISTINE ÉLISABETH"),
+    ]);
+    for (const k of keys) expect(k).toMatch(/^[0-9a-f]{32}$/);
+    expect(new Set(keys.map((k) => k.length)).size).toBe(1);
+    expect(new Set(keys).size).toBe(3);
+  });
+
+  it("changes completely when only the room changes", async () => {
+    // Avalanche: a key that carried the room would differ in one place.
+    const a = await guestKey("524", NAME);
+    const b = await guestKey("525", NAME);
+    const same = [...a].filter((ch, i) => ch === b[i]).length;
+    expect(same).toBeLessThan(a.length / 2);
   });
 
   it("is a fixed-length opaque hex digest", async () => {

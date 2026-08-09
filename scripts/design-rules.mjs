@@ -714,7 +714,10 @@ async function main() {
     ["930", 2, 0, 2, 2, 2],
   ];
 
-  async function openDay(path, { dark = false, w = 1194, h = 834 } = {}) {
+  /* `arrivals`/`ecarts` override the standard fixture. A rule about the state
+     of the day BEFORE anyone comes down cannot be written against a day that
+     already has arrivals in it. */
+  async function openDay(path, { dark = false, w = 1194, h = 834, arrivals, ecarts } = {}) {
     const browser = await browserFor();
     const ctx = await browser.newContext({
       viewport: { width: w, height: h }, deviceScaleFactor: 1,
@@ -740,7 +743,12 @@ async function main() {
         })),
       }));
       localStorage.setItem("app-dark", dark ? "true" : "false");
-    }, { clients: DAY_CLIENTS, arrivals: DAY_ARRIVALS, ecarts: DAY_ECARTS, dark });
+    }, {
+      clients: DAY_CLIENTS,
+      arrivals: arrivals ?? DAY_ARRIVALS,
+      ecarts: ecarts ?? DAY_ECARTS,
+      dark,
+    });
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
     await page.waitForTimeout(700);
     const hydrated = await page.evaluate(() => document.body.innerText.trim().length > 20);
@@ -1609,6 +1617,35 @@ async function main() {
       !left || !right ? "back button missing in one of the two states"
         : same ? `x=${left.x} y=${left.y} ${left.w}x${left.h} in both`
         : `left-hand ${JSON.stringify(left)} vs right-hand ${JSON.stringify(right)}`);
+    await ctx.close();
+  }
+
+  // R34 — an outcome that did not happen draws nothing.
+  //
+  // Before anyone comes down, Entrés is zero and Absents is 100 %. The green
+  // block was rendered unguarded: its share was 0, but a flex item with no
+  // basis still paints its content, so a green sliver carrying the VIP and COMP
+  // chips sat on top of a répartition that read "Absents 100.0 %". Partiel and
+  // Absents had always been guarded; Entrés never was.
+  //
+  // Also checks the other half of the same complaint: a block says how many
+  // PEOPLE it is, not only how many doors.
+  {
+    const { ctx, page } = await openDay("/report", { arrivals: [], ecarts: [] });
+    await page.waitForTimeout(600);
+    const blocks = await page.locator('[data-role="treemap-block"]').evaluateAll((els) =>
+      els.map((e) => ({ label: (e.getAttribute("aria-label") || "").split(" ")[0], text: e.innerText })));
+    const green = blocks.filter((b) => /Entr/i.test(b.label));
+    record("R34-no-block-for-a-zero-outcome",
+      "With nobody down, the répartition draws no Entrés block at all",
+      green.length === 0 && blocks.length > 0,
+      `blocks: ${blocks.map((b) => b.label).join(", ") || "none"}`);
+
+    const absent = blocks.find((b) => /Absent/i.test(b.label));
+    record("R34b-block-counts-people",
+      "A répartition block says how many people it is, not only how many rooms",
+      !!absent && /\d+\s*pers\./.test(absent.text),
+      absent ? absent.text.replace(/\s+/g, " ").trim() : "no Absents block");
     await ctx.close();
   }
 

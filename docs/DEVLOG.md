@@ -75,6 +75,47 @@ One order now for both cases, in `src/lib/guest-sidebar.ts`, and today's
 check-ins count toward opening the panel at all. Today is what the screen is
 for; it is the one thing that is never dropped.
 
+### Zero entrés still drew a green block, and three tiles said "0 pers."
+One screenshot from the desk, before anyone had come down, carrying three
+separate faults.
+
+**The répartition drew an outcome that had not happened.** Entrés was 0 and
+Absents 100 %, and there was still a green sliver on top of the red. Its share
+was correctly 0 — `treemapShares` has always zeroed an empty block — but the
+Entrés block was the one rendered *unguarded*, and a flex item with no basis
+still paints its content, so the sliver arrived carrying the VIP and COMP chips.
+`Partiel` and `Absents` had both been guarded since they were written; the
+component's own docblock says "an outcome that did not happen gets no block at
+all". The rule was true of two blocks out of three.
+
+**VIP said "18 ch. / 0 pers."** — a tile disagreeing with itself in two lines.
+The room count of a membership tile ignores whether anyone came; the people
+count underneath it was counting arrivals. Same for Groupes and Hors liste. The
+people figure counts the same guests the room figure counts: arrivals for
+Entrés and Partiel, the reservation for VIP, COMP, Groupes and Hors liste, and
+for Absents the covers that were laid and nobody sat at.
+
+**And the blocks now say how many people they are**, not only how many doors —
+"ABSENTS 93 · 100.0 % · 124 pers." R34 and R34b hold both halves.
+
+### A security test that was a coin flip
+`notes-safety` asserted the storage key does not contain the room number:
+`expect(key).not.toContain("524")`. The key is 32 hex characters, so three
+decimal digits turn up in it by chance roughly once in a hundred and fifty runs
+— and it failed exactly that way in a full-suite run here.
+
+It reads like a leak check and is not one. What actually rules out
+`notes_524_POLANCO` is that the key's shape owes nothing to its inputs: same
+length for a one-digit room and a twelve-digit one, same length for "A" and for
+a fifty-character name, and every character changed when only the room moves.
+That is deterministic, and it is the property that matters.
+
+The name half of the assertion was never a coin flip and stays — P, O, L and N
+are not hex digits.
+
+A security test that cries wolf is worse than no test: it teaches the next
+person to re-run until green.
+
 ### What one picture per fix caught that the tests did not
 Every fix above was green before anyone looked at it. `scripts/proof-shots.mjs`
 renders one picture per item against a fixture built to make each one visible —

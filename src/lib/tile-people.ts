@@ -30,9 +30,18 @@ export function peopleIn(rows: ArrivalRow[]): number {
 }
 
 /** People these rooms were expected to bring. */
-function peopleExpected(rows: ArrivalRow[]): number {
+export function peopleExpected(rows: ArrivalRow[]): number {
   return rows.reduce((sum, r) => sum + Math.max(0, r.totalGuests || 0), 0);
 }
+
+/**
+ * A membership tile counts rooms whether or not anyone came, so its people
+ * figure has to count the same guests — the reservation, not the arrivals.
+ *
+ * Counting arrivals under a room count that ignores them printed "VIP 18 ch. /
+ * 0 pers." at 06:35, a tile contradicting itself in two lines.
+ */
+const pairOf = (rows: ArrivalRow[]): Pair => ({ rooms: rows.length, people: peopleExpected(rows) });
 
 const pairIn = (rows: ArrivalRow[]): Pair => ({ rooms: rows.length, people: peopleIn(rows) });
 
@@ -67,8 +76,8 @@ export function tilePeople(rows: ArrivalRow[]): TilePeople {
     in: pairIn(rows.filter((r) => r.status === "all-in")),
     no: { rooms: noShow.length, people: peopleExpected(noShow) },
     partial: pairIn(rows.filter((r) => r.status === "partial")),
-    vip: pairIn(rows.filter((r) => r.isVip)),
-    comp: pairIn(rows.filter((r) => r.isComp)),
+    vip: pairOf(rows.filter((r) => r.isVip)),
+    comp: pairOf(rows.filter((r) => r.isComp)),
     children: {
       rooms: withChildren.length,
       people: withChildren.reduce((n, r) => n + (r.children || 0), 0),

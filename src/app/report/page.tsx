@@ -11,7 +11,7 @@ import {
   presencePercent,
   ReportFilter,
 } from "@/lib/report-v2";
-import { tilePeople, peopleIn } from "@/lib/tile-people";
+import { tilePeople, peopleExpected } from "@/lib/tile-people";
 import type { PaxDiscrepancy } from "@/lib/types";
 import AffluenceChart from "@/components/report/AffluenceChart";
 import PresenceRing from "@/components/report/PresenceRing";
@@ -161,7 +161,10 @@ function ReportV2() {
      on the search screen was one word carrying two units — both true, neither
      saying which. See src/lib/tile-people.ts. */
   const pax = tilePeople(rows);
-  const groupPeople = peopleIn(rows.filter((r) => allGroupRooms.has(r.roomNumber)));
+  /* Group and off-list rooms are counted whether or not anyone came down, so
+     their people are the reservation's, not the morning's — otherwise the tile
+     reads "9 ch. / 0 pers." before service and contradicts itself. */
+  const groupPeople = peopleExpected(rows.filter((r) => allGroupRooms.has(r.roomNumber)));
 
   const tiles: ReportTile[] = [
     { key: "in", label: "Entrés", value: split.allIn, people: pax.in.people },
@@ -176,7 +179,7 @@ function ReportV2() {
     ...(blocks.length > 0
       ? [{ key: "groupe" as const, label: "Groupes", value: allGroupRooms.size, people: groupPeople, sub: `${blocks.length} bloc${blocks.length > 1 ? "s" : ""}` }]
       : []),
-    ...(offList > 0 ? [{ key: "offlist" as const, label: "Hors liste", value: offList, people: peopleIn(rows.filter((r) => r.offList)) }] : []),
+    ...(offList > 0 ? [{ key: "offlist" as const, label: "Hors liste", value: offList, people: peopleExpected(rows.filter((r) => r.offList)) }] : []),
     {
       key: "ecart",
       label: "Écarts",
@@ -391,6 +394,7 @@ function ReportV2() {
             </div>
             <OutcomeTreemap
               split={split}
+              people={{ allIn: pax.in.people, partial: pax.partial.people, noShow: pax.no.people }}
               vip={vipRooms}
               comp={compRooms}
               filter={filter}
