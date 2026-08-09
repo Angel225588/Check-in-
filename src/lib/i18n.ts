@@ -310,6 +310,11 @@ const translations = {
 
   // Client history
   "clientHistory.title": { fr: "Historique", en: "History" },
+  /* This block lists what has been recorded for this guest TODAY, with the undo
+     beside each row. It was headed "Historique" above a panel whose next
+     section is "Séjours précédents" — so the panel appeared to hold two
+     histories, and the one that could be undone was the one that looked past. */
+  "clientHistory.today": { fr: "Aujourd'hui", en: "Today" },
   "clientHistory.pax": { fr: "pax", en: "pax" },
 
   // Quick add guest

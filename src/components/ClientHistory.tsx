@@ -38,31 +38,20 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
     onUndo?.();
   };
 
-  const pastDates = history.slice(0, 3);
   const hasTodayEntries = todayCheckIns.length > 0;
-  const hasHistory = pastDates.length > 0;
 
-  if (!hasTodayEntries && !hasHistory) return null;
+  // Today only. This block used to open with a row of date chips — the first
+  // three past stays, as raw ISO strings — sitting directly above "Séjours
+  // précédents", which lists the same stays and all of them, with the weekday,
+  // the room and what they took. Two histories, one panel, and the shorter one
+  // was the one that read like a database. The chips also cost a `glass-liquid`
+  // blur each, composited every frame, for information already on screen.
+  if (!hasTodayEntries) return null;
 
   return (
-    <div className="shrink-0 mb-3">
-      <div className="text-[10px] text-muted uppercase tracking-wide mb-1.5 font-medium">{t("clientHistory.title")}</div>
+    <div className="shrink-0 mb-3" data-role="client-history-today">
+      <div className="text-[10px] text-muted uppercase tracking-wide mb-1.5 font-medium">{t("clientHistory.today")}</div>
 
-      {/* Past dates as chips */}
-      {hasHistory && (
-        <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
-          {pastDates.map((h, i) => (
-            <div key={`${h.date}-${i}`} className="shrink-0 glass-liquid rounded-full px-3 py-1.5 flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-dark">{h.date}</span>
-              <span className="text-[10px] text-muted">
-                {h.checkIns.reduce((s, ci) => s + ci.peopleEntered, 0)} {t("clientHistory.pax")}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Today's entries */}
       {hasTodayEntries && (
         <div className="space-y-1.5">
           {todayCheckIns.map((ci) => (

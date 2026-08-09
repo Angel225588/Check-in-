@@ -220,6 +220,40 @@ function buildDay(date: string, scale = 1): { clients: Client[]; checkIns: Check
     }
   }
 
+  /**
+   * Leave someone still to come who has something to decide.
+   *
+   * The demo day arrives mid-service with ~78% of rooms already entered, so
+   * whether any room needing a payment decision is STILL WAITING is decided by
+   * two coin flips per room. On roughly one morning in seven nobody was left,
+   * and the story pass reported "no such room in the day" — a probe skipping
+   * its own subject, which reads as 32/33 rather than as red.
+   *
+   * Reception's morning always has rooms still to come. The demo day's does too
+   * now, and US-2 — the story that stops an uncovered breakfast being waved
+   * through in one tap — always has somewhere to happen.
+   */
+  const entered = new Set(checkIns.map((c) => c.roomNumber));
+  const undecided = (c: Client) =>
+    !entered.has(c.roomNumber) &&
+    /^\d{3}$/.test(c.roomNumber) &&
+    c.vipSource === "breakfast_list" &&
+    !/BKF\s*(INC|GRP|EXCL|COMP|GTT)|UPS\s*F?\s*PDJ/.test(
+      (c.packageCode || "").toUpperCase().replace(/\s+/g, " ")
+    );
+  if (!clients.some(undecided)) {
+    // Take back the arrival of a plain room and clear its package, rather than
+    // inventing a room the arrivals list never had.
+    const victim = clients.find(
+      (c) => /^\d{3}$/.test(c.roomNumber) && c.vipSource === "breakfast_list"
+    );
+    if (victim) {
+      victim.packageCode = "";
+      const at = checkIns.findIndex((c) => c.roomNumber === victim.roomNumber);
+      if (at >= 0) checkIns.splice(at, 1);
+    }
+  }
+
   return { clients, checkIns };
 }
 

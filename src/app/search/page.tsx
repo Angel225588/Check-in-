@@ -31,6 +31,7 @@ import { pickGroups } from "@/lib/group-pick";
 import { boxRows, boxRecord, type BoxRow } from "@/lib/box-list";
 import GroupPicker from "@/components/GroupPicker";
 import { expectedFromYesterday } from "@/lib/expected";
+import { expectedSoon } from "@/lib/expected-soon";
 import { capRows } from "@/lib/row-cap";
 import { swipeEnabled, idlePreviewEnabled } from "@/lib/gestures";
 import { padTarget } from "@/lib/pad-target";
@@ -91,6 +92,20 @@ export default function SearchPage() {
    * open the pad's keys go to the note instead of the search field.
    */
   const [noteDraft, setNoteDraft] = useState<NoteDraft | null>(null);
+
+  /**
+   * A minute hand for anything on this screen that ages.
+   *
+   * "Attendus bientôt" is a claim about the next few minutes; without a tick it
+   * would be a claim about whenever the page last rendered, and would keep
+   * naming a 07:30 guest at 09:05. One timer, because a second one is a second
+   * thing to get wrong.
+   */
+  const [minuteTick, setMinuteTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setMinuteTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const st = getSettings();
@@ -294,27 +309,27 @@ export default function SearchPage() {
   }, []);
   const visitsFor = (name: string) => staysIndex.counts.get(name.trim().toUpperCase()) ?? 0;
 
-  /** Guests whose arrival time is predictable: three or more prior stays. One
-   *  visit is not a pattern, and a wrong prediction puts a wrong name in
-   *  someone's mouth. Surname only — this panel is readable across a counter. */
+  /**
+   * Guests whose usual hour is still ahead, soonest first.
+   *
+   * The time comes from `expectedSoon`, the same module the guest screen reads,
+   * because this pane once offered room 201 at 07:15 while 201's own screen
+   * said 09:40 — it was printing `07:${15 + i * 6}`, a time made out of the
+   * row's position in a list. Surname only: this panel is read across a counter.
+   *
+   * It re-reads on the service clock's minute so a guest drops off the list
+   * once their hour has gone by, rather than sitting there all morning.
+   */
   const expected = useMemo<ExpectedGuest[]>(() => {
-    const seen = new Map<string, number>();
-    for (const s of getSessionHistory()) {
-      for (const c of s.clients) {
-        const k = c.name.trim().toUpperCase();
-        seen.set(k, (seen.get(k) ?? 0) + 1);
-      }
-    }
-    const done = new Set(checkIns.map((c) => c.roomNumber));
-    return clients
-      .filter((c) => !done.has(c.roomNumber) && (seen.get(c.name.trim().toUpperCase()) ?? 0) >= 3)
-      .slice(0, 3)
-      .map((c, i) => ({
-        roomNumber: c.roomNumber,
-        surname: c.name.split(/[\/,]/)[0].trim().split(/\s+/)[0],
-        at: `0${7}:${String(15 + i * 6).padStart(2, "0")}`,
-      }));
-  }, [clients, checkIns]);
+    const now = new Date();
+    return expectedSoon(
+      clients,
+      checkIns,
+      getSessionHistory(),
+      now.toISOString().split("T")[0],
+      now.getHours() * 60 + now.getMinutes()
+    );
+  }, [clients, checkIns, minuteTick]);
   const vipCaptureRef = useRef<PhotoCaptureHandle>(null);
 
   /* One walk of the house per upload, not one per keystroke: the group blocks
@@ -489,9 +504,17 @@ export default function SearchPage() {
     handleSelectRoom(roomNumber, i);
   };
 
+  /* "Attendus bientôt" earns a face only when it has someone to name.
+     It speaks from three or more recorded mornings with a tight hour, so on a
+     young install, or at 09:30 when everyone's usual time has gone by, it has
+     nothing true to say — and a carousel face that reception swipes to for
+     "rien de prévisible" is a face that teaches them not to swipe. It appears
+     when it knows something and gets out of the way when it does not. */
   const idlePanes: Pane[] = [
     { key: "clock", label: "Heure", node: <ServiceClock checkIns={checkIns} onOpen={() => { rememberOrigin("search"); router.push("/report"); }} /> },
-    { key: "expected", label: "Attendus bientôt", node: <ExpectedPane expected={expected} onPick={openRoom} /> },
+    ...(expected.length > 0
+      ? [{ key: "expected", label: "Attendus bientôt", node: <ExpectedPane expected={expected} onPick={openRoom} /> }]
+      : []),
     { key: "recents", label: "Récents", node: <RecentsPane recents={recents} onPick={openRoom} /> },
   ];
 

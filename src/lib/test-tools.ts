@@ -13,7 +13,15 @@
  * Production builds simply do not set the flag, so the code is unreachable and
  * the buttons are not rendered. `NEXT_PUBLIC_` is inlined at build time: the
  * decision is made once, by the build, not by the tablet.
+ *
+ * The flag alone is not enough, because it is set in a hosting dashboard that
+ * this repository cannot see or test. One person adding it to the production
+ * environment would put "replace today's data" back under reception's thumb
+ * with every check in this repo still green. So a production deployment
+ * refuses the tools whatever the flag says, and the flag only decides
+ * anywhere it is safe to be wrong: previews, and this machine.
  */
 export function testToolsEnabled(): boolean {
+  if (process.env.NEXT_PUBLIC_VERCEL_ENV === "production") return false;
   return process.env.NEXT_PUBLIC_TEST_TOOLS === "1";
 }

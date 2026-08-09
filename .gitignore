@@ -1,8 +1,11 @@
 node_modules/
 .next/
 out/
-.env
-.env.local
+# The repository is public and holds a real Gemini key's blast radius. Ignore
+# every .env shape rather than the two we happened to think of — .env.production
+# and .env.development.local are one `git add -A` away from being public.
+.env*
+!.env.sample
 *.tsbuildinfo
 next-env.d.ts
 validation-artifacts/

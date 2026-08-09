@@ -29,6 +29,7 @@ import {
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { stayFormule } from "@/lib/stay-formule";
 import { arrivalPattern, hhmmOf } from "@/lib/arrival-pattern";
+import { arrivalMinutesByGuest, guestKey } from "@/lib/expected-soon";
 import { FORMULE_LABEL, type Formule } from "@/lib/report-v2";
 import { readSelection, checkinHref } from "@/lib/checkin-nav";
 import { takeOrigin, peekOrigin } from "@/lib/back-nav";
@@ -210,25 +211,14 @@ export default function CheckInPage({
    * picked out of a two-hour spread and presented as a pattern.
    */
   const arrival = useMemo(() => {
-    if (!guestId) return null;
+    if (!client) return null;
+    // The same collection the "Attendus bientôt" pane reads. The two screens
+    // used to each walk the history their own way and printed different hours
+    // for the same guest — 07:15 on the pane, 09:40 here.
     const todayIso = new Date().toISOString().split("T")[0];
-    const mins: number[] = [];
-    for (const sess of getSessionHistory()) {
-      if (sess.date === todayIso) continue;
-      const theirs = (sess.checkIns ?? []).filter(
-        (c) => normalizeNameForId(c.clientName) === guestId
-      );
-      // The first arrival of the morning is the habit; a second cup at 09:50
-      // is not a second data point about when they come down.
-      if (theirs.length === 0) continue;
-      const first = theirs
-        .map((c) => new Date(c.timestamp))
-        .filter((d) => !isNaN(d.getTime()))
-        .sort((a, b) => a.getTime() - b.getTime())[0];
-      if (first) mins.push(first.getHours() * 60 + first.getMinutes());
-    }
-    return arrivalPattern(mins);
-  }, [guestId]);
+    const mins = arrivalMinutesByGuest(getSessionHistory(), todayIso).get(guestKey(client.name));
+    return arrivalPattern(mins ?? []);
+  }, [client]);
 
   /** What reception has done most often for this guest. Two mornings is not a
    *  habit; three is worth putting at the top of the list. */

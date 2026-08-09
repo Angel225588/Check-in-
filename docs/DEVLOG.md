@@ -13,6 +13,79 @@ git for those.
 
 ---
 
+## 2026-08-09 (morning) — live at the desk, and the first thing it got wrong
+
+579 tests across 51 files · **24/24 preflight** · **33/33 story pass, three runs
+in a row**.
+
+### "Attendus bientôt" was not predicting badly — it was not predicting
+Angel, standing at the desk at 09:05: the pane offered room 201 at 07:15, and
+201's own screen said "Descend vers 09:40".
+
+Neither number was a bad forecast. The pane printed `07:${15 + i * 6}` — a time
+made out of the row's **position in the list**. Whoever was first was due at
+07:15, the second at 07:21, the third at 07:27, forever. The screenshot Angel
+sent shows exactly that sequence: 07:15, 07:21, 07:27. Reception reads that pane
+to know who is still to come, and a number that comes from an array index is a
+lie told in a confident font.
+
+The arithmetic lives in `src/lib/expected-soon.ts` now and **both screens read
+it**, so they cannot disagree again. It is the guest's own median from the
+mornings we recorded — the same value, from the same collection, that the guest
+screen shows. It says nothing below three mornings, nothing when the hour is
+spread wide enough that there is no usual one, and nothing about a guest whose
+time went by more than fifteen minutes ago: at 09:05 a 07:30 guest is not
+arriving soon, they are a different question.
+
+Angel asked the fair question — *should we even show it?* Yes, when it is real.
+So the pane no longer occupies a carousel face to say "rien de prévisible": it
+appears when it knows something and gets out of the way when it does not. On a
+young install it will mostly be absent, which is the honest answer.
+
+13 tests in `expected-soon.test.ts`, including the two times on Angel's tablet:
+07:00 lists both guests soonest-first, 09:05 lists only the one still to come.
+
+### One panel, two histories
+The Activité sidebar opened with a row of date chips — the first three past
+stays as raw ISO strings, `2026-08-05 · 1 pax` — sitting directly above "Séjours
+précédents", which lists the same stays, **all** of them, with the weekday, the
+room and what they took. The shorter, worse one came first, and each chip cost a
+`glass-liquid` blur composited every frame for information already on screen.
+
+The chips are gone. What is left in that block is today's entries with the undo
+beside each row — which is not history, and no longer claims to be: it is headed
+"Aujourd'hui".
+
+### A probe that skipped its own subject
+The story pass had been reporting **32/33** with `US-2 — no such room in the
+day`: the story that stops an uncovered breakfast being waved through in one tap
+had nothing to test.
+
+The seeder was not short of such rooms — 40 seeded days all had 8 to 12. It was
+short of ones **still to come**. The demo day arrives mid-service with ~78% of
+rooms already entered, so on roughly one morning in seven every uncovered room
+had already been checked in. The assertion in `mock-seeder.test.ts` had asked
+the wrong question; corrected, it reproduced the failure immediately — 6 days in
+40 — and the seeder now hands one back rather than leaving it to two coin flips.
+
+Worth naming: this failed *quietly*. A probe that cannot find its subject and
+counts itself as one check reads as 32/33, which looks like one small problem
+rather than a story with no evidence behind it at all.
+
+### Production cannot be talked into shipping the demo loader
+`NEXT_PUBLIC_TEST_TOOLS` is set in a hosting dashboard this repository cannot
+see or test — the one claim the last entry could not verify. One person adding
+it to the production environment would put "replace today's data" back under
+reception's thumb with every check here still green.
+
+`testToolsEnabled()` now refuses on a production deployment whatever the flag
+says. Previews and this machine still honour it, so the two harnesses that drive
+the app's own demo loader keep working: 24/24 and 33/33 on a flagged build.
+
+Also: `.gitignore` covered `.env` and `.env.local` and not `.env.production`.
+The repository is public and the Gemini key is a real one, so it ignores every
+`.env` shape now and keeps only the sample.
+
 ## 2026-08-08 (night) — shipped to a pull request
 
 **PR #4** · 562 tests across 50 files · **118/118 design rules** · **33/33 story
