@@ -75,6 +75,33 @@ One order now for both cases, in `src/lib/guest-sidebar.ts`, and today's
 check-ins count toward opening the panel at all. Today is what the screen is
 for; it is the one thing that is never dropped.
 
+### What one picture per fix caught that the tests did not
+Every fix above was green before anyone looked at it. `scripts/proof-shots.mjs`
+renders one picture per item against a fixture built to make each one visible —
+not to prove the fix, which the tests do, but to see what the tests were not
+watching. Three things fell out of it.
+
+**Enfants was counting people while every tile beside it counted rooms.** The
+first pass at the rooms/people split appended "ch." to every tile, so the
+Enfants tile read "3 ch." when the 3 was three children — the identical defect,
+reintroduced one tile over. Its value is rooms-with-children now, which is also
+what tapping it filters to; the children are on the people line.
+
+**Four pinned does not fit a portrait bar.** Portrait has four slots and a phone
+three, so pinning four left nothing to choose and, on the phone, drew a bar
+wider than the screen had room for. `chooseMetrics` caps at the slot count and
+priority survives the cut in CORE order. In portrait the bar is the pinned four
+and the rest are one tap away behind the funnel — which is the trade Angel
+asked for when he said COMP was as important as the trio.
+
+**Two of the rules were measuring the wrong thing.** R33 clicked a result row
+without typing anything, so there were no rows, so it photographed the search
+screen while reporting on the guest's panel — it failed on a screen that works.
+And it measured the drawer's full-screen overlay instead of the panel inside it:
+the overlay's centre IS the middle of the viewport, so "which half" answered
+"right" for both hands and passed by luck once. A rule that fails on a working
+screen is worth no more than one that passes on a broken one.
+
 ### Not reproduced: the panel changing sides on rotation
 Reported as landscape-left, portrait-right. Driven both orientations × both hand
 settings: panel at x=0 and x=0 for Gaucher, x=796 and x=520 for Droitier, and

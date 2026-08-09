@@ -169,7 +169,10 @@ function ReportV2() {
     { key: "partial", label: "Partiel", value: split.partial, people: pax.partial.people },
     { key: "vip", label: "VIP", value: vipRooms, people: pax.vip.people },
     { key: "comp", label: "COMP", value: compRooms, people: pax.comp.people },
-    ...(children > 0 ? [{ key: "enfants" as const, label: "Enfants", value: children }] : []),
+    /* Rooms, like every tile beside it — the value used to be the CHILD count,
+       so a row of tiles all reading "3" meant three rooms, three rooms, three
+       children. The children are on the second line where the people go. */
+    ...(children > 0 ? [{ key: "enfants" as const, label: "Enfants", value: pax.children.rooms, people: pax.children.people }] : []),
     ...(blocks.length > 0
       ? [{ key: "groupe" as const, label: "Groupes", value: allGroupRooms.size, people: groupPeople, sub: `${blocks.length} bloc${blocks.length > 1 ? "s" : ""}` }]
       : []),

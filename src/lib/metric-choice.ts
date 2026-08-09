@@ -61,7 +61,6 @@ export function chooseMetrics(
   // Pinned first, in their own fixed order, so the left of the bar never moves
   // under the eye. Whatever the checklist says fills what is left.
   const pinned = CORE_METRICS.filter((k) => all.some((m) => m.key === k));
-  const room = Math.max(0, slots - pinned.length);
 
   /* null means nobody has ever chosen — fall back to the ranking. An empty
      ARRAY means someone unticked everything, which is a choice and is honoured:
@@ -72,7 +71,26 @@ export function chooseMetrics(
       ? compactMetrics(all, rooms, slots).filter((k) => !isPinned(k))
       : chosen.filter((k) => present.has(k) && !isPinned(k));
 
-  const shown = [...pinned, ...extras.slice(0, room)];
+  /* A checklist that cannot change the bar is the bug we just fixed, wearing a
+     different hat. Landscape has six slots, so four pinned still leave two to
+     choose. Portrait has four and a phone three — four pinned would fill it, and
+     ticking Groupes would do nothing at all.
+
+     So the TRIO is absolute and COMP yields its slot, and only its slot, to
+     something explicitly chosen. Nobody chooses anything: the bar is the pinned
+     four. Somebody chooses Groupes on a portrait tablet: they get the trio and
+     Groupes, and COMP is one tap away behind the funnel — which is what asking
+     for Groupes meant. */
+  const TRIO = 3;
+  /* Only a real tick buys COMP's slot. The ranking fallback always produces
+     extras, so testing `extras.length` gave that slot away on a bar nobody had
+     touched — portrait opened on "Attendus" with COMP behind the funnel. */
+  const chose = chosen != null && chosen.length > 0;
+  const reserve = chose ? 1 : 0;
+  const pinnedShown = pinned.slice(0, Math.max(TRIO, slots - reserve));
+  const room = Math.max(0, slots - pinnedShown.length);
+
+  const shown = [...pinnedShown, ...extras.slice(0, room)].slice(0, slots);
   const hidden = all
     .filter((m) => present.has(m.key) && !shown.includes(m.key))
     .map((m) => m.key);

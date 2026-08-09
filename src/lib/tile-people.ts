@@ -44,6 +44,11 @@ export interface TilePeople {
   partial: Pair;
   vip: Pair;
   comp: Pair;
+  /** Rooms with a child in them, and how many children that is. The tile used
+   *  to print the CHILD count as its headline, so its "3" meant three children
+   *  while every tile beside it meant three rooms — and clicking it produced a
+   *  row count that matched nothing on its face. */
+  children: Pair;
   /** People expected across the whole day, and people served. */
   expected: number;
   served: number;
@@ -54,6 +59,7 @@ export interface TilePeople {
 
 export function tilePeople(rows: ArrivalRow[]): TilePeople {
   const noShow = rows.filter((r) => r.status === "no-show");
+  const withChildren = rows.filter((r) => (r.children || 0) > 0);
   const expected = peopleExpected(rows);
   const served = peopleIn(rows);
 
@@ -63,6 +69,10 @@ export function tilePeople(rows: ArrivalRow[]): TilePeople {
     partial: pairIn(rows.filter((r) => r.status === "partial")),
     vip: pairIn(rows.filter((r) => r.isVip)),
     comp: pairIn(rows.filter((r) => r.isComp)),
+    children: {
+      rooms: withChildren.length,
+      people: withChildren.reduce((n, r) => n + (r.children || 0), 0),
+    },
     expected,
     served,
     percent: expected === 0 ? 0 : Math.min(100, Math.round((served / expected) * 100)),

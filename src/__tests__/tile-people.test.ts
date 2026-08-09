@@ -82,6 +82,18 @@ describe("tilePeople", () => {
     expect(t.partial.people).toBe(1);
   });
 
+  it("counts Enfants as rooms with children, and the children in them", () => {
+    // The tile printed the CHILD count as its headline, so "3" meant three
+    // children while every neighbouring tile meant three rooms — and clicking
+    // it filtered to a number of rows that matched nothing on its face.
+    const t = tilePeople([
+      row({ roomNumber: "401", children: 2, entered: 4, totalGuests: 4 }),
+      row({ roomNumber: "402", children: 1, entered: 3, totalGuests: 3 }),
+      row({ roomNumber: "403", children: 0, entered: 2, totalGuests: 2 }),
+    ]);
+    expect(t.children).toEqual({ rooms: 2, people: 3 });
+  });
+
   it("counts VIP and COMP in people too", () => {
     const t = tilePeople([
       row({ roomNumber: "301", isVip: true, entered: 2 }),

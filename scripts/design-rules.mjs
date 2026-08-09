@@ -1641,13 +1641,25 @@ async function main() {
     // only thing changing is the shape of the screen.
     await page.goto(`${BASE}/search`, { waitUntil: "networkidle" });
     await page.waitForTimeout(400);
+    // Type a room first. With an empty field there are no rows, the click hits
+    // nothing, and the rule measures the search screen while reporting on the
+    // guest's panel — a rule that fails on a working screen is as useless as
+    // one that passes on a broken one.
+    for (const d of "224".split("")) {
+      await page.locator(`[data-role="numeric-keypad"] button:has-text("${d}")`).first().click().catch(() => {});
+      await page.waitForTimeout(120);
+    }
+    await page.waitForTimeout(400);
     await page.locator('[data-role="room-row"]').first().click().catch(() => {});
-    await page.waitForTimeout(900);
-    const guestUrl = page.url();
+    await page.waitForTimeout(1100);
     const landscapeAside = await sideOf(page.locator("aside").first(), 1194);
 
+    /* ROTATE, do not re-navigate. The room number is never in the URL — it is
+       handed over in sessionStorage — so re-opening the guest's address in a
+       fresh navigation bounces to /search and the rule would measure the wrong
+       screen. Resizing keeps the page mounted, which is also what actually
+       happens when reception turns the tablet over. */
     await page.setViewportSize({ width: 834, height: 1194 });
-    await page.goto(guestUrl, { waitUntil: "networkidle" });
     await page.waitForTimeout(700);
     const portraitAside = await sideOf(page.locator("aside").first(), 834);
 
@@ -1662,7 +1674,10 @@ async function main() {
     await page.locator('[data-role="portrait-menu"]').click().catch(() => {});
     await page.waitForTimeout(500);
     const drawerSide = await page.locator("[data-side]").first().getAttribute("data-side").catch(() => null);
-    const drawerBox = await sideOf(page.locator('[data-role="nav-drawer"]').first(), 834);
+    /* The PANEL, not the full-screen overlay it sits in. Measuring the overlay
+       measures the viewport: its centre is exactly the middle, so the test
+       "which half" answered "right" for both hands and passed by luck once. */
+    const drawerBox = await sideOf(page.locator("[data-side] aside").first(), 834);
     record(`R33-${hand}-drawer-follows-hand`,
       "The nav drawer opens on the set hand",
       drawerSide === hand && drawerBox === hand,
@@ -1956,6 +1971,20 @@ async function main() {
   // working exactly as it did.
   {
     const { ctx, page } = await openDay("/search", { w: 834, h: 1194 });
+    /* Groupes is not on the portrait bar by default any more: four metrics are
+       pinned and portrait has four slots, so the extras live behind the funnel.
+       Tick it the way reception would, then use it. */
+    if (await page.locator('[data-metric="groups"]').count() === 0) {
+      // This shell is portrait, so it is the portrait funnel — `metric-more`
+      // belongs to the landscape bar and waiting for it here just times out.
+      await page.locator('[data-role="portrait-filter-more"]').first().click();
+      await page.waitForTimeout(450);
+      await page.locator('[data-role="metric-choice-option"][data-metric="groups"]').click();
+      await page.waitForTimeout(450);
+      // The sheet closes on a tap outside it.
+      await page.mouse.click(10, 10);
+      await page.waitForTimeout(450);
+    }
     await page.locator('[data-metric="groups"]').first().click();
     await page.waitForTimeout(450);
     const rows = () => page.locator('[data-role="room-row"]').count();

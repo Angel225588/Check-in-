@@ -62,6 +62,43 @@ describe("the pinned four", () => {
     expect(chooseMetrics(ALL, next, 100, 6).shown).toContain("comp"); // …and stays on the bar
   });
 
+  it("never draws a wider bar than the screen has slots", () => {
+    expect(chooseMetrics(ALL, ["groups", "vip"], 100, 4).shown).toHaveLength(4);
+    expect(chooseMetrics(ALL, ["groups"], 100, 3).shown).toHaveLength(3);
+    expect(chooseMetrics(ALL, null, 100, 3).shown).toEqual(["total", "entered", "remaining"]);
+  });
+
+  it("shows all four when nothing has been chosen, at every width that fits", () => {
+    expect(chooseMetrics(ALL, [], 100, 4).shown).toEqual(CORE_METRICS);
+    expect(chooseMetrics(ALL, [], 100, 6).shown).toEqual(CORE_METRICS);
+  });
+
+  it("does not give COMP's slot away to the ranking on an untouched bar", () => {
+    // Only a real tick buys that slot. Testing "are there any extras" gave it
+    // to the fallback ranking, so a portrait bar nobody had touched opened on
+    // Attendus with COMP hidden behind the funnel.
+    expect(chooseMetrics(ALL, null, 100, 4).shown).toEqual(CORE_METRICS);
+  });
+
+  it("gives COMP's slot to a choice when the bar is too narrow for both", () => {
+    // Portrait: four slots. Four pinned would fill it and ticking Groupes would
+    // do nothing — the "checkbox that does nothing" bug in a new place. The trio
+    // is absolute; COMP is the one that yields, and only to something asked for.
+    const { shown, hidden } = chooseMetrics(ALL, ["groups"], 100, 4);
+    expect(shown).toEqual(["total", "entered", "remaining", "groups"]);
+    expect(hidden).toContain("comp");
+  });
+
+  it("keeps COMP when the bar is wide enough — landscape, which is the desk", () => {
+    expect(chooseMetrics(ALL, ["groups", "vip"], 100, 6).shown)
+      .toEqual([...CORE_METRICS, "groups", "vip"]);
+  });
+
+  it("never gives away a slot the trio needs", () => {
+    // A phone has three. There is nothing to yield: the trio holds.
+    expect(chooseMetrics(ALL, ["groups"], 100, 3).shown).toEqual(["total", "entered", "remaining"]);
+  });
+
   it("reports itself as pinned so the sheet can say so", () => {
     expect(isPinned("total")).toBe(true);
     expect(isPinned("comp")).toBe(true);
