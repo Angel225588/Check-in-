@@ -1,6 +1,7 @@
 "use client";
 import { Check, X } from "@phosphor-icons/react/dist/ssr";
-import { toggleMetric, CORE_METRICS as CORE } from "@/lib/metric-choice";
+import { toggleMetric, isPinned, isTicked, CORE_METRICS as CORE } from "@/lib/metric-choice";
+import { Lock } from "@phosphor-icons/react/dist/ssr";
 import type { MetricCandidate } from "@/lib/portrait";
 import type { Progress } from "@/lib/metric-progress";
 
@@ -54,7 +55,7 @@ export default function MetricChecklistSheet({
           <div>
             <b className="text-[15px] text-dark block">Sur la barre</b>
             <span className="text-[12px] font-semibold" style={{ color: "var(--tab-idle)" }}>
-              {slots} places · une nouvelle remplace la moins parlante
+              {CORE.length} fixes · {Math.max(0, slots - CORE.length)} au choix
             </span>
           </div>
           <button onClick={onClose} aria-label="Fermer"
@@ -64,23 +65,34 @@ export default function MetricChecklistSheet({
         </div>
 
         {all.map((m) => {
-          const on = shown.includes(m.key);
+          /* The tick is drawn from the CHOICE, not from `shown`. `shown` is
+             already sliced to the slots, so a chosen metric that did not fit
+             rendered as an empty box — and tapping it removed it, which is a
+             checkbox that appears to do nothing. */
+          const pinned = isPinned(m.key);
+          const on = isTicked(m.key, chosen, shown);
           const absent = m.value <= 0 && !CORE.includes(m.key);
           return (
             <button
               key={m.key}
               data-role="metric-choice-option"
               data-metric={m.key}
+              data-pinned={pinned ? "1" : undefined}
               role="checkbox"
               aria-checked={on}
-              disabled={absent}
+              aria-disabled={pinned || absent}
+              disabled={absent || pinned}
               onClick={() =>
                 onChoose(
                   toggleMetric(chosen, m.key, shown, slots, candidates, rooms,
                     activeFilter ? [activeFilter] : [])
                 )
               }
-              className="min-h-[56px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98] disabled:opacity-40"
+              /* Pinned rows are not dimmed. They are not unavailable — they are
+                 permanent, and greying them out would read as "broken". */
+              className={`min-h-[56px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform ${
+                pinned ? "" : "active:scale-[0.98]"
+              } ${absent ? "opacity-40" : ""}`}
               style={{
                 background: on ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
                 boxShadow: on ? "inset 0 0 0 1.5px var(--aur-gold)" : "inset 0 0 0 1px rgba(128,128,128,.12)",
@@ -92,9 +104,19 @@ export default function MetricChecklistSheet({
                   ? { background: "var(--aur-gold)" }
                   : { boxShadow: "inset 0 0 0 1.5px rgba(128,128,128,.4)" }}
               >
-                {on && <Check size={14} weight="bold" color="#fff" />}
+                {on && (pinned
+                  ? <Lock size={13} weight="fill" color="#fff" />
+                  : <Check size={14} weight="bold" color="#fff" />)}
               </span>
-              <span className="flex-1 text-[15px] font-bold text-dark">{m.label}</span>
+              <span className="flex-1 text-[15px] font-bold text-dark">
+                {m.label}
+                {pinned && (
+                  <em className="not-italic ml-2 text-[11px] font-black uppercase tracking-[0.08em]"
+                    style={{ color: "var(--tab-idle)" }}>
+                    toujours
+                  </em>
+                )}
+              </span>
               <b className="text-[18px] font-black tabular-nums"
                 style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
                 {absent ? "—" : progress[m.key] ? `${progress[m.key]!.done}/${progress[m.key]!.of}` : m.value}

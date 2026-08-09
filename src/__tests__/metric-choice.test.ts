@@ -5,13 +5,19 @@ import { chooseMetrics, toggleMetric, CORE_METRICS } from "@/lib/metric-choice";
  * US-19 — reception picks what the bar shows.
  *
  * The funnel used to be a second way to filter. It is now a checklist of what
- * is ON the bar, which is what reception actually wanted: the bar is four
- * slots wide and which four is a matter of taste, the day, and who is at the
- * desk. Filtering stays where it belongs — you tap the pill itself.
+ * is ON the bar, which is what reception actually wanted: the bar is a handful
+ * of slots wide and which ones is a matter of the day and who is at the desk.
+ * Filtering stays where it belongs — you tap the pill itself.
+ *
+ * The shape changed after a morning at the desk. FOUR are pinned — Total,
+ * Entrés, Restants, COMP — because they are not preferences: they answer "where
+ * are we" and "what am I accounting for", and reception should never have to
+ * put them back. The checklist decides the rest, which is the only part of the
+ * bar anyone wanted to choose.
  *
  * Two things must never be true. A day cannot end up with an empty bar, and a
- * metric that is chosen but absent from the day (no children, no groups) must
- * not hold a slot to display a zero.
+ * chosen metric the day has none of must not hold a slot to display a zero.
+ * (The pinned four are exempt: an empty Entrés at 06:40 is information.)
  */
 describe("chooseMetrics", () => {
   const day = [
@@ -25,15 +31,20 @@ describe("chooseMetrics", () => {
     { key: "vip", value: 15 },
   ];
 
-  it("falls back to the ranking when nothing has been chosen", () => {
-    const { shown } = chooseMetrics(day, null, 100, 4);
-    expect(shown.slice(0, 3)).toEqual(["total", "entered", "remaining"]);
-    expect(shown).toHaveLength(4);
+  it("leads with the pinned four when nothing has been chosen", () => {
+    const { shown } = chooseMetrics(day, null, 100, 6);
+    expect(shown.slice(0, 4)).toEqual(CORE_METRICS);
+    expect(shown).toHaveLength(6);
   });
 
-  it("honours the choice, in the order it was chosen", () => {
-    const { shown } = chooseMetrics(day, ["vip", "groups", "total"], 100, 4);
-    expect(shown).toEqual(["vip", "groups", "total"]);
+  it("honours the choice for the slots that are actually a choice", () => {
+    const { shown } = chooseMetrics(day, ["vip", "groups"], 100, 6);
+    expect(shown).toEqual([...CORE_METRICS, "vip", "groups"]);
+  });
+
+  it("ignores an attempt to choose a pinned metric — it is already there", () => {
+    const { shown } = chooseMetrics(day, ["total", "vip"], 100, 6);
+    expect(shown).toEqual([...CORE_METRICS, "vip"]);
   });
 
   it("never shows a chosen metric the day has none of", () => {
@@ -42,49 +53,63 @@ describe("chooseMetrics", () => {
       { key: "children", value: 0 },
       { key: "groups", value: 0 },
     ];
-    const { shown } = chooseMetrics(quiet, ["children", "groups", "total"], 100, 4);
+    const { shown } = chooseMetrics(quiet, ["children", "groups"], 100, 4);
     expect(shown).toEqual(["total"]);
   });
 
-  it("falls back rather than leave the bar empty", () => {
-    const { shown } = chooseMetrics(day, ["children"], 100, 4);
-    expect(shown).toContain("children");
-    // Choosing one thing is allowed; choosing nothing that exists is not.
-    const { shown: none } = chooseMetrics(day, [], 100, 4);
-    expect(none.length).toBeGreaterThan(0);
-    expect(none.slice(0, 3)).toEqual(["total", "entered", "remaining"]);
+  it("treats an emptied checklist as a choice, not as an accident", () => {
+    // null is "nobody has ever chosen" and falls back to the ranking. [] is
+    // "someone unticked everything" — honoured, because the pinned four are
+    // still a bar. Conflating them put back what had just been removed.
+    const { shown: never } = chooseMetrics(day, null, 100, 6);
+    expect(never.length).toBe(6);
+    const { shown: emptied } = chooseMetrics(day, [], 100, 6);
+    expect(emptied).toEqual(CORE_METRICS);
   });
 
   it("stops at the number of slots the screen has", () => {
-    const { shown } = chooseMetrics(day, ["vip", "groups", "comp", "children", "total"], 100, 3);
-    expect(shown).toHaveLength(3);
+    const { shown } = chooseMetrics(day, ["vip", "groups", "children", "expected"], 100, 5);
+    expect(shown).toHaveLength(5);
+    expect(shown.slice(0, 4)).toEqual(CORE_METRICS);
   });
 
   it("reports what is left over, so the funnel can count it", () => {
-    const { hidden } = chooseMetrics(day, ["total", "entered", "remaining", "vip"], 100, 4);
-    expect(hidden).toEqual(expect.arrayContaining(["expected", "children", "groups", "comp"]));
+    const { hidden } = chooseMetrics(day, ["vip"], 100, 5);
+    expect(hidden).toEqual(expect.arrayContaining(["expected", "children", "groups"]));
     expect(hidden).not.toContain("total");
+    expect(hidden).not.toContain("comp");
   });
 });
 
 describe("toggleMetric", () => {
-  it("starts from what is on screen, so the first tap edits what you see", () => {
-    // Nothing chosen yet: toggling ADDS to the current visible set rather than
-    // creating a list of one and blanking the bar.
-    expect(toggleMetric(null, "vip", ["total", "entered", "remaining", "groups"]))
-      .toEqual(["total", "entered", "remaining", "groups", "vip"]);
+  const day = [
+    { key: "total", value: 207 },
+    { key: "entered", value: 178 },
+    { key: "remaining", value: 29 },
+    { key: "comp", value: 4 },
+    { key: "groups", value: 62 },
+    { key: "vip", value: 15 },
+    { key: "children", value: 11 },
+  ];
+
+  it("starts from what is on screen, minus the pinned, so the first tap is sane", () => {
+    expect(toggleMetric(null, "vip", [...CORE_METRICS, "groups"])).toEqual(["groups", "vip"]);
   });
 
   it("adds at the end and removes in place", () => {
-    expect(toggleMetric(["total", "vip"], "groups", [])).toEqual(["total", "vip", "groups"]);
-    expect(toggleMetric(["total", "vip", "groups"], "vip", [])).toEqual(["total", "groups"]);
+    expect(toggleMetric(["vip"], "groups", [])).toEqual(["vip", "groups"]);
+    expect(toggleMetric(["vip", "groups"], "vip", [])).toEqual(["groups"]);
   });
 
-  it("refuses to remove the last one standing", () => {
-    expect(toggleMetric(["vip"], "vip", [])).toEqual(["vip"]);
+  it("lets the optional list empty out — the pinned four are still a bar", () => {
+    expect(toggleMetric(["vip"], "vip", [])).toEqual([]);
   });
 
-  it("keeps the outcome trio nameable", () => {
-    expect(CORE_METRICS).toEqual(["total", "entered", "remaining"]);
+  it("does nothing when a pinned metric is tapped", () => {
+    expect(toggleMetric(["vip"], "total", [], 6, day, 100)).toEqual(["vip"]);
+  });
+
+  it("names the pinned four", () => {
+    expect(CORE_METRICS).toEqual(["total", "entered", "remaining", "comp"]);
   });
 });

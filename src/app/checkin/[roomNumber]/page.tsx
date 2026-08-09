@@ -30,6 +30,7 @@ import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
 import { stayFormule } from "@/lib/stay-formule";
 import { arrivalPattern, hhmmOf } from "@/lib/arrival-pattern";
 import { arrivalMinutesByGuest, guestKey } from "@/lib/expected-soon";
+import { sidebarDocked, sidebarShows } from "@/lib/guest-sidebar";
 import { FORMULE_LABEL, type Formule } from "@/lib/report-v2";
 import { readSelection, checkinHref } from "@/lib/checkin-nav";
 import { takeOrigin, peekOrigin } from "@/lib/back-nav";
@@ -278,10 +279,19 @@ export default function CheckInPage({
   const needsPay = needsPaymentChoice(client);
   const isFirstVisit = pastStays.length === 0; // R2/R5: a new guest has no past stays
   // Dock the sidebar on tablet ONLY when there's something worth showing; an
-  // empty column just wastes horizontal space, so collapse it. Notes count as
-  // something worth showing — a first-time guest with an allergy is precisely
-  // the case where the column earns its width.
-  const dockSidebar = !isFirstVisit || notesApi.notes.length > 0;
+  // empty column just wastes horizontal space, so collapse it. Notes count, and
+  // so does a check-in made this morning — that one was missing, so a
+  // first-time guest who had already come down got a shut panel.
+  const dockSidebar = sidebarDocked({
+    pastStays: pastStays.length,
+    notes: notesApi.notes.length,
+    todayEntries: todayCheckIns.length,
+  });
+  const shows = sidebarShows({
+    tab: sideTab,
+    pastStays: pastStays.length,
+    todayEntries: todayCheckIns.length,
+  });
   const hasAlertNote = notesApi.notes.some((n) => n.tone === "alert");
 
   /** One tap from anywhere on the card straight into the notes list. */
@@ -486,22 +496,26 @@ export default function CheckInPage({
             </div>
           ) : (
           <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">
-            {isFirstVisit ? (
-              <>
-                {/* Dark ink on the gold, not white: white on #DD9C28 measures
-                    2.37:1, which is unreadable at this size. */}
-                <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-black text-[12.5px] shadow-[0_6px_16px_-6px] shadow-brand/60"
-                  style={{ background: "linear-gradient(135deg,#E9B44C,#C08A3A)", color: "#241F19" }}><Star weight="fill" size={13} /> Première visite</span>
-                <div className="text-[13px] text-muted text-center py-6">Aucune visite précédente</div>
-                <SideNotesDigest notes={notesApi.notes} onOpen={() => setSideTab("notes")} />
-              </>
-            ) : (
-              <>
-                {sideTab === "all" && (
-                  <>
-                    <ClientHistory roomNumber={client.roomNumber} clientName={client.name} todayCheckIns={todayCheckIns} onUndo={refreshAfterUndo} />
-                    <SideNotesDigest notes={notesApi.notes} onOpen={() => setSideTab("notes")} />
-                  </>
+            {/* One panel, one order, whether or not this guest has been here
+                before. It used to fork into two branches and only one of them
+                drew today — so a first-time guest who had already come down was
+                told "Aucune visite précédente" over their own check-in, with no
+                undo anywhere on the screen. See src/lib/guest-sidebar.ts. */}
+            <>
+                {shows.firstVisitBadge && (
+                  /* Dark ink on the gold, not white: white on #DD9C28 measures
+                     2.37:1, which is unreadable at this size. */
+                  <span className="self-start inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-black text-[12.5px] shadow-[0_6px_16px_-6px] shadow-brand/60"
+                    style={{ background: "linear-gradient(135deg,#E9B44C,#C08A3A)", color: "#241F19" }}><Star weight="fill" size={13} /> Première visite</span>
+                )}
+                {shows.todayActivity && (
+                  <ClientHistory roomNumber={client.roomNumber} clientName={client.name} todayCheckIns={todayCheckIns} onUndo={refreshAfterUndo} />
+                )}
+                {shows.notesDigest && (
+                  <SideNotesDigest notes={notesApi.notes} onOpen={() => setSideTab("notes")} />
+                )}
+                {shows.emptyState && (
+                  <div className="text-[13px] text-muted text-center py-6">Aucune visite précédente</div>
                 )}
                 {/* The habit, before the list of it. "Chambre · 4 fois" is the
                     sentence reception would otherwise assemble by reading six
@@ -542,7 +556,9 @@ export default function CheckInPage({
                     </span>
                   </div>
                 )}
-                <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
+                {shows.pastStays && (
+                  <div className="text-[10px] uppercase tracking-wide text-muted mt-1">Séjours précédents</div>
+                )}
                 {pastStays.map((v, i) => (
                   <div key={`${v.date}-${i}`} className="flex items-center justify-between gap-2 py-2 px-3 rounded-[12px] bg-black/[0.03] dark:bg-white/[0.04]">
                     <span className="leading-tight">
@@ -572,8 +588,7 @@ export default function CheckInPage({
                     </span>
                   </div>
                 ))}
-              </>
-            )}
+            </>
           </div>
           )}
         </div>

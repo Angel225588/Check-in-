@@ -13,8 +13,32 @@ import { compactMetrics, weakestMetric, type MetricCandidate } from "@/lib/portr
  * Two invariants. The bar is never empty: with no choice stored, or a choice
  * the day cannot honour, it falls back to the ranking. And a chosen metric the
  * day has none of never takes a slot — a zero occupies a place to say nothing.
+ *
+ * FOUR ARE PINNED. Total, Entrés and Restants answer "where are we"; COMP is
+ * the one reception is asked to account for and cannot reconstruct from the
+ * others. They hold their slots at zero — an empty Entrés at 06:40 and a day
+ * with no comps are both information — and nothing displaces them. The
+ * checklist decides the REST, which is the only part of the bar that is a
+ * preference.
  */
-export const CORE_METRICS = ["total", "entered", "remaining"];
+export const CORE_METRICS = ["total", "entered", "remaining", "comp"];
+
+/** Pinned metrics are on the bar always; the checklist cannot remove them. */
+export function isPinned(key: string): boolean {
+  return CORE_METRICS.includes(key);
+}
+
+/**
+ * Is this box ticked?
+ *
+ * Drawn from the CHOICE, never from what fitted. The sheet used to read the
+ * truncated bar, so a chosen metric with no slot rendered as an empty box —
+ * and tapping it removed it, which looked like a checkbox that did nothing.
+ */
+export function isTicked(key: string, chosen: string[] | null | undefined, visibleNow: string[]): boolean {
+  if (isPinned(key)) return true;
+  return (chosen && chosen.length > 0 ? chosen : visibleNow).includes(key);
+}
 
 export interface MetricChoice {
   /** In display order, already trimmed to the slots available. */
@@ -30,12 +54,25 @@ export function chooseMetrics(
   slots: number
 ): MetricChoice {
   const present = new Set(all.filter((m) => m.value > 0).map((m) => m.key));
-  // The trio is the answer to "where are we" and is always worth a slot, even
-  // at zero — an empty Entrés early in the service is information.
+  // The pinned four are always worth a slot, even at zero — an empty Entrés
+  // early in the service, and a morning with no comps, are both information.
   for (const k of CORE_METRICS) if (all.some((m) => m.key === k)) present.add(k);
 
-  const picked = (chosen ?? []).filter((k) => present.has(k));
-  const shown = (picked.length > 0 ? picked : compactMetrics(all, rooms, slots)).slice(0, slots);
+  // Pinned first, in their own fixed order, so the left of the bar never moves
+  // under the eye. Whatever the checklist says fills what is left.
+  const pinned = CORE_METRICS.filter((k) => all.some((m) => m.key === k));
+  const room = Math.max(0, slots - pinned.length);
+
+  /* null means nobody has ever chosen — fall back to the ranking. An empty
+     ARRAY means someone unticked everything, which is a choice and is honoured:
+     the pinned four are a bar. Conflating the two put metrics back on the bar
+     that had just been removed by hand. */
+  const extras =
+    chosen == null
+      ? compactMetrics(all, rooms, slots).filter((k) => !isPinned(k))
+      : chosen.filter((k) => present.has(k) && !isPinned(k));
+
+  const shown = [...pinned, ...extras.slice(0, room)];
   const hidden = all
     .filter((m) => present.has(m.key) && !shown.includes(m.key))
     .map((m) => m.key);
@@ -52,19 +89,21 @@ export function chooseMetrics(
  *
  * The last one cannot be removed. An empty bar is not a preference.
  *
- * **On a full bar, the new one displaces the weakest.** It used to append, and
- * `chooseMetrics` slices to the slots — so the fifth tick landed in fifth place
- * and nothing on screen moved: a checkbox that does not work.
+ * The list it edits is the OPTIONAL one. The pinned four are not a preference,
+ * so tapping one changes nothing and the sheet draws them as fixed rather than
+ * as boxes that quietly refuse.
  *
- * Which one leaves is a ranking question, not a recency one. "The last one I
- * ticked" is arbitrary from the desk; the one that should go is the one saying
- * least about this morning — and that score already exists, because it is what
- * decides which extras earn a slot when nobody has chosen at all. A coach of 40
- * outranks 3 comps whatever order they were ticked in.
+ * **On a full bar, the new one displaces the one chosen longest ago.** It used
+ * to displace "the least parlante" by ranking, which is a defensible rule and
+ * an invisible one: from the desk, ticking Groupes made VIP's tick disappear,
+ * and what reception reported was "I selected group and it selected VIP".
  *
- * `keep` is for anything that must not be displaced whatever it scores — the
- * live filter above all: a list filtered by a pill you cannot see is four rows
- * and no explanation.
+ * Recency is predictable without being explained. You ticked four things, the
+ * bar holds two, so the two you asked for most recently are the two you get.
+ *
+ * `keep` is for anything that must not be displaced whatever its age — the live
+ * filter above all: a list filtered by a pill you cannot see is four rows and
+ * no explanation.
  */
 export function toggleMetric(
   chosen: string[] | null | undefined,
@@ -75,17 +114,25 @@ export function toggleMetric(
   rooms?: number,
   keep: string[] = []
 ): string[] {
-  const base = chosen && chosen.length > 0 ? [...chosen] : [...visibleNow];
+  // Pinned metrics are not on the checklist's books at all.
+  if (isPinned(key)) return [...(chosen ?? [])].filter((k) => !isPinned(k));
+
+  const base = (chosen && chosen.length > 0 ? [...chosen] : [...visibleNow]).filter(
+    (k) => !isPinned(k)
+  );
+
   const at = base.indexOf(key);
   if (at >= 0) {
-    if (base.length === 1) return base;
+    // The optional list may empty completely: the pinned four are still a bar.
     base.splice(at, 1);
     return base;
   }
-  if (slots && base.length >= slots) {
-    const weakest = all ? weakestMetric(base, all, rooms ?? 0, [...keep, key]) : null;
-    // No ranking to go on — the last slot still beats a tick that does nothing.
-    const drop = weakest ?? base[base.length - 1];
+
+  const pinnedCount = all ? CORE_METRICS.filter((k) => all.some((m) => m.key === k)).length : CORE_METRICS.length;
+  const room = slots ? Math.max(1, slots - pinnedCount) : 0;
+  if (room && base.length >= room) {
+    // Oldest first, but never something that must stay — the live filter.
+    const drop = base.find((k) => !keep.includes(k)) ?? base[0];
     return [...base.filter((k) => k !== drop), key];
   }
   return [...base, key];

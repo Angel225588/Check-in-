@@ -1,20 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { toggleMetric, chooseMetrics } from "@/lib/metric-choice";
+import { toggleMetric, chooseMetrics, CORE_METRICS } from "@/lib/metric-choice";
 import { weakestMetric } from "@/lib/portrait";
 
 /**
- * US-19/US-32 — ticking a metric on a full bar.
+ * US-19/US-32 — ticking a metric on a full bar. Three rounds, each one a
+ * correction of the last, and the third came from the desk during a service.
  *
  * Round one: it appended, and `chooseMetrics` sliced to the slots, so the tick
  * landed in fifth place and nothing on screen moved.
  *
- * Round two, from the desk: "if I click one, it should take the place of the
- * last one on the ranking." Recency was the wrong rule — from reception's side
- * "the one I ticked most recently" is arbitrary. The one that should go is the
- * one saying least about this morning, and the app already has that score: it
- * is what decides which extras earn a slot when nobody has chosen at all.
+ * Round two: displace the metric saying least about this morning, using the
+ * ranking the app already had. Defensible, and invisible.
  *
- * A coach of 40 outranks 3 comps, whatever order they were ticked in.
+ * Round three, reported live: "I selected group and it was selecting vip or
+ * children and not group." Ticking Groupes made VIP's tick disappear, because
+ * VIP scored lowest — and from behind the counter that reads as the checkbox
+ * choosing for you. The rule is now the one thing reception can predict without
+ * being taught it: the optional metric chosen LONGEST AGO makes way.
+ *
+ * The ranking is still what fills the bar when nobody has chosen anything, and
+ * `weakestMetric` still answers that question. It just no longer decides what
+ * happens under someone's finger.
  */
 const CANDIDATES = [
   { key: "total", value: 186 },
@@ -38,62 +44,57 @@ describe("weakestMetric", () => {
   });
 
   it("never offers something the caller is holding on to", () => {
-    // The live filter, for instance: a list filtered by an invisible pill is
-    // four rows and no explanation.
     expect(weakestMetric(["total", "groups", "comp"], CANDIDATES, 186, ["comp"])).toBe("groups");
   });
 });
 
-describe("toggleMetric at capacity", () => {
-  const full = ["total", "entered", "remaining", "comp"];
+/* Six slots: four pinned, two to play with. */
+const SLOTS = 6;
 
-  it("displaces the weakest, not the newest", () => {
-    expect(toggleMetric(full, "groups", full, 4, CANDIDATES, 186))
-      .toEqual(["total", "entered", "remaining", "groups"]);
+describe("toggleMetric at capacity", () => {
+  it("displaces the one chosen longest ago, not the one scoring lowest", () => {
+    // vip was ticked first, so vip leaves — whatever the ranking thinks.
+    expect(toggleMetric(["vip", "children"], "groups", [], SLOTS, CANDIDATES, 186))
+      .toEqual(["children", "groups"]);
   });
 
-  it("leaves the trio alone", () => {
-    const after = toggleMetric(full, "vip", full, 4, CANDIDATES, 186);
-    expect(after.slice(0, 3)).toEqual(["total", "entered", "remaining"]);
-    expect(after).toContain("vip");
+  it("leaves the pinned four alone", () => {
+    const after = toggleMetric(["vip", "children"], "groups", [], SLOTS, CANDIDATES, 186);
+    for (const k of CORE_METRICS) expect(after, k).not.toContain(k);
+    expect(chooseMetrics(CANDIDATES, after, 186, SLOTS).shown.slice(0, 4)).toEqual(CORE_METRICS);
   });
 
   it("never grows past the slots it has", () => {
-    let list = full;
-    for (const k of ["groups", "vip", "children"]) {
-      list = toggleMetric(list, k, list, 4, CANDIDATES, 186);
+    let list: string[] = [];
+    for (const k of ["groups", "vip", "children", "expected"]) {
+      list = toggleMetric(list, k, list, SLOTS, CANDIDATES, 186);
     }
-    expect(list).toHaveLength(4);
+    expect(chooseMetrics(CANDIDATES, list, 186, SLOTS).shown).toHaveLength(SLOTS);
   });
 
   it("keeps what the caller pins", () => {
-    // Ticking Comp while Groupes is the live filter must not throw Groupes off.
-    const after = toggleMetric(
-      ["total", "entered", "expected", "groups"], "comp",
-      ["total", "entered", "expected", "groups"], 4, CANDIDATES, 186, ["groups"]
-    );
+    // Ticking Comp-like extras while Groupes is the live filter must not throw
+    // Groupes off, even though Groupes is the oldest tick.
+    const after = toggleMetric(["groups", "expected"], "vip", [], SLOTS, CANDIDATES, 186, ["groups"]);
     expect(after).toContain("groups");
-    expect(after).toContain("comp");
+    expect(after).toContain("vip");
     expect(after).not.toContain("expected");
   });
 
   it("the tick is visible on the bar, which was the whole complaint", () => {
-    const after = toggleMetric(full, "groups", full, 4, CANDIDATES, 186);
-    expect(chooseMetrics(CANDIDATES, after, 186, 4).shown).toContain("groups");
+    const after = toggleMetric(["vip", "children"], "groups", [], SLOTS, CANDIDATES, 186);
+    expect(chooseMetrics(CANDIDATES, after, 186, SLOTS).shown).toContain("groups");
   });
 
   it("still just adds when there is room", () => {
-    expect(toggleMetric(["total", "entered"], "comp", ["total", "entered"], 4, CANDIDATES, 186))
-      .toEqual(["total", "entered", "comp"]);
+    expect(toggleMetric(["vip"], "groups", [], SLOTS, CANDIDATES, 186)).toEqual(["vip", "groups"]);
   });
 
   it("unticking removes and frees a slot", () => {
-    expect(toggleMetric(full, "comp", full, 4, CANDIDATES, 186))
-      .toEqual(["total", "entered", "remaining"]);
+    expect(toggleMetric(["vip", "groups"], "vip", [], SLOTS, CANDIDATES, 186)).toEqual(["groups"]);
   });
 
-  it("without a ranking it falls back to the last slot rather than doing nothing", () => {
-    expect(toggleMetric(full, "groups", full, 4))
-      .toEqual(["total", "entered", "remaining", "groups"]);
+  it("evicts predictably even with no candidate list to rank", () => {
+    expect(toggleMetric(["vip", "children"], "groups", [], SLOTS)).toEqual(["children", "groups"]);
   });
 });

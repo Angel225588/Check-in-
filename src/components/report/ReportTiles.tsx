@@ -3,11 +3,19 @@ import { useState, useEffect } from "react";
 import { FunnelSimple, Check, X } from "@phosphor-icons/react/dist/ssr";
 import { ReportFilter } from "@/lib/report-v2";
 import { rankTiles } from "@/lib/tile-rank";
+import { paxLabel } from "@/lib/tile-people";
 
 export interface ReportTile {
   key: ReportFilter;
   label: string;
+  /** ROOMS. The headline, because clicking a tile filters a list of rooms and
+   *  a tile that says 60 then shows 30 rows is the same contradiction one tap
+   *  further in. */
   value: string | number;
+  /** People behind those rooms. "Entrés 30" and "Entrés 60" were the same
+   *  morning counted in different units on two screens; the tile carries both
+   *  now so neither has to be inferred. */
+  people?: number;
   /** Secondary figure, e.g. "+9 pers." on the reception-error tile. */
   sub?: string;
   /** The reception-error tile measures the source data, not the service. */
@@ -86,12 +94,18 @@ export default function ReportTiles({
               key={tile.key}
               data-role="report-tile"
               data-tile={tile.key}
+              /* The room count as a number, not as text to be scraped off the
+                 rendered tile. R17b used to read the last digits in the box,
+                 which stopped meaning "rooms" the moment a people figure was
+                 printed underneath it. */
+              data-rooms={Number(tile.value) || 0}
+              data-people={tile.people ?? ""}
               aria-pressed={on}
               onClick={() => onFilter(on ? "all" : tile.key)}
               /* Every tile the same width. A row that sizes each box to its own
                  label reads as assembled rather than designed, and the labels
                  are short enough now that nothing has to be squeezed. */
-              className="flex-1 min-w-0 min-h-[56px] px-3 py-2 rounded-[14px] text-left transition-transform active:scale-[0.97]"
+              className="flex-1 min-w-0 min-h-[68px] px-3 py-2 rounded-[14px] text-left transition-transform active:scale-[0.97]"
               style={
                 on
                   ? {
@@ -115,12 +129,26 @@ export default function ReportTiles({
                 style={{ color: on ? "var(--brand-ink)" : "var(--aur-ink-2)" }}
               >
                 {tile.value}
+                <em className="not-italic text-[11px] font-black ml-0.5" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
+                  ch.
+                </em>
                 {tile.sub && (
                   <em className="not-italic text-[12px] font-black ml-1.5" style={{ color: "var(--aur-warn-ink)" }}>
                     {tile.sub}
                   </em>
                 )}
               </div>
+              {/* The number reception is actually asked for. Without it the tile
+                  answers "how many doors", which nobody orders breakfast by. */}
+              {tile.people !== undefined && (
+                <div
+                  data-role="tile-people"
+                  className="text-[11px] font-black tabular-nums truncate -mt-0.5"
+                  style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}
+                >
+                  {paxLabel(tile.people)}
+                </div>
+              )}
             </button>
           );
         })}
@@ -178,8 +206,13 @@ export default function ReportTiles({
                   </span>
                   <span className="flex-1 text-[14px] font-bold text-dark">{t.label}</span>
                   <b className="text-[16px] font-black tabular-nums" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
-                    {t.value}
+                    {t.value} ch.
                   </b>
+                  {t.people !== undefined && (
+                    <span className="text-[12px] font-black tabular-nums w-[68px] text-right" style={{ color: "var(--tab-idle)" }}>
+                      {paxLabel(t.people)}
+                    </span>
+                  )}
                 </button>
               );
             })}

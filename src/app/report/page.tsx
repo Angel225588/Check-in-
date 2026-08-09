@@ -11,6 +11,7 @@ import {
   presencePercent,
   ReportFilter,
 } from "@/lib/report-v2";
+import { tilePeople, peopleIn } from "@/lib/tile-people";
 import type { PaxDiscrepancy } from "@/lib/types";
 import AffluenceChart from "@/components/report/AffluenceChart";
 import PresenceRing from "@/components/report/PresenceRing";
@@ -156,17 +157,23 @@ function ReportV2() {
   const compRooms = rows.filter((r) => r.isComp).length;
   const vipRooms = rows.filter((r) => r.isVip).length;
 
+  /* Rooms and people, on the same tile. "Entrés 30" here against "Entrés 60"
+     on the search screen was one word carrying two units — both true, neither
+     saying which. See src/lib/tile-people.ts. */
+  const pax = tilePeople(rows);
+  const groupPeople = peopleIn(rows.filter((r) => allGroupRooms.has(r.roomNumber)));
+
   const tiles: ReportTile[] = [
-    { key: "in", label: "Entrés", value: split.allIn },
-    { key: "no", label: "Absents", value: split.noShow },
-    { key: "partial", label: "Partiel", value: split.partial },
-    { key: "vip", label: "VIP", value: vipRooms },
-    { key: "comp", label: "COMP", value: compRooms },
+    { key: "in", label: "Entrés", value: split.allIn, people: pax.in.people },
+    { key: "no", label: "Absents", value: split.noShow, people: pax.no.people },
+    { key: "partial", label: "Partiel", value: split.partial, people: pax.partial.people },
+    { key: "vip", label: "VIP", value: vipRooms, people: pax.vip.people },
+    { key: "comp", label: "COMP", value: compRooms, people: pax.comp.people },
     ...(children > 0 ? [{ key: "enfants" as const, label: "Enfants", value: children }] : []),
     ...(blocks.length > 0
-      ? [{ key: "groupe" as const, label: "Groupes", value: allGroupRooms.size, sub: `${blocks.length} bloc${blocks.length > 1 ? "s" : ""}` }]
+      ? [{ key: "groupe" as const, label: "Groupes", value: allGroupRooms.size, people: groupPeople, sub: `${blocks.length} bloc${blocks.length > 1 ? "s" : ""}` }]
       : []),
-    ...(offList > 0 ? [{ key: "offlist" as const, label: "Hors liste", value: offList }] : []),
+    ...(offList > 0 ? [{ key: "offlist" as const, label: "Hors liste", value: offList, people: peopleIn(rows.filter((r) => r.offList)) }] : []),
     {
       key: "ecart",
       label: "Écarts",

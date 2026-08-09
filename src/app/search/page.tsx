@@ -20,7 +20,6 @@ import NotesFrame, { type NoteDraft } from "@/components/NotesFrame";
 import SuggestionCard from "@/components/SuggestionCard";
 import NumericKeypad from "@/components/NumericKeypad";
 import AlphaKeypad from "@/components/AlphaKeypad";
-import HistoryPanel from "@/components/HistoryPanel";
 import NotesModal from "@/components/NotesModal";
 import PhotoCapture, { PhotoCaptureHandle } from "@/components/PhotoCapture";
 import { getRemainingForRoom, isComp, needsPaymentChoice } from "@/lib/utils";
@@ -764,14 +763,20 @@ export default function SearchPage() {
         />
       )}
 
-      <HistoryPanel
-        checkIns={checkIns}
-        isOpen={historyOpen}
+      {/* One Récents, both shells. Landscape used to open HistoryPanel — a
+          separate list built straight from the raw check-ins, with its own row
+          shape, its own sort and no lenses — while portrait opened this one.
+          Two lists answering "did I already do 224?" is two answers to check. */}
+      <ActivitySheet
+        open={historyOpen}
         onClose={() => {
           setHistoryOpen(false);
           refresh();
         }}
-        onUndo={refresh}
+        rows={activityRows}
+        clients={clients}
+        onPickRoom={openRoom}
+        onUndoRow={undoCheckIn}
       />
 
       <style jsx>{`

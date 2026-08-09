@@ -838,7 +838,10 @@ async function main() {
     const listCount = () => page.locator('[data-role="report-row"]').count();
     const all = await listCount();
     const tile = page.locator('[data-role="report-tile"][data-tile="no"]');
-    const tileValue = Number((await tile.innerText()).match(/(\d+)\s*$/m)?.[1] ?? NaN);
+    // The room count, read as a number the tile publishes rather than scraped
+    // off its face. The old regex took the LAST digits in the box, which meant
+    // "rooms" only until the tile started printing people underneath them.
+    const tileValue = Number(await tile.getAttribute("data-rooms"));
     await tile.click();
     await page.waitForTimeout(340);
     const filtered = await listCount();
@@ -1606,6 +1609,65 @@ async function main() {
       !left || !right ? "back button missing in one of the two states"
         : same ? `x=${left.x} y=${left.y} ${left.w}x${left.h} in both`
         : `left-hand ${JSON.stringify(left)} vs right-hand ${JSON.stringify(right)}`);
+    await ctx.close();
+  }
+
+  // R33 — one hand, both orientations.
+  //
+  // Reported from the desk: "on horizontal it is left, when I switch to vertical
+  // the sidebar goes to the right." A setting that means one thing in landscape
+  // and the opposite in portrait is worse than no setting — reception rotates
+  // the tablet mid-service and the panel lands where their hand is not.
+  //
+  // Measured rather than reasoned about: set the hand, open the guest's Activité
+  // panel and the nav drawer in BOTH shapes, and check which half of the screen
+  // each one occupies.
+  for (const hand of ["left", "right"]) {
+    const { ctx, page } = await openDay("/search", { w: 1194, h: 834 });
+    await page.evaluate((h) => {
+      const s = JSON.parse(localStorage.getItem("app_settings") || "{}");
+      s.handSide = h;
+      localStorage.setItem("app_settings", JSON.stringify(s));
+    }, hand);
+
+    /** Which half of the viewport a box sits in, by its centre. */
+    const sideOf = async (locator, width) => {
+      const b = await locator.boundingBox().catch(() => null);
+      if (!b) return null;
+      return b.x + b.width / 2 < width / 2 ? "left" : "right";
+    };
+
+    // The guest's Activité panel, landscape then portrait — same guest, so the
+    // only thing changing is the shape of the screen.
+    await page.goto(`${BASE}/search`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(400);
+    await page.locator('[data-role="room-row"]').first().click().catch(() => {});
+    await page.waitForTimeout(900);
+    const guestUrl = page.url();
+    const landscapeAside = await sideOf(page.locator("aside").first(), 1194);
+
+    await page.setViewportSize({ width: 834, height: 1194 });
+    await page.goto(guestUrl, { waitUntil: "networkidle" });
+    await page.waitForTimeout(700);
+    const portraitAside = await sideOf(page.locator("aside").first(), 834);
+
+    record(`R33-${hand}-panel-follows-hand`,
+      "The guest's activity panel is on the set hand in both orientations",
+      landscapeAside === hand && portraitAside === hand,
+      `hand=${hand}: landscape ${landscapeAside ?? "missing"}, portrait ${portraitAside ?? "missing"}`);
+
+    // And the nav drawer, which is where those top-row icons live in portrait.
+    await page.goto(`${BASE}/search`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(600);
+    await page.locator('[data-role="portrait-menu"]').click().catch(() => {});
+    await page.waitForTimeout(500);
+    const drawerSide = await page.locator("[data-side]").first().getAttribute("data-side").catch(() => null);
+    const drawerBox = await sideOf(page.locator('[data-role="nav-drawer"]').first(), 834);
+    record(`R33-${hand}-drawer-follows-hand`,
+      "The nav drawer opens on the set hand",
+      drawerSide === hand && drawerBox === hand,
+      `hand=${hand}: data-side=${drawerSide ?? "missing"}, drawn ${drawerBox ?? "missing"}`);
+
     await ctx.close();
   }
 

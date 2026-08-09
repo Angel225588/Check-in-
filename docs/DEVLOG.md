@@ -13,6 +13,79 @@ git for those.
 
 ---
 
+## 2026-08-09 (afternoon) — six things from one service
+
+615 tests across 54 files · **24/24 preflight** · **33/33 story pass**. Five
+fixed, one measured and not reproduced.
+
+### "Entrés 60" and "Entrés 30" were the same morning
+The metrics bar counts PEOPLE. The report tile counted ROOMS. One word, two
+units, on two screens reception reads within a minute of each other — so the
+report looked like it had mislaid half the service.
+
+Rooms stay the headline on a tile, because a tile is a filter and the list it
+filters is a list of rooms: a tile reading 60 that produces 30 rows just moves
+the contradiction one tap deeper. So the tile carries both — `30 ch.` with
+`60 pers.` under it — and so does the funnel sheet. An absent room's "people"
+are the ones who did NOT come; that is the only reading of an absence the
+kitchen can use.
+
+R17b used to read the last digits on the tile's face to find the room count.
+That stopped meaning "rooms" the moment a people figure was printed underneath,
+so the tile publishes `data-rooms` and the rule reads that instead.
+
+### The checklist that appeared to choose for you
+"I selected group and it was selecting vip or children and not group. I had to
+actually unmark an existing one to then be able to click group."
+
+Two faults, compounding. The tick was drawn from `shown` — the list ALREADY
+TRUNCATED to the slots on the bar — so a chosen metric that did not fit rendered
+as an empty box, and tapping it told `toggleMetric` to REMOVE something already
+in the list. The box stayed empty and the tap did nothing. Unticking something
+else made room, the hidden choice appeared, and the control looked possessed.
+
+And displacement went by ranking, which is defensible and invisible: ticking
+Groupes made VIP's tick vanish because VIP scored lowest.
+
+Four are pinned now — Total, Entrés, Restants, COMP — drawn with a lock and
+"toujours", and nothing can knock them off. The rest are the checklist, and when
+those slots are full the one that leaves is the one chosen LONGEST AGO. Not the
+better rule in the abstract; the one reception can predict without being taught
+it.
+
+`null` and `[]` are no longer the same thing either. Never-chosen falls back to
+the ranking; unticked-everything is honoured, because the pinned four are still
+a bar.
+
+### Two Récents
+`ActivitySheet` was rendered only inside the portrait branch. Landscape's
+Récents button opened `HistoryPanel` — a separate list off the raw check-ins,
+its own row shape, its own sort, no lenses. Two lists answering "did I already
+do 224?" is two answers to check. One sheet in both shells; `HistoryPanel` is
+deleted, it had one caller.
+
+### The sidebar that opened empty over a check-in
+Reported as a second sidebar. It was not: it was a FIRST-TIME guest. The panel
+forked on "has past stays" and only the other branch drew today's entries — so a
+first-timer who had already come down got a collapsed panel that opened to
+"Aucune visite précédente" above their own check-in, with the undo button inside
+the block that never rendered.
+
+One order now for both cases, in `src/lib/guest-sidebar.ts`, and today's
+check-ins count toward opening the panel at all. Today is what the screen is
+for; it is the one thing that is never dropped.
+
+### Not reproduced: the panel changing sides on rotation
+Reported as landscape-left, portrait-right. Driven both orientations × both hand
+settings: panel at x=0 and x=0 for Gaucher, x=796 and x=520 for Droitier, and
+the drawer's `data-side` tracked the setting each way. The deployed build has
+the same wiring, so it is not a stale deploy.
+
+Nothing changed, because nothing was found. **R33** now measures it on every run
+instead — the claim is a rule rather than a memory. Two questions outstanding:
+whether the toggle read GAUCHER or DROITIER at the time (the label is state, not
+target), and whether it was the Activité panel or the nav drawer.
+
 ## 2026-08-09 (morning) — live at the desk, and the first thing it got wrong
 
 579 tests across 51 files · **24/24 preflight** · **33/33 story pass, three runs
