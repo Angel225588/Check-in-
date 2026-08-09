@@ -1620,6 +1620,40 @@ async function main() {
     await ctx.close();
   }
 
+  // R35 — Récents is one panel, not one per shell.
+  //
+  // Portrait has always had the activity list in the drawer, beside the day and
+  // one tap from the guest. Landscape had a button that opened something else —
+  // first a separate list built off the raw check-ins, then a full-screen sheet.
+  // Reception asked for "the same activité list" on the tablet lying down.
+  //
+  // Same component, so the rows cannot drift; without the four service tiles,
+  // which landscape already carries in its top row.
+  {
+    const { ctx, page } = await openDay("/search");
+    await page.locator('[data-role="hand-toggle"]').waitFor({ timeout: 5000 }).catch(() => {});
+    await page.locator("button", { hasText: /Récents/i }).first().click().catch(() => {});
+    await page.waitForTimeout(600);
+
+    const drawer = await page.locator('[data-role="nav-drawer"]').count();
+    const rows = await page.locator('[data-role="drawer-recents"] > *').count();
+    const tiles = await page.locator('[data-role="drawer-tiles"]').count();
+    record("R35-landscape-activity-drawer",
+      "Récents opens the same activity drawer the portrait shell uses",
+      drawer === 1 && rows > 0 && tiles === 0,
+      `drawer=${drawer}, rows=${rows}, duplicate tiles=${tiles}`);
+
+    // Expanding must not leave two full-screen lists mounted: the sheet lives in
+    // the shared overlays, and a per-shell copy would render it twice.
+    await page.locator('[data-role="drawer-expand-activity"]').click().catch(() => {});
+    await page.waitForTimeout(600);
+    const sheets = await page.locator('[data-role="activity-sheet"]').count();
+    record("R35b-one-full-screen-list",
+      "Expanding the activity list mounts exactly one full-screen list",
+      sheets === 1, `${sheets} mounted`);
+    await ctx.close();
+  }
+
   // R34 — an outcome that did not happen draws nothing.
   //
   // Before anyone comes down, Entrés is zero and Absents is 100 %. The green

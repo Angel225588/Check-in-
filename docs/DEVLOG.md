@@ -75,6 +75,26 @@ One order now for both cases, in `src/lib/guest-sidebar.ts`, and today's
 check-ins count toward opening the panel at all. Today is what the screen is
 for; it is the one thing that is never dropped.
 
+### Récents is one panel now, not one per shell
+Portrait has always had the activity list *in the drawer* — beside the day, one
+tap from the guest, each row with its own undo. Landscape had a button that
+opened something else: first `HistoryPanel`, a separate list built off the raw
+check-ins with its own row shape and no lenses; then, after that was deleted,
+the full-screen sheet. Reception, holding the tablet on its side: "we have the
+4 buttons, we just need to add the same activité list."
+
+So landscape opens the same `NavDrawer` — same component, so the rows cannot
+drift again — with `showNav={false}`, because the four service tiles are already
+in its top row and a second copy would put two Gaucher buttons on one screen.
+
+Measured on the tablet's own width: drawer on the set hand, 0 duplicate tiles,
+40 rows, and the expand button still leading to the full-screen list.
+
+That last part had a trap in it. The full-screen sheet lives in `overlays`,
+which BOTH shells render — so the portrait branch's own copy would have mounted
+it twice the moment the two shells shared a list. R35b counts the mounts rather
+than trusting the reading.
+
 ### Zero entrés still drew a green block, and three tiles said "0 pers."
 One screenshot from the desk, before anyone had come down, carrying three
 separate faults.

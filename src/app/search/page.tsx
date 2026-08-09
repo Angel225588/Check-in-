@@ -763,16 +763,35 @@ export default function SearchPage() {
         />
       )}
 
-      {/* One Récents, both shells. Landscape used to open HistoryPanel — a
-          separate list built straight from the raw check-ins, with its own row
-          shape, its own sort and no lenses — while portrait opened this one.
-          Two lists answering "did I already do 224?" is two answers to check. */}
-      <ActivitySheet
+      {/* One Récents, both shells — and now the same panel, not merely the same
+          rows. Landscape opened HistoryPanel (a separate list off the raw
+          check-ins, its own row shape, its own sort, no lenses), then briefly
+          the full-screen sheet. Portrait has always had the list in the drawer,
+          beside the day, one tap from the guest. Landscape gets that drawer,
+          without its four tiles: the top row already carries them. */}
+      <NavDrawer
         open={historyOpen}
-        onClose={() => {
-          setHistoryOpen(false);
-          refresh();
-        }}
+        onClose={() => { setHistoryOpen(false); refresh(); }}
+        showNav={false}
+        handSide={handSide}
+        side={handSide}
+        idlePreview={idlePreview}
+        onIdlePreviewToggle={flipIdlePreview}
+        recents={recents}
+        onPickRoom={openRoom}
+        onReport={() => { rememberOrigin("search"); router.push("/report"); }}
+        onFlipSide={flipSide}
+        onCloseDay={closeDayConfirmed}
+        onUpload={() => setUploadSheetOpen(true)}
+        onUndoRow={undoCheckIn}
+        onExpandActivity={() => { setHistoryOpen(false); setActivityOpen(true); }}
+      />
+
+      {/* The same list full screen, with the search field and the lenses. Both
+          shells reach it the same way: the expand button on the drawer. */}
+      <ActivitySheet
+        open={activityOpen}
+        onClose={() => { setActivityOpen(false); refresh(); }}
         rows={activityRows}
         clients={clients}
         onPickRoom={openRoom}
@@ -869,16 +888,10 @@ export default function SearchPage() {
              own layout and its own back button, for a choice of four. */
           onUpload={() => setUploadSheetOpen(true)}
           onUndoRow={undoCheckIn}
-          onExpandActivity={() => setActivityOpen(true)}
+          onExpandActivity={() => { setDrawerOpen(false); setActivityOpen(true); }}
         />
-        <ActivitySheet
-          open={activityOpen}
-          onClose={() => setActivityOpen(false)}
-          rows={activityRows}
-          clients={clients}
-          onPickRoom={openRoom}
-          onUndoRow={undoCheckIn}
-        />
+        {/* The full-screen list lives in `overlays`, which both shells render.
+            A copy here would mount it twice in portrait. */}
         {overlays}
       </>
     );

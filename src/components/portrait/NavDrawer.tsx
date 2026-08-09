@@ -41,6 +41,7 @@ export default function NavDrawer({
   onUpload,
   onUndoRow,
   onExpandActivity,
+  showNav = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -63,6 +64,16 @@ export default function NavDrawer({
   onUndoRow: (id: string) => void;
   /** The same list, full screen, with a search field and the lenses. */
   onExpandActivity: () => void;
+  /**
+   * Whether the drawer carries the four service tiles.
+   *
+   * Portrait has nowhere else to put them. Landscape already shows them in the
+   * top row, so it opens this drawer for the activity list alone — the same
+   * component, the same rows, the same expand button, rather than a second list
+   * that would drift from this one. Two lists answering "did I already do 224?"
+   * is two answers to check.
+   */
+  showNav?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -123,7 +134,11 @@ export default function NavDrawer({
           </button>
         </div>
 
-        {/* The same four, in the same order as the tablet lying down. */}
+        {/* The same four, in the same order as the tablet lying down — except
+            when the tablet IS lying down, where they are already in the top row
+            and a second copy inside the drawer is two Gaucher buttons on one
+            screen. */}
+        {showNav && (
         <div className="shrink-0 grid grid-cols-4 gap-2" data-role="drawer-tiles">
           <button onClick={pick(onUpload)} data-role="drawer-upload" className={tile}>
             <UploadSimple size={19} weight="duotone" style={{ opacity: .75 }} />
@@ -144,9 +159,10 @@ export default function NavDrawer({
             <span className={tileLabel} style={{ color: "var(--aur-bad-ink)" }}>Clôture</span>
           </button>
         </div>
+        )}
 
         {/* The day, right here. No tile in front of it. */}
-        <div className="shrink-0 flex items-center justify-between mt-4 mb-1.5 px-1">
+        <div className={`shrink-0 flex items-center justify-between mb-1.5 px-1 ${showNav ? "mt-4" : "mt-1"}`}>
           <b className="text-[11px] font-black uppercase tracking-[0.12em] inline-flex items-center gap-1.5"
             style={{ color: "var(--tab-idle)" }}>
             <Clock size={13} weight="duotone" /> Activité · {recents.length}
