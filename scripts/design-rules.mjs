@@ -1624,6 +1624,40 @@ async function main() {
     await ctx.close();
   }
 
+  // R38 — searching the report shows you what you found.
+  //
+  // Reported from the desk, landscape only: type into the report's search field
+  // and the pad covers the results. The panel is `flex-1` under a chart with a
+  // fixed height, so when the pad claimed its ~340px the chart kept all of its
+  // own and the list collapsed to its tiles and its search field. The header
+  // said "3 chambres" and not one of them was on screen.
+  //
+  // R26b already covers the full-screen sheet; nothing covered the panel the
+  // sheet expands FROM.
+  {
+    const { ctx, page } = await openDay("/report", { w: 1194, h: 834 });
+    await page.waitForTimeout(600);
+    await page.locator('[data-role="report-search"]').click();
+    await page.waitForTimeout(600);
+
+    const seen = await page.evaluate(() => {
+      const pad = document.querySelector('[data-role="report-pad"]');
+      const padTop = pad ? pad.getBoundingClientRect().top : window.innerHeight;
+      const rows = [...document.querySelectorAll('[data-role="report-row"]')];
+      const visible = rows.filter((r) => {
+        const b = r.getBoundingClientRect();
+        return b.height > 0 && b.bottom <= padTop + 1 && b.top >= 0;
+      });
+      return { padOpen: !!pad, rows: rows.length, visible: visible.length };
+    });
+
+    record("R38-report-search-shows-results",
+      "Typing on the report leaves its results on screen, not under the pad",
+      seen.padOpen && seen.visible > 0,
+      `pad ${seen.padOpen ? "open" : "closed"}, ${seen.visible} of ${seen.rows} rows clear of it`);
+    await ctx.close();
+  }
+
   // R37 — one metric pill, two shells.
   //
   // Portrait's pills are cut into the bar with `surface-inset`: four numbers in

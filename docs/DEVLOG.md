@@ -103,6 +103,20 @@ the picker, because portrait puts the picker above the list instead of inside
 it. The first version started at the picker and reported "not found" in
 portrait: a rule measuring two different boxes in two shells is not one rule.
 
+### Searching the report hid what you found
+Landscape only: type into the report's search field and the pad covered the
+results. The header said "3 chambres" and not one of them was on screen.
+
+The panel is `flex-1` beneath a chart with a fixed height. When the pad claimed
+its ~340px, the chart kept every pixel of its own and the list absorbed the
+whole loss — down to its tiles and its search field, with nothing left for a
+row. Nobody had noticed because R26b covers the full-screen sheet, and nothing
+covered the panel that sheet expands FROM.
+
+The chart stands down while the pad is up. Affluence is read at a glance between
+guests; a search is read while typing, and only one of them can be the thing you
+are looking at. Measured: 5 of 9 rows clear of the pad, where it was 0.
+
 ### The landscape metrics bar was the flat one
 Portrait's pills have been cut into the bar with `surface-inset` since it was
 built: four numbers in a row read as four things because light separates them,

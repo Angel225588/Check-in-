@@ -325,7 +325,15 @@ function ReportV2() {
       {/* ── Body: chart + list on the left, presence + treemap on the right ── */}
       <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-3 px-3 pb-3 overflow-y-auto md:overflow-hidden">
         <div className="flex-1 min-w-0 flex flex-col gap-3 md:min-h-0">
-          <AffluenceChart checkIns={report.checkIns} />
+          {/* The chart stands down while the pad is up.
+              Its height is fixed and the list's is `flex-1`, so when the pad
+              claimed its share of a landscape iPad the chart kept all of its
+              own and the list collapsed to its tiles and its search field: the
+              header read "3 chambres" and not one of them was on screen.
+              Affluence is read at a glance between guests; a search is read
+              while typing, and only one of the two can be the thing you are
+              looking at. */}
+          {!pad && <AffluenceChart checkIns={report.checkIns} />}
 
           <div className="surface-card rounded-[20px] px-4 pt-3 pb-3 flex flex-col md:flex-1 md:min-h-0">
             <div className="flex items-center justify-between gap-2">
