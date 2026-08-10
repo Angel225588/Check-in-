@@ -244,6 +244,10 @@ export function buildArrivalRows(report: DayReport): ArrivalRow[] {
 
 export type ReportFilter =
   | "all"
+  /** Anyone who got breakfast: a room fully in, or one that partly came. The
+   *  répartition counts PEOPLE, and at that level there is no half a person —
+   *  you either ate or you did not. */
+  | "servis"
   | "in"
   | "partial"
   | "no"
@@ -273,6 +277,9 @@ export function filterRows(
   const q = fold((query ?? "").trim());
   return rows.filter((r) => {
     switch (filter) {
+      case "servis":
+        if ((r.entered || 0) <= 0) return false;
+        break;
       case "in":
         if (r.status !== "all-in") return false;
         break;

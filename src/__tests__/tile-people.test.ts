@@ -127,6 +127,47 @@ describe("tilePeople", () => {
     expect(t.comp).toEqual({ rooms: 1, people: 3 });
   });
 
+  /**
+   * One population, one denominator, one percentage.
+   *
+   * The ring said 86 % and the répartition said 84.6 % on the same screen, for
+   * the same morning. Both were arithmetically right and answering slightly
+   * different questions — the ring divided served by the house (148/173), the
+   * répartition divided by the sum of its own blocks (148 + 27). The gap was
+   * exactly the two extra covers.
+   *
+   * Reception should never have to work out which of two percentages is the
+   * real one. The panel is now a single split of the house: served here, served
+   * partly there, and everyone else missing — which sums to the house exactly
+   * and shares the ring's denominator, so the headline figure is the same
+   * number in both places.
+   */
+  it("splits the house into parts that add back up to it", () => {
+    const t = tilePeople(rows);
+    expect(t.in.people + t.partial.people + t.missing).toBe(t.expected);
+  });
+
+  it("counts missing people against the house, not against the absent rooms", () => {
+    // 30 rooms of 2 arrive with one extra guest, one room of 3 does not.
+    // The absent ROOMS expected 3; but only 2 people are missing from the
+    // house, because someone unexpected turned up. Dividing 3 by the house
+    // and calling it "absents" is where the two percentages parted company.
+    const withExtra: ArrivalRow[] = [
+      row({ roomNumber: "101", status: "all-in", entered: 3, totalGuests: 2, extras: 1 }),
+      row({ roomNumber: "102", status: "no-show", entered: 0, totalGuests: 3 }),
+    ];
+    const t = tilePeople(withExtra);
+    expect(t.expected).toBe(5);
+    expect(t.served).toBe(3);
+    expect(t.no.people).toBe(3); // what the absent rooms were due
+    expect(t.missing).toBe(2); // what the house actually lost
+  });
+
+  it("never reports negative missing when more people turn up than expected", () => {
+    const t = tilePeople([row({ entered: 9, totalGuests: 2, extras: 7 })]);
+    expect(t.missing).toBe(0);
+  });
+
   it("never reads over 100%, because more people turn up than the sheet said", () => {
     const t = tilePeople([row({ entered: 5, totalGuests: 2, extras: 3 })]);
     expect(t.percent).toBe(100);

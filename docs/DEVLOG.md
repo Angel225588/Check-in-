@@ -75,6 +75,49 @@ One order now for both cases, in `src/lib/guest-sidebar.ts`, and today's
 check-ins count toward opening the panel at all. Today is what the screen is
 for; it is the one thing that is never dropped.
 
+### People lead, and there is one percentage on the report
+Reception, reading the tiles: "people in big and rooms smaller, same for the
+distribution chart." Then, a minute later: "84.6 and 86 — let's make sure the
+numbers are exactly the same everywhere. Simple and just clear."
+
+The swap itself was small. The second half was not, and it was the interesting
+one: putting people in the headline made two figures comparable that had never
+been comparable before, and they disagreed.
+
+**Three times, for three different reasons.**
+
+*86 against 84.6.* The ring divided people served by the house (148/173). The
+panel divided by the sum of its own blocks (148 served + 27 owed by the absent
+rooms = 175). The gap was exactly the two unexpected covers. Both arithmetically
+right; both answering a slightly different question.
+
+*49 against 40.* Fixed the denominator, and the panel still split three ways —
+Entrés, Partiel, Absents — so its green block counted only rooms that came in
+FULL while the ring counted everyone who ate. The missing nine points were the
+partial rooms.
+
+*And one waiting to happen.* The "Entrés" tile counted fully-arrived rooms too,
+so it would have parted company with its own block the first morning a room half
+turned up.
+
+The fix is not arithmetic, it is the model. **A room can be half arrived; a
+person cannot.** So the répartition is two blocks over one population — everyone
+who ate, and everyone who did not — and "everyone who ate" is precisely the
+ring's numerator, so the two figures are the same number by construction rather
+than by agreement. The parts add back to the house. Percentages are whole
+numbers: a tenth of a point is precision nobody uses at 09:00 and one more thing
+to reconcile.
+
+Partiel keeps its tile above the list, where the question is genuinely about
+rooms and the answer changes what you go and do.
+
+Measured on one screen: ring 83 % · 135/162 · block 135 pers. · 83 % · 79 ch. ·
+tile 135 pers. / 79 ch. · absents 27 / 17 % / 18 ch. R34c pins the ring and the
+block to the same digit; R34d checks the parts still make a whole.
+
+The old rule R17c asserted "three blocks" — it encoded the shape of the mistake,
+and updating it was part of the fix rather than an inconvenience.
+
 ### Récents is one panel now, not one per shell
 Portrait has always had the activity list *in the drawer* — beside the day, one
 tap from the guest, each row with its own undo. Landscape had a button that

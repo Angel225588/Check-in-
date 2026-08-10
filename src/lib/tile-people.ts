@@ -61,6 +61,19 @@ export interface TilePeople {
   /** People expected across the whole day, and people served. */
   expected: number;
   served: number;
+  /**
+   * People of the house who did not get breakfast: expected minus served.
+   *
+   * NOT the same as `no.people`, which is what the absent ROOMS were due. When
+   * two unexpected guests turn up, the absent rooms are still owed their three
+   * covers but the house has only lost one — and that difference is why the
+   * ring read 86 % beside a répartition reading 84.6 %.
+   *
+   * This is the figure the panel splits on, because `in + partial + missing`
+   * adds back to `expected` exactly, so every percentage on the report divides
+   * by the same number.
+   */
+  missing: number;
   /** Share of PEOPLE, capped. Rooms would give a different answer for the same
    *  morning, and breakfast is not ordered by the door. */
   percent: number;
@@ -84,6 +97,7 @@ export function tilePeople(rows: ArrivalRow[]): TilePeople {
     },
     expected,
     served,
+    missing: Math.max(0, expected - served),
     percent: expected === 0 ? 0 : Math.min(100, Math.round((served / expected) * 100)),
   };
 }

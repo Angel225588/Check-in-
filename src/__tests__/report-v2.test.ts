@@ -240,6 +240,28 @@ describe("filterRows", () => {
     expect(filterRows(rows, "no", "", ecart).map((r) => r.roomNumber)).toEqual(["303"]);
   });
 
+  /**
+   * "Servis" is everyone who ate — a room fully in, or one that partly came.
+   *
+   * The répartition counts people, and at that level there is no half a person.
+   * Splitting the panel three ways in rooms while the ring reported a share of
+   * people is how it came to print 86 % beside 84.6 %, then 49 % beside 40 %.
+   * One population, one denominator, and this is the filter behind the green
+   * block: tapping it must produce every room that fed somebody.
+   */
+  it("filters to every room that fed somebody", () => {
+    expect(filterRows(rows, "servis", "", ecart).map((r) => r.roomNumber).sort())
+      .toEqual(["101", "202", "404", "505"]);
+  });
+
+  it("counts servis as exactly the rooms that are not no-shows here", () => {
+    const servis = filterRows(rows, "servis", "", ecart);
+    const inRooms = filterRows(rows, "in", "", ecart);
+    const partial = filterRows(rows, "partial", "", ecart);
+    expect(servis.length).toBe(inRooms.length + partial.length);
+    for (const r of servis) expect(r.entered).toBeGreaterThan(0);
+  });
+
   it("filters by VIP, COMP, off-list and écart", () => {
     expect(filterRows(rows, "vip", "", ecart).map((r) => r.roomNumber)).toEqual(["404"]);
     expect(filterRows(rows, "comp", "", ecart).map((r) => r.roomNumber)).toEqual(["505"]);

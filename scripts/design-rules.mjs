@@ -868,8 +868,12 @@ async function main() {
         pct: /%/.test(await b.innerText()),
       });
     }
+    /* Two blocks, not three. The panel counts PEOPLE, and a person is not half
+       arrived — Partiel is a question about rooms and keeps its tile above the
+       list. Splitting three ways here is what let the panel and the ring print
+       two different percentages for one morning. */
     record("R17c-not-colour-alone", "Every outcome block carries a glyph and a percentage",
-      shapes.length === 3 && shapes.every((s) => s.svg > 0 && s.pct),
+      shapes.length === 2 && shapes.every((s) => s.svg > 0 && s.pct),
       shapes.map((s, i) => `#${i}:${s.svg}svg/${s.pct ? "%" : "no%"}`).join(" "));
 
     // R17d — the granularity control actually re-buckets the morning.
@@ -1668,18 +1672,57 @@ async function main() {
     const { ctx, page } = await openDay("/report", { arrivals: [], ecarts: [] });
     await page.waitForTimeout(600);
     const blocks = await page.locator('[data-role="treemap-block"]').evaluateAll((els) =>
-      els.map((e) => ({ label: (e.getAttribute("aria-label") || "").split(" ")[0], text: e.innerText })));
-    const green = blocks.filter((b) => /Entr/i.test(b.label));
+      els.map((e) => ({ label: e.getAttribute("data-block") || "?", text: e.innerText })));
+    const green = blocks.filter((b) => b.label === "servis");
     record("R34-no-block-for-a-zero-outcome",
-      "With nobody down, the répartition draws no Entrés block at all",
+      "With nobody down, the répartition draws no Servis block at all",
       green.length === 0 && blocks.length > 0,
       `blocks: ${blocks.map((b) => b.label).join(", ") || "none"}`);
 
-    const absent = blocks.find((b) => /Absent/i.test(b.label));
+    /* People lead, rooms follow. Both numbers on the block, and the big one is
+       the one reception is asked for — a full family and a lone traveller are
+       not the same morning. */
+    const absent = blocks.find((b) => b.label === "absents");
+    const t = absent ? absent.text.replace(/\s+/g, " ").trim() : "";
     record("R34b-block-counts-people",
-      "A répartition block says how many people it is, not only how many rooms",
-      !!absent && /\d+\s*pers\./.test(absent.text),
-      absent ? absent.text.replace(/\s+/g, " ").trim() : "no Absents block");
+      "A répartition block leads with people and still names its rooms",
+      !!absent && /\d+\s*pers\./.test(t) && /\d+\s*ch\./.test(t) && /%/.test(t),
+      t || "no Absents block");
+    await ctx.close();
+  }
+
+  // R34c — one percentage, not two.
+  //
+  // The ring read 86 % and the Entrés block 84.6 % on the same report, for the
+  // same morning. Both were arithmetically right and answering slightly
+  // different questions: the ring divided served by the house, the block by the
+  // sum of its own parts, and the gap was exactly the unexpected covers.
+  //
+  // Nobody standing at a desk should have to work out which of two percentages
+  // is the real one, so the panel is one split of one population — and the
+  // parts have to add back up to it.
+  {
+    const { ctx, page } = await openDay("/report");
+    await page.waitForTimeout(700);
+    const ring = (await page.locator('[data-role="report-ring"]').innerText().catch(() => ""))
+      .match(/(\d+)\s*%/)?.[1];
+    const pcts = await page.locator('[data-role="treemap-block"]').evaluateAll((els) =>
+      els.map((e) => {
+        const label = e.getAttribute("data-block") || "?";
+        const pct = (e.innerText.match(/(\d+)\s*%/) || [])[1];
+        return { label, pct: pct === undefined ? null : Number(pct) };
+      }));
+    const servis = pcts.find((p) => p.label === "servis");
+    record("R34c-one-percentage",
+      "The répartition agrees with the ring to the digit",
+      !!ring && !!servis && Number(ring) === servis.pct,
+      `ring ${ring ?? "?"} %, Servis block ${servis?.pct ?? "?"} %`);
+
+    const sum = pcts.reduce((a, p) => a + (p.pct ?? 0), 0);
+    record("R34d-parts-make-a-whole",
+      "The répartition's blocks add up to the whole house",
+      Math.abs(sum - 100) <= 1,
+      `blocks sum to ${sum} %`);
     await ctx.close();
   }
 

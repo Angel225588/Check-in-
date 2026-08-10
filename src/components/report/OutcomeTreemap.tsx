@@ -1,200 +1,167 @@
 "use client";
-import { Check, CircleHalf, X, Star, Gift } from "@phosphor-icons/react/dist/ssr";
-import { OutcomeSplit, ReportFilter, treemapShares } from "@/lib/report-v2";
+import { Check, X, Star, Gift } from "@phosphor-icons/react/dist/ssr";
+import { ReportFilter, treemapShares } from "@/lib/report-v2";
 
 /**
- * The day's outcome as area.
+ * The morning as area: who got breakfast, and who did not.
  *
  * Area carries the proportion, so the split reads without counting anything and
  * colour is left doing only one job: labelling. That matters here — red/green is
- * the one pair a colour-blind reader loses, and every block also carries a
- * glyph and a percentage, so nothing is encoded in hue alone.
+ * the one pair a colour-blind reader loses, and each block also carries a glyph,
+ * a figure and a percentage, so nothing is encoded in hue alone.
  *
- * An outcome that did not happen gets no block at all — a day with no partial
- * arrivals should not draw an empty "Partiel" rectangle, and the tiles above
- * the list still carry the 0 for anyone who wonders. Outcomes that DID happen
- * but are tiny are floored to a legible size instead (see treemapShares) and
- * drop to a compact layout, so a real 1-of-117 is never invisible and never
- * clipped down its own middle.
+ * **It counts people, and it counts them once.** It used to be a three-way split
+ * of ROOMS — entrés, partiel, absents — while the ring beside it reported a
+ * share of PEOPLE. Two percentages, same morning, side by side: 86 % on the ring
+ * and 84.6 % on the panel, then 49 % and 40 % once the panel switched to people
+ * but kept partial rooms in their own block. Both were arithmetically right and
+ * answering slightly different questions, and nobody standing at a desk should
+ * have to work out which one is the real one.
+ *
+ * So there are two blocks over one population. A room can be half arrived; a
+ * PERSON cannot — they ate or they did not. "Servi" is everyone who ate, which
+ * is exactly the ring's numerator, so the two figures are the same number by
+ * construction rather than by luck. Partiel keeps its tile above the list,
+ * where the question is about rooms and the answer changes what you go and do.
+ *
+ * An outcome that did not happen gets no block at all: before anyone comes down
+ * there is no green sliver over a red panel reading 100 %. One that DID happen
+ * but is tiny is floored to a legible size instead (see treemapShares) and drops
+ * to a compact layout, so a real 1-of-117 is never invisible and never clipped
+ * down its own middle.
  */
 export default function OutcomeTreemap({
-  split,
   people,
+  rooms,
   vip,
   comp,
   filter,
   onFilter,
 }: {
-  split: OutcomeSplit;
-  /** People behind each outcome, so a block says how much breakfast it was and
-   *  not only how many doors. Rooms are the area; people are the quantity. */
-  people?: { allIn: number; partial: number; noShow: number };
+  /** The house in people: served, missing, and the whole. The two parts add
+   *  back to `total`, so every percentage on the report divides by one number. */
+  people: { served: number; missing: number; total: number };
+  /** The doors behind them, in small type — a block still filters a list of
+   *  rooms, and "how many rooms is that" is the next question. */
+  rooms: { served: number; missing: number };
   vip: number;
   comp: number;
   filter: ReportFilter;
   onFilter: (f: ReportFilter) => void;
 }) {
-  const pc = (n: number) => (split.total ? ((n / split.total) * 100).toFixed(1) : "0.0") + " %";
+  /* A day with rooms but no expected people would collapse both blocks to
+     nothing; fall back to doors rather than draw an empty panel. */
+  const byPeople = people.total > 0;
+  const w = byPeople
+    ? { served: people.served, missing: people.missing, total: people.total }
+    : { served: rooms.served, missing: rooms.missing, total: rooms.served + rooms.missing };
 
-  // Column: Entrés against everything else. Row: partial against absent.
-  const rest = split.partial + split.noShow;
-  const [inS, restS] = treemapShares([split.allIn, rest], 0.26);
-  const [paS, noS] = treemapShares([split.partial, split.noShow], 0.34);
+  /* Whole percent, and the ring's denominator. A tenth of a point is precision
+     nobody uses at 09:00 and one more thing to reconcile. */
+  const pc = (n: number) => (w.total ? Math.round((n / w.total) * 100) : 0) + " %";
+
+  const [servedS, missingS] = treemapShares([w.served, w.missing], 0.26);
 
   const block =
-    "relative rounded-[12px] overflow-hidden text-left text-white flex flex-col justify-end transition-transform active:scale-[0.98] min-w-0";
-
-  /** A widened block gets the compact treatment: one line, no sub-figures. */
-  const Small = ({
-    label,
-    Icon,
-    value,
-    pax,
-    pct,
-    tight,
-    bg,
-    on,
-    onClick,
-    flex,
-  }: {
-    label: string;
-    Icon: typeof Check;
-    value: number;
-    pax?: number;
-    pct: string;
-    tight: boolean;
-    bg: string;
-    on: boolean;
-    onClick: () => void;
-    flex: number;
-  }) => (
-    <button
-      onClick={onClick}
-      data-role="treemap-block"
-      aria-pressed={on}
-      aria-label={`${label} ${value} (${pct})`}
-      className={`${block} ${tight ? "px-2 py-2 justify-center" : "px-3 py-2"}`}
-      style={{
-        flex: `${flex} 1 0`,
-        background: bg,
-        outline: on ? "2px solid var(--brand-ink)" : undefined,
-        outlineOffset: "-2px",
-      }}
-    >
-      <span
-        className={`flex items-center gap-1 font-black uppercase tracking-[0.08em] opacity-[0.92] min-w-0 ${
-          tight ? "text-[9.5px]" : "text-[11px] gap-1.5 tracking-[0.12em]"
-        }`}
-      >
-        <Icon weight="bold" size={tight ? 10 : 13} className="shrink-0" />
-        <span className="truncate">{label}</span>
-      </span>
-      {tight ? (
-        /* One line for the figure, one for the label above it. Two lines fit a
-           90px box; the single-line version truncated "Partiel" to "PARTI…". */
-        <span className="flex items-baseline gap-1 mt-0.5 min-w-0">
-          <span className="text-[22px] font-black leading-none tabular-nums">{value}</span>
-          <span className="text-[10.5px] font-black tabular-nums opacity-90 truncate">{pct}</span>
-        </span>
-      ) : (
-        <>
-          <span className="text-[26px] font-black leading-none tracking-[-0.03em] tabular-nums">{value}</span>
-          <span className="text-[13px] font-black tabular-nums opacity-95">
-            {pct}
-            {pax !== undefined && <em className="not-italic opacity-80"> · {pax} pers.</em>}
-          </span>
-        </>
-      )}
-    </button>
-  );
+    "relative rounded-[12px] overflow-hidden text-left text-white flex flex-col justify-end " +
+    "transition-transform active:scale-[0.98] min-w-0";
 
   return (
     <div className="flex flex-col gap-2 flex-1 min-h-0" data-role="report-treemap">
-      {/* Entrés was the one outcome drawn whether or not it happened. At 06:35,
-          with nobody down, its share is 0 — but a flex item with no basis still
-          paints its content, so a green sliver carrying the VIP and COMP chips
-          sat above a répartition that read "Absents 100 %". The other two blocks
-          have always been guarded; this one never was. */}
-      {split.allIn > 0 && (
-      <button
-        onClick={() => onFilter(filter === "in" ? "all" : "in")}
-        data-role="treemap-block"
-        aria-pressed={filter === "in"}
-        className={`${block} ${inS.floored ? "px-3 py-2 justify-center" : "px-4 py-3"}`}
-        style={{
-          flex: `${inS.share} 1 0`,
-          background: "linear-gradient(150deg,#357D58,#255B41)",
-          outline: filter === "in" ? "2px solid var(--brand-ink)" : undefined,
-          outlineOffset: "-2px",
-        }}
-      >
-        <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] opacity-[0.92]">
-          <Check weight="bold" size={13} /> Entrés
-        </span>
-        {inS.floored ? (
-          <span className="flex items-baseline gap-2 mt-0.5">
-            <span className="text-[24px] font-black leading-none tabular-nums">{split.allIn}</span>
-            <span className="text-[12px] font-black tabular-nums opacity-90">{pc(split.allIn)}</span>
+      {w.served > 0 && (
+        <button
+          onClick={() => onFilter(filter === "servis" ? "all" : "servis")}
+          data-role="treemap-block"
+          data-block="servis"
+          aria-pressed={filter === "servis"}
+          aria-label={`Entrés ${w.served} personnes (${pc(w.served)}, ${rooms.served} chambres)`}
+          className={`${block} ${servedS.floored ? "px-3 py-2 justify-center" : "px-4 py-3"}`}
+          style={{
+            flex: `${servedS.share} 1 0`,
+            background: "linear-gradient(150deg,#357D58,#255B41)",
+            outline: filter === "servis" ? "2px solid var(--brand-ink)" : undefined,
+            outlineOffset: "-2px",
+          }}
+        >
+          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] opacity-[0.92]">
+            <Check weight="bold" size={13} /> Entrés
           </span>
-        ) : (
-          <>
-            <span className="text-[34px] font-black leading-none tracking-[-0.03em] tabular-nums mt-0.5">{split.allIn}</span>
-            <span className="text-[15px] font-black tabular-nums opacity-95">
-              {pc(split.allIn)}
-              {people && <em className="not-italic opacity-80"> · {people.allIn} pers.</em>}
-            </span>
-            {(vip > 0 || comp > 0) && (
-              <span className="flex gap-1 mt-2">
-                <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
-                  <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
-                    <Star weight="fill" size={10} /> VIP
-                  </span>
-                  <span className="block text-[16px] font-black tabular-nums">{vip}</span>
-                </span>
-                <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
-                  <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
-                    <Gift weight="fill" size={10} /> COMP
-                  </span>
-                  <span className="block text-[16px] font-black tabular-nums">{comp}</span>
-                </span>
+          {servedS.floored ? (
+            <span className="flex items-baseline gap-2 mt-0.5">
+              <span className="text-[24px] font-black leading-none tabular-nums">{w.served}</span>
+              <span className="text-[12px] font-black tabular-nums opacity-90">
+                pers. · {pc(w.served)} · {rooms.served} ch.
               </span>
-            )}
-          </>
-        )}
-      </button>
+            </span>
+          ) : (
+            <>
+              <span className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-[34px] font-black leading-none tracking-[-0.03em] tabular-nums">{w.served}</span>
+                <em className="not-italic text-[13px] font-black opacity-80">pers.</em>
+              </span>
+              <span className="text-[15px] font-black tabular-nums opacity-95">
+                {pc(w.served)}
+                <em className="not-italic opacity-80"> · {rooms.served} ch.</em>
+              </span>
+              {(vip > 0 || comp > 0) && (
+                <span className="flex gap-1 mt-2">
+                  <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
+                    <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
+                      <Star weight="fill" size={10} /> VIP
+                    </span>
+                    <span className="block text-[16px] font-black tabular-nums">{vip}</span>
+                  </span>
+                  <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
+                    <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
+                      <Gift weight="fill" size={10} /> COMP
+                    </span>
+                    <span className="block text-[16px] font-black tabular-nums">{comp}</span>
+                  </span>
+                </span>
+              )}
+            </>
+          )}
+        </button>
       )}
 
-      {rest > 0 && (
-      <div className="flex gap-2 min-h-[72px]" style={{ flex: `${restS.share} 1 0` }}>
-        {split.partial > 0 && (
-        <Small
-          label="Partiel"
-          Icon={CircleHalf}
-          value={split.partial}
-          pax={people?.partial}
-          pct={pc(split.partial)}
-          tight={paS.floored}
-          bg="linear-gradient(150deg,#96622A,#77491B)"
-          on={filter === "partial"}
-          onClick={() => onFilter(filter === "partial" ? "all" : "partial")}
-          flex={paS.share}
-        />
-        )}
-        {split.noShow > 0 && (
-        <Small
-          label="Absents"
-          Icon={X}
-          value={split.noShow}
-          pax={people?.noShow}
-          pct={pc(split.noShow)}
-          tight={noS.floored}
-          bg="linear-gradient(150deg,#A93F32,#802A1F)"
-          on={filter === "no"}
+      {w.missing > 0 && (
+        <button
           onClick={() => onFilter(filter === "no" ? "all" : "no")}
-          flex={noS.share}
-        />
-        )}
-      </div>
+          data-role="treemap-block"
+          data-block="absents"
+          aria-pressed={filter === "no"}
+          aria-label={`Absents ${w.missing} personnes (${pc(w.missing)}, ${rooms.missing} chambres)`}
+          className={`${block} min-h-[72px] ${missingS.floored ? "px-3 py-2 justify-center" : "px-4 py-3"}`}
+          style={{
+            flex: `${missingS.share} 1 0`,
+            background: "linear-gradient(150deg,#A93F32,#802A1F)",
+            outline: filter === "no" ? "2px solid var(--brand-ink)" : undefined,
+            outlineOffset: "-2px",
+          }}
+        >
+          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] opacity-[0.92]">
+            <X weight="bold" size={13} /> Absents
+          </span>
+          {missingS.floored ? (
+            <span className="flex items-baseline gap-2 mt-0.5">
+              <span className="text-[24px] font-black leading-none tabular-nums">{w.missing}</span>
+              <span className="text-[12px] font-black tabular-nums opacity-90">
+                pers. · {pc(w.missing)} · {rooms.missing} ch.
+              </span>
+            </span>
+          ) : (
+            <>
+              <span className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-[34px] font-black leading-none tracking-[-0.03em] tabular-nums">{w.missing}</span>
+                <em className="not-italic text-[13px] font-black opacity-80">pers.</em>
+              </span>
+              <span className="text-[15px] font-black tabular-nums opacity-95">
+                {pc(w.missing)}
+                <em className="not-italic opacity-80"> · {rooms.missing} ch.</em>
+              </span>
+            </>
+          )}
+        </button>
       )}
     </div>
   );

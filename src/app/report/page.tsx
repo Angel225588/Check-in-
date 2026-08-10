@@ -167,8 +167,15 @@ function ReportV2() {
   const groupPeople = peopleExpected(rows.filter((r) => allGroupRooms.has(r.roomNumber)));
 
   const tiles: ReportTile[] = [
-    { key: "in", label: "Entrés", value: split.allIn, people: pax.in.people },
-    { key: "no", label: "Absents", value: split.noShow, people: pax.no.people },
+    /* The same set as the répartition's green block and the same figure as the
+       search screen's "Entrés": everyone who got breakfast, including the rooms
+       that only partly came. Counting fully-arrived rooms only would put a
+       different number under the same word the moment one room half turned up.
+       Partiel keeps its own tile below — that question is about rooms. */
+    { key: "servis", label: "Entrés", value: split.allIn + split.partial, people: pax.served },
+    /* The same figure the répartition block shows. A tile reading 27 above a
+       block reading 25 is the 84.6-against-86 problem one row further down. */
+    { key: "no", label: "Absents", value: split.noShow, people: pax.missing },
     { key: "partial", label: "Partiel", value: split.partial, people: pax.partial.people },
     { key: "vip", label: "VIP", value: vipRooms, people: pax.vip.people },
     { key: "comp", label: "COMP", value: compRooms, people: pax.comp.people },
@@ -393,8 +400,11 @@ function ReportV2() {
               </b>
             </div>
             <OutcomeTreemap
-              split={split}
-              people={{ allIn: pax.in.people, partial: pax.partial.people, noShow: pax.no.people }}
+              /* One population, split once. `served` is the ring's numerator and
+                 `missing` is the rest of the house, so the panel and the ring
+                 cannot print two different percentages for one morning. */
+              people={{ served: pax.served, missing: pax.missing, total: pax.expected }}
+              rooms={{ served: split.allIn + split.partial, missing: split.noShow }}
               vip={vipRooms}
               comp={compRooms}
               filter={filter}

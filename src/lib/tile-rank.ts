@@ -28,8 +28,11 @@ export interface RankInput {
   tiles: RankTile[];
 }
 
-/** Always in front, in this order. The service's outcome is not negotiable. */
-const CORE = ["in", "no", "partial"];
+/** Always in front, in this order. The service's outcome is not negotiable.
+ *  "servis" is the arrivals tile — everyone who got breakfast, rooms fully in
+ *  and rooms that partly came. It was keyed "in" while it counted only the
+ *  former. */
+const CORE = ["servis", "in", "no", "partial"];
 
 /**
  * How much a metric matters beyond its raw size.

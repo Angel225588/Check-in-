@@ -124,13 +124,19 @@ export default function ReportTiles({
               >
                 {tile.label}
               </div>
+              {/* People large, rooms underneath. The tile carried both from the
+                  moment "Entrés 30" was found arguing with "Entrés 60", but
+                  rooms held the headline — reception reads this to know how
+                  much breakfast, and breakfast is not ordered by the door.
+                  Tapping still filters ROOMS, which is why the room count stays
+                  on the face rather than moving behind the funnel. */}
               <div
                 className="text-[22px] font-black leading-[1.15] tabular-nums truncate"
                 style={{ color: on ? "var(--brand-ink)" : "var(--aur-ink-2)" }}
               >
-                {tile.value}
-                <em className="not-italic text-[11px] font-black ml-0.5" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
-                  ch.
+                {tile.people !== undefined ? tile.people : tile.value}
+                <em className="not-italic text-[11px] font-black ml-1" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
+                  {tile.people !== undefined ? "pers." : "ch."}
                 </em>
                 {tile.sub && (
                   <em className="not-italic text-[12px] font-black ml-1.5" style={{ color: "var(--aur-warn-ink)" }}>
@@ -138,15 +144,13 @@ export default function ReportTiles({
                   </em>
                 )}
               </div>
-              {/* The number reception is actually asked for. Without it the tile
-                  answers "how many doors", which nobody orders breakfast by. */}
               {tile.people !== undefined && (
                 <div
-                  data-role="tile-people"
+                  data-role="tile-rooms"
                   className="text-[11px] font-black tabular-nums truncate -mt-0.5"
                   style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}
                 >
-                  {paxLabel(tile.people)}
+                  {tile.value} ch.
                 </div>
               )}
             </button>
@@ -206,11 +210,11 @@ export default function ReportTiles({
                   </span>
                   <span className="flex-1 text-[14px] font-bold text-dark">{t.label}</span>
                   <b className="text-[16px] font-black tabular-nums" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
-                    {t.value} ch.
+                    {t.people !== undefined ? paxLabel(t.people) : `${t.value} ch.`}
                   </b>
                   {t.people !== undefined && (
-                    <span className="text-[12px] font-black tabular-nums w-[68px] text-right" style={{ color: "var(--tab-idle)" }}>
-                      {paxLabel(t.people)}
+                    <span className="text-[12px] font-black tabular-nums w-[56px] text-right" style={{ color: "var(--tab-idle)" }}>
+                      {t.value} ch.
                     </span>
                   )}
                 </button>
