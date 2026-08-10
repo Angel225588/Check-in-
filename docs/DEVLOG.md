@@ -75,6 +75,34 @@ One order now for both cases, in `src/lib/guest-sidebar.ts`, and today's
 check-ins count toward opening the panel at all. Today is what the screen is
 for; it is the one thing that is never dropped.
 
+### The Groupes list dragged sideways under a thumb
+"When I select Groupes and scroll the list, it moves left to right with my
+finger instead of being a fixed frame. This only happens with Groupes."
+
+`overflow-y: auto` with a visible `overflow-x` computes **`overflow-x: auto`**
+too. The results column had been scrollable on both axes since it was written —
+it simply never had anything wider than itself to prove it. `GroupPicker`
+carried `-mx-0.5`: four pixels of negative margin so the chips' focus rings
+could breathe. Four pixels is all a touch device needs to decide the gesture
+belongs to the horizontal axis.
+
+That is why it was only ever Groupes. It is the one control that lives *inside*
+the scrolling list.
+
+The negative margin is gone, both shells' lists state their axis
+(`overflow-x-hidden`, `touch-action: pan-y`, `overscroll-behavior: contain`),
+and the chip row takes `pan-x` so a vertical drag starting on a chip still
+scrolls the list underneath it.
+
+Portrait's list carried the same four pixels on its own scroller, so it was one
+control away from the identical bug. Fixed there too, before anyone met it.
+
+R36 measures it as overflow rather than as feel — `scrollWidth` against
+`clientWidth` with the filter on — and it walks up from a ROW rather than from
+the picker, because portrait puts the picker above the list instead of inside
+it. The first version started at the picker and reported "not found" in
+portrait: a rule measuring two different boxes in two shells is not one rule.
+
 ### People lead, and there is one percentage on the report
 Reception, reading the tiles: "people in big and rooms smaller, same for the
 distribution chart." Then, a minute later: "84.6 and 86 — let's make sure the

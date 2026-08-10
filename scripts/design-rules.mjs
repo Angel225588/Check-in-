@@ -1624,6 +1624,64 @@ async function main() {
     await ctx.close();
   }
 
+  // R36 — the results list scrolls one way.
+  //
+  // Reported from the desk, and only ever with Groupes: "when I scroll the list
+  // it moves left to right with my finger instead of being a fixed frame."
+  //
+  // `overflow-y: auto` with a visible overflow-x computes overflow-x: auto too,
+  // so the column was scrollable on BOTH axes the whole time — it just had
+  // nothing wider than itself to prove it. GroupPicker carried `-mx-0.5`, four
+  // pixels of negative margin, and four pixels is all a touch device needs to
+  // hand the gesture to the horizontal axis.
+  //
+  // Measured as overflow, not as feel: scrollWidth must not exceed clientWidth.
+  for (const [w, h, shell] of [[1194, 834, "landscape"], [834, 1194, "portrait"]]) {
+    const { ctx, page } = await openDay("/search", { w, h });
+    const metric = page.locator('[data-metric="groups"]').first();
+    if (await metric.count() === 0) {
+      const more = page.locator('[data-role="metric-more"], [data-role="portrait-filter-more"]').first();
+      await more.click().catch(() => {});
+      await page.waitForTimeout(400);
+      await page.locator('[data-role="metric-choice-option"][data-metric="groups"]').click().catch(() => {});
+      await page.waitForTimeout(400);
+      await page.mouse.click(5, 5);
+      await page.waitForTimeout(400);
+    }
+    await page.locator('[data-metric="groups"]').first().click();
+    await page.waitForTimeout(600);
+
+    const drift = await page.evaluate(() => {
+      /* Walk up from a ROW, not from the picker. Portrait puts the picker above
+         the list rather than inside it, so starting there measures a different
+         box in each shell — and a rule that measures two different things is
+         not one rule. */
+      const row = document.querySelector('[data-role="room-row"], [data-role="suggestion-card"]');
+      if (!row) return { found: false };
+      let el = row.parentElement;
+      while (el && el !== document.body) {
+        const s = getComputedStyle(el);
+        if (/(auto|scroll)/.test(s.overflowY)) break;
+        el = el.parentElement;
+      }
+      if (!el || el === document.body) return { found: false };
+      return {
+        found: true,
+        over: el.scrollWidth - el.clientWidth,
+        overflowX: getComputedStyle(el).overflowX,
+        touch: getComputedStyle(el).touchAction,
+      };
+    });
+
+    record(`R36-${shell}-list-scrolls-one-way`,
+      "The filtered list has no sideways travel to give the finger",
+      drift.found && drift.over <= 0,
+      drift.found
+        ? `${drift.over}px of horizontal overflow, overflow-x: ${drift.overflowX}, touch-action: ${drift.touch}`
+        : "no rows, or no scrolling ancestor above them");
+    await ctx.close();
+  }
+
   // R35 — Récents is one panel, not one per shell.
   //
   // Portrait has always had the activity list in the drawer, beside the day and

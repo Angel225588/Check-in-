@@ -977,7 +977,13 @@ export default function SearchPage() {
             inputRef={queryRef}
           />
 
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
+      {/* One axis, stated. `overflow-y-auto` alone computes overflow-x: auto as
+          well, which is how a four-pixel-wide child turned the whole column
+          into something reception could drag left and right. */}
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-2"
+        style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}
+      >
         {showFiltered && (
           <div className="flex items-center justify-between px-1 py-1">
             <span className="text-xs md:text-sm font-semibold text-muted uppercase tracking-wide">

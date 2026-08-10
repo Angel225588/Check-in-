@@ -318,8 +318,15 @@ export default function PortraitSearch({
           <BoxList rows={boxRows} onServe={onServeBox} onUndo={onUndoBox} />
         )}
 
+        {/* The negative margin lets a card's shadow breathe; `overflow-x-hidden`
+            stops it becoming four pixels of sideways travel. Without it,
+            `overflow-y-auto` computes overflow-x: auto and the column drags
+            left and right under a thumb that meant to scroll down. */}
         {slot === "list" && !(boxMode && !query && activeFilter === "groups") && (
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 -mx-0.5 px-0.5">
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-2 -mx-0.5 px-0.5"
+            style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}
+          >
             {rows.map((client, i) => {
               const ci = clientIndexOf(client);
               return (

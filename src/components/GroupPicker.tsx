@@ -36,8 +36,17 @@ export default function GroupPicker({
   return (
     <div
       data-role="group-picker"
-      className="shrink-0 flex items-center gap-1.5 overflow-x-auto pb-1 -mx-0.5 px-0.5"
-      style={{ scrollbarWidth: "none" }}
+      /* No negative margin. It bled four pixels past the content box of the
+         list that holds it, and a list with `overflow-y: auto` and no explicit
+         overflow-x is scrollable on BOTH axes — so those four pixels were
+         enough for a touch to grab the horizontal one and drag the whole
+         column sideways. It only ever happened with Groupes because this is
+         the only control that sits inside that list. */
+      className="shrink-0 flex items-center gap-1.5 overflow-x-auto pb-1"
+      /* The chips scroll sideways; nothing else does. `pan-x` keeps a vertical
+         drag that starts on a chip going to the list underneath, and `contain`
+         stops the chips handing their overscroll back up the tree. */
+      style={{ scrollbarWidth: "none", touchAction: "pan-x", overscrollBehaviorX: "contain" }}
       role="group"
       aria-label="Filtrer par groupe"
     >
