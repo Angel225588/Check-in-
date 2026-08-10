@@ -10,8 +10,12 @@ out/
 next-env.d.ts
 validation-artifacts/
 
-# throwaway measurement/probe scripts written at the repo root during
-# design evaluation runs (kept out of history; real tools live in mockups/)
+# throwaway measurement/probe scripts written during design evaluation runs
+# (kept out of history; real tools live in scripts/ without the dot). The
+# scripts/ patterns are here because that is where they actually get written —
+# a probe needs to sit beside the harness to resolve the same browser.
 /_*.mjs
 /.probe-*.mjs
 /.probe-*.js
+scripts/.*.mjs
+scripts/.*.js
