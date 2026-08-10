@@ -103,6 +103,20 @@ the picker, because portrait puts the picker above the list instead of inside
 it. The first version started at the picker and reported "not found" in
 portrait: a rule measuring two different boxes in two shells is not one rule.
 
+### The landscape metrics bar was the flat one
+Portrait's pills have been cut into the bar with `surface-inset` since it was
+built: four numbers in a row read as four things because light separates them,
+not because a border does. Landscape's had a hover tint and nothing else — so
+the shell reception actually works on all morning got the plainer version, and
+the one used for testing got the depth.
+
+`surface-inset` is a box-shadow. It paints; it does not composite. This is the
+technique the app already argues for over `backdrop-filter`, and it costs
+nothing on the tablet.
+
+R37 measures painted depth — an inset shadow on the resting pill — in both
+shells, so the two cannot drift apart again.
+
 ### People lead, and there is one percentage on the report
 Reception, reading the tiles: "people in big and rooms smaller, same for the
 distribution chart." Then, a minute later: "84.6 and 86 — let's make sure the

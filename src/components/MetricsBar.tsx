@@ -125,8 +125,14 @@ export default function MetricsBar({
     onFilterChange(activeFilter === filter ? null : filter);
   };
 
+  /* Cut into the bar, not painted on it — the same treatment portrait has had
+     since it was built. Four numbers in a row need to read as four things, and
+     light does that without putting a cage between them. Landscape had a hover
+     tint and nothing else, so the shell reception actually works on was the
+     flat one. `surface-inset` is a box-shadow: it paints, it does not
+     composite, so this costs nothing on the iPad. */
   const pillBase =
-    "flex-1 min-w-0 text-center py-1.5 md:py-2 px-1 rounded-xl transition-all cursor-pointer active:scale-[0.96]";
+    "flex-1 min-w-0 text-center py-1.5 md:py-2 px-1 rounded-[14px] transition-all cursor-pointer active:scale-[0.96]";
 
   return (
     <div className="flex items-center gap-1 md:gap-1.5 p-2 surface-chrome rounded-[14px]" role="group" aria-label="Guest metrics" data-role="metrics-bar">
@@ -140,7 +146,7 @@ export default function MetricsBar({
             data-metric={m.key}
             aria-pressed={on}
             onClick={() => handleFilter(m.key)}
-            className={`${pillBase} ${on ? "glass-liquid-active" : "hover:bg-white/30 dark:hover:bg-white/5"}`}
+            className={`${pillBase} ${on ? "glass-liquid-active" : "surface-inset"}`}
           >
             <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide truncate">{m.label}</div>
             {p ? (
@@ -163,7 +169,7 @@ export default function MetricsBar({
           onClick={() => setSheet(true)}
           data-role="metric-more"
           aria-label={`Choisir les métriques (${hidden.length} de côté)`}
-          className="relative shrink-0 w-[46px] self-stretch min-h-[52px] rounded-xl grid place-items-center transition-transform active:scale-[0.94] hover:bg-white/30 dark:hover:bg-white/5"
+          className="surface-inset relative shrink-0 w-[46px] self-stretch min-h-[52px] rounded-[14px] grid place-items-center transition-transform active:scale-[0.94]"
         >
           <FunnelSimple size={18} weight="bold" style={{ color: "var(--tab-idle)" }} />
           <span className="absolute bottom-1 text-[9px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>

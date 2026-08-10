@@ -1624,6 +1624,32 @@ async function main() {
     await ctx.close();
   }
 
+  // R37 — one metric pill, two shells.
+  //
+  // Portrait's pills are cut into the bar with `surface-inset`: four numbers in
+  // a row read as four things because light separates them, not borders.
+  // Landscape's had a hover tint and nothing else, so the same bar was flat on
+  // the tablet reception actually uses — the shell it was designed for got the
+  // plainer version.
+  //
+  // Measured as painted depth: an inset shadow on the resting pill, in both.
+  for (const [w, h, shell, role] of [
+    [1194, 834, "landscape", "metric"],
+    [834, 1194, "portrait", "portrait-metric"],
+  ]) {
+    const { ctx, page } = await openDay("/search", { w, h });
+    await page.waitForTimeout(500);
+    const depth = await page.locator(`[data-role="${role}"]`).first().evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { shadow: s.boxShadow, bg: s.backgroundColor };
+    }).catch(() => null);
+    record(`R37-${shell}-pill-has-depth`,
+      "A resting metric pill is cut into the bar, not painted flat on it",
+      !!depth && /inset/.test(depth.shadow),
+      depth ? depth.shadow.slice(0, 90) : "no metric pill found");
+    await ctx.close();
+  }
+
   // R36 — the results list scrolls one way.
   //
   // Reported from the desk, and only ever with Groupes: "when I scroll the list
