@@ -1,11 +1,11 @@
-// Mistral OCR 4 (EU / Paris) — the ONLY cloud OCR provider. Guest data never
-// goes to a US service (Google Gemini removed from the reception routes). The
-// /v1/ocr endpoint accepts a PDF (document_url) or image (image_url) directly and
-// returns markdown tables; parseMistralMarkdown turns those into Client[].
+// Roster/VIP OCR. Transcription-only: the AI returns markdown, and
+// parseMistralMarkdown turns that into Client[] deterministically — so a room
+// number or guest name can never be invented by a model.
+//
+// All transport (timeout, retry/backoff, token caps) lives in @/lib/ai.
 import { parseMistralMarkdown, parseMistralVip, detectDocType, type DocType } from "./mistral-parser";
+import { getAiProvider } from "./ai";
 import type { Client } from "./types";
-
-const MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr";
 
 export interface MistralOcrResult {
   /** clients = breakfast roster · vip = VIP list · brief = morning events · nopost = no-room-charge. */
@@ -16,42 +16,30 @@ export interface MistralOcrResult {
   markdown: string;
 }
 
-/** True when a usable Mistral key is configured. */
-export function hasMistral(): boolean {
-  const k = process.env.MISTRAL_API_KEY;
-  return !!k && k !== "your_mistral_api_key_here";
-}
+export { hasMistralKey as hasMistral } from "./ai";
 
 /**
- * OCR a document (PDF or image) with Mistral OCR. Returns parsed clients + the raw
- * markdown (kept only in-memory; never persisted). Throws on a non-2xx response so
- * the route can surface a clear failure instead of silently degrading.
+ * OCR a document (PDF or image) and parse it. Returns parsed clients plus the
+ * raw markdown (kept in-memory only; never persisted). Throws on failure so the
+ * route surfaces a clear error instead of silently degrading to empty results.
+ *
+ * `apiKey` is accepted for backwards compatibility with existing callers but is
+ * no longer used — the provider reads MISTRAL_API_KEY itself, so the key is
+ * never threaded through application code.
  */
 export async function mistralOcr(
-  apiKey: string,
+  _apiKey: string | undefined,
   base64: string,
   mimeType: string,
+  signal?: AbortSignal,
 ): Promise<MistralOcrResult> {
-  const dataUrl = `data:${mimeType};base64,${base64}`;
-  const document =
-    mimeType === "application/pdf"
-      ? { type: "document_url", document_url: dataUrl }
-      : { type: "image_url", image_url: dataUrl };
+  const { markdown, pages } = await getAiProvider().ocr({ base64, mimeType, signal });
 
-  const r = await fetch(MISTRAL_OCR_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "mistral-ocr-latest", document, include_image_base64: false }),
-  });
-  if (!r.ok) throw new Error(`Mistral OCR HTTP ${r.status}`);
-
-  const j = await r.json();
-  const pages = Array.isArray(j.pages) ? j.pages : [];
-  const markdown = pages.map((p: { markdown?: string }) => p.markdown || "").join("\n");
   const type = detectDocType(markdown);
-  // Only the roster docs are parsed into Client[]; brief/no-post are not mis-parsed
-  // into a broken roster — they're recognised and routed by their own handlers.
+  // Only roster docs are parsed into Client[]; brief/no-post are recognised and
+  // routed to their own handlers rather than mis-parsed into a broken roster.
   const clients =
     type === "vip" ? parseMistralVip(markdown) : type === "clients" ? parseMistralMarkdown(markdown) : [];
-  return { type, clients, pages: pages.length, markdown };
+
+  return { type, clients, pages, markdown };
 }

@@ -51,7 +51,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
 
     useImperativeHandle(ref, () => ({ openPicker, openFilePicker }), [openPicker, openFilePicker]);
 
-    const processWithGemini = async (file: File, retries = 2): Promise<{ clients: Client[]; docType: "clients" | "vip" | "brief" | "nopost" | "unknown" } | null> => {
+    const processWithAi = async (file: File, retries = 2): Promise<{ clients: Client[]; docType: "clients" | "vip" | "brief" | "nopost" | "unknown" } | null> => {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
           const formData = new FormData();
@@ -122,7 +122,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
 
         // CEO process — OCR safety gate:
         // 1. If user toggled "Mode Local OCR" in settings → Tesseract only.
-        // 2. Otherwise try Gemini. If it fails after retries → auto-fallback
+        // 2. Otherwise try the AI provider. If it fails after retries → auto-fallback
         //    to Tesseract instead of erroring out (smart fallback).
         // 3. Tesseract worker is pre-warmed elsewhere to keep latency low.
         const settings =
@@ -143,20 +143,20 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
           clients = result.clients;
           rawText = `[Local OCR — ${clients.length} rooms]\n${result.rawText}`;
         } else {
-          let geminiResult: { clients: Client[]; docType: "clients" | "vip" | "brief" | "nopost" | "unknown" } | null = null;
-          let geminiFailed = false;
+          let aiResult: { clients: Client[]; docType: "clients" | "vip" | "brief" | "nopost" | "unknown" } | null = null;
+          let aiFailed = false;
           try {
-            geminiResult = await processWithGemini(file);
+            aiResult = await processWithAi(file);
           } catch {
-            geminiFailed = true;
+            aiFailed = true;
           }
 
-          if (geminiResult !== null && !geminiFailed) {
-            clients = geminiResult.clients;
-            docType = geminiResult.docType;
+          if (aiResult !== null && !aiFailed) {
+            clients = aiResult.clients;
+            docType = aiResult.docType;
             rawText = `[Extracted by AI - ${clients.length} rooms (${docType})]`;
           } else {
-            // Smart fallback: Gemini failed (rate limit, network, server) OR
+            // Smart fallback: the AI provider failed (rate limit, network, server) OR
             // returned null (no API key). Use Tesseract instead of failing.
             const result = await processWithTesseract(file);
             clients = result.clients;

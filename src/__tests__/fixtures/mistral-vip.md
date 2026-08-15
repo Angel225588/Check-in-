@@ -1,0 +1,24 @@
+# COURTYARD BY MARRIOTT - VIP GUEST LIST
+
+Date: 11/03/2026 Property: CYPAR Confidential
+
+Total VIPs: 10 Report Generated: 11/03/26 05:30
+
+|  Room | Guest Name | VIP Level | Notes / Special Instructions  |
+| --- | --- | --- | --- |
+|  105 | RODRIGUEZ, CARLOS | P6 | Marriott Bonvoy Titanium, Welcome amenity, Late check-o...  |
+|  106 | JOHNSON, EMMA R. | P4 | Bonvoy Gold, Room upgrade if available  |
+|  122 | GARCIA, ISABELLA | P6 | Marriott Bonvoy Ambassador, Lounge access, Birthday 13/...  |
+|  201 | BROWN, SARAH M. | P3 | Bonvoy Silver, First visit  |
+|  222 | JEN, JASON HAO WEI | P6 | Res Qual For Free WIFI (W7), Do Not Display Rm & Tax (D...  |
+|  230 | LEE, HYUN-AE | P5 | Bonvoy Platinum, Anniversary stay, Spa credit  |
+|  235 | THOMPSON, RACHEL | P4 | Bonvoy Gold, Group booking leader  |
+|  310 | WEBER, KLAUS | P6 | Bonvoy Titanium - Points exchange for breakfast. NOT on...  |
+|  315 | COHEN, SARAH RUTH | P5 | Bonvoy Platinum - Points exchange for meal. No breakfas...  |
+|  402 | AL-RASHID, OMAR | P6 | Bonvoy Ambassador - Redeemed points for breakfast. Add ...  |
+
+**NOTE: Guests marked 'Points exchange' are NOT on the daily arrival list.**
+
+They have redeemed Marriott Bonvoy points for breakfast. Verify at check-in and charge accordingly.
+
+- Confidential: For Front Desk & F&B Use Only -

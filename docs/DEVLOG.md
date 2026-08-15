@@ -4,6 +4,30 @@ Reverse-chronological log of substantive work. Each entry: what shipped, proof, 
 
 ---
 
+## 2026-08-15 — Gemini → Mistral migration complete (single EU provider)
+
+All AI now runs through **one provider module** (`src/lib/ai/`). Google Gemini is gone from the codebase; guest PII only ever reaches an EU-hosted (Paris) provider, which is the whole RGPD argument for French hotels.
+
+- **Provider module:** `AiProvider` exposes exactly two operations — `ocr()` (transcription → markdown) and `extractJson()` (strict `json_schema` structured output). Every route imports `getAiProvider()`; nothing outside `src/lib/ai/` references a vendor endpoint, SDK or model id. Swapping providers again is one file.
+- **Model split (deliberate):** tabular rosters/VIP lists go through **OCR + the deterministic `mistral-parser`** — no LLM in the extraction path, so a room number cannot be hallucinated. The chat model is used ONLY for the two genuinely semantic routes (morning brief, verify-extraction). `document_annotation` was rejected: it caps at **8 pages** and real rosters run 13–15.
+- **Model ids pinned, not `-latest`:** `mistral-ocr-4-1` / `mistral-large-2512`, env-overridable. Verified against live `GET /v1/models` — the docs page contradicted itself across fetches and omits the alias table entirely. Mistral retires versioned models on a schedule (OCR 2 died 2026-05-31), so a moving alias is a silent outage waiting to happen.
+- **Hardening:** per-request timeouts, bounded retry with jittered backoff on **429/5xx only** (never 4xx), `Retry-After` honoured, hard output-token cap + hard input-char cap that throws rather than silently truncating a roster. Key moved to `Authorization: Bearer` — the Gemini routes had put it in the **query string**.
+- **Removed:** `/api/ocr-vip` (orphaned — zero callers; `/api/ocr-unified` already did VIP via Mistral). `GEMINI_API_KEY` dropped from `.env.local` + `.env.sample`. No SDK to uninstall — Gemini was called via raw `fetch`.
+
+### Proof
+- **313/313 tests** (34 files), `tsc` clean, `next build` clean.
+- **Accuracy vs the PDF's own text layer** (`pdftotext`, not another model) on `test-pdfs/client-list.pdf`: **room numbers 40/40 exact**, names **38/40 (95%)**. Two first-letter glyph misreads recorded and locked in `extraction-parity.test.ts` (`WANG→HANG`, `PATEL→FATEL`) so any *new* drift fails CI.
+- **Why we left Gemini, as evidence:** on the same VIP doc `gemini-2.5-flash` read room **106 "JOHNSON, EMMA R." as room 104 "JOHNSON, EMMA H."** — a corrupted **room number**, the join key for check-in. Mistral read it correctly. Locked as a regression test.
+- **Live-verified** on the dev server: `/api/ocr-pdf` → 40 clients, correct `Client` shape, 3.7s. `/api/verify-extraction` → caught an injected missing guest (room 108) *and* an injected name corruption, 10.3s. `/api/ocr-morning-brief` → identical 10-key `MorningBrief` shape.
+- Added: no-op "corrections" (where `extracted === actual`) are filtered — observed live, and they read to reception as fake discrepancies.
+
+### Next
+- **Morning-brief parity is unproven** — no sample "Briefing du Matin" exists in the repo. Route is shape-verified only; needs one real brief PDF to validate extraction quality.
+- Rotate the Mistral test key before it goes anywhere near prod.
+- Stale Gemini-shaped tests in `ocr-api.test.ts` / `pdf-ocr.test.ts` assert old response shapes; they pass but describe a provider we no longer use.
+
+---
+
 ## 2026-06-30 (pm) — Upload flow rework + Sync v3 (field-test feedback)
 
 Map: `docs/sprints/2026-06-30_upload-flow-and-sync-v3.md`.

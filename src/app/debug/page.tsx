@@ -91,9 +91,9 @@ export default function DebugPage() {
       <div className="mb-4 p-4 rounded-[14px] glass-liquid border border-brand/20">
         <h2 className="text-sm font-bold text-dark mb-2">🔒 OCR Mode</h2>
         <p className="text-xs text-muted mb-3 leading-relaxed">
-          Mode <b>Local</b> = Tesseract en local, aucune donnée envoyée à
-          Google. Plus lent (10-15s) mais 100% confidentiel. Mode par défaut
-          en V2 / contrat signé.
+          Mode <b>Local</b> = Tesseract en local, aucune donnée envoyée à un
+          service cloud. Plus lent (10-15s) mais 100% confidentiel. Mode par
+          défaut en V2 / contrat signé.
         </p>
         <button
           onClick={handleLocalOCRToggle}
@@ -103,7 +103,7 @@ export default function DebugPage() {
               : "bg-brand/15 text-brand"
           }`}
         >
-          {localOCR ? "✅ Mode Local actif (Tesseract)" : "⚡ Mode AI actif (Gemini)"}
+          {localOCR ? "✅ Mode Local actif (Tesseract)" : "⚡ Mode AI actif (Mistral)"}
         </button>
       </div>
 
