@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { exchangeCode, cachedLocation } from "@/lib/sync/session";
 import { storeSyncCode, storedSyncCode, pullDayFromSupabase, ensureSession } from "@/lib/sync/push-day";
 import { pullCheckinsFromSupabase } from "@/lib/sync/push-checkins";
-import { SUPABASE_URL, DEFAULT_SYNC_CODE } from "@/lib/sync/config";
+import { SUPABASE_URL, DEFAULT_SYNC_CODE, SYNC_ENABLED } from "@/lib/sync/config";
 import { Area, AREA_HOME, AREA_LABEL, storeArea } from "@/lib/area";
 
 const DOORS: { area: Area; desc: string; icon: React.ReactNode }[] = [
@@ -44,6 +44,25 @@ export default function Entry() {
   const [code, setCode] = useState(DEFAULT_SYNC_CODE);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+
+  /**
+   * Local mode (SYNC_ENABLED=false) goes straight to the Réception home, which
+   * is where the upload button lives — the flow as it was before the 3-door
+   * entry landed.
+   *
+   * The door/code screen is not deleted, only skipped: it authenticates against
+   * Supabase, and until the data migration is done there is nothing for a code
+   * to unlock, so asking for one just blocks the upload. Set
+   * NEXT_PUBLIC_SYNC_ENABLED=true to bring the doors back.
+   */
+  useEffect(() => {
+    if (!SYNC_ENABLED) {
+      storeArea("reception");
+      router.replace(AREA_HOME.reception);
+    }
+  }, [router]);
+
+  if (!SYNC_ENABLED) return null; // avoid flashing the doors before the redirect
 
   // Tapping a door: if already connected, enter instantly; otherwise ask for the code.
   function onDoor(area: Area) {

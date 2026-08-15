@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { getTodayData } from "@/lib/storage";
 import { useLiveSync } from "@/hooks/useLiveSync";
 import { cachedLocation, signOut } from "@/lib/sync/session";
+import { SYNC_ENABLED } from "@/lib/sync/config";
 import { reportRequestedRecently } from "@/lib/sync/report-request";
 import { clearArea } from "@/lib/area";
 
@@ -18,7 +19,9 @@ export default function ReceptionHome() {
   }, []);
 
   useEffect(() => {
-    if (!cachedLocation()) { router.replace("/"); return; }
+    // In local mode there is no Supabase location to cache, so this guard
+    // must not bounce — otherwise it ping-pongs with the entry redirect.
+    if (SYNC_ENABLED && !cachedLocation()) { router.replace("/"); return; }
     refresh();
   }, [refresh, router]);
 

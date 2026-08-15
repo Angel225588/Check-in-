@@ -7,6 +7,7 @@ import { Client } from "@/lib/types";
 import ImpactScreen from "@/components/ImpactScreen";
 import { useLiveSync } from "@/hooks/useLiveSync";
 import { cachedLocation, signOut } from "@/lib/sync/session";
+import { SYNC_ENABLED } from "@/lib/sync/config";
 import { requestReport } from "@/lib/sync/report-request";
 import { clearArea } from "@/lib/area";
 
@@ -32,7 +33,9 @@ export default function RestaurantHome() {
   }, []);
 
   useEffect(() => {
-    if (!cachedLocation()) { router.replace("/"); return; }
+    // In local mode there is no Supabase location to cache, so this guard
+    // must not bounce — otherwise it ping-pongs with the entry redirect.
+    if (SYNC_ENABLED && !cachedLocation()) { router.replace("/"); return; }
     refresh();
   }, [refresh, router]);
 
