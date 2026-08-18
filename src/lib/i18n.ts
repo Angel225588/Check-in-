@@ -17,6 +17,7 @@ const translations = {
   "upload.clear": { fr: "Effacer", en: "Clear" },
   "upload.checkin": { fr: "Check-in", en: "Check-in" },
   "upload.noDetect": { fr: "Impossible de détecter les chambres. Essayez une photo plus claire ou collez manuellement.", en: "Could not detect rooms. Try a clearer photo or paste manually." },
+  "upload.analysedInHint": { fr: "Temps d'analyse des documents", en: "Document analysis time" },
   "upload.showRawOcr": { fr: "Afficher le texte OCR brut", en: "Show raw OCR text" },
   "upload.goToCheckin": { fr: "Check-in", en: "Check-in" },
   "upload.mergeComplete": { fr: "Fusion terminée", en: "Merge complete" },

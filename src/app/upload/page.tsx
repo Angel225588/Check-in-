@@ -316,6 +316,10 @@ export default function UploadPage() {
   const [openToggle, setOpenToggle] = useState<"clean" | "raw" | "pdf" | null>("clean");
   const [validating, setValidating] = useState(false);
   const [pdfElapsed, setPdfElapsed] = useState(0);
+  // Wall-clock of the analysis, surfaced on the summary so the team can see
+  // how fast the read was (and notice immediately if it ever gets slow).
+  const analysisStartedAt = useRef<number | null>(null);
+  const [analysisMs, setAnalysisMs] = useState<number | null>(null);
   const ROWS_PER_PAGE = 10;
 
   // Merge clients + VIP whenever either changes (race-proof)
@@ -449,7 +453,13 @@ export default function UploadPage() {
         i === index ? { ...p, status: "done" } : p
       ));
 
-      // Fire-and-forget verification with 30s timeout
+      // Fire-and-forget verification with 30s timeout.
+      // Deliberately NOT awaited: processPdf runs once per document in a
+      // sequential chain, so awaiting verification here made every extra
+      // document wait up to 30s for the previous one's check before it even
+      // started uploading. The result still lands via setPdfUploads whenever
+      // it arrives.
+      void (async () => {
       try {
         const pdfBytes = await file.arrayBuffer();
         // Safe base64 encoding for large files
@@ -491,6 +501,7 @@ export default function UploadPage() {
       } catch {
         // Verification skipped/failed — extraction data is still valid
       }
+      })();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Processing failed";
       setPdfUploads((prev) => prev.map((p, i) =>
@@ -517,6 +528,10 @@ export default function UploadPage() {
     if (vipPdfs.length > 0) setVipRawClients(vipPdfs);
     if (pkgRows.length > 0) setPackageForecast(pkgRows);
     if (allRaw) setOcrRawText(allRaw);
+    if (analysisStartedAt.current !== null) {
+      setAnalysisMs(Date.now() - analysisStartedAt.current);
+      analysisStartedAt.current = null;
+    }
     setView("review");
   }, [pdfUploads]);
 
@@ -533,6 +548,9 @@ export default function UploadPage() {
       clients: [],
     }));
 
+    // Only start the clock for a fresh analysis, not when "+" adds a document
+    // to a run already in progress.
+    if (analysisStartedAt.current === null) analysisStartedAt.current = Date.now();
     setPdfUploads((prev) => [...prev, ...newUploads]);
     setView("pdf-processing");
 
@@ -1338,10 +1356,23 @@ export default function UploadPage() {
                       </svg>
                     )}
                   </div>
-                  <div>
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-dark">{parsedClients.length} {t("upload.rooms")}</span>
                     {vipCount > 0 && (
-                      <span className="text-xs text-brand ml-2 font-medium">{vipCount} VIP</span>
+                      <span className="text-xs text-brand font-medium">{vipCount} VIP</span>
+                    )}
+                    {analysisMs !== null && (
+                      <span
+                        title={t("upload.analysedInHint")}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full tabular-nums"
+                      >
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 2L4.5 13H11l-1 9 9-11h-6l1-9z" />
+                        </svg>
+                        {analysisMs < 60000
+                          ? `${(analysisMs / 1000).toFixed(1)} s`
+                          : `${Math.floor(analysisMs / 60000)} min ${Math.round((analysisMs % 60000) / 1000)} s`}
+                      </span>
                     )}
                   </div>
                 </div>
