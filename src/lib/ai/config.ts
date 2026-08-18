@@ -78,6 +78,16 @@ export const AI_CONFIG = {
    * ~4 chars/token, so 480k chars ≈ 120k tokens. Exceeding it throws rather
    * than silently sending — a truncated roster would lose guests unnoticed.
    */
+  /**
+   * Transport ceiling for a whole request body, base64 document bytes
+   * included. Generous on purpose: routes enforce their own file-size limits
+   * (20MB for a PDF), and base64 inflates by ~4/3, so this only catches
+   * genuinely runaway payloads.
+   */
+  get maxPayloadBytes() {
+    return int(process.env.MISTRAL_MAX_PAYLOAD_BYTES, 48 * 1024 * 1024);
+  },
+
   get maxInputChars() {
     return int(process.env.MISTRAL_MAX_INPUT_CHARS, 480_000);
   },

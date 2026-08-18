@@ -45,15 +45,20 @@ function backoffMs(attempt: number, retryAfter: string | null): number {
 export async function postJson<T>(
   path: string,
   body: unknown,
-  opts: { apiKey: string; timeoutMs: number; signal?: AbortSignal },
+  opts: { apiKey: string; timeoutMs: number; signal?: AbortSignal; maxPayloadBytes?: number },
 ): Promise<T> {
   const url = `${AI_CONFIG.baseUrl}${path}`;
   const payload = JSON.stringify(body);
 
-  // Input guard: refuse rather than silently send an oversized request.
-  if (payload.length > AI_CONFIG.maxInputChars * 2) {
+  // Transport-level ceiling only. This is NOT the chat input cap: a document
+  // upload is base64 bytes, and a perfectly normal 15-page scan is several MB.
+  // Applying the prompt-sized char cap here rejected real rosters before they
+  // ever reached the API. Prompt size is capped in extractJson, where it means
+  // something; routes cap the file size they accept.
+  const maxBytes = opts.maxPayloadBytes ?? AI_CONFIG.maxPayloadBytes;
+  if (payload.length > maxBytes) {
     throw new AiError(
-      `Request body exceeds the configured input cap (${payload.length} bytes)`,
+      `Request body of ${payload.length} bytes exceeds the ${maxBytes}-byte transport cap`,
       413,
       false,
     );

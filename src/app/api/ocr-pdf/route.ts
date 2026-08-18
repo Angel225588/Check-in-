@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
 import { sanitizeAndValidateClient, sanitizeAndValidatePackageRow } from "@/lib/validate";
-import { getAiProvider, hasMistralKey, AiError } from "@/lib/ai";
+import { hasMistralKey, AiError } from "@/lib/ai";
+import { ocrPdfComplete, IncompleteOcrError } from "@/lib/ocr-document";
 import {
   parseMistralMarkdown,
   parseMistralVip,
@@ -53,11 +54,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File is empty" }, { status: 400 });
     }
 
-    const { markdown, pages } = await getAiProvider().ocr({
-      base64: Buffer.from(bytes).toString("base64"),
-      mimeType: "application/pdf",
-      signal: request.signal,
-    });
+    // Splits long reports into page-chunks and asserts every page came back.
+    // Either the whole roster, or a loud failure — never a silent short read.
+    const { markdown, pages, chunks } = await ocrPdfComplete(
+      new Uint8Array(bytes),
+      request.signal,
+    );
 
     const type = detectDocType(markdown);
     // Transcription-only: the markdown is parsed deterministically, so a room
@@ -75,9 +77,17 @@ export async function POST(request: NextRequest) {
 
     // Same response shape the UI already consumes (type / pages / clients /
     // packageRows). `engine` is additive and ignored by existing callers.
-    return NextResponse.json({ type, pages, clients, packageRows, engine: "mistral" });
+    return NextResponse.json({ type, pages, clients, packageRows, chunks, engine: "mistral" });
   } catch (err) {
     console.error(safeLogError("OCR PDF route error:", err));
+    if (err instanceof IncompleteOcrError) {
+      // Surface incompleteness explicitly: a partial roster must never look
+      // like a successful upload.
+      return NextResponse.json(
+        { error: "Document incomplet — toutes les pages n'ont pas été lues. Réessaie." },
+        { status: 502 },
+      );
+    }
     if (err instanceof AiError) {
       return NextResponse.json(
         { error: err.status === 429 ? "Rate limit exceeded. Please wait a moment and try again." : "AI processing failed. Try again." },
