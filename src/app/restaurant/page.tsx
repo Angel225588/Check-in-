@@ -46,7 +46,9 @@ export default function RestaurantHome() {
   const leave = async () => {
     clearArea();
     await signOut();
-    router.replace("/");
+    // "?spaces" keeps the picker reachable in local mode, where the root is a
+    // straight pass-through to /upload.
+    router.replace("/?spaces=1");
   };
 
   const impact = computeImpact(clients);

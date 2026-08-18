@@ -44,29 +44,49 @@ export default function Entry() {
   const [code, setCode] = useState(DEFAULT_SYNC_CODE);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [showDoors, setShowDoors] = useState(false);
 
   /**
-   * Local mode (SYNC_ENABLED=false) goes straight to the Réception home, which
-   * is where the upload button lives — the flow as it was before the 3-door
-   * entry landed.
+   * Local mode home per area. Réception goes to /upload rather than /reception
+   * so the team lands on the same "Démarrer la Journée" screen as production.
+   */
+  const localHome = (area: Area) => (area === "reception" ? "/upload" : AREA_HOME[area]);
+
+  /**
+   * Local mode (SYNC_ENABLED=false) goes straight to /upload — byte-identical
+   * to what production does (main's root page is redirect("/upload")). The team
+   * lands on the familiar "Démarrer la Journée" screen with no new step and no
+   * access code in the way.
    *
    * The door/code screen is not deleted, only skipped: it authenticates against
    * Supabase, and until the data migration is done there is nothing for a code
-   * to unlock, so asking for one just blocks the upload. Set
-   * NEXT_PUBLIC_SYNC_ENABLED=true to bring the doors back.
+   * to unlock. Set NEXT_PUBLIC_SYNC_ENABLED=true to bring the doors back.
    */
   useEffect(() => {
-    if (!SYNC_ENABLED) {
-      storeArea("reception");
-      router.replace(AREA_HOME.reception);
+    if (SYNC_ENABLED) return;
+    // "?spaces" is the explicit escape hatch used by "Changer d'espace".
+    // Without it the root is a straight pass-through to the upload screen.
+    if (new URLSearchParams(window.location.search).has("spaces")) {
+      setShowDoors(true);
+      return;
     }
+    storeArea("reception");
+    router.replace("/upload");
   }, [router]);
 
-  if (!SYNC_ENABLED) return null; // avoid flashing the doors before the redirect
+  // Nothing to paint while the redirect resolves (avoids flashing the doors).
+  if (!SYNC_ENABLED && !showDoors) return null;
 
   // Tapping a door: if already connected, enter instantly; otherwise ask for the code.
   function onDoor(area: Area) {
     setErr("");
+    // No Supabase yet, so there is nothing to authenticate against — enter the
+    // space directly instead of demanding a code that cannot unlock anything.
+    if (!SYNC_ENABLED) {
+      storeArea(area);
+      router.replace(localHome(area));
+      return;
+    }
     if (cachedLocation() && storedSyncCode()) {
       enterDirect(area);
     } else {
