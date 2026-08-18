@@ -1,110 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
+import { sanitizeAndValidateClient } from "@/lib/validate";
+import { getAiProvider, hasMistralKey, AiError } from "@/lib/ai";
+import { parseMistralMarkdown, parseMistralVip, detectDocType } from "@/lib/mistral-parser";
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+// Scanner / gallery image of a daily report → Mistral OCR (EU). The route
+// classifies the document itself, so reception does not have to pick a type.
+export const maxDuration = 120;
+export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/bmp",
-];
-
-const UNIFIED_PROMPT = `You are a hotel document data extraction assistant. This image is either:
-A) A daily guest/client list report (columns: room number, room type, name, arrival, departure, adults, children, etc.)
-B) A VIP guest report ("Guest InHouse VIP" or similar, with VIP codes, special preferences)
-
-First, determine which type this document is. Then extract ALL rows.
-
-If it's a CLIENT LIST (type A), return this JSON:
-{
-  "type": "clients",
-  "data": [
-    {
-      "roomNumber": "string (3-4 digits)",
-      "roomType": "string (e.g. DLXK, PRMK)",
-      "rtc": "string",
-      "confirmationNumber": "string",
-      "name": "string (guest full name EXACTLY as printed — do NOT reformat, reverse, or abbreviate. Copy character by character.)",
-      "arrivalDate": "string (e.g. 05/03/26)",
-      "departureDate": "string",
-      "reservationStatus": "string (e.g. DUOT, CKIN)",
-      "adults": "number",
-      "children": "number",
-      "rateCode": "string",
-      "packageCode": "string (e.g. BKF GRP, BKF INC)"
-    }
-  ]
-}
-
-If it's a VIP LIST (type B), return this JSON:
-{
-  "type": "vip",
-  "data": [
-    {
-      "roomNumber": "string",
-      "name": "string (full name EXACTLY as printed — do NOT reformat or reverse)",
-      "vipLevel": "string (e.g. X4, P6)",
-      "vipNotes": "string (all specials and preferences combined)",
-      "confirmationNumber": "string",
-      "arrivalDate": "string",
-      "departureDate": "string",
-      "roomType": "string",
-      "adults": "number",
-      "children": "number",
-      "rateCode": "string"
-    }
-  ]
-}
-
-Rules:
-- Extract EVERY row visible in the image, do not skip any
-- If a field is not visible or unclear, use "" for strings and 0 for numbers
-- Return ONLY the JSON object, no markdown, no explanation, no code fences
-- If you cannot read the image or it's not a hotel report, return {"type": "unknown", "data": []}`;
-
-import { sanitizeAndValidateClient } from "@/lib/validate";
-
-function validateEntry(obj: Record<string, unknown>): boolean {
-  return sanitizeAndValidateClient(obj);
-}
-
-async function callGemini(
-  apiKey: string,
-  base64: string,
-  mimeType: string
-): Promise<Response> {
-  return fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: UNIFIED_PROMPT },
-            { inline_data: { mime_type: mimeType, data: base64 } },
-          ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 8192,
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-    }),
-  });
-}
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"];
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey || apiKey === "your_gemini_api_key_here") {
+  if (!hasMistralKey()) {
     return NextResponse.json(
-      { error: "GEMINI_API_KEY not configured" },
-      { status: 500 }
+      { error: "OCR non configuré sur ce serveur (MISTRAL_API_KEY manquant)." },
+      { status: 500 },
     );
   }
 
@@ -115,108 +27,61 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json(
         { error: "Invalid request. Send multipart form data with an image." },
-        { status: 400 }
+        { status: 400 },
       );
     }
+
     const file = formData.get("image") as File | null;
-
     if (!file) {
-      return NextResponse.json(
-        { error: "No image provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
-
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "File too large. Maximum size is 10MB." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "File too large. Maximum size is 10MB." }, { status: 400 });
     }
 
     const mimeType = file.type || "image/jpeg";
     if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return NextResponse.json(
         { error: "Unsupported file type. Use JPEG, PNG, or WebP." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const bytes = await file.arrayBuffer();
     if (bytes.byteLength === 0) {
-      return NextResponse.json(
-        { error: "File is empty" },
-        { status: 400 }
-      );
-    }
-    const base64 = Buffer.from(bytes).toString("base64");
-
-    let response = await callGemini(apiKey, base64, mimeType);
-
-    if (response.status === 429) {
-      await new Promise((r) => setTimeout(r, 3000));
-      response = await callGemini(apiKey, base64, mimeType);
+      return NextResponse.json({ error: "File is empty" }, { status: 400 });
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(safeLogError("Gemini API error:", errorText));
+    const { markdown } = await getAiProvider().ocr({
+      base64: Buffer.from(bytes).toString("base64"),
+      mimeType,
+      signal: request.signal,
+    });
 
-      if (response.status === 429) {
-        return NextResponse.json(
-          { error: "Rate limit exceeded. Please wait a moment and try again." },
-          { status: 429 }
-        );
-      }
+    const type = detectDocType(markdown);
 
-      return NextResponse.json(
-        { error: "AI processing failed. Try again or paste data manually." },
-        { status: response.status }
-      );
+    // VIP lists answer with `vipEntries`, everything else with `clients` —
+    // the split the existing UI (PhotoCapture, search) already branches on.
+    if (type === "vip") {
+      const vipEntries = parseMistralVip(markdown).filter((c) => c.roomNumber && c.name);
+      return NextResponse.json({ type: "vip", vipEntries, engine: "mistral" });
     }
 
-    const result = await response.json();
-
-    const parts = result.candidates?.[0]?.content?.parts || [];
-    const textPart = [...parts].reverse().find(
-      (p: Record<string, unknown>) => typeof p.text === "string" && !p.thought
+    const clients = parseMistralMarkdown(markdown).filter((c) =>
+      sanitizeAndValidateClient(c as unknown as Record<string, unknown>),
     );
-    const textContent = textPart?.text || '{"type":"unknown","data":[]}';
-
-    const cleaned = textContent
-      .replace(/```json\s*/g, "")
-      .replace(/```\s*/g, "")
-      .trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      console.error("Failed to parse Gemini response:" + " (unparseable JSON — payload withheld from logs)", { length: cleaned.length });
-      return NextResponse.json(
-        { error: "AI returned invalid data. Try again or paste data manually." },
-        { status: 500 }
-      );
-    }
-
-    const docType = parsed.type || "unknown";
-    const data = Array.isArray(parsed.data) ? parsed.data.filter(validateEntry) : [];
-
-    if (docType === "vip") {
-      return NextResponse.json({ type: "vip", vipEntries: data });
-    } else if (docType === "clients") {
-      return NextResponse.json({ type: "clients", clients: data });
-    } else {
-      // Unknown — return as clients if data exists, empty otherwise
-      return NextResponse.json({ type: "unknown", clients: data });
-    }
+    return NextResponse.json({ type: type === "clients" ? "clients" : "unknown", clients, engine: "mistral" });
   } catch (err) {
     console.error(safeLogError("Unified OCR route error:", err));
+    if (err instanceof AiError) {
+      return NextResponse.json(
+        { error: err.status === 429 ? "Rate limit exceeded. Please wait a moment and try again." : "AI processing failed. Try again." },
+        { status: err.status === 429 ? 429 : 502 },
+      );
+    }
     return NextResponse.json(
-      {
-        error: "Processing failed. Please try again.",
-      },
-      { status: 500 }
+      { error: "Processing failed. Try again or paste data manually." },
+      { status: 500 },
     );
   }
 }

@@ -125,7 +125,7 @@ export default function DebugPage() {
               : "bg-brand/15 text-brand"
           }`}
         >
-          {localOCR ? "✅ Mode Local actif (Tesseract)" : "⚡ Mode AI actif (Gemini)"}
+          {localOCR ? "✅ Mode Local actif (Tesseract)" : "⚡ Mode AI actif (Mistral)"}
         </button>
       </div>
 
