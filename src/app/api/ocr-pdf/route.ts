@@ -7,6 +7,7 @@ import {
   parseMistralMarkdown,
   parseMistralVip,
   parseMistralPackageRows,
+  parseMistralPackageTotals,
   detectDocType,
 } from "@/lib/mistral-parser";
 
@@ -71,13 +72,18 @@ export async function POST(request: NextRequest) {
         ? rawClients.filter((c) => c.roomNumber && c.name)
         : rawClients.filter((c) => sanitizeAndValidateClient(c as unknown as Record<string, unknown>));
 
+    // The hotel's own per-day breakfast totals from the last page. This is the
+    // authoritative COMP/GRP/INC count — reception is judged against it, so we
+    // carry it through instead of only deriving numbers from the guest rows.
+    const packageTotals = parseMistralPackageTotals(markdown);
+
     const packageRows = parseMistralPackageRows(markdown).filter((r) =>
       sanitizeAndValidatePackageRow(r as unknown as Record<string, unknown>),
     );
 
     // Same response shape the UI already consumes (type / pages / clients /
     // packageRows). `engine` is additive and ignored by existing callers.
-    return NextResponse.json({ type, pages, clients, packageRows, chunks, engine: "mistral" });
+    return NextResponse.json({ type, pages, clients, packageRows, packageTotals, chunks, engine: "mistral" });
   } catch (err) {
     console.error(safeLogError("OCR PDF route error:", err));
     if (err instanceof IncompleteOcrError) {

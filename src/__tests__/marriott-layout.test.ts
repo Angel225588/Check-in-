@@ -21,6 +21,7 @@ import {
   parseMistralVip,
   parseMistralMarkdown,
   parseMistralPackageRows,
+  parseMistralPackageTotals,
 } from "@/lib/mistral-parser";
 
 const fixture = (n: string) => readFileSync(join(__dirname, "fixtures", n), "utf8");
@@ -96,5 +97,28 @@ describe("Courtyard 'R118 Package Forecast' export", () => {
   it("collects nameless room+package rows separately", () => {
     const pkg = parseMistralPackageRows(ROSTER());
     expect(pkg).toEqual([{ roomNumber: "204", packageCode: "CITY TAX,BKF GRP" }]);
+  });
+  it("captures the authoritative per-day breakfast totals from the last page", () => {
+    // This table is the hotel's own PMS figure. Reception is judged against it,
+    // and it is the number that must always win for COMP — deriving covers
+    // only from guest rows drifted by one against the real report.
+    const totals = parseMistralPackageTotals(ROSTER());
+    expect(totals).toHaveLength(2); // two service days; the grand Totals row is not a service
+    expect(totals[1]).toEqual({
+      date: "08/08/26",
+      day: "Sat",
+      counts: { "BKF COMP": 20, "BKF GRP": 61, "BKF INC": 19, UPSPDJ: 20 },
+      total: 120,
+    });
+  });
+
+  it("excludes the grand Totals row, which spans the whole report period", () => {
+    const totals = parseMistralPackageTotals(ROSTER());
+    expect(totals.map((t) => t.date)).toEqual(["07/08/26", "08/08/26"]);
+    expect(totals.some((t) => t.total === 209)).toBe(false);
+  });
+
+  it("returns nothing when a report has no totals page", () => {
+    expect(parseMistralPackageTotals("| Room | Name |\n| --- | --- |\n| 101 | X |")).toEqual([]);
   });
 });

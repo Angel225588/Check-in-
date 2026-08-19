@@ -12,6 +12,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import { saveClients, saveClientsMerged, getSessionHistory, getTodayData } from "@/lib/storage";
 import type { MergeResult } from "@/lib/merge";
 import { mergeVipIntoClients } from "@/lib/vip";
+import type { PackageTotalsDay } from "@/lib/mistral-parser";
 import { overlayPackageForecast, type PackageRow } from "@/lib/ocr-helpers";
 import { recordSessionGuests } from "@/lib/guests";
 import { isComp } from "@/lib/utils";
@@ -29,6 +30,8 @@ interface PdfUploadStatus {
   docType?: "clients" | "vip" | "unknown";
   clients: Client[];
   packageRows?: PackageRow[];
+  /** Authoritative per-day breakfast totals from the report's last page. */
+  packageTotals?: PackageTotalsDay[];
   pages?: number;
   rawText?: string;
   error?: string;
@@ -320,6 +323,8 @@ export default function UploadPage() {
   // how fast the read was (and notice immediately if it ever gets slow).
   const analysisStartedAt = useRef<number | null>(null);
   const [analysisMs, setAnalysisMs] = useState<number | null>(null);
+  // The report's own totals page — the figure reception is measured against.
+  const [reportTotals, setReportTotals] = useState<PackageTotalsDay | null>(null);
   const ROWS_PER_PAGE = 10;
 
   // Merge clients + VIP whenever either changes (race-proof)
@@ -441,10 +446,11 @@ export default function UploadPage() {
       const data = await res.json();
       const clients = Array.isArray(data.clients) ? data.clients as Client[] : [];
       const packageRows = Array.isArray(data.packageRows) ? data.packageRows as PackageRow[] : [];
+      const packageTotals = Array.isArray(data.packageTotals) ? data.packageTotals as PackageTotalsDay[] : [];
       const docType = (data.type as "clients" | "vip" | "unknown") || "unknown";
 
       setPdfUploads((prev) => prev.map((p, i) =>
-        i === index ? { ...p, status: "verifying", clients, packageRows, docType, pages: data.pages, rawText: data.rawText } : p
+        i === index ? { ...p, status: "verifying", clients, packageRows, packageTotals, docType, pages: data.pages, rawText: data.rawText } : p
       ));
 
       // Step 2: Verify (non-blocking — skip if slow or fails)
@@ -522,6 +528,14 @@ export default function UploadPage() {
     const clientPdfs = donePdfs.filter((p) => p.docType !== "vip").flatMap((p) => p.clients);
     const vipPdfs = donePdfs.filter((p) => p.docType === "vip").flatMap((p) => p.clients);
     const pkgRows = donePdfs.flatMap((p) => p.packageRows || []);
+    // Prefer the row matching today; otherwise the last printed service day
+    // (the report is generated for the upcoming service).
+    const allTotals = donePdfs.flatMap((p) => p.packageTotals || []);
+    if (allTotals.length > 0) {
+      const d = new Date();
+      const todayFr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+      setReportTotals(allTotals.find((t) => t.date === todayFr) || allTotals[allTotals.length - 1]);
+    }
     const allRaw = donePdfs.map((p) => p.rawText).filter(Boolean).join("\n---\n");
 
     if (clientPdfs.length > 0) setBaseClients(clientPdfs);
@@ -1380,6 +1394,52 @@ export default function UploadPage() {
                   {t("upload.clear")}
                 </button>
               </div>
+
+              {/* The report's own breakfast totals. This is the hotel's PMS
+                  figure — it is the number reception is judged against, so it
+                  is shown as printed, and any divergence from what we counted
+                  in the rows is surfaced rather than quietly reconciled. */}
+              {reportTotals && (() => {
+                const printedComp = reportTotals.counts["BKF COMP"];
+                const countedComp = parsedClients
+                  .filter((c) => isComp(c))
+                  .reduce((s, c) => s + c.adults + c.children, 0);
+                const compDrift =
+                  typeof printedComp === "number" && printedComp !== countedComp;
+                return (
+                  <div className="rounded-lg bg-white/30 dark:bg-white/5 p-2 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-wide text-muted font-bold">
+                        {t("upload.reportTotals")} · {reportTotals.date}
+                      </span>
+                      <span className="text-[11px] font-bold text-dark tabular-nums">
+                        {reportTotals.total} {t("verify.totalGuests")}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(reportTotals.counts).map(([code, n]) => (
+                        <span
+                          key={code}
+                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                            code === "BKF COMP"
+                              ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                              : "bg-black/[0.04] dark:bg-white/10 text-muted"
+                          }`}
+                        >
+                          {code} {n}
+                        </span>
+                      ))}
+                    </div>
+                    {compDrift && (
+                      <div className="text-[11px] text-yellow-700 dark:text-yellow-400">
+                        {t("upload.compDrift")
+                          .replace("{printed}", String(printedComp))
+                          .replace("{counted}", String(countedComp))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-3 gap-1.5 text-center">
                 <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">

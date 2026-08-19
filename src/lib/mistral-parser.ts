@@ -286,3 +286,71 @@ export function parseMistralPackageRows(md: string): MistralPackageRow[] {
   }
   return out;
 }
+
+/**
+ * The authoritative per-day breakfast totals printed on the LAST page of the
+ * R118 Package Forecast ("Totals per Day per Package Code").
+ *
+ * This is the hotel's own number, produced by its PMS — not something we
+ * derive. It is the truth reception is judged against, so it is parsed as
+ * first-class data rather than discarded with the rest of the summary block.
+ */
+export interface PackageTotalsDay {
+  /** As printed, e.g. "08/08/26". */
+  date: string;
+  /** Day label if present, e.g. "Sat". */
+  day: string;
+  /** Package code → covers, e.g. { "BKF COMP": 20, "BKF GRP": 61 }. */
+  counts: Record<string, number>;
+  /** The row's own Total column. */
+  total: number;
+}
+
+const TOTALS_CODE = /^(BKF|UPS)[A-Z0-9 ]*$/i;
+
+/**
+ * Parse the "Totals per Day per Package Code" table. Returns one entry per
+ * printed day; the grand "Totals" row is excluded (it spans the whole report
+ * period, not a service).
+ */
+export function parseMistralPackageTotals(md: string): PackageTotalsDay[] {
+  const out: PackageTotalsDay[] = [];
+  let codeCols: { index: number; code: string }[] | null = null;
+  let dateCol = -1;
+  let totalCol = -1;
+
+  for (const line of md.split("\n")) {
+    if (!line.trim().startsWith("|")) continue;
+    const cells = splitRow(line);
+    if (isSeparator(cells)) continue;
+
+    const codes = cells
+      .map((c, i) => ({ index: i, code: c.trim().toUpperCase() }))
+      .filter((c) => TOTALS_CODE.test(c.code));
+    const hasDate = cells.some((c) => /^date$/i.test(c.trim()));
+
+    if (hasDate && codes.length > 0) {
+      codeCols = codes;
+      dateCol = cells.findIndex((c) => /^date$/i.test(c.trim()));
+      totalCol = cells.findIndex((c) => /^total$/i.test(c.trim()));
+      continue;
+    }
+    if (!codeCols) continue;
+
+    const date = (cells[dateCol] ?? "").trim();
+    // Only real service days; the grand "Totals" row covers the whole period.
+    if (!/^\d{2}\/\d{2}\/\d{2,4}$/.test(date)) continue;
+
+    const counts: Record<string, number> = {};
+    for (const { index, code } of codeCols) {
+      const n = Number.parseInt((cells[index] ?? "").trim(), 10);
+      if (Number.isFinite(n)) counts[code] = n;
+    }
+    const total = Number.parseInt((cells[totalCol] ?? "").trim(), 10);
+    // The day label sits between the date and the first code column.
+    const day = dateCol + 1 < (codeCols[0]?.index ?? 0) ? (cells[dateCol + 1] ?? "").trim() : "";
+
+    out.push({ date, day, counts, total: Number.isFinite(total) ? total : 0 });
+  }
+  return out;
+}

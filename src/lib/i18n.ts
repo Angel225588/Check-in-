@@ -18,6 +18,8 @@ const translations = {
   "upload.checkin": { fr: "Check-in", en: "Check-in" },
   "upload.noDetect": { fr: "Impossible de détecter les chambres. Essayez une photo plus claire ou collez manuellement.", en: "Could not detect rooms. Try a clearer photo or paste manually." },
   "upload.analysedInHint": { fr: "Temps d'analyse des documents", en: "Document analysis time" },
+  "upload.reportTotals": { fr: "Total du rapport", en: "Report totals" },
+  "upload.compDrift": { fr: "COMP: le rapport indique {printed} — nous en comptons {counted}. Le rapport fait foi.", en: "COMP: the report says {printed} — we counted {counted}. The report is authoritative." },
   "upload.showRawOcr": { fr: "Afficher le texte OCR brut", en: "Show raw OCR text" },
   "upload.goToCheckin": { fr: "Check-in", en: "Check-in" },
   "upload.mergeComplete": { fr: "Fusion terminée", en: "Merge complete" },

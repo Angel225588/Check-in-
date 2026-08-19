@@ -7,10 +7,10 @@
 |  111 | STKG | STKG | 185207363 | Heung, Kwok Wai | 07/08/26 | 09/08/26 | CKIN | 1 | 0 | PV2A | BKF GRP  |
 |  204 |  |  |  |  |  |  |  |  |  |  | CITY TAX,BKF GRP  |
 
-Summary by date
+Totals per Day per Package Code
 
-|  Date | BKF INC  |
-| --- | --- |
-|  07/08/26 | 15  |
-|  08/08/26 | 19  |
-|  Totals | 34  |
+|  Date |  | BKF COMP | BKF GRP | BKF INC | UPSPDJ | Total  |
+| --- | --- | --- | --- | --- | --- | --- |
+|  07/08/26 | Fri | 15 | 41 | 15 | 18 | 89  |
+|  08/08/26 | Sat | 20 | 61 | 19 | 20 | 120  |
+|  Totals |  | 35 | 102 | 34 | 38 | 209  |
