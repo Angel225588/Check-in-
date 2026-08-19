@@ -178,7 +178,19 @@ function ReportV2() {
     { key: "no", label: "Absents", value: split.noShow, people: pax.missing },
     { key: "partial", label: "Partiel", value: split.partial, people: pax.partial.people },
     { key: "vip", label: "VIP", value: vipRooms, people: pax.vip.people },
-    { key: "comp", label: "COMP", value: compRooms, people: pax.comp.people },
+    /* COMP counts adults, like the hotel's R118 totals page — children in a
+       COMP room eat free and the paper does not count them. Saying so on the
+       tile stops the afternoon team reconciling a number that was never
+       missing. */
+    {
+      key: "comp",
+      label: "COMP",
+      value: compRooms,
+      people: pax.comp.people,
+      sub: pax.compChildren > 0
+        ? `+${pax.compChildren} enfant${pax.compChildren > 1 ? "s" : ""} gratuit${pax.compChildren > 1 ? "s" : ""}`
+        : undefined,
+    },
     /* Rooms, like every tile beside it — the value used to be the CHILD count,
        so a row of tiles all reading "3" meant three rooms, three rooms, three
        children. The children are on the second line where the people go. */

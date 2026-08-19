@@ -43,6 +43,20 @@ export function peopleExpected(rows: ArrivalRow[]): number {
  */
 const pairOf = (rows: ArrivalRow[]): Pair => ({ rooms: rows.length, people: peopleExpected(rows) });
 
+/**
+ * COMP counts ADULTS, not everyone in the room.
+ *
+ * The hotel's R118 "Totals per Day per Package Code" is the figure reception
+ * is measured on, and it counts adults: on the real export 13 COMP rooms are
+ * 20 adults + 1 child and the paper prints 20. report.ts already computed
+ * totalCompPersons this way; the tile did not, so the same morning read 20 on
+ * one screen and 21 on another. Children eat free — stated separately.
+ */
+const pairComp = (rows: ArrivalRow[]): Pair => ({
+  rooms: rows.length,
+  people: rows.reduce((n, r) => n + Math.max(0, (r.totalGuests || 0) - (r.children || 0)), 0),
+});
+
 const pairIn = (rows: ArrivalRow[]): Pair => ({ rooms: rows.length, people: peopleIn(rows) });
 
 export interface TilePeople {
@@ -53,6 +67,9 @@ export interface TilePeople {
   partial: Pair;
   vip: Pair;
   comp: Pair;
+  /** Children in COMP rooms. They eat free and the report does not count them,
+   *  so the number is stated rather than folded into the COMP total. */
+  compChildren: number;
   /** Rooms with a child in them, and how many children that is. The tile used
    *  to print the CHILD count as its headline, so its "3" meant three children
    *  while every tile beside it meant three rooms — and clicking it produced a
@@ -90,7 +107,10 @@ export function tilePeople(rows: ArrivalRow[]): TilePeople {
     no: { rooms: noShow.length, people: peopleExpected(noShow) },
     partial: pairIn(rows.filter((r) => r.status === "partial")),
     vip: pairOf(rows.filter((r) => r.isVip)),
-    comp: pairOf(rows.filter((r) => r.isComp)),
+    comp: pairComp(rows.filter((r) => r.isComp)),
+    compChildren: rows
+      .filter((r) => r.isComp)
+      .reduce((n, r) => n + Math.max(0, r.children || 0), 0),
     children: {
       rooms: withChildren.length,
       people: withChildren.reduce((n, r) => n + (r.children || 0), 0),

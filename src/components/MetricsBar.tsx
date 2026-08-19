@@ -70,7 +70,9 @@ export default function MetricsBar({
 
   /* How many are due and how many came — the half a bare number drops. */
   const progress = useMemo(() => ({
-    comp: subsetProgress(clients, checkIns, (c) => isComp(c)),
+    // Adults only — matches the R118 "Totals per Day per Package Code" figure.
+    // Children in a COMP room eat free and the report does not count them.
+    comp: subsetProgress(clients, checkIns, (c) => isComp(c), (c) => Number(c.adults) || 0),
     vip: subsetProgress(clients, checkIns, (c) => !!c.isVip),
     groups: subsetProgress(clients, checkIns, (c) => groupRooms.has(c.roomNumber)),
     children: subsetProgress(clients, checkIns, (c) => (c.children || 0) > 0),

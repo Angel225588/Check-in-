@@ -21,9 +21,19 @@ export function subsetProgress(
   clients: Client[],
   checkIns: CheckInRecord[],
   inSet: (c: Client) => boolean,
+  /**
+   * How many covers a room contributes. Defaults to everyone in it.
+   *
+   * COMP overrides this to count adults only, because the hotel's own R118
+   * figure does: on the real export, 13 COMP rooms are 20 adults + 1 child and
+   * the report prints 20. Reception reads the paper and the tablet side by
+   * side at 6am — if they disagree by one, the tablet is what gets distrusted.
+   */
+  countCovers: (c: Client) => number = (c) =>
+    (Number(c.adults) || 0) + (Number(c.children) || 0),
 ): Progress | null {
   const set = clients.filter(inSet);
-  const of = set.reduce((n, c) => n + (Number(c.adults) || 0) + (Number(c.children) || 0), 0);
+  const of = set.reduce((n, c) => n + countCovers(c), 0);
   if (of <= 0) return null;
 
   /* Capped at the expected count. Three people walking in on a room booked for
