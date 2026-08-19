@@ -62,11 +62,11 @@ export default function ReportDatePicker({
         >
           <CalendarBlank size={15} weight="duotone" style={{ color: "var(--tab-idle)" }} className="shrink-0" />
           {/* first-letter, not capitalize: French writes "lundi 27 juillet". */}
-          <span className="text-[14px] font-bold first-letter:uppercase truncate" style={{ color: "var(--tab-idle)" }}>
+          <span className="text-sm font-bold first-letter:uppercase truncate" style={{ color: "var(--tab-idle)" }}>
             {label(current)}
           </span>
           {current === todayIso && (
-            <span className="shrink-0 text-[9.5px] font-black uppercase tracking-[0.1em] px-2 py-1 rounded-full"
+            <span className="shrink-0 text-micro font-black uppercase tracking-[0.1em] px-2 py-1 rounded-full"
               style={{ background: "var(--aur-good-soft)", color: "var(--aur-good-ink)" }}>
               Aujourd&apos;hui
             </span>
@@ -91,10 +91,10 @@ export default function ReportDatePicker({
           <div
             onClick={(e) => e.stopPropagation()}
             data-role="report-date-sheet"
-            className="relative w-full max-w-[420px] max-h-[70dvh] overflow-y-auto rounded-[24px] p-4 flex flex-col gap-2 animate-[cardIn_.2s_cubic-bezier(.2,.9,.25,1)]"
+            className="relative w-full max-w-[420px] max-h-[70dvh] overflow-y-auto rounded-xl p-4 flex flex-col gap-2 animate-[cardIn_.2s_cubic-bezier(.2,.9,.25,1)]"
             style={{ background: "var(--aur-bg-elev)", boxShadow: "0 24px 60px -24px rgba(20,12,0,.55), inset 0 0 0 1px var(--aur-hairline)" }}
           >
-            <b className="text-[15px] text-dark mb-1">Quel service ?</b>
+            <b className="text-base text-dark mb-1">Quel service ?</b>
             {days.map((d) => {
               const on = d === current;
               return (
@@ -102,7 +102,7 @@ export default function ReportDatePicker({
                   key={d}
                   data-role="report-date-option"
                   onClick={() => { onPick(d); setOpen(false); }}
-                  className="min-h-[52px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
+                  className="min-h-[52px] px-4 rounded-card flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
                   style={{
                     background: on ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
                     boxShadow: on ? "inset 0 0 0 1.5px var(--aur-gold)" : "inset 0 0 0 1px rgba(128,128,128,.12)",
@@ -111,9 +111,9 @@ export default function ReportDatePicker({
                   <span className="w-5 shrink-0">
                     {on && <Check size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />}
                   </span>
-                  <span className="flex-1 text-[14px] font-bold text-dark first-letter:uppercase">{label(d)}</span>
+                  <span className="flex-1 text-sm font-bold text-dark first-letter:uppercase">{label(d)}</span>
                   {d === todayIso && (
-                    <span className="text-[10px] font-black uppercase tracking-[0.1em]" style={{ color: "var(--aur-good-ink)" }}>
+                    <span className="text-micro font-black uppercase tracking-[0.1em]" style={{ color: "var(--aur-good-ink)" }}>
                       Aujourd&apos;hui
                     </span>
                   )}

@@ -36,12 +36,12 @@ export default function BoxList({
     <div className="flex-1 min-h-0 flex flex-col" data-role="box-list">
       <div className="shrink-0 flex items-baseline gap-2 px-1 pb-1.5">
         <Package size={15} weight="duotone" style={{ color: "var(--brand-ink)" }} />
-        <b className="text-[12px] font-black uppercase tracking-[0.1em]" style={{ color: "var(--brand-ink)" }}>
+        <b className="text-xs font-black uppercase tracking-[0.1em]" style={{ color: "var(--brand-ink)" }}>
           Paniers
         </b>
         <span className="flex-1" />
         {/* The only number this screen owes anyone: how far through the run. */}
-        <b className="text-[13px] font-black tabular-nums" data-role="box-progress"
+        <b className="text-sm font-black tabular-nums" data-role="box-progress"
           style={{ color: done === of ? "var(--aur-good)" : "var(--tab-idle)" }}>
           {done}/{of}
         </b>
@@ -54,18 +54,18 @@ export default function BoxList({
             data-role="box-row"
             data-room={r.roomNumber}
             data-done={r.done}
-            className="shrink-0 flex items-center gap-3 min-h-[56px] px-3 rounded-[14px]"
+            className="shrink-0 flex items-center gap-3 min-h-[56px] px-3 rounded-card"
             style={r.done
               ? { background: "var(--aur-good-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-good)" }
               : { background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px rgba(128,128,128,.14)" }}
           >
-            <b className="text-[22px] font-black tabular-nums w-[68px] shrink-0"
+            <b className="text-2xl font-black tabular-nums w-[68px] shrink-0"
               style={{ color: r.done ? "var(--aur-good-ink)" : "var(--brand-ink)" }}>
               {r.roomNumber}
             </b>
             <div className="flex-1 min-w-0">
-              <div className="text-[13.5px] font-bold text-dark truncate">{r.name.replace("/", " ")}</div>
-              <div className="text-[11.5px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+              <div className="text-sm font-bold text-dark truncate">{r.name.replace("/", " ")}</div>
+              <div className="text-xs font-semibold" style={{ color: "var(--tab-idle)" }}>
                 {r.done
                   ? r.viaBox ? `${r.taken} panier${r.taken > 1 ? "s" : ""}` : `${r.taken} au restaurant`
                   : `${r.due - r.taken} à servir${r.taken > 0 ? ` · ${r.taken} déjà` : ""}`}
@@ -79,13 +79,13 @@ export default function BoxList({
                   onClick={() => onUndo(r)}
                   data-role="box-undo"
                   aria-label={`Annuler le panier de la chambre ${r.roomNumber}`}
-                  className="shrink-0 w-[52px] h-[44px] rounded-[12px] grid place-items-center active:scale-[0.94] transition-transform"
+                  className="shrink-0 w-[52px] h-[44px] rounded-md grid place-items-center active:scale-[0.94] transition-transform"
                   style={{ background: "rgba(128,128,128,.10)" }}
                 >
                   <ArrowCounterClockwise size={17} weight="bold" style={{ color: "var(--tab-idle)" }} />
                 </button>
               ) : (
-                <span className="shrink-0 w-[52px] h-[44px] rounded-[12px] grid place-items-center">
+                <span className="shrink-0 w-[52px] h-[44px] rounded-md grid place-items-center">
                   <Check size={19} weight="bold" style={{ color: "var(--aur-good)" }} />
                 </span>
               )
@@ -94,7 +94,7 @@ export default function BoxList({
                 onClick={() => onServe(r)}
                 data-role="box-serve"
                 aria-label={`Donner ${r.due - r.taken} panier(s) à la chambre ${r.roomNumber}`}
-                className="shrink-0 min-w-[76px] h-[44px] rounded-[12px] inline-flex items-center justify-center gap-1.5 text-white text-[14px] font-black active:scale-[0.95] transition-transform"
+                className="shrink-0 min-w-[76px] h-[44px] rounded-md inline-flex items-center justify-center gap-1.5 text-white text-sm font-black active:scale-[0.95] transition-transform"
                 style={{ background: "var(--aur-good)" }}
               >
                 <Check size={17} weight="bold" />
@@ -105,7 +105,7 @@ export default function BoxList({
         ))}
 
         {rows.length === 0 && (
-          <div className="text-center text-[13px] py-6" style={{ color: "var(--tab-idle)" }}>
+          <div className="text-center text-sm py-6" style={{ color: "var(--tab-idle)" }}>
             Choisissez un groupe pour préparer ses paniers.
           </div>
         )}

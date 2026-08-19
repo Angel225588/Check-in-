@@ -69,7 +69,7 @@ export default function SettingsToggle() {
 
       {/* Freed-space toast */}
       {freedMsg && (
-        <div className="fixed bottom-20 right-4 z-50 max-w-xs glass-liquid dark:glass-dark-float rounded-[14px] px-4 py-3 shadow-lg animate-[fadeSlideUp_0.3s_ease-out]">
+        <div className="fixed bottom-20 right-4 z-50 max-w-xs glass-liquid dark:glass-dark-float rounded-card px-4 py-3 shadow-lg animate-[fadeSlideUp_0.3s_ease-out]">
           <div className="flex items-start gap-2">
             <svg className="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -86,7 +86,7 @@ export default function SettingsToggle() {
           onClick={() => setConfirmOpen(false)}
         >
           <div
-            className="w-full max-w-md bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+            className="w-full max-w-md bg-white dark:bg-surface-dark rounded-t-lg p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
@@ -98,7 +98,7 @@ export default function SettingsToggle() {
                 ? "Cela supprime uniquement les données brutes des scans (texte désorganisé non utilisé)."
                 : "This only removes the raw scan data (the unused, disorganized text)."}
             </p>
-            <div className="glass-liquid rounded-[14px] p-3 mb-5">
+            <div className="glass-liquid rounded-card p-3 mb-5">
               <p className="text-xs font-semibold text-green-700 dark:text-green-400">
                 {fr ? "✓ Conservé" : "✓ Kept"}
               </p>
@@ -112,13 +112,13 @@ export default function SettingsToggle() {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmOpen(false)}
-                className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
+                className="flex-1 py-3 rounded-pill glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
               >
                 {fr ? "Annuler" : "Cancel"}
               </button>
               <button
                 onClick={handleFreeUp}
-                className="flex-1 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 dark:glow-brand"
+                className="flex-1 py-3 rounded-pill bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 dark:glow-brand"
               >
                 {fr ? "Libérer" : "Free up"}
               </button>

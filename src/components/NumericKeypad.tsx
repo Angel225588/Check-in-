@@ -49,13 +49,13 @@ export default function NumericKeypad({
   });
 
   const key =
-    "surface-raised rounded-[18px] min-h-[38px] " +
+    "surface-raised rounded-lg min-h-[38px] " +
     "text-[clamp(24px,4.2vh,42px)] font-black tabular-nums " +
     "active:scale-[0.97] transition-[transform,box-shadow] duration-100 select-none";
 
   return (
     <div
-      className="rounded-[20px] p-[clamp(7px,1.4vh,14px)] flex flex-col gap-[clamp(7px,1.4vh,14px)] h-full"
+      className="rounded-lg p-[clamp(7px,1.4vh,14px)] flex flex-col gap-[clamp(7px,1.4vh,14px)] h-full"
       role="group"
       aria-label="Numeric keypad"
       data-role="numeric-keypad"
@@ -78,7 +78,7 @@ export default function NumericKeypad({
         <button
           {...press(onToggleMode)}
           data-role="pad-abc"
-          className="bg-teal/90 text-white rounded-[18px] min-h-[38px] text-[clamp(15px,2.2vh,20px)] font-black tracking-[0.06em] active:scale-[0.97] transition-transform select-none"
+          className="bg-teal/90 text-white rounded-lg min-h-[38px] text-[clamp(15px,2.2vh,20px)] font-black tracking-[0.06em] active:scale-[0.97] transition-transform select-none"
         >
           ABC
         </button>
@@ -88,7 +88,7 @@ export default function NumericKeypad({
         <button
           {...press(onBackspace)}
           aria-label="Backspace"
-          className="bg-slate/90 text-white rounded-[18px] min-h-[38px] active:scale-[0.97] transition-transform select-none"
+          className="bg-slate/90 text-white rounded-lg min-h-[38px] active:scale-[0.97] transition-transform select-none"
         >
           <svg className="w-7 h-7 md:w-9 md:h-9 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l7-7 12 0v14H10L3 12z" />

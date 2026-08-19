@@ -71,7 +71,7 @@ export default function RoomEventBadges({
             return (
               <span
                 key={`${e.type}-${i}`}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase text-white bg-gradient-to-r from-brand to-brand-light shadow-[0_0_10px_-2px] shadow-brand/60"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black tracking-wider uppercase text-white bg-gradient-to-r from-brand to-brand-light shadow-[0_0_10px_-2px] shadow-brand/60"
                 title={e.reason || "Ambassadeur"}
               >
                 <Star weight="fill" className="size-2.5" />
@@ -103,23 +103,23 @@ export default function RoomEventBadges({
           return (
             <div
               key={`${e.type}-${i}`}
-              className="flex items-center gap-3 px-4 py-3 rounded-[12px] bg-gradient-to-r from-brand via-brand-light to-brand text-white shadow-[0_4px_20px_-4px] shadow-brand/50"
+              className="flex items-center gap-3 px-4 py-3 rounded-md bg-gradient-to-r from-brand via-brand-light to-brand text-white shadow-[0_4px_20px_-4px] shadow-brand/50"
             >
               <span className="grid place-items-center size-9 rounded-full bg-white/20 backdrop-blur-sm">
                 <Star weight="fill" className="size-5 text-white drop-shadow" />
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[13px] font-black tracking-[0.10em] uppercase drop-shadow-sm">
+                  <span className="text-sm font-black tracking-[0.10em] uppercase drop-shadow-sm">
                     Ambassadeur
                   </span>
                   {e.status && (
-                    <span className="text-[9px] uppercase font-bold bg-white/20 text-white px-1.5 py-0.5 rounded-full">
+                    <span className="text-micro uppercase font-bold bg-white/20 text-white px-1.5 py-0.5 rounded-full">
                       {e.status === "in_house" ? "In house" : "Arriving"}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-white/90 mt-0.5 leading-relaxed">
+                <p className="text-xs text-white/90 mt-0.5 leading-relaxed">
                   {e.reason || "Client fidèle — accueil prioritaire"}
                 </p>
               </div>
@@ -131,7 +131,7 @@ export default function RoomEventBadges({
           <div
             key={`${e.type}-${i}`}
             className={cn(
-              "flex items-start gap-2 px-3 py-2 rounded-[12px]",
+              "flex items-start gap-2 px-3 py-2 rounded-md",
               e.bgClass
             )}
           >
@@ -141,17 +141,17 @@ export default function RoomEventBadges({
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={cn("text-[11px] font-bold", e.colorClass)}>
+                <span className={cn("text-xs font-bold", e.colorClass)}>
                   {TYPE_LABEL[e.type] ?? e.type}
                 </span>
                 {e.status && (
-                  <span className="text-[8px] uppercase font-bold text-muted">
+                  <span className="text-micro uppercase font-bold text-muted">
                     {e.status === "in_house" ? "In house" : "Arriving"}
                   </span>
                 )}
               </div>
               {showReason && e.reason && (
-                <p className="text-[11px] text-dark/80 mt-0.5 leading-relaxed">
+                <p className="text-xs text-dark/80 mt-0.5 leading-relaxed">
                   {e.reason}
                 </p>
               )}

@@ -54,14 +54,14 @@ export default function ArrivalRow({
     >
       {arming ? (
         <>
-          <span className="flex-1 min-w-0 pl-4 text-[13px] font-black" style={{ color: "var(--aur-bad-ink)" }}>
+          <span className="flex-1 min-w-0 pl-4 text-sm font-black" style={{ color: "var(--aur-bad-ink)" }}>
             Annuler l&apos;entrée de {row.roomNumber} ?
           </span>
           <button
             type="button"
             data-role="arrival-undo-confirm"
             onClick={() => { if (row.id) onUndo?.(row.id); setArming(false); }}
-            className="shrink-0 min-h-[44px] px-3.5 rounded-[10px] text-[13px] font-black active:scale-[0.96] transition-transform"
+            className="shrink-0 min-h-[44px] px-3.5 rounded-md text-sm font-black active:scale-[0.96] transition-transform"
             style={{ background: "var(--aur-bad)", color: "#fff" }}
           >
             Annuler
@@ -87,20 +87,20 @@ export default function ArrivalRow({
             }`}
           >
             <em
-              className={`not-italic font-bold tabular-nums shrink-0 ${roomy ? "text-[13px] w-[44px]" : "text-[12px]"}`}
+              className={`not-italic font-bold tabular-nums shrink-0 ${roomy ? "text-sm w-[44px]" : "text-xs"}`}
               style={{ color: "var(--tab-idle)" }}
             >
               {row.at}
             </em>
             <b
-              className={`font-black tabular-nums shrink-0 ${roomy ? "text-[21px]" : "text-[17px]"}`}
+              className={`font-black tabular-nums shrink-0 ${roomy ? "text-xl" : "text-lg"}`}
               style={{ color: "var(--brand-ink)" }}
             >
               {row.roomNumber}
             </b>
             <span className="flex-1 min-w-0">
               <span
-                className={`block truncate font-bold ${roomy ? "text-[15px]" : "text-[13px]"}`}
+                className={`block truncate font-bold ${roomy ? "text-base" : "text-sm"}`}
                 style={{ color: "var(--aur-ink-2)" }}
               >
                 {row.name}
@@ -111,7 +111,7 @@ export default function ArrivalRow({
 
           <span
             className={`shrink-0 rounded-full grid place-items-center font-black tabular-nums ${
-              roomy ? "w-8 h-8 text-[13px]" : "w-7 h-7 text-[12px]"
+              roomy ? "w-8 h-8 text-sm" : "w-7 h-7 text-xs"
             }`}
             style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}
           >
@@ -124,7 +124,7 @@ export default function ArrivalRow({
               data-role="arrival-undo"
               aria-label={`Corriger l'entrée de la chambre ${row.roomNumber}`}
               onClick={() => setArming(true)}
-              className="shrink-0 w-11 h-11 mr-0.5 grid place-items-center rounded-[10px] active:scale-[0.9] transition-transform"
+              className="shrink-0 w-11 h-11 mr-0.5 grid place-items-center rounded-md active:scale-[0.9] transition-transform"
             >
               <ArrowUUpLeft size={16} weight="bold" style={{ color: "var(--tab-idle)" }} />
             </button>

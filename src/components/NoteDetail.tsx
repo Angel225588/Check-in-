@@ -66,7 +66,7 @@ export default function NoteDetail({
 
       <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1">
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-black mb-2"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black mb-2"
           style={{ background: m.soft, color: m.color }}
         >
           <NoteToneIcon tone={note.tone} size={14} /> {m.label}
@@ -74,22 +74,22 @@ export default function NoteDetail({
         </span>
 
         {note.title && (
-          <h3 className="text-[19px] leading-tight font-black text-dark mb-1.5 break-words">{note.title}</h3>
+          <h3 className="text-xl leading-tight font-black text-dark mb-1.5 break-words">{note.title}</h3>
         )}
         {note.body && (
-          <p className="text-[14.5px] leading-relaxed text-dark/85 whitespace-pre-wrap break-words mb-3">{note.body}</p>
+          <p className="text-sm leading-relaxed text-dark/85 whitespace-pre-wrap break-words mb-3">{note.body}</p>
         )}
 
-        <div className="text-[11.5px] mb-3" style={{ color: "var(--tab-idle)" }}>
+        <div className="text-xs mb-3" style={{ color: "var(--tab-idle)" }}>
           {note.author ? `${note.author} · ` : ""}{fmt(note.createdAt)}
         </div>
 
         {note.revisions.length > 0 && (
-          <div className="rounded-[12px] overflow-hidden" style={{ background: "rgba(0,0,0,.035)" }}>
+          <div className="rounded-md overflow-hidden" style={{ background: "rgba(0,0,0,.035)" }}>
             <button
               onClick={() => setShowRevisions((v) => !v)}
               aria-expanded={showRevisions}
-              className="w-full min-h-[44px] px-3 flex items-center justify-between text-[12px] font-extrabold"
+              className="w-full min-h-[44px] px-3 flex items-center justify-between text-xs font-extrabold"
               style={{ color: "var(--tab-idle)" }}
             >
               Activité ({note.revisions.length})
@@ -98,7 +98,7 @@ export default function NoteDetail({
             {showRevisions && (
               <div className="px-3 pb-2 flex flex-col gap-1.5">
                 {[...note.revisions].reverse().map((r, i) => (
-                  <div key={i} className="text-[11.5px] leading-snug" style={{ color: "var(--tab-idle)" }}>
+                  <div key={i} className="text-xs leading-snug" style={{ color: "var(--tab-idle)" }}>
                     <b className="text-dark/70">{r.author || "—"}</b> · {r.summary} · {fmt(r.at)}
                   </div>
                 ))}
@@ -110,18 +110,18 @@ export default function NoteDetail({
 
       {/* Thumb zone — the safe, frequent actions. */}
       {confirmDelete ? (
-        <div className="shrink-0 mt-3 rounded-[16px] p-3" style={{ background: "var(--aur-bad-soft)" }}>
-          <div className="text-[13px] font-black mb-2" style={{ color: "var(--aur-bad-ink)" }}>
+        <div className="shrink-0 mt-3 rounded-lg p-3" style={{ background: "var(--aur-bad-soft)" }}>
+          <div className="text-sm font-black mb-2" style={{ color: "var(--aur-bad-ink)" }}>
             Supprimer cette note définitivement ?
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setConfirmDelete(false)} className="flex-1 min-h-[44px] rounded-full glass-liquid text-[13px] font-bold">
+            <button onClick={() => setConfirmDelete(false)} className="flex-1 min-h-[44px] rounded-full glass-liquid text-sm font-bold">
               Annuler
             </button>
             <button
               onClick={onDelete}
               data-role="note-delete-confirm"
-              className="flex-1 min-h-[44px] rounded-full text-white text-[13px] font-black"
+              className="flex-1 min-h-[44px] rounded-full text-white text-sm font-black"
               style={{ background: "var(--aur-bad)" }}
             >
               Supprimer
@@ -133,7 +133,7 @@ export default function NoteDetail({
           <button
             onClick={onTogglePin}
             aria-pressed={note.pinned}
-            className="flex-1 min-h-[48px] rounded-full inline-flex items-center justify-center gap-1.5 text-[13px] font-extrabold"
+            className="flex-1 min-h-[48px] rounded-full inline-flex items-center justify-center gap-1.5 text-sm font-extrabold"
             style={note.pinned
               ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
               : { background: "rgba(0,0,0,.05)", color: "var(--tab-idle)" }}
@@ -144,7 +144,7 @@ export default function NoteDetail({
           <button
             onClick={onEdit}
             data-role="note-edit"
-            className="flex-1 min-h-[48px] rounded-full inline-flex items-center justify-center gap-1.5 text-white text-[13px] font-black"
+            className="flex-1 min-h-[48px] rounded-full inline-flex items-center justify-center gap-1.5 text-white text-sm font-black"
             style={{ background: "var(--color-brand)" }}
           >
             <PencilSimple weight="bold" size={15} /> Modifier

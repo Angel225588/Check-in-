@@ -54,7 +54,7 @@ export default function ArrivalList({
     <>
       <div className="flex gap-2 items-stretch my-2">
         <div
-          className="flex-1 flex items-center gap-3 px-4 min-h-[50px] rounded-[14px]"
+          className="flex-1 flex items-center gap-3 px-4 min-h-[50px] rounded-card"
           style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
         >
           <MagnifyingGlass size={18} weight="bold" style={{ color: "var(--tab-idle)" }} className="shrink-0" />
@@ -68,7 +68,7 @@ export default function ArrivalList({
             inputMode="none"
             onFocus={() => onFocusField?.()}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }}
-            className="flex-1 min-w-0 bg-transparent outline-none text-[16px] font-bold placeholder:font-normal placeholder:italic"
+            className="flex-1 min-w-0 bg-transparent outline-none text-base font-bold placeholder:font-normal placeholder:italic"
             style={{ color: "var(--brand-ink)", fontFamily: "inherit" }}
           />
           {query && (
@@ -85,7 +85,7 @@ export default function ArrivalList({
 
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1" data-role="report-list">
         {rows.length === 0 && (
-          <div className="py-10 text-center text-[14px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+          <div className="py-10 text-center text-sm font-semibold" style={{ color: "var(--tab-idle)" }}>
             Aucune chambre ne correspond.
           </div>
         )}
@@ -98,30 +98,30 @@ export default function ArrivalList({
               onClick={() => onOpen?.(r)}
               disabled={!onOpen}
               aria-label={`Ouvrir la chambre ${r.roomNumber}`}
-              className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-[12px] min-h-[44px] enabled:active:scale-[0.995] transition-transform"
+              className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-md min-h-[44px] enabled:active:scale-[0.995] transition-transform"
               style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
             >
-              <span className="text-[14px] font-black tabular-nums min-w-[52px]" style={{ color: "var(--tab-idle)" }}>
+              <span className="text-sm font-black tabular-nums min-w-[52px]" style={{ color: "var(--tab-idle)" }}>
                 {r.time}
               </span>
-              <span className="text-[19px] font-black tabular-nums min-w-[52px]" style={{ color: "var(--brand-ink)" }}>
+              <span className="text-xl font-black tabular-nums min-w-[52px]" style={{ color: "var(--brand-ink)" }}>
                 {r.roomNumber}
               </span>
               <span className="flex-1 min-w-0 flex items-center gap-2">
-                <span className="text-[14.5px] font-bold truncate" style={{ color: "var(--aur-ink-2)" }}>
+                <span className="text-sm font-bold truncate" style={{ color: "var(--aur-ink-2)" }}>
                   {r.name}
                 </span>
                 {r.isVip && (
                   <Star weight="fill" size={13} style={{ color: "var(--aur-gold)" }} aria-label="VIP" className="shrink-0" />
                 )}
                 {r.offList && (
-                  <span className="shrink-0 text-[9.5px] font-black px-2 py-0.5 rounded-full"
+                  <span className="shrink-0 text-micro font-black px-2 py-0.5 rounded-full"
                     style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}>
                     HORS LISTE
                   </span>
                 )}
                 {ecartRooms.has(r.roomNumber) && (
-                  <span className="shrink-0 text-[9.5px] font-black px-2 py-0.5 rounded-full"
+                  <span className="shrink-0 text-micro font-black px-2 py-0.5 rounded-full"
                     style={{ background: "var(--aur-warn-soft)", color: "var(--aur-warn-ink)" }}>
                     ÉCART
                   </span>
@@ -131,7 +131,7 @@ export default function ArrivalList({
                   kitchen — and the 15:00 briefing is where that is read. */}
               {r.box && (
                 <span data-role="report-box"
-                  className="shrink-0 text-[9.5px] font-black px-2 py-0.5 rounded-full"
+                  className="shrink-0 text-micro font-black px-2 py-0.5 rounded-full"
                   style={{ background: "var(--aur-good-soft)", color: "var(--aur-good-ink)" }}>
                   PANIER
                 </span>
@@ -139,13 +139,13 @@ export default function ArrivalList({
               <span
                 data-role="report-formule"
                 data-formule={r.formule}
-                className="shrink-0 w-[104px] text-center text-[11px] font-black px-2 py-1 rounded-[8px] whitespace-nowrap"
+                className="shrink-0 w-[104px] text-center text-xs font-black px-2 py-1 rounded-sm whitespace-nowrap"
                 style={{ background: FORMULE_STYLE[r.formule].bg, color: FORMULE_STYLE[r.formule].fg }}
               >
                 {FORMULE_LABEL[r.formule]}
               </span>
               <span
-                className="shrink-0 flex items-center gap-1.5 text-[12px] font-black px-3 py-1.5 rounded-full whitespace-nowrap"
+                className="shrink-0 flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap"
                 style={{ background: s.bg, color: s.fg }}
               >
                 <s.Icon weight="bold" size={12} />

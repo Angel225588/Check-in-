@@ -34,10 +34,10 @@ export default function SideNotesDigest({
   return (
     <div className="shrink-0" data-role="side-notes-digest">
       <div className="flex items-baseline justify-between mb-2">
-        <span className="text-[10px] uppercase tracking-wide text-muted font-medium">Notes</span>
+        <span className="text-micro uppercase tracking-wide text-muted font-medium">Notes</span>
         <button
           onClick={onOpen}
-          className="text-[11px] font-black active:opacity-70"
+          className="text-xs font-black active:opacity-70"
           style={{ color: "var(--brand-ink)" }}
         >
           Tout voir
@@ -55,7 +55,7 @@ export default function SideNotesDigest({
               aria-expanded={openId === n.id}
               data-role="digest-note"
               data-note-tone={n.tone}
-              className="w-full text-left px-3 py-2.5 rounded-[14px] flex items-start gap-2.5 active:scale-[0.98] transition-transform"
+              className="w-full text-left px-3 py-2.5 rounded-card flex items-start gap-2.5 active:scale-[0.98] transition-transform"
               style={{
                 background: m.soft,
                 boxShadow: isAlert
@@ -67,13 +67,13 @@ export default function SideNotesDigest({
                 <NoteToneIcon tone={n.tone} size={16} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-extrabold leading-tight" style={{ color: m.color }}>
+                <span className="block text-sm font-extrabold leading-tight" style={{ color: m.color }}>
                   {n.title || m.label}
                 </span>
                 {n.body && n.body !== n.title && (
                   <span
                     data-role="digest-note-body"
-                    className={`block text-[12px] font-semibold leading-snug mt-0.5 ${
+                    className={`block text-xs font-semibold leading-snug mt-0.5 ${
                       openId === n.id ? "" : "line-clamp-2"
                     }`}
                     style={{ color: "var(--aur-ink-2)" }}
@@ -82,7 +82,7 @@ export default function SideNotesDigest({
                   </span>
                 )}
                 {openId === n.id && (
-                  <span className="block text-[10.5px] font-bold mt-1.5" style={{ color: "var(--tab-idle)" }}>
+                  <span className="block text-micro font-bold mt-1.5" style={{ color: "var(--tab-idle)" }}>
                     {n.author} · {new Date(n.updatedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                   </span>
                 )}

@@ -34,16 +34,16 @@ export default function SuggestionCard({
       onClick={() => onSelect(client.roomNumber, clientIndex)}
       data-role="room-row"
       data-room={client.roomNumber}
-      className={`w-full text-left rounded-[16px] px-4 py-3 flex items-center gap-4 min-h-[88px]
+      className={`w-full text-left rounded-lg px-4 py-3 flex items-center gap-4 min-h-[88px]
         surface-card active:scale-[0.995] transition-transform ${allCheckedIn ? "opacity-50" : ""}`}
     >
-      <span className="text-[34px] font-black tabular-nums leading-none min-w-[86px]">
+      <span className="text-4xl font-black tabular-nums leading-none min-w-[86px]">
         {client.roomNumber}
       </span>
 
       <span className="flex-1 min-w-0">
-        <span className="block text-[19.5px] font-bold truncate">{client.name}</span>
-        <span className="block text-[13px] mt-0.5" style={{ color: "var(--tab-idle)" }}>
+        <span className="block text-xl font-bold truncate">{client.name}</span>
+        <span className="block text-sm mt-0.5" style={{ color: "var(--tab-idle)" }}>
           {allCheckedIn
             ? "Tous entrés"
             : visits > 0
@@ -55,19 +55,19 @@ export default function SuggestionCard({
       {/* Only the states that change what reception does next carry colour. */}
       <span className="flex items-center gap-2 shrink-0">
         {comp && (
-          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
+          <span className="text-xs font-black px-2 py-1.5 rounded-full"
             style={{ background: "rgba(90,59,143,.16)", color: "var(--aur-pm-points)", opacity: .8 }}>
             COMP
           </span>
         )}
         {client.isVip && (
-          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
+          <span className="text-xs font-black px-2 py-1.5 rounded-full"
             style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", opacity: .85 }}>
             {client.vipLevel || "VIP"}
           </span>
         )}
         {needsPay && (
-          <span className="text-[11.5px] font-black px-2 py-1.5 rounded-full"
+          <span className="text-xs font-black px-2 py-1.5 rounded-full"
             style={{ background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
             À ENCAISSER
           </span>
@@ -81,11 +81,11 @@ export default function SuggestionCard({
           { k: "Adultes", v: client.adults },
           { k: "Enfants", v: client.children },
         ].map((b) => (
-          <span key={b.k} className="min-w-[70px] text-center rounded-[14px] px-2 py-1.5"
+          <span key={b.k} className="min-w-[70px] text-center rounded-card px-2 py-1.5"
             style={{ background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.05)" }}>
-            <span className="block text-[9.5px] font-black uppercase tracking-[0.10em]"
+            <span className="block text-micro font-black uppercase tracking-[0.10em]"
               style={{ color: "var(--tab-idle)" }}>{b.k}</span>
-            <span className="block text-[21px] font-bold tabular-nums leading-tight"
+            <span className="block text-xl font-bold tabular-nums leading-tight"
               style={{ color: b.v ? undefined : "var(--tab-idle)" }}>{b.v}</span>
           </span>
         ))}

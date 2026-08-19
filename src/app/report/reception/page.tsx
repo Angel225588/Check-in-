@@ -64,7 +64,7 @@ export default function ReceptionReportWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+        <div className="flex items-center justify-center h-dvh bg-background dark:bg-ink screen-safe">
           <div className="text-muted">Loading…</div>
         </div>
       }
@@ -164,7 +164,7 @@ function ReceptionReportPage() {
 
   if (!loaded) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="flex items-center justify-center h-dvh bg-background dark:bg-ink screen-safe">
         <div className="text-muted">Loading…</div>
       </div>
     );
@@ -180,9 +180,9 @@ function ReceptionReportPage() {
         }
       `}</style>
 
-      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="min-h-dvh bg-background dark:bg-ink screen-safe">
         {/* HEADER */}
-        <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#12100E]/90 backdrop-blur-xl">
+        <div className="sticky top-0 z-30 bg-background/90 dark:bg-ink/90 backdrop-blur-xl">
           <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
             <div className="flex items-center justify-between">
               <Button
@@ -201,7 +201,7 @@ function ReceptionReportPage() {
                 >
                   COURTYARD
                 </span>
-                <span className="text-[10px] text-muted leading-tight">
+                <span className="text-micro text-muted leading-tight">
                   by{" "}
                   <span className="font-bold tracking-[0.05em] text-slate">
                     MARRIOTT
@@ -219,7 +219,7 @@ function ReceptionReportPage() {
               {formatDate(date)}
             </h1>
             <p className="text-xs text-muted">{t("reception.title")}</p>
-            <p className="text-[10px] text-muted/80 mt-0.5">
+            <p className="text-micro text-muted/80 mt-0.5">
               {t("reception.subtitle")}
             </p>
           </div>
@@ -229,7 +229,7 @@ function ReceptionReportPage() {
             <Card className="border-amber-500/30 bg-amber-500/5 py-3">
               <CardContent className="flex items-start gap-2">
                 <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
                   {t("reception.legacyBanner")}
                 </p>
               </CardContent>
@@ -245,7 +245,7 @@ function ReceptionReportPage() {
                     <div className="text-2xl font-black text-dark tabular-nums">
                       {entries.length}
                     </div>
-                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                    <div className="text-micro text-muted uppercase tracking-wide">
                       Total
                     </div>
                   </div>
@@ -253,7 +253,7 @@ function ReceptionReportPage() {
                     <div className="text-2xl font-black text-error tabular-nums">
                       {counts.not_yet}
                     </div>
-                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                    <div className="text-micro text-muted uppercase tracking-wide">
                       {t("reception.statusNotYet")}
                     </div>
                   </div>
@@ -261,7 +261,7 @@ function ReceptionReportPage() {
                     <div className="text-2xl font-black text-green-600 dark:text-green-400 tabular-nums">
                       {cameTotal}
                     </div>
-                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                    <div className="text-micro text-muted uppercase tracking-wide">
                       {t("reception.statusCame")}
                     </div>
                   </div>
@@ -271,13 +271,13 @@ function ReceptionReportPage() {
                         counts.came_paid_onsite +
                         counts.came_room_charge}
                     </div>
-                    <div className="text-[8px] text-muted uppercase tracking-wide">
+                    <div className="text-micro text-muted uppercase tracking-wide">
                       Pts/Pay/Ch
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8 grid grid-cols-3 gap-2 text-[10px]">
+                <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/8 grid grid-cols-3 gap-2 text-micro">
                   <div className="flex items-center justify-between">
                     <span className="text-muted">
                       {t("reception.statusPoints")}
@@ -352,19 +352,19 @@ function ReceptionReportPage() {
             <Card className="py-0 overflow-hidden">
               {/* Table header */}
               <div className="grid grid-cols-[44px_1fr_64px_56px_88px] px-4 py-2 bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/8">
-                <span className="text-[7px] text-muted uppercase font-bold tracking-wider">
+                <span className="text-micro text-muted uppercase font-bold tracking-wider">
                   {t("reception.colRoom")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-bold tracking-wider">
+                <span className="text-micro text-muted uppercase font-bold tracking-wider">
                   {t("reception.colName")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-bold tracking-wider text-center">
+                <span className="text-micro text-muted uppercase font-bold tracking-wider text-center">
                   {t("reception.colLevel")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-bold tracking-wider text-center">
+                <span className="text-micro text-muted uppercase font-bold tracking-wider text-center">
                   {t("reception.colTime")}
                 </span>
-                <span className="text-[7px] text-muted uppercase font-bold tracking-wider text-right">
+                <span className="text-micro text-muted uppercase font-bold tracking-wider text-right">
                   {t("reception.colMode")}
                 </span>
               </div>
@@ -385,10 +385,10 @@ function ReceptionReportPage() {
 
                   {/* Name + source */}
                   <div className="min-w-0 pr-1">
-                    <span className="text-[12px] text-dark truncate block font-medium">
+                    <span className="text-xs text-dark truncate block font-medium">
                       {e.name}
                     </span>
-                    <span className="text-[8px] text-muted/80 uppercase tracking-wide">
+                    <span className="text-micro text-muted/80 uppercase tracking-wide">
                       {e.vipSource === "walk_in"
                         ? t("reception.sourceWalkIn")
                         : e.vipSource === "list_only"
@@ -401,19 +401,19 @@ function ReceptionReportPage() {
                   <div className="text-center">
                     <Badge variant="vip" className="gap-0.5 px-1.5 py-1">
                       <Crown className="size-2.5" />
-                      <span className="text-[9px]">{e.vipLevel || "VIP"}</span>
+                      <span className="text-micro">{e.vipLevel || "VIP"}</span>
                     </Badge>
                   </div>
 
                   {/* Time */}
                   <div className="text-center">
                     {e.checkInTimestamp ? (
-                      <span className="inline-flex items-center gap-0.5 text-[9px] font-mono text-muted">
+                      <span className="inline-flex items-center gap-0.5 text-micro font-mono text-muted">
                         <Clock className="size-2.5" />
                         {formatTime(e.checkInTimestamp)}
                       </span>
                     ) : (
-                      <span className="text-[9px] text-muted/40">—</span>
+                      <span className="text-micro text-muted/40">—</span>
                     )}
                   </div>
 
@@ -430,7 +430,7 @@ function ReceptionReportPage() {
         </div>
 
         {/* FAB */}
-        <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FBF8F3] dark:from-[#12100E] via-[#FBF8F3] dark:via-[#12100E] to-transparent pt-6">
+        <div className="no-print fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background dark:from-ink via-background dark:via-ink to-transparent pt-6">
           <div className="max-w-2xl mx-auto px-4 pb-4">
             <Button
               variant="glass"

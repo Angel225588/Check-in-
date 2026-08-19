@@ -41,13 +41,13 @@ export default function AlphaKeypad({
   });
 
   const key =
-    "surface-raised rounded-[14px] flex-1 min-w-0 min-h-[34px] " +
+    "surface-raised rounded-card flex-1 min-w-0 min-h-[34px] " +
     "text-[clamp(18px,2.9vh,30px)] font-black active:scale-[0.97] " +
     "transition-[transform,box-shadow] duration-100 select-none";
 
   return (
     <div
-      className="rounded-[20px] p-[clamp(6px,1.2vh,12px)] flex flex-col gap-[clamp(6px,1.2vh,12px)] w-full h-full"
+      className="rounded-lg p-[clamp(6px,1.2vh,12px)] flex flex-col gap-[clamp(6px,1.2vh,12px)] w-full h-full"
       role="group"
       aria-label="Letter keypad"
       /* none, not manipulation: manipulation still lets the browser
@@ -75,21 +75,21 @@ export default function AlphaKeypad({
         <button
           {...press(onToggleMode)}
           data-role="pad-123"
-          className="flex-[2] min-w-0 bg-teal/90 text-white rounded-[14px] min-h-[34px] text-[15px] font-black tracking-[0.06em] active:scale-95 transition-transform select-none"
+          className="flex-[2] min-w-0 bg-teal/90 text-white rounded-card min-h-[34px] text-base font-black tracking-[0.06em] active:scale-95 transition-transform select-none"
         >
           123
         </button>
         <button
           {...press(() => onKeyPress(" "))}
           aria-label="Espace"
-          className={`${key} flex-[6] text-[14px] uppercase tracking-[0.14em]`}
+          className={`${key} flex-[6] text-sm uppercase tracking-[0.14em]`}
         >
           Espace
         </button>
         <button
           {...press(onBackspace)}
           aria-label="Backspace"
-          className="flex-[2] min-w-0 bg-slate/90 text-white rounded-[14px] min-h-[34px] active:scale-[0.97] transition-transform select-none"
+          className="flex-[2] min-w-0 bg-slate/90 text-white rounded-card min-h-[34px] active:scale-[0.97] transition-transform select-none"
         >
           <svg className="w-7 h-7 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l7-7 12 0v14H10L3 12z" />

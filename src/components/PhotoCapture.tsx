@@ -298,14 +298,14 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
                     )}
                     {page.status === "error" && (
                       <div className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-error rounded-full flex items-center justify-center">
-                        <span className="text-white text-[9px] font-bold">!</span>
+                        <span className="text-white text-micro font-bold">!</span>
                       </div>
                     )}
                   </div>
                   {!isProcessing && (
                     <button
                       onClick={() => removePage(i)}
-                      className="absolute -top-1 -right-1 w-4 h-4 bg-error text-white rounded-full text-[9px] flex items-center justify-center"
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-error text-white rounded-full text-micro flex items-center justify-center"
                     >
                       x
                     </button>
@@ -319,7 +319,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
                   className="flex-shrink-0 w-16 h-16 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center text-muted active:border-brand active:text-brand transition-colors"
                 >
                   <span className="text-xl leading-none">+</span>
-                  <span className="text-[9px]">Add</span>
+                  <span className="text-micro">Add</span>
                 </button>
               )}
             </div>

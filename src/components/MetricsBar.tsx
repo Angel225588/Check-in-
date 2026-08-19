@@ -132,10 +132,10 @@ export default function MetricsBar({
      flat one. `surface-inset` is a box-shadow: it paints, it does not
      composite, so this costs nothing on the iPad. */
   const pillBase =
-    "flex-1 min-w-0 text-center py-1.5 md:py-2 px-1 rounded-[14px] transition-all cursor-pointer active:scale-[0.96]";
+    "flex-1 min-w-0 text-center py-1.5 md:py-2 px-1 rounded-card transition-all cursor-pointer active:scale-[0.96]";
 
   return (
-    <div className="flex items-center gap-1 md:gap-1.5 p-2 surface-chrome rounded-[14px]" role="group" aria-label="Guest metrics" data-role="metrics-bar">
+    <div className="flex items-center gap-1 md:gap-1.5 p-2 surface-chrome rounded-card" role="group" aria-label="Guest metrics" data-role="metrics-bar">
       {shown.map((m) => {
         const on = activeFilter === m.key;
         const p = progress[m.key];
@@ -148,7 +148,7 @@ export default function MetricsBar({
             onClick={() => handleFilter(m.key)}
             className={`${pillBase} ${on ? "glass-liquid-active" : "surface-inset"}`}
           >
-            <div className="text-[10px] md:text-xs text-muted uppercase tracking-wide truncate">{m.label}</div>
+            <div className="text-micro md:text-xs text-muted uppercase tracking-wide truncate">{m.label}</div>
             {p ? (
               <div className="text-xl md:text-2xl font-bold text-dark tabular-nums">
                 <AnimatedNumber value={p.done} />
@@ -157,7 +157,7 @@ export default function MetricsBar({
             ) : (
               <AnimatedNumber
                 value={m.value}
-                className={`font-bold tabular-nums ${m.key === "remaining" ? "text-2xl md:text-[28px] font-black text-brand" : "text-xl md:text-2xl text-dark"}`}
+                className={`font-bold tabular-nums ${m.key === "remaining" ? "text-2xl md:text-3xl font-black text-brand" : "text-xl md:text-2xl text-dark"}`}
               />
             )}
           </button>
@@ -169,10 +169,10 @@ export default function MetricsBar({
           onClick={() => setSheet(true)}
           data-role="metric-more"
           aria-label={`Choisir les métriques (${hidden.length} de côté)`}
-          className="surface-inset relative shrink-0 w-[46px] self-stretch min-h-[52px] rounded-[14px] grid place-items-center transition-transform active:scale-[0.94]"
+          className="surface-inset relative shrink-0 w-[46px] self-stretch min-h-[52px] rounded-card grid place-items-center transition-transform active:scale-[0.94]"
         >
           <FunnelSimple size={18} weight="bold" style={{ color: "var(--tab-idle)" }} />
-          <span className="absolute bottom-1 text-[9px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
+          <span className="absolute bottom-1 text-micro font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
             +{hidden.length}
           </span>
         </button>

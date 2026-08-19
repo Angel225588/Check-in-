@@ -63,7 +63,7 @@ export default function OutcomeTreemap({
   const [servedS, missingS] = treemapShares([w.served, w.missing], 0.26);
 
   const block =
-    "relative rounded-[12px] overflow-hidden text-left text-white flex flex-col justify-end " +
+    "relative rounded-md overflow-hidden text-left text-white flex flex-col justify-end " +
     "transition-transform active:scale-[0.98] min-w-0";
 
   return (
@@ -83,39 +83,39 @@ export default function OutcomeTreemap({
             outlineOffset: "-2px",
           }}
         >
-          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] opacity-[0.92]">
+          <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.12em] opacity-[0.92]">
             <Check weight="bold" size={13} /> Entrés
           </span>
           {servedS.floored ? (
             <span className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-[24px] font-black leading-none tabular-nums">{w.served}</span>
-              <span className="text-[12px] font-black tabular-nums opacity-90">
+              <span className="text-2xl font-black leading-none tabular-nums">{w.served}</span>
+              <span className="text-xs font-black tabular-nums opacity-90">
                 pers. · {pc(w.served)} · {rooms.served} ch.
               </span>
             </span>
           ) : (
             <>
               <span className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-[34px] font-black leading-none tracking-[-0.03em] tabular-nums">{w.served}</span>
-                <em className="not-italic text-[13px] font-black opacity-80">pers.</em>
+                <span className="text-4xl font-black leading-none tracking-[-0.03em] tabular-nums">{w.served}</span>
+                <em className="not-italic text-sm font-black opacity-80">pers.</em>
               </span>
-              <span className="text-[15px] font-black tabular-nums opacity-95">
+              <span className="text-base font-black tabular-nums opacity-95">
                 {pc(w.served)}
                 <em className="not-italic opacity-80"> · {rooms.served} ch.</em>
               </span>
               {(vip > 0 || comp > 0) && (
                 <span className="flex gap-1 mt-2">
-                  <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
-                    <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
+                  <span className="flex-1 rounded-sm px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
+                    <span className="flex items-center gap-1 text-micro font-black uppercase tracking-[0.09em]">
                       <Star weight="fill" size={10} /> VIP
                     </span>
-                    <span className="block text-[16px] font-black tabular-nums">{vip}</span>
+                    <span className="block text-base font-black tabular-nums">{vip}</span>
                   </span>
-                  <span className="flex-1 rounded-[8px] px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
-                    <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-[0.09em]">
+                  <span className="flex-1 rounded-sm px-2 py-1.5 min-w-0" style={{ background: "rgba(0,0,0,.28)" }}>
+                    <span className="flex items-center gap-1 text-micro font-black uppercase tracking-[0.09em]">
                       <Gift weight="fill" size={10} /> COMP
                     </span>
-                    <span className="block text-[16px] font-black tabular-nums">{comp}</span>
+                    <span className="block text-base font-black tabular-nums">{comp}</span>
                   </span>
                 </span>
               )}
@@ -139,23 +139,23 @@ export default function OutcomeTreemap({
             outlineOffset: "-2px",
           }}
         >
-          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] opacity-[0.92]">
+          <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.12em] opacity-[0.92]">
             <X weight="bold" size={13} /> Absents
           </span>
           {missingS.floored ? (
             <span className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-[24px] font-black leading-none tabular-nums">{w.missing}</span>
-              <span className="text-[12px] font-black tabular-nums opacity-90">
+              <span className="text-2xl font-black leading-none tabular-nums">{w.missing}</span>
+              <span className="text-xs font-black tabular-nums opacity-90">
                 pers. · {pc(w.missing)} · {rooms.missing} ch.
               </span>
             </span>
           ) : (
             <>
               <span className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-[34px] font-black leading-none tracking-[-0.03em] tabular-nums">{w.missing}</span>
-                <em className="not-italic text-[13px] font-black opacity-80">pers.</em>
+                <span className="text-4xl font-black leading-none tracking-[-0.03em] tabular-nums">{w.missing}</span>
+                <em className="not-italic text-sm font-black opacity-80">pers.</em>
               </span>
-              <span className="text-[15px] font-black tabular-nums opacity-95">
+              <span className="text-base font-black tabular-nums opacity-95">
                 {pc(w.missing)}
                 <em className="not-italic opacity-80"> · {rooms.missing} ch.</em>
               </span>

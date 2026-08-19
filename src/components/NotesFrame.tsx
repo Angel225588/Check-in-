@@ -52,8 +52,8 @@ export default function NotesFrame({
   const open = notes.find((n) => n.id === reading) ?? null;
 
   const shell =
-    "flex-1 min-h-[150px] rounded-[24px] px-4 pt-3 pb-7 flex flex-col overflow-hidden surface-card";
-  const cap = "text-[10.5px] font-black uppercase tracking-[0.14em] shrink-0";
+    "flex-1 min-h-[150px] rounded-xl px-4 pt-3 pb-7 flex flex-col overflow-hidden surface-card";
+  const cap = "text-micro font-black uppercase tracking-[0.14em] shrink-0";
 
   /* ── Writing ─────────────────────────────────────────────────────────── */
   if (draft) {
@@ -77,7 +77,7 @@ export default function NotesFrame({
             onClick={() => draft.text.trim() && onSave(draft)}
             disabled={!draft.text.trim()}
             data-role="note-save"
-            className="min-h-[36px] px-3.5 rounded-full text-[13px] font-black inline-flex items-center gap-1.5 disabled:opacity-35 active:scale-[0.96] transition-transform"
+            className="min-h-[36px] px-3.5 rounded-full text-sm font-black inline-flex items-center gap-1.5 disabled:opacity-35 active:scale-[0.96] transition-transform"
             style={{ background: "var(--aur-good)", color: "#fff" }}
           >
             <Check size={14} weight="bold" /> Enregistrer
@@ -96,7 +96,7 @@ export default function NotesFrame({
                 aria-pressed={on}
                 data-role="note-tone"
                 data-tone={t}
-                className="shrink-0 min-h-[36px] px-2.5 rounded-full inline-flex items-center gap-1.5 text-[12px] font-black transition-transform active:scale-[0.96]"
+                className="shrink-0 min-h-[36px] px-2.5 rounded-full inline-flex items-center gap-1.5 text-xs font-black transition-transform active:scale-[0.96]"
                 style={on
                   ? { background: tm.soft, color: tm.color, boxShadow: `inset 0 0 0 1.5px ${tm.color}` }
                   : { background: "rgba(128,128,128,.09)", color: "var(--tab-idle)" }}
@@ -110,10 +110,10 @@ export default function NotesFrame({
 
         {/* One field. The pad below is typing into it. */}
         <div
-          className="flex-1 min-h-0 mt-2 rounded-[14px] px-3 py-2 overflow-y-auto surface-field"
+          className="flex-1 min-h-0 mt-2 rounded-card px-3 py-2 overflow-y-auto surface-field"
           data-role="note-field"
         >
-          <span className="text-[15px] font-bold leading-snug break-words" style={{ color: "var(--aur-ink-2)" }}>
+          <span className="text-base font-bold leading-snug break-words" style={{ color: "var(--aur-ink-2)" }}>
             {draft.text || (
               <em className="not-italic font-semibold" style={{ color: "var(--tab-idle)" }}>
                 Tapez la note…
@@ -124,7 +124,7 @@ export default function NotesFrame({
           </span>
         </div>
         {saveError && (
-          <span className="shrink-0 mt-1 text-[11.5px] font-black" style={{ color: "var(--aur-bad-ink)" }}>
+          <span className="shrink-0 mt-1 text-xs font-black" style={{ color: "var(--aur-bad-ink)" }}>
             NON enregistrée — stockage plein.
           </span>
         )}
@@ -169,15 +169,15 @@ export default function NotesFrame({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto mt-2" style={{ overscrollBehavior: "contain" }}>
-          <p className="text-[16px] font-bold leading-snug break-words" style={{ color: "var(--aur-ink-2)" }}>
+          <p className="text-base font-bold leading-snug break-words" style={{ color: "var(--aur-ink-2)" }}>
             {open.title}
           </p>
           {open.body && (
-            <p className="text-[14px] leading-snug break-words mt-1.5" style={{ color: "var(--tab-idle)" }}>
+            <p className="text-sm leading-snug break-words mt-1.5" style={{ color: "var(--tab-idle)" }}>
               {open.body}
             </p>
           )}
-          <p className="text-[11px] font-bold mt-2" style={{ color: "var(--tab-idle)" }}>
+          <p className="text-xs font-bold mt-2" style={{ color: "var(--tab-idle)" }}>
             {open.author} · {new Date(open.updatedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
           </p>
         </div>
@@ -198,7 +198,7 @@ export default function NotesFrame({
           onClick={() => onDraftChange({ tone: "info", text: "" })}
           data-role="note-new"
           aria-label="Nouvelle note"
-          className="w-9 h-9 -mr-1 rounded-[10px] grid place-items-center active:scale-[0.9] transition-transform"
+          className="w-9 h-9 -mr-1 rounded-md grid place-items-center active:scale-[0.9] transition-transform"
           style={{ background: "var(--aur-gold-soft-2)" }}
         >
           <Plus size={15} weight="bold" style={{ color: "var(--brand-ink)" }} />
@@ -208,10 +208,10 @@ export default function NotesFrame({
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 mt-2"
         style={{ overscrollBehavior: "contain" }}>
         {!ready && (
-          <span className="text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>Déchiffrement…</span>
+          <span className="text-sm font-semibold" style={{ color: "var(--tab-idle)" }}>Déchiffrement…</span>
         )}
         {ready && notes.length === 0 && (
-          <span className="text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+          <span className="text-sm font-semibold" style={{ color: "var(--tab-idle)" }}>
             Aucune note pour ce client.
           </span>
         )}
@@ -223,18 +223,18 @@ export default function NotesFrame({
               type="button"
               data-role="note-row"
               onClick={() => setReading(n.id)}
-              className="w-full text-left shrink-0 min-h-[44px] rounded-[12px] px-2.5 py-2 flex items-start gap-2 relative overflow-hidden transition-transform active:scale-[0.985]"
+              className="w-full text-left shrink-0 min-h-[44px] rounded-md px-2.5 py-2 flex items-start gap-2 relative overflow-hidden transition-transform active:scale-[0.985]"
               style={{ background: n.tone === "alert" ? m.soft : "rgba(128,128,128,.07)" }}
             >
               <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: m.color }} />
               <NoteToneIcon tone={n.tone} size={14} />
               <span className="min-w-0 flex-1">
-                <span className="block text-[14.5px] font-extrabold leading-snug truncate"
+                <span className="block text-sm font-extrabold leading-snug truncate"
                   style={{ color: n.tone === "alert" ? m.color : undefined }}>
                   {n.title || n.body}
                 </span>
                 {n.title && n.body && (
-                  <span className="block text-[12.5px] truncate" style={{ color: "var(--tab-idle)" }}>{n.body}</span>
+                  <span className="block text-xs truncate" style={{ color: "var(--tab-idle)" }}>{n.body}</span>
                 )}
               </span>
               {n.pinned && <PushPin size={12} weight="fill" style={{ color: "var(--brand-ink)" }} className="shrink-0 mt-0.5" />}

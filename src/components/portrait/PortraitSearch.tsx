@@ -182,11 +182,11 @@ export default function PortraitSearch({
      screen exists. */
   const IDLE_FRAME = "shrink-0 h-[clamp(130px,24vh,280px)] max-h-full flex flex-col";
   const bubble =
-    "w-[clamp(56px,8.5vh,72px)] h-[clamp(56px,8.5vh,72px)] shrink-0 rounded-full text-[30px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25";
+    "w-[clamp(56px,8.5vh,72px)] h-[clamp(56px,8.5vh,72px)] shrink-0 rounded-full text-3xl font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25";
 
   return (
     <div
-      className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe"
+      className="flex flex-col h-dvh w-full overflow-hidden bg-background dark:bg-ink screen-safe"
       data-role="portrait-shell"
     >
       {/* Top: where we are, then what you are looking for. Both fixed — the
@@ -205,7 +205,7 @@ export default function PortraitSearch({
             onClick={onBack}
             data-role="portrait-back"
             aria-label="Retour à la liste des arrivées"
-            className="surface-raised w-[44px] shrink-0 min-h-[64px] rounded-[16px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
+            className="surface-raised w-[44px] shrink-0 min-h-[64px] rounded-lg grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
           >
             <CaretLeft size={18} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
@@ -214,7 +214,7 @@ export default function PortraitSearch({
             onClick={onMenu}
             data-role="portrait-menu"
             aria-label="Ouvrir le menu du service"
-            className="surface-raised w-[56px] shrink-0 min-h-[64px] rounded-[16px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
+            className="surface-raised w-[56px] shrink-0 min-h-[64px] rounded-lg grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
           >
             <List size={22} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
@@ -255,7 +255,7 @@ export default function PortraitSearch({
                 onClick={() => onCompose(hit)}
                 data-role="preview-compose"
                 aria-label={`Écrire une note pour la chambre ${hit.roomNumber}`}
-                className="w-11 h-11 rounded-[14px] grid place-items-center active:scale-[0.92] transition-transform"
+                className="w-11 h-11 rounded-card grid place-items-center active:scale-[0.92] transition-transform"
                 style={hit.isVip
                   ? { background: "rgba(0,0,0,.34)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.22)" }
                   : { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
@@ -276,16 +276,16 @@ export default function PortraitSearch({
         {slot === "flash" && flash && (
           <div
             data-role="checkin-flash"
-            className="flex-1 rounded-[24px] px-5 flex flex-col justify-center gap-1 text-white animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
+            className="flex-1 rounded-xl px-5 flex flex-col justify-center gap-1 text-white animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
             style={{ background: "linear-gradient(150deg,#357D58,#255B41)", boxShadow: "0 16px 44px -14px rgba(30,80,55,.55)" }}
           >
-            <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] opacity-90">
+            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] opacity-90">
               <Check weight="bold" size={14} /> Enregistré
             </span>
             <span className="text-[clamp(34px,11vw,54px)] font-black leading-[0.9] tracking-[-0.045em] tabular-nums">
               {flash.room}
             </span>
-            <span className="text-[15px] font-bold">{flash.n} pers. entrées</span>
+            <span className="text-base font-bold">{flash.n} pers. entrées</span>
           </div>
         )}
 
@@ -303,7 +303,7 @@ export default function PortraitSearch({
               onClick={() => onBoxMode(!boxMode)}
               data-role="box-mode"
               aria-pressed={boxMode}
-              className="shrink-0 min-h-[40px] px-3 rounded-[12px] inline-flex items-center gap-1.5 text-[13px] font-black active:scale-[0.97] transition-transform"
+              className="shrink-0 min-h-[40px] px-3 rounded-md inline-flex items-center gap-1.5 text-sm font-black active:scale-[0.97] transition-transform"
               style={boxMode
                 ? { background: "var(--aur-good-soft)", color: "var(--aur-good-ink)", boxShadow: "inset 0 0 0 1.5px var(--aur-good)" }
                 : { background: "rgba(128,128,128,.10)", color: "var(--tab-idle)" }}
@@ -344,14 +344,14 @@ export default function PortraitSearch({
                 <div className="text-muted text-sm">Aucune chambre trouvée</div>
                 <button
                   onClick={onAddRoom}
-                  className="px-5 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all"
+                  className="px-5 py-3 rounded-pill bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all"
                 >
                   Ajouter {query}
                 </button>
               </div>
             )}
             {hiddenRows > 0 && (
-              <div className="text-center py-3 text-[13px] font-bold text-muted" data-role="rows-capped">
+              <div className="text-center py-3 text-sm font-bold text-muted" data-role="rows-capped">
                 +{hiddenRows} autre{hiddenRows > 1 ? "s" : ""} — tapez un chiffre de plus
               </div>
             )}
@@ -368,11 +368,11 @@ export default function PortraitSearch({
         {saveFailed && (
           <div
             data-role="checkin-save-error"
-            className="flex items-start gap-2 rounded-[14px] px-3 py-2.5"
+            className="flex items-start gap-2 rounded-card px-3 py-2.5"
             style={{ background: "var(--aur-bad-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-bad)" }}
           >
             <WarningCircle weight="duotone" size={18} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
-            <div className="text-[12.5px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
+            <div className="text-xs font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
               NON enregistré — stockage plein. Ouvrez la fiche et réessayez.
               <button onClick={onDismissError} className="underline ml-1 font-black">Fermer</button>
             </div>
@@ -397,7 +397,7 @@ export default function PortraitSearch({
             disabled={!hit}
             data-role="search-enter"
             data-mode={!hit ? "idle" : needsScreen ? "open" : "commit"}
-            className="flex-1 min-h-[clamp(56px,8.5vh,72px)] rounded-full text-white text-[19px] font-black inline-flex items-center justify-center gap-2.5 transition-transform active:scale-[0.98] disabled:opacity-35"
+            className="flex-1 min-h-[clamp(56px,8.5vh,72px)] rounded-full text-white text-xl font-black inline-flex items-center justify-center gap-2.5 transition-transform active:scale-[0.98] disabled:opacity-35"
             style={hit && needsScreen
               ? { background: "linear-gradient(135deg,#A66914,#8A5010)", boxShadow: "0 10px 26px -12px rgba(120,74,12,.6)" }
               : { background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
@@ -407,9 +407,9 @@ export default function PortraitSearch({
             ) : maxCount === 0 ? (
               "Ouvrir la fiche"
             ) : needsScreen ? (
-              <>Vérifier <b className="text-[26px] tabular-nums">{count}</b></>
+              <>Vérifier <b className="text-2xl tabular-nums">{count}</b></>
             ) : (
-              <><Check weight="bold" size={21} /> Entrer <b className="text-[26px] tabular-nums">{count}</b></>
+              <><Check weight="bold" size={21} /> Entrer <b className="text-2xl tabular-nums">{count}</b></>
             )}
           </button>
           <button

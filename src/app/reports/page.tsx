@@ -67,7 +67,7 @@ export default function ReportsListPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 screen-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-background dark:bg-ink p-4 pt-3 screen-safe">
         <div className="skeleton h-8 w-32 mb-4" />
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
@@ -79,7 +79,7 @@ export default function ReportsListPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-background dark:bg-ink screen-safe">
       {/* Header */}
       <div className="shrink-0 p-3 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
@@ -102,7 +102,7 @@ export default function ReportsListPage() {
             >
               COURTYARD
             </span>
-            <span className="text-[10px] text-muted leading-tight">
+            <span className="text-micro text-muted leading-tight">
               by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
             </span>
           </div>
@@ -120,7 +120,7 @@ export default function ReportsListPage() {
         {hasActiveSession && (
           <button
             onClick={() => router.push("/report")}
-            className="w-full glass-liquid rounded-[16px] p-4 text-left active:scale-[0.98] transition-all animate-fadeUp ring-1 ring-green-500/20"
+            className="w-full glass-liquid rounded-lg p-4 text-left active:scale-[0.98] transition-all animate-fadeUp ring-1 ring-green-500/20"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -129,7 +129,7 @@ export default function ReportsListPage() {
                   {t("reports.activeSession")}
                 </span>
               </div>
-              <span className="text-[10px] text-muted">{t("dash.today")}</span>
+              <span className="text-micro text-muted">{t("dash.today")}</span>
             </div>
             <div className="flex items-end justify-between">
               <div>
@@ -169,17 +169,17 @@ export default function ReportsListPage() {
             <button
               key={`unclosed-${date}`}
               onClick={() => router.push(`/report?date=${date}`)}
-              className="w-full glass-liquid rounded-[16px] p-4 text-left active:scale-[0.98] transition-all animate-fadeUp ring-1 ring-amber-500/20"
+              className="w-full glass-liquid rounded-lg p-4 text-left active:scale-[0.98] transition-all animate-fadeUp ring-1 ring-amber-500/20"
               style={{ animationDelay: `${(i + 1) * 50}ms` }}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                  <span className="text-micro font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
                     NON CLÔTURÉE
                   </span>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                <span className={`text-micro font-bold px-2 py-0.5 rounded-full ${
                   utilPct >= 70 ? "bg-green-500/10 text-green-600 dark:text-green-400" :
                   utilPct >= 40 ? "bg-brand/10 text-brand" :
                   "bg-red-500/10 text-red-500"
@@ -212,14 +212,14 @@ export default function ReportsListPage() {
             <button
               key={`${session.date}-${i}`}
               onClick={() => router.push(`/report?date=${session.date}`)}
-              className="w-full glass-liquid rounded-[16px] p-4 text-left active:scale-[0.98] transition-all animate-fadeUp"
+              className="w-full glass-liquid rounded-lg p-4 text-left active:scale-[0.98] transition-all animate-fadeUp"
               style={{ animationDelay: `${(i + 1) * 50}ms` }}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-semibold text-muted uppercase tracking-wide">
+                <span className="text-micro font-semibold text-muted uppercase tracking-wide">
                   {t("reports.closedSession")}
                 </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                <span className={`text-micro font-bold px-2 py-0.5 rounded-full ${
                   utilPct >= 70 ? "bg-green-500/10 text-green-600 dark:text-green-400" :
                   utilPct >= 40 ? "bg-brand/10 text-brand" :
                   "bg-red-500/10 text-red-500"
@@ -243,7 +243,7 @@ export default function ReportsListPage() {
         })}
 
         {/* Version tag */}
-        <p className="text-center text-[9px] text-muted/40 pt-4">v{APP_VERSION}</p>
+        <p className="text-center text-micro text-muted/40 pt-4">v{APP_VERSION}</p>
 
         {/* Empty state */}
         {totalReports === 0 && (

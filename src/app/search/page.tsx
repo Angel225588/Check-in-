@@ -461,7 +461,7 @@ export default function SearchPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 screen-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-background dark:bg-ink p-3 pt-3 screen-safe">
         <div className="skeleton h-14 w-full mb-3" />
         <div className="skeleton h-10 w-full mb-3" />
         <div className="space-y-2">
@@ -476,7 +476,7 @@ export default function SearchPage() {
   if (!hasData) {
     router.push("/upload");
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="flex items-center justify-center h-dvh bg-background dark:bg-ink screen-safe">
         <div className="text-muted">Loading...</div>
       </div>
     );
@@ -619,7 +619,7 @@ export default function SearchPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center screen-safe" onClick={() => setUploadSheetOpen(false)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
-            className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+            className="relative w-full max-w-2xl bg-white dark:bg-surface-dark rounded-t-lg p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
@@ -627,14 +627,14 @@ export default function SearchPage() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=pdf"); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-card p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <span className="text-2xl">PDF</span>
                 <span className="text-xs font-semibold text-dark">{t("action.uploadPdf")}</span>
               </button>
               <button
                 onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=scanner"); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-card p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -644,7 +644,7 @@ export default function SearchPage() {
               </button>
               <button
                 onClick={() => { setUploadSheetOpen(false); router.push("/upload?mode=add&action=gallery"); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-card p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -653,7 +653,7 @@ export default function SearchPage() {
               </button>
               <button
                 onClick={() => { setUploadSheetOpen(false); setAddClientOpen(true); }}
-                className="glass-liquid rounded-[14px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-card p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <svg className="w-7 h-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -669,7 +669,7 @@ export default function SearchPage() {
       {addClientOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe" onClick={() => setAddClientOpen(false)}>
           <div
-            className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+            className="w-full max-w-2xl bg-white dark:bg-surface-dark rounded-t-lg p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
@@ -732,14 +732,14 @@ export default function SearchPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setAddClientOpen(false)}
-                className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
+                className="flex-1 py-3 rounded-pill glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
               >
                 {t("checkin.cancel")}
               </button>
               <button
                 onClick={handleAddClient}
                 disabled={!newRoom.trim() || !newName.trim()}
-                className="flex-1 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 disabled:opacity-40 dark:glow-brand"
+                className="flex-1 py-3 rounded-pill bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 disabled:opacity-40 dark:glow-brand"
               >
                 {t("checkin.save")}
               </button>
@@ -898,7 +898,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+    <div className="flex flex-col h-dvh w-full overflow-hidden bg-background dark:bg-ink screen-safe">
       <div className="shrink-0 px-3 pt-3 pb-0">
         {/* Header row: back button + logo */}
         <div className="flex items-center justify-between mb-2 md:mb-3">
@@ -918,14 +918,14 @@ export default function SearchPage() {
             <span className="text-sm md:text-base font-bold tracking-[0.08em] leading-tight" style={{ fontFamily: "'Nunito', sans-serif", color: "var(--brand-ink)" }}>
               COURTYARD
             </span>
-            <span className="text-[10px] md:text-xs text-muted leading-tight">
+            <span className="text-micro md:text-xs text-muted leading-tight">
               by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
             </span>
           </div>
         </div>
 
         {mergeBanner && (
-          <div className="mb-2 p-2 glass-liquid rounded-[12px] flex items-center gap-2 animate-fadeUp">
+          <div className="mb-2 p-2 glass-liquid rounded-md flex items-center gap-2 animate-fadeUp">
             <div className="w-7 h-7 rounded-full bg-green-500/15 flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
             </div>
@@ -1033,7 +1033,7 @@ export default function SearchPage() {
                 setNewChildren("0");
                 setAddClientOpen(true);
               }}
-              className="flex items-center gap-2 px-5 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20"
+              className="flex items-center gap-2 px-5 py-3 rounded-pill bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -1086,7 +1086,7 @@ export default function SearchPage() {
                     onClick={() => setNoteFor(hit)}
                     data-role="preview-compose"
                     aria-label={`Écrire une note pour la chambre ${hit.roomNumber}`}
-                    className="w-11 h-11 rounded-[14px] grid place-items-center active:scale-[0.92] transition-transform"
+                    className="w-11 h-11 rounded-card grid place-items-center active:scale-[0.92] transition-transform"
                     style={hit.isVip
                       ? { background: "rgba(0,0,0,.34)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.22)" }
                       : { background: "var(--aur-gold-soft-2)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
@@ -1100,16 +1100,16 @@ export default function SearchPage() {
                  field is already cleared for the next guest. */
               <div
                 data-role="checkin-flash"
-                className="relative flex-1 min-h-[150px] rounded-[24px] px-5 flex flex-col justify-center gap-1 text-white animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
+                className="relative flex-1 min-h-[150px] rounded-xl px-5 flex flex-col justify-center gap-1 text-white animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
                 style={{ background: "linear-gradient(150deg,#357D58,#255B41)", boxShadow: "0 16px 44px -14px rgba(30,80,55,.55)" }}
               >
-                <span className="flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] opacity-90">
+                <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] opacity-90">
                   <Check weight="bold" size={15} /> Enregistré
                 </span>
                 <span className="text-[clamp(40px,5vw,68px)] font-black leading-[0.9] tracking-[-0.045em] tabular-nums">
                   {flash.room}
                 </span>
-                <span className="text-[17px] font-bold">{flash.n} pers. entrées</span>
+                <span className="text-lg font-bold">{flash.n} pers. entrées</span>
               </div>
             ) : (
               <PreviewCarousel panes={idlePanes} auto resetKey="idle" />
@@ -1119,11 +1119,11 @@ export default function SearchPage() {
           {saveFailed && (
             <div
               data-role="checkin-save-error"
-              className="shrink-0 flex items-start gap-2 rounded-[16px] px-4 py-3"
+              className="shrink-0 flex items-start gap-2 rounded-lg px-4 py-3"
               style={{ background: "var(--aur-bad-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-bad)" }}
             >
               <WarningCircle weight="duotone" size={19} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
-              <div className="text-[13px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
+              <div className="text-sm font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
                 NON enregistré — stockage plein. Ouvrez la fiche et réessayez.
                 <button onClick={() => setSaveFailed(false)} className="underline ml-1 font-black">Fermer</button>
               </div>
@@ -1139,7 +1139,7 @@ export default function SearchPage() {
               /* Bubbles, like the counter on the check-in screen. Round reads
                  as "adjusts a number"; the square slabs read as another
                  commit button sitting either side of the real one. */
-              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-[34px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-4xl font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
             >
               −
             </button>
@@ -1158,7 +1158,7 @@ export default function SearchPage() {
               disabled={!hit}
               data-role="search-enter"
               data-mode={!hit ? "idle" : needsScreen ? "open" : "commit"}
-              className="flex-1 min-h-[clamp(64px,9vh,84px)] rounded-full text-white text-[22px] font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
+              className="flex-1 min-h-[clamp(64px,9vh,84px)] rounded-full text-white text-2xl font-black inline-flex items-center justify-center gap-3 transition-transform active:scale-[0.98] disabled:opacity-35"
               /* Idle keeps the resting green: gold means "this one needs you",
                  and an empty field needs nothing. */
               style={hit && needsScreen
@@ -1170,16 +1170,16 @@ export default function SearchPage() {
               ) : maxCount === 0 ? (
                 "Ouvrir la fiche"
               ) : needsScreen ? (
-                <>Vérifier <b className="text-[30px] tabular-nums">{count}</b></>
+                <>Vérifier <b className="text-3xl tabular-nums">{count}</b></>
               ) : (
-                <><Check weight="bold" size={24} /> Entrer <b className="text-[30px] tabular-nums">{count}</b></>
+                <><Check weight="bold" size={24} /> Entrer <b className="text-3xl tabular-nums">{count}</b></>
               )}
             </button>
             <button
               onClick={() => setCount((c) => Math.min(Math.max(1, maxCount), c + 1))}
               disabled={!hit || count >= maxCount}
               aria-label="Une personne de plus"
-              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-[34px] font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-4xl font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
             >
               +
             </button>

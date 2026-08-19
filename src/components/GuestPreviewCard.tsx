@@ -77,7 +77,7 @@ export default function GuestPreviewCard({
          because it had only ever been looked at in the dark theme. The card
          now uses the same tier as every other card in the app and is a card in
          both themes. */
-      className={`relative flex-1 min-h-[150px] portrait:min-h-[110px] rounded-[24px] px-5 pt-4 pb-6 flex flex-col overflow-hidden ${vip ? "" : "surface-card"}`}
+      className={`relative flex-1 min-h-[150px] portrait:min-h-[110px] rounded-xl px-5 pt-4 pb-6 flex flex-col overflow-hidden ${vip ? "" : "surface-card"}`}
       style={vip
         ? { background: "linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C)", boxShadow: "0 16px 44px -14px rgba(120,74,12,.55)" }
         : undefined}
@@ -95,7 +95,7 @@ export default function GuestPreviewCard({
           {...tap}
           data-role="preview-open"
           aria-label={`Ouvrir la fiche de la chambre ${client.roomNumber}`}
-          className="absolute inset-0 z-[5] rounded-[24px] active:bg-black/[0.04] dark:active:bg-white/[0.05]"
+          className="absolute inset-0 z-[5] rounded-xl active:bg-black/[0.04] dark:active:bg-white/[0.05]"
         />
       )}
 
@@ -104,7 +104,7 @@ export default function GuestPreviewCard({
           the rest of what is true about this stay, which frees the top-right
           corner for the compose action — the one control on this card. */}
       <div className="shrink-0 flex items-start justify-between gap-3">
-        <span className="text-[10.5px] font-black uppercase tracking-[0.15em]"
+        <span className="text-micro font-black uppercase tracking-[0.15em]"
           style={{ color: vip ? "rgba(255,255,255,.9)" : "var(--tab-idle)" }}>
           Chambre
         </span>
@@ -124,7 +124,7 @@ export default function GuestPreviewCard({
         ))}
       </div>
 
-      <div data-role="preview-name" className="shrink-0 text-[24px] portrait:text-[clamp(24px,6.4vw,34px)] font-black leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
+      <div data-role="preview-name" className="shrink-0 text-2xl portrait:text-[clamp(24px,6.4vw,34px)] font-black leading-tight truncate" style={{ color: vip ? "#fff" : undefined }}>
         {client.name}
       </div>
 
@@ -137,7 +137,7 @@ export default function GuestPreviewCard({
                 key={n.id}
                 data-role="preview-note"
                 data-note-tone={n.tone}
-                className="flex items-center gap-1.5 text-[12.5px] font-bold px-2 py-1 rounded-[12px] truncate"
+                className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-md truncate"
                 style={alert
                   ? {
                       background: vip ? "rgba(0,0,0,.34)" : "var(--aur-bad-soft)",
@@ -154,7 +154,7 @@ export default function GuestPreviewCard({
             );
           })}
           {overflow > 0 && (
-            <span className="text-[11px] font-black" style={{ color: vip ? "rgba(255,255,255,.85)" : "var(--tab-idle)" }}>
+            <span className="text-xs font-black" style={{ color: vip ? "rgba(255,255,255,.85)" : "var(--tab-idle)" }}>
               +{overflow} autre{overflow > 1 ? "s" : ""}
             </span>
           )}
@@ -162,7 +162,7 @@ export default function GuestPreviewCard({
       )}
 
       <div className={`flex items-center gap-2 flex-wrap mt-auto portrait:mt-3 pt-2 min-h-0 overflow-hidden ${shown.length > 0 ? "[@media(max-height:720px)]:hidden" : ""}`}>
-        <b className="text-[16px]" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
+        <b className="text-base" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
           {pax} pers.
         </b>
         {/* A sixteenth stay is the single most useful thing on this card and it
@@ -170,7 +170,7 @@ export default function GuestPreviewCard({
             comes back" reads before the words do. */}
         <span
           data-role="preview-visits"
-          className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full"
+          className="inline-flex items-center gap-1.5 text-sm font-black px-3 py-1.5 rounded-full"
           style={vip
             ? { background: "rgba(0,0,0,.34)", color: "#fff", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.22)" }
             : visits > 0
@@ -186,7 +186,7 @@ export default function GuestPreviewCard({
         {(client.arrivalDate || client.departureDate) && (
           <span
             data-role="preview-stay"
-            className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full tabular-nums"
+            className="inline-flex items-center gap-1.5 text-sm font-black px-3 py-1.5 rounded-full tabular-nums"
             style={glass}
           >
             {client.arrivalDate && (
@@ -204,19 +204,19 @@ export default function GuestPreviewCard({
           </span>
         )}
         {needsPay && (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full"
+          <span className="inline-flex items-center gap-1.5 text-sm font-black px-3 py-1.5 rounded-full"
             style={hasAlert || vip ? glass : { background: "var(--aur-bad-soft)", color: "var(--aur-bad-ink)" }}>
             <Coffee weight="duotone" size={15} /><Prohibit weight="bold" size={12} /> À ENCAISSER
           </span>
         )}
         {comp && (
-          <span className="text-[13px] font-black px-3 py-1.5 rounded-full"
+          <span className="text-sm font-black px-3 py-1.5 rounded-full"
             style={hasAlert || vip ? glass : { background: "rgba(90,59,143,.16)", color: "var(--aur-pm-points)" }}>
             COMP
           </span>
         )}
         {vip && (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-black px-3 py-1.5 rounded-full" style={glass}>
+          <span className="inline-flex items-center gap-1.5 text-sm font-black px-3 py-1.5 rounded-full" style={glass}>
             <Star weight="fill" size={14} /> {client.vipLevel || "VIP"}
           </span>
         )}

@@ -41,8 +41,8 @@ export default function TestDataSheet() {
   if (!testToolsEnabled()) return null;
 
   const row =
-    "w-full min-h-[56px] px-4 rounded-[16px] flex items-center gap-3 glass-liquid text-left active:scale-[0.98] transition-transform";
-  const rowLabel = "text-[15px] font-bold";
+    "w-full min-h-[56px] px-4 rounded-lg flex items-center gap-3 glass-liquid text-left active:scale-[0.98] transition-transform";
+  const rowLabel = "text-base font-bold";
 
   return (
     <>
@@ -59,7 +59,7 @@ export default function TestDataSheet() {
         <div className="fixed inset-0 z-50 flex items-end justify-center screen-safe" onClick={() => setOpen(false)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
-            className="relative w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-4 pb-8 flex flex-col gap-2 animate-[slideUp_0.2s_ease-out]"
+            className="relative w-full max-w-2xl bg-white dark:bg-surface-dark rounded-t-lg p-4 pb-8 flex flex-col gap-2 animate-[slideUp_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-2">
@@ -73,7 +73,7 @@ export default function TestDataSheet() {
               <Flask size={20} weight="fill" style={{ color: "var(--brand-ink)" }} />
               <span className="min-w-0">
                 <span className={`${rowLabel} block text-dark`}>Charger un service de démo</span>
-                <span className="block text-[12.5px] text-muted">Chambres, arrivées et historique fictifs</span>
+                <span className="block text-xs text-muted">Chambres, arrivées et historique fictifs</span>
               </span>
             </button>
 
@@ -90,7 +90,7 @@ export default function TestDataSheet() {
             </button>
 
             {flash && (
-              <div className="mt-2 text-[13px] font-bold text-center" style={{ color: "var(--aur-good-ink)" }}>
+              <div className="mt-2 text-sm font-bold text-center" style={{ color: "var(--aur-good-ink)" }}>
                 {flash}
               </div>
             )}

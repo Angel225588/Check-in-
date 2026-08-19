@@ -48,13 +48,13 @@ export default function MetricChecklistSheet({
       <div
         onClick={(e) => e.stopPropagation()}
         data-role="portrait-filter-sheet"
-        className="relative w-full max-w-[520px] max-h-[76dvh] overflow-y-auto rounded-t-[24px] p-4 pb-8 flex flex-col gap-2 animate-[sheetUp_.22s_cubic-bezier(.2,.9,.25,1)]"
+        className="relative w-full max-w-[520px] max-h-[76dvh] overflow-y-auto rounded-t-xl p-4 pb-8 flex flex-col gap-2 animate-[sheetUp_.22s_cubic-bezier(.2,.9,.25,1)]"
         style={{ background: "var(--aur-bg-elev)", boxShadow: "0 -20px 60px -24px rgba(20,12,0,.55)" }}
       >
         <div className="flex items-center justify-between mb-1">
           <div>
-            <b className="text-[15px] text-dark block">Sur la barre</b>
-            <span className="text-[12px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+            <b className="text-base text-dark block">Sur la barre</b>
+            <span className="text-xs font-semibold" style={{ color: "var(--tab-idle)" }}>
               {CORE.length} fixes · {Math.max(0, slots - CORE.length)} au choix
             </span>
           </div>
@@ -90,7 +90,7 @@ export default function MetricChecklistSheet({
               }
               /* Pinned rows are not dimmed. They are not unavailable — they are
                  permanent, and greying them out would read as "broken". */
-              className={`min-h-[56px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform ${
+              className={`min-h-[56px] px-4 rounded-card flex items-center gap-3 text-left transition-transform ${
                 pinned ? "" : "active:scale-[0.98]"
               } ${absent ? "opacity-40" : ""}`}
               style={{
@@ -99,7 +99,7 @@ export default function MetricChecklistSheet({
               }}
             >
               <span
-                className="w-6 h-6 shrink-0 rounded-[7px] grid place-items-center"
+                className="w-6 h-6 shrink-0 rounded-sm grid place-items-center"
                 style={on
                   ? { background: "var(--aur-gold)" }
                   : { boxShadow: "inset 0 0 0 1.5px rgba(128,128,128,.4)" }}
@@ -108,16 +108,16 @@ export default function MetricChecklistSheet({
                   ? <Lock size={13} weight="fill" color="#fff" />
                   : <Check size={14} weight="bold" color="#fff" />)}
               </span>
-              <span className="flex-1 text-[15px] font-bold text-dark">
+              <span className="flex-1 text-base font-bold text-dark">
                 {m.label}
                 {pinned && (
-                  <em className="not-italic ml-2 text-[11px] font-black uppercase tracking-[0.08em]"
+                  <em className="not-italic ml-2 text-xs font-black uppercase tracking-[0.08em]"
                     style={{ color: "var(--tab-idle)" }}>
                     toujours
                   </em>
                 )}
               </span>
-              <b className="text-[18px] font-black tabular-nums"
+              <b className="text-lg font-black tabular-nums"
                 style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
                 {absent ? "—" : progress[m.key] ? `${progress[m.key]!.done}/${progress[m.key]!.of}` : m.value}
               </b>

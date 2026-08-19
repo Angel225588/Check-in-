@@ -90,14 +90,14 @@ export default function MorningBriefPage() {
 
   if (!brief) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="flex items-center justify-center h-dvh bg-background dark:bg-ink screen-safe">
         <div className="text-muted">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+    <div className="min-h-dvh bg-background dark:bg-ink screen-safe">
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -106,7 +106,7 @@ export default function MorningBriefPage() {
       `}</style>
 
       {/* HEADER */}
-      <div className="sticky top-0 z-30 bg-[#FBF8F3]/90 dark:bg-[#12100E]/90 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 bg-background/90 dark:bg-ink/90 backdrop-blur-xl">
         <div className="max-w-3xl mx-auto px-4 pt-3 pb-2">
           <div className="flex items-center justify-between">
             <Button
@@ -125,7 +125,7 @@ export default function MorningBriefPage() {
               >
                 COURTYARD
               </span>
-              <span className="text-[10px] text-muted leading-tight">
+              <span className="text-micro text-muted leading-tight">
                 by{" "}
                 <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
               </span>
@@ -137,7 +137,7 @@ export default function MorningBriefPage() {
       <div className="max-w-3xl mx-auto px-4 pb-32 space-y-4 pt-2">
         {/* Title block — "Passionate · Forward · Inviting" */}
         <div className="text-center py-3">
-          <p className="text-[10px] tracking-[0.4em] text-brand uppercase">
+          <p className="text-micro tracking-[0.4em] text-brand uppercase">
             Passionate · Forward · Inviting
           </p>
           <h1 className="text-xl font-black text-dark capitalize mt-1">
@@ -189,12 +189,12 @@ export default function MorningBriefPage() {
               </Button>
             </div>
             {uploadError && (
-              <p className="text-[11px] text-error font-medium bg-error/10 rounded-lg px-3 py-2">
+              <p className="text-xs text-error font-medium bg-error/10 rounded-lg px-3 py-2">
                 {uploadError}
               </p>
             )}
             {uploadSuccess && (
-              <p className="text-[11px] text-green-700 dark:text-green-400 font-medium bg-green-500/10 rounded-lg px-3 py-2">
+              <p className="text-xs text-green-700 dark:text-green-400 font-medium bg-green-500/10 rounded-lg px-3 py-2">
                 ✓ {uploadSuccess}
               </p>
             )}
@@ -207,14 +207,14 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <ChartBar weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Forecast 7 jours
                 </h2>
               </div>
               <div className="overflow-x-auto -mx-2">
-                <table className="w-full text-[10px] tabular-nums">
+                <table className="w-full text-micro tabular-nums">
                   <thead>
-                    <tr className="text-muted text-[8px] uppercase">
+                    <tr className="text-muted text-micro uppercase">
                       <th className="px-2 py-1 text-left">Jour</th>
                       <th className="px-1 py-1 text-right">Limit</th>
                       <th className="px-1 py-1 text-right">Occ</th>
@@ -258,7 +258,7 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <TrendUp weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   GSS — Guest Satisfaction Score
                 </h2>
               </div>
@@ -266,7 +266,7 @@ export default function MorningBriefPage() {
                 {brief.gss.map((s, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 items-center text-[11px]"
+                    className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 items-center text-xs"
                   >
                     <span className="text-dark">{s.metric}</span>
                     <Badge variant="muted" className="tabular-nums">
@@ -303,7 +303,7 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <Cake weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Événements spéciaux
                 </h2>
               </div>
@@ -311,7 +311,7 @@ export default function MorningBriefPage() {
                 {brief.specialEvents.map((e, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 px-3 py-2 rounded-[12px] bg-amber-500/[0.06]"
+                    className="flex items-start gap-3 px-3 py-2 rounded-md bg-amber-500/[0.06]"
                   >
                     {e.type === "honeymoon" ? (
                       <Heart weight="duotone" className="size-5 text-pink-500 shrink-0" />
@@ -326,13 +326,13 @@ export default function MorningBriefPage() {
                         <span className="text-xs font-bold text-dark">{e.guestName}</span>
                         <Badge
                           variant={e.status === "in_house" ? "success" : "info"}
-                          className="text-[8px]"
+                          className="text-micro"
                         >
                           {e.status === "in_house" ? "In House" : "Arriving"}
                         </Badge>
                       </div>
                       {e.reason && (
-                        <p className="text-[10px] text-muted mt-0.5">
+                        <p className="text-micro text-muted mt-0.5">
                           {e.reason}
                           {e.arrivalDate && <span className="ml-2">· {e.arrivalDate}</span>}
                         </p>
@@ -351,7 +351,7 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <Star weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Client Ambassadors
                 </h2>
               </div>
@@ -359,7 +359,7 @@ export default function MorningBriefPage() {
                 {brief.ambassadors.map((a, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[12px] bg-brand/[0.05]"
+                    className="flex items-center gap-2 px-3 py-2 rounded-md bg-brand/[0.05]"
                   >
                     <span className="text-xs font-bold font-mono text-dark">
                       {a.roomNumber}
@@ -369,7 +369,7 @@ export default function MorningBriefPage() {
                     </span>
                     <Badge
                       variant={a.status === "in_house" ? "success" : "info"}
-                      className="text-[8px] shrink-0"
+                      className="text-micro shrink-0"
                     >
                       {a.status === "in_house" ? "In" : "Arr"}
                     </Badge>
@@ -386,7 +386,7 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <Crown weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Top VIPs
                 </h2>
               </div>
@@ -394,7 +394,7 @@ export default function MorningBriefPage() {
                 {brief.topVips.map((v, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[12px] bg-gradient-to-r from-brand/10 to-brand-light/10"
+                    className="flex items-center gap-2 px-3 py-2 rounded-md bg-gradient-to-r from-brand/10 to-brand-light/10"
                   >
                     <span className="text-xs font-bold font-mono text-dark">
                       {v.roomNumber}
@@ -402,7 +402,7 @@ export default function MorningBriefPage() {
                     <span className="text-xs font-bold text-dark flex-1 truncate">
                       {v.guestName}
                     </span>
-                    <Badge variant="vip" className="text-[8px]">
+                    <Badge variant="vip" className="text-micro">
                       {v.vipLevel}
                     </Badge>
                   </div>
@@ -418,7 +418,7 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <ChatCircleText weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Commentaires Clients
                 </h2>
               </div>
@@ -427,12 +427,12 @@ export default function MorningBriefPage() {
                   <div key={i} className="border-l-2 border-brand/40 pl-3">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold text-dark">{c.guestName}</span>
-                      <Badge variant="muted" className="text-[8px]">
+                      <Badge variant="muted" className="text-micro">
                         {c.source}
                       </Badge>
-                      <span className="text-[9px] text-muted">{c.stayPeriod}</span>
+                      <span className="text-micro text-muted">{c.stayPeriod}</span>
                     </div>
-                    <p className="text-[11px] text-dark/80 italic leading-relaxed">
+                    <p className="text-xs text-dark/80 italic leading-relaxed">
                       «&nbsp;{c.text}&nbsp;»
                     </p>
                   </div>
@@ -448,7 +448,7 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <WarningCircle weight="duotone" className="size-4 text-error" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-error">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-error">
                   Plaintes In House
                 </h2>
               </div>
@@ -456,7 +456,7 @@ export default function MorningBriefPage() {
                 {brief.complaints.map((c, i) => (
                   <div
                     key={i}
-                    className="px-3 py-2 rounded-[12px] bg-error/[0.05]"
+                    className="px-3 py-2 rounded-md bg-error/[0.05]"
                   >
                     <div className="flex items-center gap-2 mb-0.5">
                       {c.roomNumber && (
@@ -466,7 +466,7 @@ export default function MorningBriefPage() {
                       )}
                       <span className="text-xs font-bold text-dark">{c.guestName}</span>
                     </div>
-                    <p className="text-[11px] text-dark/80">{c.text}</p>
+                    <p className="text-xs text-dark/80">{c.text}</p>
                   </div>
                 ))}
               </div>
@@ -481,7 +481,7 @@ export default function MorningBriefPage() {
               <CardContent>
                 <div className="flex items-center gap-2 mb-3">
                   <Users weight="duotone" className="size-4 text-brand" />
-                  <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                  <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                     Duty
                   </h2>
                 </div>
@@ -489,7 +489,7 @@ export default function MorningBriefPage() {
                   {brief.duty.map((d, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between text-[11px]"
+                      className="flex items-center justify-between text-xs"
                     >
                       <span className="text-muted">{d.dayLabel}</span>
                       <span className="text-dark font-bold">
@@ -512,13 +512,13 @@ export default function MorningBriefPage() {
               <CardContent>
                 <div className="flex items-center gap-2 mb-3">
                   <Calendar weight="duotone" className="size-4 text-brand" />
-                  <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                  <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                     Groupes
                   </h2>
                 </div>
                 <div className="space-y-2">
                   {brief.groups.map((g, i) => (
-                    <div key={i} className="text-[11px]">
+                    <div key={i} className="text-xs">
                       <div className="font-bold text-dark font-mono">{g.code}</div>
                       <div className="text-muted">
                         {g.rooms} chambres
@@ -538,7 +538,7 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-3">
                 <TrendUp weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Front Office
                 </h2>
               </div>
@@ -547,7 +547,7 @@ export default function MorningBriefPage() {
                   <div className="text-lg font-black text-dark tabular-nums">
                     {brief.frontOffice.monthlyTargetCapture}
                   </div>
-                  <div className="text-[8px] text-muted uppercase">Target capture</div>
+                  <div className="text-micro text-muted uppercase">Target capture</div>
                 </div>
                 <div>
                   <div
@@ -560,20 +560,20 @@ export default function MorningBriefPage() {
                   >
                     {brief.frontOffice.scoreActualMTD}
                   </div>
-                  <div className="text-[8px] text-muted uppercase">Score actual MTD</div>
+                  <div className="text-micro text-muted uppercase">Score actual MTD</div>
                 </div>
                 <div>
                   <div className="text-lg font-black text-dark tabular-nums">
                     {brief.frontOffice.enrollmentsToday}/{brief.frontOffice.enrollmentsGoal}
                   </div>
-                  <div className="text-[8px] text-muted uppercase">Enrollments J-1</div>
+                  <div className="text-micro text-muted uppercase">Enrollments J-1</div>
                 </div>
                 {brief.frontOffice.champion && (
                   <div>
                     <div className="text-sm font-black text-brand">
                       🏆 {brief.frontOffice.champion}
                     </div>
-                    <div className="text-[8px] text-muted uppercase">Champion</div>
+                    <div className="text-micro text-muted uppercase">Champion</div>
                   </div>
                 )}
               </div>
@@ -587,11 +587,11 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-2">
                 <Gift weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-brand">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-brand">
                   Thème du jour
                 </h2>
               </div>
-              <p className="text-[12px] text-dark italic leading-relaxed">
+              <p className="text-xs text-dark italic leading-relaxed">
                 {brief.themeOfDay}
               </p>
             </CardContent>
@@ -604,11 +604,11 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-2">
                 <Sparkle weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Marriott News
                 </h2>
               </div>
-              <p className="text-[11px] text-dark">{brief.marriottNews}</p>
+              <p className="text-xs text-dark">{brief.marriottNews}</p>
             </CardContent>
           </Card>
         )}
@@ -619,13 +619,13 @@ export default function MorningBriefPage() {
             <CardContent>
               <div className="flex items-center gap-2 mb-2">
                 <Cake weight="duotone" className="size-4 text-brand" />
-                <h2 className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
                   Anniversaires Équipe
                 </h2>
               </div>
               <div className="space-y-1">
                 {brief.internalAnniversary.map((a, i) => (
-                  <div key={i} className="text-[11px]">
+                  <div key={i} className="text-xs">
                     <span className="font-bold text-dark">{a.name}</span>
                     <span className="text-muted ml-2">· {a.role}</span>
                   </div>

@@ -22,16 +22,16 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
   const axis = [0, 0.25, 0.5, 0.75, 1].map((f) => hhmm(a.open + (a.close - a.open) * f));
 
   return (
-    <div className="glass-liquid rounded-[20px] px-4 pt-3 pb-3" data-role="report-affluence">
+    <div className="glass-liquid rounded-lg px-4 pt-3 pb-3" data-role="report-affluence">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span
-          className="text-[10.5px] font-black uppercase tracking-[0.14em]"
+          className="text-micro font-black uppercase tracking-[0.14em]"
           style={{ color: "var(--tab-idle)" }}
         >
           Affluence — heure d&apos;arrivée
         </span>
         <div className="flex items-center gap-3">
-          <b className="text-[12.5px] font-bold tabular-nums" style={{ color: "var(--brand-ink)" }}>
+          <b className="text-xs font-bold tabular-nums" style={{ color: "var(--brand-ink)" }}>
             {a.peakIndex < 0
               ? "Aucune arrivée"
               : `Pointe ${hhmm(a.buckets[a.peakIndex].start)} · ${a.peakCount} pers.`}
@@ -46,7 +46,7 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
                 key={g}
                 onClick={() => { setGrain(g); setCustom(""); }}
                 aria-pressed={a.grain === g}
-                className="min-h-[44px] px-3 rounded-full text-[12px] font-black tabular-nums transition-colors"
+                className="min-h-[44px] px-3 rounded-full text-xs font-black tabular-nums transition-colors"
                 style={
                   a.grain === g
                     ? { background: "var(--aur-surface)", color: "var(--brand-ink)", boxShadow: "0 2px 8px -4px rgba(0,0,0,.45)" }
@@ -66,7 +66,7 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
               inputMode="numeric"
               placeholder="perso"
               aria-label="Intervalle personnalisé en minutes"
-              className="w-[62px] min-h-[44px] rounded-full bg-transparent outline-none text-center text-[12px] font-black tabular-nums"
+              className="w-[62px] min-h-[44px] rounded-full bg-transparent outline-none text-center text-xs font-black tabular-nums"
               style={{ color: "var(--brand-ink)" }}
             />
           </div>
@@ -90,14 +90,14 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
                 style={{ width: `${barWidth}px`, flex: "1 0 auto" }}
               >
                 <span
-                  className="text-[10.5px] font-black tabular-nums leading-none"
+                  className="text-micro font-black tabular-nums leading-none"
                   style={{ color: peak ? "var(--brand-ink)" : "var(--tab-idle)", opacity: peak ? 1 : 0.7 }}
                 >
                   {b.count > 0 ? b.count : ""}
                 </span>
                 <div className="w-full relative flex-1 min-h-0">
                   <div
-                    className="absolute bottom-0 w-full rounded-t-[12px] transition-[height] duration-500"
+                    className="absolute bottom-0 w-full rounded-t-md transition-[height] duration-500"
                     style={{
                       height: `${h}%`,
                       minHeight: b.count > 0 ? 20 : 0,
@@ -116,7 +116,7 @@ export default function AffluenceChart({ checkIns }: { checkIns: CheckInRecord[]
         </div>
       </div>
 
-      <div className="flex justify-between mt-2 text-[11px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
+      <div className="flex justify-between mt-2 text-xs font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
         {axis.map((label, i) => <span key={i}>{label}</span>)}
       </div>
     </div>

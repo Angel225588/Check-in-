@@ -105,7 +105,7 @@ export default function ReportTiles({
               /* Every tile the same width. A row that sizes each box to its own
                  label reads as assembled rather than designed, and the labels
                  are short enough now that nothing has to be squeezed. */
-              className="flex-1 min-w-0 min-h-[68px] px-3 py-2 rounded-[14px] text-left transition-transform active:scale-[0.97]"
+              className="flex-1 min-w-0 min-h-[68px] px-3 py-2 rounded-card text-left transition-transform active:scale-[0.97]"
               style={
                 on
                   ? {
@@ -119,7 +119,7 @@ export default function ReportTiles({
               }
             >
               <div
-                className="text-[9.5px] font-black uppercase tracking-[0.11em] truncate"
+                className="text-micro font-black uppercase tracking-[0.11em] truncate"
                 style={{ color: on ? "var(--brand-ink)" : tile.warn ? "var(--aur-warn-ink)" : "var(--tab-idle)" }}
               >
                 {tile.label}
@@ -131,15 +131,15 @@ export default function ReportTiles({
                   Tapping still filters ROOMS, which is why the room count stays
                   on the face rather than moving behind the funnel. */}
               <div
-                className="text-[22px] font-black leading-[1.15] tabular-nums truncate"
+                className="text-2xl font-black leading-[1.15] tabular-nums truncate"
                 style={{ color: on ? "var(--brand-ink)" : "var(--aur-ink-2)" }}
               >
                 {tile.people !== undefined ? tile.people : tile.value}
-                <em className="not-italic text-[11px] font-black ml-1" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
+                <em className="not-italic text-xs font-black ml-1" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
                   {tile.people !== undefined ? "pers." : "ch."}
                 </em>
                 {tile.sub && (
-                  <em className="not-italic text-[12px] font-black ml-1.5" style={{ color: "var(--aur-warn-ink)" }}>
+                  <em className="not-italic text-xs font-black ml-1.5" style={{ color: "var(--aur-warn-ink)" }}>
                     {tile.sub}
                   </em>
                 )}
@@ -147,7 +147,7 @@ export default function ReportTiles({
               {tile.people !== undefined && (
                 <div
                   data-role="tile-rooms"
-                  className="text-[11px] font-black tabular-nums truncate -mt-0.5"
+                  className="text-xs font-black tabular-nums truncate -mt-0.5"
                   style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}
                 >
                   {tile.value} ch.
@@ -162,11 +162,11 @@ export default function ReportTiles({
             onClick={() => setSheet(true)}
             data-role="report-filter-more"
             aria-label={`Autres filtres (${hidden.length})`}
-            className="relative shrink-0 w-[56px] min-h-[56px] rounded-[14px] grid place-items-center transition-transform active:scale-[0.94]"
+            className="relative shrink-0 w-[56px] min-h-[56px] rounded-card grid place-items-center transition-transform active:scale-[0.94]"
             style={{ background: "var(--aur-surface)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
           >
             <FunnelSimple size={19} weight="bold" style={{ color: "var(--tab-idle)" }} />
-            <span className="absolute bottom-1.5 text-[9px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
+            <span className="absolute bottom-1.5 text-micro font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
               +{hidden.length}
             </span>
           </button>
@@ -177,13 +177,13 @@ export default function ReportTiles({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 screen-safe" onClick={() => setSheet(false)}>
           <div className="absolute inset-0 bg-black/35 dark:bg-black/60" />
           <div
-            className="relative w-full max-w-[420px] rounded-[24px] p-4 flex flex-col gap-2 animate-[cardIn_.2s_cubic-bezier(.2,.9,.25,1)]"
+            className="relative w-full max-w-[420px] rounded-xl p-4 flex flex-col gap-2 animate-[cardIn_.2s_cubic-bezier(.2,.9,.25,1)]"
             style={{ background: "var(--aur-bg-elev)", boxShadow: "0 24px 60px -24px rgba(20,12,0,.55), inset 0 0 0 1px var(--aur-hairline)" }}
             onClick={(e) => e.stopPropagation()}
             data-role="report-filter-sheet"
           >
             <div className="flex items-center justify-between mb-1">
-              <b className="text-[15px] text-dark">Filtrer</b>
+              <b className="text-base text-dark">Filtrer</b>
               <button onClick={() => setSheet(false)} aria-label="Fermer" className="w-11 h-11 rounded-full grid place-items-center glass-liquid">
                 <X size={15} weight="bold" />
               </button>
@@ -199,7 +199,7 @@ export default function ReportTiles({
                   data-role="report-filter-option"
                   data-tile={t.key}
                   onClick={() => { onFilter(on ? "all" : t.key); setSheet(false); }}
-                  className="min-h-[52px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
+                  className="min-h-[52px] px-4 rounded-card flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
                   style={{
                     background: on ? "var(--aur-gold-soft)" : "rgba(128,128,128,.08)",
                     boxShadow: on ? "inset 0 0 0 1.5px var(--aur-gold)" : "inset 0 0 0 1px rgba(128,128,128,.12)",
@@ -208,12 +208,12 @@ export default function ReportTiles({
                   <span className="w-5 shrink-0">
                     {on && <Check size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />}
                   </span>
-                  <span className="flex-1 text-[14px] font-bold text-dark">{t.label}</span>
-                  <b className="text-[16px] font-black tabular-nums" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
+                  <span className="flex-1 text-sm font-bold text-dark">{t.label}</span>
+                  <b className="text-base font-black tabular-nums" style={{ color: on ? "var(--brand-ink)" : "var(--tab-idle)" }}>
                     {t.people !== undefined ? paxLabel(t.people) : `${t.value} ch.`}
                   </b>
                   {t.people !== undefined && (
-                    <span className="text-[12px] font-black tabular-nums w-[56px] text-right" style={{ color: "var(--tab-idle)" }}>
+                    <span className="text-xs font-black tabular-nums w-[56px] text-right" style={{ color: "var(--tab-idle)" }}>
                       {t.value} ch.
                     </span>
                   )}

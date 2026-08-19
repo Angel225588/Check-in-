@@ -96,10 +96,10 @@ export default function ActivitySheet({
   const backspace = () => setQuery((p) => p.slice(0, -1));
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-[#FBF8F3] dark:bg-[#12100E] screen-safe" data-role="activity-sheet">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background dark:bg-ink screen-safe" data-role="activity-sheet">
       <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-3">
         <div className="flex items-center gap-2">
-          <div className="surface-field flex-1 min-w-0 flex items-center gap-3 px-4 min-h-[60px] rounded-[18px]">
+          <div className="surface-field flex-1 min-w-0 flex items-center gap-3 px-4 min-h-[60px] rounded-lg">
             <MagnifyingGlass size={20} weight="bold" style={{ color: "var(--tab-idle)" }} className="shrink-0" />
             <input
               value={query}
@@ -108,7 +108,7 @@ export default function ActivitySheet({
               inputMode="none"
               autoComplete="off"
               data-role="activity-search"
-              className="flex-1 min-w-0 bg-transparent outline-none text-[18px] font-bold text-dark"
+              className="flex-1 min-w-0 bg-transparent outline-none text-lg font-bold text-dark"
             />
             {query && (
               <button onClick={() => setQuery("")} aria-label="Effacer" className="w-9 h-9 grid place-items-center shrink-0">
@@ -120,7 +120,7 @@ export default function ActivitySheet({
             onClick={onClose}
             data-role="activity-close"
             aria-label="Fermer"
-            className="surface-raised w-[56px] shrink-0 min-h-[60px] rounded-[16px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
+            className="surface-raised w-[56px] shrink-0 min-h-[60px] rounded-lg grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
           >
             <X size={19} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
@@ -141,7 +141,7 @@ export default function ActivitySheet({
                 data-role="activity-lens"
                 data-lens={l.key}
                 aria-pressed={on}
-                className="shrink-0 min-h-[40px] px-3.5 rounded-full text-[13px] font-black transition-transform active:scale-[0.96] disabled:opacity-35"
+                className="shrink-0 min-h-[40px] px-3.5 rounded-full text-sm font-black transition-transform active:scale-[0.96] disabled:opacity-35"
                 style={on
                   ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--aur-gold)" }
                   : { background: "rgba(128,128,128,.09)", color: "var(--tab-idle)" }}
@@ -160,7 +160,7 @@ export default function ActivitySheet({
         style={{ overscrollBehavior: "contain" }}
       >
         {shown.length === 0 && (
-          <span className="text-[14px] font-semibold px-1 py-6 text-center" style={{ color: "var(--tab-idle)" }}>
+          <span className="text-sm font-semibold px-1 py-6 text-center" style={{ color: "var(--tab-idle)" }}>
             {rows.length === 0 ? "Personne n'est encore entré." : "Rien avec ce filtre."}
           </span>
         )}
@@ -175,7 +175,7 @@ export default function ActivitySheet({
             {/* The code, because "why did this room not pay" is the question
                 the list gets asked after the fact. */}
             {r.client?.packageCode && (
-              <span className="block truncate text-[11.5px] font-black uppercase tracking-[0.08em]" style={{ color: "var(--tab-idle)" }}>
+              <span className="block truncate text-xs font-black uppercase tracking-[0.08em]" style={{ color: "var(--tab-idle)" }}>
                 {r.client.packageCode}
               </span>
             )}

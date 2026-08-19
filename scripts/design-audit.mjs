@@ -25,12 +25,12 @@ const STRICT = process.argv.includes("--strict");
  * A budget you cannot meet today is a gate everyone learns to ignore.
  */
 const BUDGET = {
-  hexColors: 148,
-  distinctHexColors: 32,
-  textSizes: 460,
-  distinctTextSizes: 37,
-  radii: 224,
-  distinctRadii: 16,
+  hexColors: 60,
+  distinctHexColors: 27,
+  textSizes: 0,
+  distinctTextSizes: 0,
+  radii: 0,
+  distinctRadii: 0,
   rawOpacity: 209,
 };
 

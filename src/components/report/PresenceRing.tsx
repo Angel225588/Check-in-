@@ -31,7 +31,7 @@ export default function PresenceRing({
   const tone = percent >= 70 ? "var(--aur-good-ink)" : percent >= 40 ? "var(--aur-gold)" : "var(--aur-bad-ink)";
 
   return (
-    <div className="glass-liquid rounded-[20px] py-4 flex flex-col items-center" data-role="report-ring">
+    <div className="glass-liquid rounded-lg py-4 flex flex-col items-center" data-role="report-ring">
       <div className="relative w-[150px] h-[150px] grid place-items-center">
         <svg viewBox="0 0 120 120" className="absolute inset-0 -rotate-90 w-full h-full">
           <circle cx="60" cy="60" r={R} fill="none" strokeWidth="11" style={{ stroke: "var(--aur-hairline)" }} />
@@ -42,16 +42,16 @@ export default function PresenceRing({
           />
         </svg>
         <div className="text-center">
-          <div className="text-[52px] font-light leading-none tracking-[-0.04em] tabular-nums" style={{ color: "var(--brand-ink)" }}>
+          <div className="text-5xl font-light leading-none tracking-[-0.04em] tabular-nums" style={{ color: "var(--brand-ink)" }}>
             {percent}
-            <span className="text-[24px]">%</span>
+            <span className="text-2xl">%</span>
           </div>
-          <div className="text-[11.5px] font-black uppercase tracking-[0.1em] mt-0.5" style={{ color: "var(--tab-idle)" }}>
+          <div className="text-xs font-black uppercase tracking-[0.1em] mt-0.5" style={{ color: "var(--tab-idle)" }}>
             présents
           </div>
         </div>
       </div>
-      <div className="text-[13px] font-bold tabular-nums mt-1" style={{ color: "var(--tab-idle)" }}>
+      <div className="text-sm font-bold tabular-nums mt-1" style={{ color: "var(--tab-idle)" }}>
         {entered} / {expected} personnes
       </div>
     </div>

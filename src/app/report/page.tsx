@@ -35,7 +35,7 @@ export default function ReportPageWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="h-dvh w-full bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 flex flex-col gap-3 screen-safe">
+        <div className="h-dvh w-full bg-background dark:bg-ink p-3 pt-3 flex flex-col gap-3 screen-safe">
           <div className="skeleton h-10 w-56" />
           <div className="flex-1 flex gap-3 min-h-0">
             <div className="flex-1 flex flex-col gap-3">
@@ -146,7 +146,7 @@ function ReportV2() {
 
   if (!report) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="flex items-center justify-center h-dvh bg-background dark:bg-ink screen-safe">
         <div className="text-muted">Chargement…</div>
       </div>
     );
@@ -219,7 +219,7 @@ function ReportV2() {
   };
 
   const btn =
-    "min-h-[46px] px-4 rounded-full text-[13.5px] font-black flex items-center gap-2 glass-liquid active:scale-[0.97] transition-transform";
+    "min-h-[46px] px-4 rounded-full text-sm font-black flex items-center gap-2 glass-liquid active:scale-[0.97] transition-transform";
 
   /* One pad, rendered into whichever column is on screen.
 
@@ -237,7 +237,7 @@ function ReportV2() {
         <button
           onClick={() => setPad(null)}
           data-role="report-pad-close"
-          className="min-h-[40px] px-4 rounded-full text-[13px] font-black glass-liquid active:scale-[0.96] transition-transform"
+          className="min-h-[40px] px-4 rounded-full text-sm font-black glass-liquid active:scale-[0.96] transition-transform"
           style={{ color: "var(--brand-ink)" }}
         >
           Fermer le clavier
@@ -264,7 +264,7 @@ function ReportV2() {
   );
 
   return (
-    <div className="flex flex-col h-dvh w-full overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+    <div className="flex flex-col h-dvh w-full overflow-hidden bg-background dark:bg-ink screen-safe">
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2 flex-wrap" data-role="report-header">
         <button
@@ -273,13 +273,13 @@ function ReportV2() {
           data-role="report-back"
         >
           <CaretLeft size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />
-          <span className="text-[13.5px] font-black" style={{ color: "var(--brand-ink)" }}>
+          <span className="text-sm font-black" style={{ color: "var(--brand-ink)" }}>
             {isHistorical ? "Historique" : "Service"}
           </span>
         </button>
 
         <div className="flex items-baseline gap-3 min-w-0">
-          <h1 className="text-[23px] font-black tracking-[-0.02em]" style={{ color: "var(--brand-ink)" }}>
+          <h1 className="text-2xl font-black tracking-[-0.02em]" style={{ color: "var(--brand-ink)" }}>
             Rapport
           </h1>
           <ReportDatePicker
@@ -293,10 +293,10 @@ function ReportV2() {
         <div className="flex-1" />
 
         <div className="flex flex-col items-end leading-tight mr-1">
-          <span className="text-[13px] font-bold tracking-[0.08em]" style={{ fontFamily: "'Nunito', sans-serif", color: "var(--brand-ink)" }}>
+          <span className="text-sm font-bold tracking-[0.08em]" style={{ fontFamily: "'Nunito', sans-serif", color: "var(--brand-ink)" }}>
             COURTYARD
           </span>
-          <span className="text-[9.5px] text-muted">
+          <span className="text-micro text-muted">
             by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
           </span>
         </div>
@@ -335,13 +335,13 @@ function ReportV2() {
               looking at. */}
           {!pad && <AffluenceChart checkIns={report.checkIns} />}
 
-          <div className="surface-card rounded-[20px] px-4 pt-3 pb-3 flex flex-col md:flex-1 md:min-h-0">
+          <div className="surface-card rounded-lg px-4 pt-3 pb-3 flex flex-col md:flex-1 md:min-h-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
+              <span className="text-micro font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Par ordre d&apos;arrivée
               </span>
               <div className="flex items-center gap-2">
-                <b className="text-[12px] font-bold tabular-nums" style={{ color: "var(--aur-ink-2)" }}>
+                <b className="text-xs font-bold tabular-nums" style={{ color: "var(--aur-ink-2)" }}>
                   {visible.length} chambre{visible.length > 1 ? "s" : ""}
                 </b>
                 {/* The panel is a corner of a dashboard; the list is the thing
@@ -351,7 +351,7 @@ function ReportV2() {
                   onClick={() => setExpanded(true)}
                   data-role="report-list-expand"
                   aria-label="Ouvrir la liste en plein écran"
-                  className="surface-raised w-[40px] h-[36px] rounded-[12px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
+                  className="surface-raised w-[40px] h-[36px] rounded-md grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
                 >
                   <ArrowsOutSimple size={16} weight="bold" style={{ color: "var(--brand-ink)" }} />
                 </button>
@@ -398,12 +398,12 @@ function ReportV2() {
             onPick={setPickedGroups}
           />
 
-          <div className="surface-card rounded-[20px] px-4 pt-3 pb-4 flex flex-col gap-3 md:flex-1 md:min-h-0 min-h-[240px] [@media(max-height:720px)]:flex-none [@media(max-height:720px)]:shrink-0">
+          <div className="surface-card rounded-lg px-4 pt-3 pb-4 flex flex-col gap-3 md:flex-1 md:min-h-0 min-h-[240px] [@media(max-height:720px)]:flex-none [@media(max-height:720px)]:shrink-0">
             <div className="flex items-baseline justify-between">
-              <span className="text-[10.5px] font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
+              <span className="text-micro font-black uppercase tracking-[0.14em]" style={{ color: "var(--tab-idle)" }}>
                 Répartition
               </span>
-              <b className="text-[12px] font-bold tabular-nums" style={{ color: "var(--aur-ink-2)" }}>
+              <b className="text-xs font-bold tabular-nums" style={{ color: "var(--aur-ink-2)" }}>
                 {split.total} chambres
               </b>
             </div>
@@ -426,12 +426,12 @@ function ReportV2() {
           with the panel, so closing it leaves you exactly where you were —
           two views of one state, not two lists. */}
       {expanded && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[#FBF8F3] dark:bg-[#12100E] screen-safe" data-role="report-list-sheet">
+        <div className="fixed inset-0 z-50 flex flex-col bg-background dark:bg-ink screen-safe" data-role="report-list-sheet">
           <div className="shrink-0 flex items-center gap-3 px-3 pt-3 pb-2">
-            <span className="text-[15px] font-black" style={{ color: "var(--brand-ink)" }}>
+            <span className="text-base font-black" style={{ color: "var(--brand-ink)" }}>
               Par ordre d&apos;arrivée
             </span>
-            <b className="text-[12.5px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
+            <b className="text-xs font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
               {visible.length} chambre{visible.length > 1 ? "s" : ""}
             </b>
             <span className="flex-1" />
@@ -439,7 +439,7 @@ function ReportV2() {
               onClick={() => { setExpanded(false); setPad(null); }}
               data-role="report-list-collapse"
               aria-label="Fermer"
-              className="surface-raised w-[52px] min-h-[52px] rounded-[16px] grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
+              className="surface-raised w-[52px] min-h-[52px] rounded-lg grid place-items-center active:scale-[0.94] transition-[transform,box-shadow] duration-100"
             >
               <XIcon size={18} weight="bold" style={{ color: "var(--brand-ink)" }} />
             </button>

@@ -89,13 +89,13 @@ export default function DebugPage() {
 
   if (!enabled) {
     return (
-      <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 max-w-2xl mx-auto screen-safe flex flex-col items-center justify-center gap-4">
-        <p className="text-[15px] font-bold text-dark text-center">
+      <div className="min-h-dvh bg-background dark:bg-ink p-4 pt-3 max-w-2xl mx-auto screen-safe flex flex-col items-center justify-center gap-4">
+        <p className="text-base font-bold text-dark text-center">
           Les outils de test ne sont pas disponibles sur cette version.
         </p>
         <button
           onClick={() => router.push("/upload")}
-          className="min-h-[52px] px-5 rounded-full glass-liquid text-[15px] font-black"
+          className="min-h-[52px] px-5 rounded-full glass-liquid text-base font-black"
           style={{ color: "var(--brand-ink)" }}
         >
           Retour
@@ -105,12 +105,12 @@ export default function DebugPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] p-4 pt-3 max-w-2xl mx-auto screen-safe">
+    <div className="min-h-dvh bg-background dark:bg-ink p-4 pt-3 max-w-2xl mx-auto screen-safe">
       <h1 className="text-xl font-bold text-dark mb-1">Storage Debug</h1>
       <p className="text-sm text-muted mb-4">Total: {totalSize} / 5 MB</p>
 
       {/* OCR Mode toggle */}
-      <div className="mb-4 p-4 rounded-[14px] glass-liquid border border-brand/20">
+      <div className="mb-4 p-4 rounded-card glass-liquid border border-brand/20">
         <h2 className="text-sm font-bold text-dark mb-2">🔒 OCR Mode</h2>
         <p className="text-xs text-muted mb-3 leading-relaxed">
           Mode <b>Local</b> = Tesseract en local, aucune donnée envoyée à
@@ -130,7 +130,7 @@ export default function DebugPage() {
       </div>
 
       {/* Mock data controls */}
-      <div className="mb-4 p-4 rounded-[14px] glass-liquid border border-brand/20">
+      <div className="mb-4 p-4 rounded-card glass-liquid border border-brand/20">
         <h2 className="text-sm font-bold text-dark mb-2">🧪 Mock Data</h2>
         <p className="text-xs text-muted mb-3 leading-relaxed">
           Inject 7 days of realistic test data: ~100 rooms, 12 VIPs, 3 off-list

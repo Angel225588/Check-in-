@@ -151,7 +151,7 @@ export default function NotesModal({
         data-role="notes-modal"
         /* dvh so the tablet keyboard shrinks the panel instead of pushing the
            action bar off-screen. */
-        className="w-full max-w-[760px] max-h-[88dvh] flex flex-col rounded-[24px] overflow-hidden animate-[nPop_.26s_cubic-bezier(.2,.9,.25,1)]"
+        className="w-full max-w-[760px] max-h-[88dvh] flex flex-col rounded-xl overflow-hidden animate-[nPop_.26s_cubic-bezier(.2,.9,.25,1)]"
         style={{
           background: "var(--color-card,#fff)",
           boxShadow: "0 40px 90px -24px rgba(40,26,6,.55), inset 0 1px 0 rgba(255,255,255,.07)",
@@ -159,10 +159,10 @@ export default function NotesModal({
       >
         {/* ── header ── */}
         <div className="shrink-0 flex items-center gap-5 px-6 pt-6 pb-5 border-b border-black/[0.06] dark:border-white/[0.07]">
-          <div className="text-[44px] font-black leading-none tracking-[-0.035em] tabular-nums">{roomNumber}</div>
+          <div className="text-4xl font-black leading-none tracking-[-0.035em] tabular-nums">{roomNumber}</div>
           <div className="flex-1 min-w-0">
-            <div className="text-[21px] font-bold leading-tight truncate">{heading}</div>
-            <div className="text-[13px] font-semibold mt-1" style={{ color: "var(--tab-idle)" }}>
+            <div className="text-xl font-bold leading-tight truncate">{heading}</div>
+            <div className="text-sm font-semibold mt-1" style={{ color: "var(--tab-idle)" }}>
               {visits > 0 ? `Habitué · ${visits}ᵉ séjour` : "1ʳᵉ visite"} · {pax} pers.
             </div>
           </div>
@@ -186,9 +186,9 @@ export default function NotesModal({
         </div>
 
         {api.saveError && (
-          <div className="shrink-0 mx-6 mt-4 flex items-start gap-2 rounded-[14px] px-4 py-3" style={{ background: "var(--aur-bad-soft)" }}>
+          <div className="shrink-0 mx-6 mt-4 flex items-start gap-2 rounded-card px-4 py-3" style={{ background: "var(--aur-bad-soft)" }}>
             <WarningCircle weight="duotone" size={18} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
-            <div className="text-[13px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
+            <div className="text-sm font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
               Note NON enregistrée — stockage plein.
               <button onClick={api.clearError} className="underline ml-1.5 font-black">Fermer</button>
             </div>
@@ -200,13 +200,13 @@ export default function NotesModal({
           {view === "list" && (
             <>
               {api.notes.length > SEARCH_AFTER && (
-                <div className="flex items-center gap-3 px-4 min-h-[54px] rounded-[16px] mb-4 bg-black/[0.045] dark:bg-white/[0.055]">
+                <div className="flex items-center gap-3 px-4 min-h-[54px] rounded-lg mb-4 bg-black/[0.045] dark:bg-white/[0.055]">
                   <MagnifyingGlass size={19} style={{ color: "var(--tab-idle)" }} />
                   <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Chercher dans les notes…"
-                    className="flex-1 min-w-0 bg-transparent outline-none text-[16px] font-bold text-dark placeholder:font-normal placeholder:italic"
+                    className="flex-1 min-w-0 bg-transparent outline-none text-base font-bold text-dark placeholder:font-normal placeholder:italic"
                   />
                 </div>
               )}
@@ -220,7 +220,7 @@ export default function NotesModal({
                       key={t}
                       onClick={() => setTone(t as NoteTone | "all")}
                       aria-pressed={on}
-                      className="shrink-0 inline-flex items-center gap-1.5 min-h-[46px] px-4 rounded-full text-[13px] font-extrabold transition-all active:scale-[0.97]"
+                      className="shrink-0 inline-flex items-center gap-1.5 min-h-[46px] px-4 rounded-full text-sm font-extrabold transition-all active:scale-[0.97]"
                       style={toneChipStyle(t as NoteTone | "all", on)}
                     >
                       {m && <NoteToneIcon tone={t as NoteTone} size={14} color={on ? m.color : "var(--tab-idle)"} />}
@@ -231,12 +231,12 @@ export default function NotesModal({
               </div>
 
               {!api.ready && (
-                <div className="text-[13.5px] text-center py-14" style={{ color: "var(--tab-idle)" }}>Déchiffrement…</div>
+                <div className="text-sm text-center py-14" style={{ color: "var(--tab-idle)" }}>Déchiffrement…</div>
               )}
               {api.ready && visible.length === 0 && (
                 <div className="text-center py-14 leading-relaxed" style={{ color: "var(--tab-idle)" }}>
-                  <div className="text-[15px] font-bold">Aucune note{tone !== "all" || q ? " ne correspond" : " pour ce client"}.</div>
-                  <div className="text-[13.5px] mt-1.5 opacity-90">Allergie, préférence, événement…</div>
+                  <div className="text-base font-bold">Aucune note{tone !== "all" || q ? " ne correspond" : " pour ce client"}.</div>
+                  <div className="text-sm mt-1.5 opacity-90">Allergie, préférence, événement…</div>
                 </div>
               )}
 
@@ -250,7 +250,7 @@ export default function NotesModal({
                       onClick={() => { setSelectedId(n.id); setView("detail"); setConfirmDelete(false); setShowRev(false); }}
                       data-role="note-row"
                       data-note-tone={n.tone}
-                      className="relative w-full text-left rounded-[16px] pl-5 pr-4 py-4 overflow-hidden active:scale-[0.995] transition-transform"
+                      className="relative w-full text-left rounded-lg pl-5 pr-4 py-4 overflow-hidden active:scale-[0.995] transition-transform"
                       style={{
                         background: isAlert ? m.soft : "rgba(0,0,0,.035)",
                         boxShadow: "inset 0 0 0 1px rgba(0,0,0,.05)",
@@ -259,13 +259,13 @@ export default function NotesModal({
                       <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: m.color }} />
                       <div className="flex items-start gap-3">
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[16.5px] font-extrabold leading-snug" style={{ color: isAlert ? m.color : undefined }}>
+                          <span className="block text-base font-extrabold leading-snug" style={{ color: isAlert ? m.color : undefined }}>
                             {n.title || n.body.slice(0, 60)}
                           </span>
                           {n.body && n.title && (
-                            <span className="block text-[13.5px] leading-relaxed mt-1 line-clamp-2" style={{ color: "var(--tab-idle)" }}>{n.body}</span>
+                            <span className="block text-sm leading-relaxed mt-1 line-clamp-2" style={{ color: "var(--tab-idle)" }}>{n.body}</span>
                           )}
-                          <span className="block text-[11.5px] font-bold mt-2" style={{ color: "var(--tab-idle)", opacity: .85 }}>
+                          <span className="block text-xs font-bold mt-2" style={{ color: "var(--tab-idle)", opacity: .85 }}>
                             {m.label} · {n.author || "—"} · {fmt(n.createdAt)}
                           </span>
                         </span>
@@ -292,7 +292,7 @@ export default function NotesModal({
                       onClick={() => pickTone(tn)}
                       aria-pressed={on}
                       data-role="note-tone"
-                      className="shrink-0 inline-flex items-center gap-2 min-h-[46px] px-4 rounded-full text-[13.5px] font-extrabold transition-all active:scale-[0.97]"
+                      className="shrink-0 inline-flex items-center gap-2 min-h-[46px] px-4 rounded-full text-sm font-extrabold transition-all active:scale-[0.97]"
                       style={toneChipStyle(tn, on)}
                     >
                       <NoteToneIcon tone={tn} size={15} color={on ? m.color : "var(--tab-idle)"} />
@@ -303,7 +303,7 @@ export default function NotesModal({
                 <button
                   onClick={() => { setPinned((p) => !p); setPinTouched(true); }}
                   aria-pressed={pinned}
-                  className="shrink-0 inline-flex items-center gap-2 min-h-[46px] px-4 rounded-full text-[13.5px] font-extrabold transition-all active:scale-[0.97]"
+                  className="shrink-0 inline-flex items-center gap-2 min-h-[46px] px-4 rounded-full text-sm font-extrabold transition-all active:scale-[0.97]"
                   style={pinned
                     ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
                     : { background: "rgba(128,128,128,.10)", color: "var(--tab-idle)" }}
@@ -320,7 +320,7 @@ export default function NotesModal({
                 placeholder="Titre — ex. Allergie arachide"
                 maxLength={MAX_TITLE}
                 data-role="note-title"
-                className="w-full min-h-[64px] px-5 rounded-[18px] text-[22px] font-extrabold text-dark mb-3 focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder:font-normal placeholder:italic"
+                className="w-full min-h-[64px] px-5 rounded-lg text-2xl font-extrabold text-dark mb-3 focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder:font-normal placeholder:italic"
                 style={{ background: "rgba(0,0,0,.045)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.06)" }}
               />
               <textarea
@@ -330,7 +330,7 @@ export default function NotesModal({
                 rows={7}
                 maxLength={MAX_BODY}
                 data-role="note-body"
-                className="w-full min-h-[190px] px-5 py-4 rounded-[18px] text-[17.5px] leading-relaxed text-dark resize-none focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder:font-normal placeholder:italic"
+                className="w-full min-h-[190px] px-5 py-4 rounded-lg text-lg leading-relaxed text-dark resize-none focus:outline-none focus:ring-2 focus:ring-brand/40 placeholder:font-normal placeholder:italic"
                 style={{ background: "rgba(0,0,0,.045)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.06)" }}
               />
             </>
@@ -339,28 +339,28 @@ export default function NotesModal({
           {view === "detail" && selected && (
             <>
               <span
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-black mb-4"
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black mb-4"
                 style={{ background: toneMeta(selected.tone).soft, color: toneMeta(selected.tone).color }}
               >
                 <NoteToneIcon tone={selected.tone} size={15} /> {toneMeta(selected.tone).label}
                 {selected.pinned && <PushPin weight="fill" size={13} />}
               </span>
               {selected.title && (
-                <h3 className="text-[27px] font-black leading-tight mb-3 break-words">{selected.title}</h3>
+                <h3 className="text-3xl font-black leading-tight mb-3 break-words">{selected.title}</h3>
               )}
               {selected.body && (
-                <p className="text-[17.5px] leading-relaxed text-dark/85 whitespace-pre-wrap break-words">{selected.body}</p>
+                <p className="text-lg leading-relaxed text-dark/85 whitespace-pre-wrap break-words">{selected.body}</p>
               )}
-              <div className="text-[13px] font-semibold mt-5" style={{ color: "var(--tab-idle)" }}>
+              <div className="text-sm font-semibold mt-5" style={{ color: "var(--tab-idle)" }}>
                 {selected.author ? `${selected.author} · ` : ""}{fmt(selected.createdAt)}
               </div>
 
               {selected.revisions.length > 0 && (
-                <div className="mt-5 rounded-[14px] overflow-hidden" style={{ background: "rgba(0,0,0,.035)" }}>
+                <div className="mt-5 rounded-card overflow-hidden" style={{ background: "rgba(0,0,0,.035)" }}>
                   <button
                     onClick={() => setShowRev((v) => !v)}
                     aria-expanded={showRev}
-                    className="w-full min-h-[48px] px-4 flex items-center justify-between text-[12.5px] font-extrabold"
+                    className="w-full min-h-[48px] px-4 flex items-center justify-between text-xs font-extrabold"
                     style={{ color: "var(--tab-idle)" }}
                   >
                     Activité ({selected.revisions.length})
@@ -369,7 +369,7 @@ export default function NotesModal({
                   {showRev && (
                     <div className="px-4 pb-3 flex flex-col gap-2">
                       {[...selected.revisions].reverse().map((r, i) => (
-                        <div key={i} className="text-[12px] leading-snug" style={{ color: "var(--tab-idle)" }}>
+                        <div key={i} className="text-xs leading-snug" style={{ color: "var(--tab-idle)" }}>
                           <b className="text-dark/70">{r.author || "—"}</b> · {r.summary} · {fmt(r.at)}
                         </div>
                       ))}
@@ -387,7 +387,7 @@ export default function NotesModal({
             <button
               onClick={startNew}
               data-role="note-new"
-              className="w-full min-h-[58px] rounded-[52px] inline-flex items-center justify-center gap-2 text-white text-[17px] font-black active:scale-[0.98] transition-transform"
+              className="w-full min-h-[58px] rounded-pill inline-flex items-center justify-center gap-2 text-white text-lg font-black active:scale-[0.98] transition-transform"
               style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
             >
               <Plus weight="bold" size={19} /> Nouvelle note
@@ -399,7 +399,7 @@ export default function NotesModal({
               onClick={save}
               disabled={!title.trim() && !body.trim()}
               data-role="note-save"
-              className="w-full min-h-[58px] rounded-[52px] inline-flex items-center justify-center gap-2 text-white text-[17px] font-black active:scale-[0.98] transition-transform disabled:opacity-40"
+              className="w-full min-h-[58px] rounded-pill inline-flex items-center justify-center gap-2 text-white text-lg font-black active:scale-[0.98] transition-transform disabled:opacity-40"
               style={{ background: "var(--aur-good)", boxShadow: "0 10px 26px -12px rgba(47,111,79,.6)" }}
             >
               <Check weight="bold" size={19} /> Enregistrer
@@ -408,18 +408,18 @@ export default function NotesModal({
 
           {view === "detail" && selected && (
             confirmDelete ? (
-              <div className="rounded-[18px] p-4" style={{ background: "var(--aur-bad-soft)" }}>
-                <div className="text-[14px] font-black mb-3" style={{ color: "var(--aur-bad-ink)" }}>
+              <div className="rounded-lg p-4" style={{ background: "var(--aur-bad-soft)" }}>
+                <div className="text-sm font-black mb-3" style={{ color: "var(--aur-bad-ink)" }}>
                   Supprimer cette note définitivement ?
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setConfirmDelete(false)} className="flex-1 min-h-[48px] rounded-full bg-black/[0.06] dark:bg-white/[0.08] text-[14px] font-bold">
+                  <button onClick={() => setConfirmDelete(false)} className="flex-1 min-h-[48px] rounded-full bg-black/[0.06] dark:bg-white/[0.08] text-sm font-bold">
                     Annuler
                   </button>
                   <button
                     onClick={async () => { await api.remove(selected.id); setConfirmDelete(false); setView("list"); }}
                     data-role="note-delete-confirm"
-                    className="flex-1 min-h-[48px] rounded-full text-white text-[14px] font-black"
+                    className="flex-1 min-h-[48px] rounded-full text-white text-sm font-black"
                     style={{ background: "var(--aur-bad)" }}
                   >
                     Supprimer
@@ -434,7 +434,7 @@ export default function NotesModal({
                   onClick={() => setConfirmDelete(true)}
                   data-role="note-delete"
                   aria-label="Supprimer la note"
-                  className="w-[58px] min-h-[54px] rounded-[18px] grid place-items-center"
+                  className="w-[58px] min-h-[54px] rounded-lg grid place-items-center"
                   style={{ color: "var(--tab-idle)", background: "rgba(0,0,0,.035)" }}
                 >
                   <Trash size={19} />
@@ -442,7 +442,7 @@ export default function NotesModal({
                 <button
                   onClick={() => api.pin(selected.id)}
                   aria-pressed={selected.pinned}
-                  className="flex-1 min-h-[54px] rounded-full inline-flex items-center justify-center gap-2 text-[14.5px] font-extrabold"
+                  className="flex-1 min-h-[54px] rounded-full inline-flex items-center justify-center gap-2 text-sm font-extrabold"
                   style={selected.pinned
                     ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
                     : { background: "rgba(0,0,0,.05)", color: "var(--tab-idle)" }}
@@ -453,7 +453,7 @@ export default function NotesModal({
                 <button
                   onClick={() => startEdit(selected)}
                   data-role="note-edit"
-                  className="flex-1 min-h-[54px] rounded-full inline-flex items-center justify-center gap-2 text-white text-[14.5px] font-black"
+                  className="flex-1 min-h-[54px] rounded-full inline-flex items-center justify-center gap-2 text-white text-sm font-black"
                   style={{ background: "var(--color-brand)" }}
                 >
                   <PencilSimple weight="bold" size={16} /> Modifier

@@ -193,7 +193,7 @@ function smoothPath(pts: Array<[number, number]>): string {
 function Delta({ pct }: { pct: number }) {
   if (pct === 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted bg-black/[0.04] dark:bg-white/[0.06] px-1.5 py-0.5 rounded-md">
+      <span className="inline-flex items-center gap-0.5 text-micro font-bold text-muted bg-black/[0.04] dark:bg-white/[0.06] px-1.5 py-0.5 rounded-md">
         —
       </span>
     );
@@ -202,7 +202,7 @@ function Delta({ pct }: { pct: number }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md",
+        "inline-flex items-center gap-0.5 text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-md",
         positive
           ? "text-brand bg-brand/15"
           : "text-error bg-error/15"
@@ -231,7 +231,7 @@ function TimeToggle({
           aria-pressed={value === o}
           onClick={() => onChange(o)}
           className={cn(
-            "appearance-none border-0 text-[11px] font-mono font-bold px-2 py-1.5 rounded-full transition-all",
+            "appearance-none border-0 text-xs font-mono font-bold px-2 py-1.5 rounded-full transition-all",
             value === o
               ? "bg-dark text-white dark:bg-white dark:text-black"
               : "bg-transparent text-muted hover:text-dark"
@@ -408,7 +408,7 @@ function buildStaffingAlerts(): StaffingAlert[] {
 }
 
 const EYEBROW =
-  "text-[10px] text-muted uppercase tracking-wider font-bold";
+  "text-micro text-muted uppercase tracking-wider font-bold";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -676,7 +676,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+    <div className="min-h-dvh bg-background dark:bg-ink screen-safe">
       <div className="max-w-6xl mx-auto px-4 pt-3 py-5 pb-20">
         {/* BACK BUTTON — top-left, matches other screens */}
         <div className="mb-3">
@@ -692,7 +692,7 @@ export default function DashboardPage() {
         {/* HEADER */}
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-[10px] text-brand uppercase tracking-wider font-bold">
+            <div className="inline-flex items-center gap-1.5 text-micro text-brand uppercase tracking-wider font-bold">
               <ShieldCheck size={11} weight="duotone" />
               Direction · F&B · Opérations
             </div>
@@ -714,7 +714,7 @@ export default function DashboardPage() {
         </div>
 
         {hasNoData && (
-          <div className="glass-liquid rounded-[14px] p-5 mb-5 text-center">
+          <div className="glass-liquid rounded-card p-5 mb-5 text-center">
             <p className="text-sm text-dark font-bold">Aucune donnée disponible</p>
             <p className="text-xs text-muted mt-1">
               Ouvre <code className="font-mono bg-black/5 dark:bg-white/10 px-1 rounded">/debug</code> →
@@ -725,7 +725,7 @@ export default function DashboardPage() {
 
         {/* ZONE 1 — KPI STRIP */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
-          <div className="glass-liquid rounded-[14px] p-4">
+          <div className="glass-liquid rounded-card p-4">
             <div className="flex items-center justify-between mb-2">
               <span className={EYEBROW}>Service</span>
               <Delta pct={deltaService} />
@@ -738,12 +738,12 @@ export default function DashboardPage() {
             )}>
               {todayPercent}%
             </div>
-            <div className="text-[10px] text-muted mt-1.5 tabular-nums">
+            <div className="text-micro text-muted mt-1.5 tabular-nums">
               {todayReport?.totalEntered ?? 0}/{todayReport?.totalGuests ?? 0} pax
             </div>
           </div>
 
-          <div className="glass-liquid rounded-[14px] p-4">
+          <div className="glass-liquid rounded-card p-4">
             <div className="flex items-center justify-between mb-2">
               <span className={EYEBROW}>Pic</span>
               <Clock size={12} weight="duotone" className="text-brand" />
@@ -751,12 +751,12 @@ export default function DashboardPage() {
             <div className="text-2xl font-black text-dark tabular-nums leading-none">
               {stats.peakHourMostCommon || "—"}
             </div>
-            <div className="text-[10px] text-muted mt-1.5">
+            <div className="text-micro text-muted mt-1.5">
               affluence récurrente
             </div>
           </div>
 
-          <div className="glass-liquid rounded-[14px] p-4 bg-gradient-to-br from-brand/8 to-transparent">
+          <div className="glass-liquid rounded-card p-4 bg-gradient-to-br from-brand/8 to-transparent">
             <div className="flex items-center justify-between mb-2">
               <span className={cn(EYEBROW, "text-brand")}>Compliments</span>
               <Gift size={12} weight="duotone" className="text-brand" />
@@ -765,7 +765,7 @@ export default function DashboardPage() {
               {stats.compCost.toLocaleString("fr-FR")}
               <span className="text-base opacity-70 ml-0.5">€</span>
             </div>
-            <div className="text-[10px] text-muted mt-1.5 tabular-nums flex items-center gap-1.5 flex-wrap">
+            <div className="text-micro text-muted mt-1.5 tabular-nums flex items-center gap-1.5 flex-wrap">
               <span>{stats.compPersons} cv ·</span>
               {editingPrice ? (
                 <span className="inline-flex items-center gap-1">
@@ -778,12 +778,12 @@ export default function DashboardPage() {
                       if (e.key === "Escape") setEditingPrice(false);
                     }}
                     autoFocus
-                    className="w-12 px-1 py-0.5 rounded-md bg-white dark:bg-white/10 border border-brand/40 text-dark text-[11px] font-bold text-right tabular-nums"
+                    className="w-12 px-1 py-0.5 rounded-md bg-white dark:bg-white/10 border border-brand/40 text-dark text-xs font-bold text-right tabular-nums"
                   />
                   <button
                     onClick={handleSavePrice}
                     aria-label="Confirmer prix"
-                    className="text-brand font-bold text-[11px]"
+                    className="text-brand font-bold text-xs"
                   >
                     OK
                   </button>
@@ -804,7 +804,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="glass-liquid rounded-[14px] p-4">
+          <div className="glass-liquid rounded-card p-4">
             <div className="flex items-center justify-between mb-2">
               <span className={EYEBROW}>Walk-ins (J)</span>
               <Footprints size={12} weight="duotone" className="text-muted" />
@@ -812,12 +812,12 @@ export default function DashboardPage() {
             <div className="text-2xl font-black text-dark tabular-nums leading-none">
               {walkInPax}
             </div>
-            <div className="text-[10px] text-muted mt-1.5 tabular-nums">
+            <div className="text-micro text-muted mt-1.5 tabular-nums">
               {walkInRevenue > 0 ? `${walkInRevenue.toLocaleString("fr-FR")}€ revenu` : "aucun revenu"}
             </div>
           </div>
 
-          <div className={cn("rounded-[14px] p-4 glass-liquid", health.cls.includes("bg-") ? health.cls : "")}>
+          <div className={cn("rounded-card p-4 glass-liquid", health.cls.includes("bg-") ? health.cls : "")}>
             <div className="flex items-center justify-between mb-2">
               <span className={cn(EYEBROW, health.cls.split(" ")[0])}>Statut</span>
               {todayPercent >= 70 ? (
@@ -829,14 +829,14 @@ export default function DashboardPage() {
             <div className={cn("text-xl font-black tabular-nums leading-none tracking-wide", health.cls.split(" ")[0])}>
               {health.label}
             </div>
-            <div className="text-[10px] text-muted mt-1.5">
+            <div className="text-micro text-muted mt-1.5">
               {deltaService > 0 ? `↑ ${deltaService}% vs hier` : deltaService < 0 ? `↓ ${Math.abs(deltaService)}% vs hier` : "stable vs hier"}
             </div>
           </div>
         </div>
 
         {/* ZONE 2 — TRADING CHART */}
-        <div className="glass-liquid rounded-[14px] p-5 mb-5">
+        <div className="glass-liquid rounded-card p-5 mb-5">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-4 flex-wrap">
               <TrendUp weight="duotone" size={20} className="text-brand" />
@@ -860,10 +860,10 @@ export default function DashboardPage() {
                 <>
                   <div className="w-px h-10 bg-black/10 dark:bg-white/10" />
                   <div>
-                    <div className="text-[10px] text-muted uppercase">Moyenne</div>
+                    <div className="text-micro text-muted uppercase">Moyenne</div>
                     <div className="text-xl font-black text-dark tabular-nums mt-0.5">
                       {avgPax}
-                      <span className="text-[10px] text-muted font-medium ml-1">
+                      <span className="text-micro text-muted font-medium ml-1">
                         {range === "3M" ? "/sem" : range === "6M" ? "/mois" : "/j"}
                       </span>
                     </div>
@@ -874,7 +874,7 @@ export default function DashboardPage() {
                 <>
                   <div className="w-px h-10 bg-black/10 dark:bg-white/10" />
                   <div>
-                    <div className="text-[10px] text-muted uppercase">
+                    <div className="text-micro text-muted uppercase">
                       {range === "1J" ? "Pic horaire"
                         : range === "3M" ? "Pic semaine"
                         : range === "6M" ? "Pic mois"
@@ -882,13 +882,13 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-xl font-black text-brand tabular-nums mt-0.5">
                       {peakDay.pax}
-                      <span className="text-[10px] text-muted font-medium ml-1">{peakDay.label}</span>
+                      <span className="text-micro text-muted font-medium ml-1">{peakDay.label}</span>
                     </div>
                   </div>
                 </>
               )}
             </div>
-            <span className="text-[10px] text-muted inline-flex items-center gap-1.5">
+            <span className="text-micro text-muted inline-flex items-center gap-1.5">
               <span className="inline-block w-4 h-[2px] rounded-full bg-brand" />
               moyenne mobile {range === "1J" ? "1h30"
                 : range === "3M" ? "3 sem"
@@ -897,7 +897,7 @@ export default function DashboardPage() {
             </span>
           </div>
           {showDemoBanner && (
-            <div className="mb-3 flex items-center gap-3 px-3 py-2 rounded-[12px] bg-brand/10 border border-brand/20">
+            <div className="mb-3 flex items-center gap-3 px-3 py-2 rounded-md bg-brand/10 border border-brand/20">
               <span className="text-xs text-dark flex-1">
                 Données insuffisantes pour la vue <b>{range}</b>. Générer 6 mois
                 de données de démonstration (variation hebdo + saisonnière) ?
@@ -917,7 +917,7 @@ export default function DashboardPage() {
         {/* ZONE 3 — FORECAST + PATTERN */}
         <div className="grid md:grid-cols-[1.3fr_1fr] gap-4 mb-5">
           {/* Forecast */}
-          <div className="glass-liquid rounded-[14px] p-4">
+          <div className="glass-liquid rounded-card p-4">
             <div className="flex items-center gap-2 mb-3">
               <Calendar weight="duotone" size={14} className="text-brand" />
               <span className={EYEBROW}>Prévision 7 jours · Morning Doc</span>
@@ -927,7 +927,7 @@ export default function DashboardPage() {
               <div className="text-xs text-muted text-center py-5">
                 Aucune prévision chargée.
                 <br />
-                <span className="text-[10px]">Importer le briefing du matin pour voir le forecast d'occupation.</span>
+                <span className="text-micro">Importer le briefing du matin pour voir le forecast d'occupation.</span>
               </div>
             ) : (
               <>
@@ -943,7 +943,7 @@ export default function DashboardPage() {
                       <div key={i} className="flex flex-col items-center gap-1 justify-end h-full">
                         <span
                           className={cn(
-                            "text-[10px] font-bold tabular-nums leading-none",
+                            "text-micro font-bold tabular-nums leading-none",
                             danger ? "text-error" : warn ? "text-brand" : "text-dark"
                           )}
                         >
@@ -951,7 +951,7 @@ export default function DashboardPage() {
                         </span>
                         <div
                           className={cn(
-                            "w-full rounded-t-[6px]",
+                            "w-full rounded-t-sm",
                             danger ? "bg-error" : warn ? "bg-brand" : "bg-dark dark:bg-white/80"
                           )}
                           style={{
@@ -959,7 +959,7 @@ export default function DashboardPage() {
                             opacity: danger ? 1 : warn ? 0.95 : 0.85,
                           }}
                         />
-                        <div className="text-[9px] text-muted font-mono text-center leading-tight">
+                        <div className="text-micro text-muted font-mono text-center leading-tight">
                           {d.date.split(" ")[0]?.slice(0, 3) || d.date.slice(0, 5)}
                         </div>
                       </div>
@@ -977,7 +977,7 @@ export default function DashboardPage() {
                         <div
                           key={i}
                           className={cn(
-                            "flex items-start gap-2 text-[11px]",
+                            "flex items-start gap-2 text-xs",
                             a.severity === "danger" ? "text-error" : "text-brand"
                           )}
                         >
@@ -996,12 +996,12 @@ export default function DashboardPage() {
           </div>
 
           {/* Pattern + Top packages */}
-          <div className="glass-liquid rounded-[14px] p-4">
+          <div className="glass-liquid rounded-card p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendUp weight="duotone" size={14} className="text-brand" />
               <span className={EYEBROW}>Rythme de la semaine</span>
             </div>
-            <div className="text-[11px] text-muted mb-3 leading-relaxed">
+            <div className="text-xs text-muted mb-3 leading-relaxed">
               Sur les 6 derniers mois, combien de personnes viennent en
               moyenne chaque jour. <span className="text-brand font-bold">Barre en or</span> = aujourd&apos;hui ({["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"][todayDow]}).
             </div>
@@ -1014,7 +1014,7 @@ export default function DashboardPage() {
                   {v > 0 && (
                     <span
                       className={cn(
-                        "text-[10px] font-bold tabular-nums leading-none",
+                        "text-micro font-bold tabular-nums leading-none",
                         i === todayDow ? "text-brand" : "text-dark"
                       )}
                     >
@@ -1023,7 +1023,7 @@ export default function DashboardPage() {
                   )}
                   <div
                     className={cn(
-                      "w-full rounded-t-[6px]",
+                      "w-full rounded-t-sm",
                       i === todayDow ? "bg-brand" : "bg-dark dark:bg-white/80"
                     )}
                     style={{
@@ -1034,7 +1034,7 @@ export default function DashboardPage() {
                   />
                   <div
                     className={cn(
-                      "text-[9px] font-mono",
+                      "text-micro font-mono",
                       i === todayDow ? "text-brand font-bold" : "text-muted"
                     )}
                   >
@@ -1049,7 +1049,7 @@ export default function DashboardPage() {
 
         {/* GSS — Satisfaction client (from Morning Brief) */}
         {gss.length > 0 && (
-          <div className="glass-liquid rounded-[14px] p-5 mb-5">
+          <div className="glass-liquid rounded-card p-5 mb-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Star weight="duotone" size={16} className="text-brand" />
@@ -1087,7 +1087,7 @@ export default function DashboardPage() {
                   <div
                     key={g.metric}
                     className={cn(
-                      "glass-liquid rounded-[12px] p-3 border-l-[3px]",
+                      "glass-liquid rounded-md p-3 border-l-[3px]",
                       strokeCls
                     )}
                   >
@@ -1098,7 +1098,7 @@ export default function DashboardPage() {
                       {delta !== null && (
                         <span
                           className={cn(
-                            "inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md shrink-0",
+                            "inline-flex items-center gap-0.5 text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-md shrink-0",
                             delta >= 0
                               ? "text-brand bg-brand/15"
                               : "text-error bg-error/15"
@@ -1117,7 +1117,7 @@ export default function DashboardPage() {
                     >
                       {mtd.toFixed(1)}
                     </div>
-                    <div className="text-[10px] text-muted mt-1.5 tabular-nums">
+                    <div className="text-micro text-muted mt-1.5 tabular-nums">
                       YTD {ytd !== undefined ? ytd.toFixed(1) : "—"}
                       {goal !== undefined && (
                         <span className="opacity-70"> · obj {goal}</span>
@@ -1133,7 +1133,7 @@ export default function DashboardPage() {
         {/* COMMENTS */}
         {comments.length > 0 && (
           <div className="mb-5">
-            <div className="glass-liquid rounded-[14px] p-4">
+            <div className="glass-liquid rounded-card p-4">
               <div className="flex items-center gap-2 mb-3">
                 <ChatCircleDots
                   weight="duotone"
@@ -1159,21 +1159,21 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={i}
-                        className="rounded-[12px] p-2 bg-black/[0.02] dark:bg-white/[0.03]"
+                        className="rounded-md p-2 bg-black/[0.02] dark:bg-white/[0.03]"
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[11px] font-bold text-dark truncate">
+                            <span className="text-xs font-bold text-dark truncate">
                               {c.guestName}
                             </span>
-                            <span className="text-[9px] text-muted font-mono uppercase tracking-wider">
+                            <span className="text-micro text-muted font-mono uppercase tracking-wider">
                               {c.source}
                             </span>
                           </div>
                           {rating !== null && (
                             <span
                               className={cn(
-                                "shrink-0 inline-flex items-center text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md",
+                                "shrink-0 inline-flex items-center text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-md",
                                 ratingCls
                               )}
                             >
@@ -1181,7 +1181,7 @@ export default function DashboardPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted leading-relaxed line-clamp-3">
+                        <p className="text-xs text-muted leading-relaxed line-clamp-3">
                           {c.text}
                         </p>
                       </div>
@@ -1194,7 +1194,7 @@ export default function DashboardPage() {
         )}
 
         {/* MONTHLY SUMMARY */}
-        <div className="glass-liquid rounded-[14px] p-5 bg-black/[0.02] dark:bg-white/[0.02]">
+        <div className="glass-liquid rounded-card p-5 bg-black/[0.02] dark:bg-white/[0.02]">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
               <div className={EYEBROW}>Synthèse mensuelle</div>
@@ -1211,21 +1211,21 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <div className="glass-liquid rounded-[12px] p-3">
-              <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wider font-bold">
+            <div className="glass-liquid rounded-md p-3">
+              <div className="inline-flex items-center gap-1 text-micro text-muted uppercase tracking-wider font-bold">
                 <Users size={10} weight="duotone" />
                 Couverts
               </div>
               <div className="text-2xl font-black text-dark tabular-nums mt-1 leading-none">
                 {stats.totalServed.toLocaleString("fr-FR")}
               </div>
-              <div className="text-[10px] text-muted tabular-nums mt-1">
+              <div className="text-micro text-muted tabular-nums mt-1">
                 / {stats.totalExpected.toLocaleString("fr-FR")} attendus
               </div>
             </div>
 
-            <div className="rounded-[12px] p-3 bg-gradient-to-br from-brand/10 to-transparent border border-brand/15">
-              <div className="inline-flex items-center gap-1 text-[9px] text-brand uppercase tracking-wider font-bold">
+            <div className="rounded-md p-3 bg-gradient-to-br from-brand/10 to-transparent border border-brand/15">
+              <div className="inline-flex items-center gap-1 text-micro text-brand uppercase tracking-wider font-bold">
                 <Gift size={10} weight="duotone" />
                 Compliments
               </div>
@@ -1233,26 +1233,26 @@ export default function DashboardPage() {
                 {stats.compCost.toLocaleString("fr-FR")}
                 <span className="text-sm opacity-70 ml-0.5">€</span>
               </div>
-              <div className="text-[10px] text-muted tabular-nums mt-1">
+              <div className="text-micro text-muted tabular-nums mt-1">
                 {stats.compPersons} couverts
               </div>
             </div>
 
-            <div className="glass-liquid rounded-[12px] p-3">
-              <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wider font-bold">
+            <div className="glass-liquid rounded-md p-3">
+              <div className="inline-flex items-center gap-1 text-micro text-muted uppercase tracking-wider font-bold">
                 <Footprints size={10} weight="duotone" />
                 Walk-ins
               </div>
               <div className="text-2xl font-black text-dark tabular-nums mt-1 leading-none">
                 {stats.walkInTotal}
               </div>
-              <div className="text-[10px] text-muted mt-1">
+              <div className="text-micro text-muted mt-1">
                 couverts hors-liste
               </div>
             </div>
 
-            <div className="glass-liquid rounded-[12px] p-3">
-              <div className="inline-flex items-center gap-1 text-[9px] text-muted uppercase tracking-wider font-bold">
+            <div className="glass-liquid rounded-md p-3">
+              <div className="inline-flex items-center gap-1 text-micro text-muted uppercase tracking-wider font-bold">
                 <ShieldCheck size={10} weight="duotone" />
                 VIPs servis
               </div>
@@ -1260,13 +1260,13 @@ export default function DashboardPage() {
                 {stats.vipsServed}
                 <span className="text-sm text-muted ml-1">/{stats.vipsTotal}</span>
               </div>
-              <div className="text-[10px] text-muted mt-1">
+              <div className="text-micro text-muted mt-1">
                 {stats.vipsMissed} non-vus
               </div>
             </div>
           </div>
 
-          <div className="mt-4 text-[11px] text-muted font-mono tabular-nums">
+          <div className="mt-4 text-xs text-muted font-mono tabular-nums">
             {stats.daysActive} jours actifs · taux d'assistance{" "}
             <span className="text-dark font-bold">{stats.attendanceRate}%</span>{" "}
             (min {stats.attendanceRateMin}% · max {stats.attendanceRateMax}%)

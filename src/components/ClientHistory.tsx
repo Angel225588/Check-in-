@@ -50,26 +50,26 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
 
   return (
     <div className="shrink-0 mb-3" data-role="client-history-today">
-      <div className="text-[10px] text-muted uppercase tracking-wide mb-1.5 font-medium">{t("clientHistory.today")}</div>
+      <div className="text-micro text-muted uppercase tracking-wide mb-1.5 font-medium">{t("clientHistory.today")}</div>
 
       {hasTodayEntries && (
         <div className="space-y-1.5">
           {todayCheckIns.map((ci) => (
-            <div key={ci.id} className="flex items-center gap-3 surface-card rounded-[12px] px-3 py-2">
+            <div key={ci.id} className="flex items-center gap-3 surface-card rounded-md px-3 py-2">
               {/* Day, date and hour, not just the hour. "15:21 · 2 personnes"
                   reads fine while you are standing there and means nothing in
                   a briefing the next afternoon. */}
               <span className="shrink-0 leading-tight">
-                <span className="block text-[13px] font-extrabold text-dark tabular-nums">{formatTime(ci.timestamp)}</span>
-                <span className="block text-[10.5px] first-letter:uppercase" style={{ color: "var(--tab-idle)" }}>
+                <span className="block text-sm font-extrabold text-dark tabular-nums">{formatTime(ci.timestamp)}</span>
+                <span className="block text-micro first-letter:uppercase" style={{ color: "var(--tab-idle)" }}>
                   {dayLabel(ci.timestamp)}
                 </span>
               </span>
-              <span className="text-[13px] font-bold text-dark flex-1">
+              <span className="text-sm font-bold text-dark flex-1">
                 {ci.peopleEntered} {ci.peopleEntered === 1 ? t("undo.person") : t("undo.people")}
               </span>
               {ci.paymentAction && (
-                <span className="text-[10px] text-muted uppercase">{ci.paymentAction}</span>
+                <span className="text-micro text-muted uppercase">{ci.paymentAction}</span>
               )}
               <button
                 onClick={() => setConfirmUndo(ci)}
@@ -91,7 +91,7 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
         <div className="fixed inset-0 z-[60] flex items-end justify-center screen-safe" onClick={() => setConfirmUndo(null)}>
           <div className="absolute inset-0 bg-black/30 dark:bg-black/60" />
           <div
-            className="relative w-full max-w-sm bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+            className="relative w-full max-w-sm bg-white dark:bg-surface-dark rounded-t-lg p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
@@ -102,13 +102,13 @@ export default function ClientHistory({ roomNumber, clientName, todayCheckIns, o
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmUndo(null)}
-                className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
+                className="flex-1 py-3 rounded-pill glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
               >
                 {t("undo.cancel")}
               </button>
               <button
                 onClick={handleUndo}
-                className="flex-1 py-3 rounded-[52px] bg-red-500 text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-red-500/20"
+                className="flex-1 py-3 rounded-pill bg-red-500 text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-red-500/20"
               >
                 {t("undo.confirm")}
               </button>

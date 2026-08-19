@@ -56,7 +56,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
          them at the top: the hour, the shape of the morning, then the window.
          pb-9 keeps the last line clear of the carousel's dots, which sit on
          the card rather than under it. */
-      className="relative flex-1 min-h-[158px] rounded-[24px] px-5 py-4 portrait:pb-9 flex flex-col justify-center portrait:justify-between overflow-hidden glass-liquid"
+      className="relative flex-1 min-h-[158px] rounded-xl px-5 py-4 portrait:pb-9 flex flex-col justify-center portrait:justify-between overflow-hidden glass-liquid"
       data-role="service-clock"
     >
       {/* The whole face opens the report. The chart here is a glance; the
@@ -69,7 +69,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
           {...tap}
           data-role="clock-open-report"
           aria-label="Ouvrir le rapport"
-          className="absolute inset-0 z-[5] rounded-[24px] active:bg-black/[0.04] dark:active:bg-white/[0.05]"
+          className="absolute inset-0 z-[5] rounded-xl active:bg-black/[0.04] dark:active:bg-white/[0.05]"
         />
       )}
       <div className="flex items-baseline gap-3">
@@ -94,7 +94,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
           ))}
         </div>
         {rush && (
-          <span className="text-[11px] font-black uppercase tracking-[0.07em] px-2 py-1 rounded-full"
+          <span className="text-xs font-black uppercase tracking-[0.07em] px-2 py-1 rounded-full"
             style={{ background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)" }}>
             Pointe
           </span>
@@ -107,7 +107,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
           draws, so the peak at the desk and the peak in the 15:00 briefing are
           one number. Landscape's box is 240px and has no room for it. */}
       <div className="hidden portrait:flex flex-1 min-h-0 flex-col justify-center gap-1.5 py-2" data-role="service-pulse">
-        <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em]"
+        <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.1em]"
           style={{ color: "var(--tab-idle)" }}>
           <span>Affluence</span>
           {pulse.peakIndex >= 0 && (
@@ -123,7 +123,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
             return (
               <i
                 key={b.start}
-                className="flex-1 min-w-0 rounded-t-[3px] transition-[height] duration-300"
+                className="flex-1 min-w-0 rounded-t-sm transition-[height] duration-300"
                 style={{
                   height: `${(h * 100).toFixed(1)}%`,
                   background: peak
@@ -150,7 +150,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
               return (
                 <span key={m} className="absolute top-0 flex flex-col items-center -translate-x-1/2" style={{ left: `${pos}%` }}>
                   <i className="block w-px h-[5px]" style={{ background: "var(--aur-hairline)" }} />
-                  <em className="not-italic text-[10px] font-bold tabular-nums leading-none mt-0.5"
+                  <em className="not-italic text-micro font-bold tabular-nums leading-none mt-0.5"
                     style={{ color: "var(--tab-idle)" }}>{hhmm(m)}</em>
                 </span>
               );
@@ -162,7 +162,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
             const pos = ((b.start + pulse.grain / 2 - pulse.open) / span) * 100;
             return (
               <span
-                className="absolute top-[13px] -translate-x-1/2 text-[10px] font-black tabular-nums whitespace-nowrap"
+                className="absolute top-[13px] -translate-x-1/2 text-micro font-black tabular-nums whitespace-nowrap"
                 style={{ left: `${Math.min(92, Math.max(8, pos))}%`, color: "var(--brand-ink)" }}
                 data-role="pulse-peak-mark"
               >
@@ -177,7 +177,7 @@ export default function ServiceClock({ checkIns = [], onOpen }: { checkIns?: Che
           practically nonsense — reception is often on the floor at 06:00 and
           would read 8h50 as time left of a service that has not started. Say
           which state the morning is actually in. */}
-      <div className="mt-3 portrait:mt-0 flex justify-between text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+      <div className="mt-3 portrait:mt-0 flex justify-between text-sm font-semibold" style={{ color: "var(--tab-idle)" }}>
         <span>Service <b style={{ color: "var(--brand-ink)" }}>06:30 – 10:30</b></span>
         {mins < OPEN ? (
           <span>ouvre dans <b style={{ color: "var(--brand-ink)" }}>{Math.floor((OPEN - mins) / 60)}h{pad((OPEN - mins) % 60)}</b></span>

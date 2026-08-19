@@ -22,8 +22,8 @@ export default function SearchNav({
   handSide: "left" | "right";
 }) {
   const item =
-    "flex-1 min-h-[60px] rounded-[16px] flex flex-col items-center justify-center gap-1 surface-chrome active:scale-[0.96] transition-transform";
-  const label = "text-[10px] font-black uppercase tracking-[0.06em]";
+    "flex-1 min-h-[60px] rounded-lg flex flex-col items-center justify-center gap-1 surface-chrome active:scale-[0.96] transition-transform";
+  const label = "text-micro font-black uppercase tracking-[0.06em]";
 
   /* h-full, because this row shares a line with the metrics bar and the metrics
      bar is taller. Left at content height the buttons sat at the top of a

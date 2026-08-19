@@ -4,9 +4,9 @@ import { Clock, Star, ArrowUUpLeft, NotePencil } from "@phosphor-icons/react/dis
 import type { ExpectedGuest } from "./ServiceClock";
 
 const shell =
-  "flex-1 min-h-[150px] rounded-[24px] px-5 pt-4 pb-7 flex flex-col overflow-hidden surface-card";
+  "flex-1 min-h-[150px] rounded-xl px-5 pt-4 pb-7 flex flex-col overflow-hidden surface-card";
 
-const cap = "text-[10.5px] font-black uppercase tracking-[0.14em] shrink-0";
+const cap = "text-micro font-black uppercase tracking-[0.14em] shrink-0";
 
 /**
  * A row you can read is a row you will try to touch.
@@ -16,7 +16,7 @@ const cap = "text-[10.5px] font-black uppercase tracking-[0.14em] shrink-0";
  * that guest, which is what the finger was already trying to do.
  */
 const row =
-  "w-full text-left flex items-baseline gap-3 shrink-0 min-h-[44px] px-2 -mx-2 rounded-[10px] " +
+  "w-full text-left flex items-baseline gap-3 shrink-0 min-h-[44px] px-2 -mx-2 rounded-md " +
   "transition-transform active:scale-[0.985] active:bg-black/[0.04] dark:active:bg-white/[0.06]";
 
 /** A row inside a swipeable frame: the click is ignored when the finger
@@ -39,15 +39,15 @@ export function ExpectedPane({ expected, onPick }: { expected: ExpectedGuest[]; 
       <span className={cap} style={{ color: "var(--tab-idle)" }}>Attendus bientôt</span>
       <div className="flex-1 min-h-0 flex flex-col justify-center gap-2 mt-2">
         {expected.length === 0 && (
-          <span className="text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+          <span className="text-sm font-semibold" style={{ color: "var(--tab-idle)" }}>
             Rien de prévisible pour l&apos;instant.
           </span>
         )}
         {expected.slice(0, 3).map((e) => (
           <PaneRow key={e.roomNumber} room={e.roomNumber} onPick={onPick}>
-            <b className="text-[22px] font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{e.roomNumber}</b>
-            <span className="flex-1 min-w-0 truncate text-[15px] font-bold">{e.surname}</span>
-            <em className="not-italic text-[13px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>~{e.at}</em>
+            <b className="text-2xl font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{e.roomNumber}</b>
+            <span className="flex-1 min-w-0 truncate text-base font-bold">{e.surname}</span>
+            <em className="not-italic text-sm font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>~{e.at}</em>
           </PaneRow>
         ))}
       </div>
@@ -86,16 +86,16 @@ export function RecentsPane({ recents, onPick }: { recents: RecentEntry[]; onPic
         style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}
       >
         {recents.length === 0 && (
-          <span className="text-[13px] font-semibold" style={{ color: "var(--tab-idle)" }}>
+          <span className="text-sm font-semibold" style={{ color: "var(--tab-idle)" }}>
             Personne n&apos;est encore entré.
           </span>
         )}
         {recents.map((r, i) => (
           <PaneRow key={`${r.roomNumber}-${i}`} room={r.roomNumber} onPick={onPick}>
-            <em className="not-italic text-[13px] font-bold tabular-nums w-[48px]" style={{ color: "var(--tab-idle)" }}>{r.at}</em>
-            <b className="text-[20px] font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{r.roomNumber}</b>
-            <span className="flex-1 min-w-0 truncate text-[14.5px] font-bold">{r.name}</span>
-            <span className="text-[13px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>{r.pax}</span>
+            <em className="not-italic text-sm font-bold tabular-nums w-[48px]" style={{ color: "var(--tab-idle)" }}>{r.at}</em>
+            <b className="text-xl font-black tabular-nums" style={{ color: "var(--brand-ink)" }}>{r.roomNumber}</b>
+            <span className="flex-1 min-w-0 truncate text-sm font-bold">{r.name}</span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>{r.pax}</span>
           </PaneRow>
         ))}
       </div>
@@ -129,11 +129,11 @@ export function HistoryPane({
       >
         {today.length > 0 && (
           <>
-            <span className="text-[10.5px] font-black uppercase tracking-[0.12em] shrink-0" style={{ color: "var(--tab-idle)" }}>
+            <span className="text-micro font-black uppercase tracking-[0.12em] shrink-0" style={{ color: "var(--tab-idle)" }}>
               Aujourd&apos;hui
             </span>
             {today.map((t, i) => (
-              <div key={`t${i}`} className="flex items-baseline gap-2.5 text-[15px] font-bold shrink-0 min-h-[30px]">
+              <div key={`t${i}`} className="flex items-baseline gap-2.5 text-base font-bold shrink-0 min-h-[30px]">
                 <ArrowUUpLeft weight="bold" size={12} style={{ color: "var(--aur-good-ink)" }} />
                 <span className="tabular-nums" style={{ color: "var(--tab-idle)" }}>{t.at}</span>
                 <span className="flex-1">{t.pax} pers. entrées</span>
@@ -142,12 +142,12 @@ export function HistoryPane({
           </>
         )}
         {stays.length === 0 && today.length === 0 && (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-bold" style={{ color: "var(--brand-ink)" }}>
+          <span className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: "var(--brand-ink)" }}>
             <Star weight="fill" size={13} /> Première visite
           </span>
         )}
         {stays.length > 0 && (
-          <span className="text-[10.5px] font-black uppercase tracking-[0.12em] mt-1 shrink-0" style={{ color: "var(--tab-idle)" }}>
+          <span className="text-micro font-black uppercase tracking-[0.12em] mt-1 shrink-0" style={{ color: "var(--tab-idle)" }}>
             Séjours précédents · {stays.length}
           </span>
         )}
@@ -156,7 +156,7 @@ export function HistoryPane({
             scrolls — capping it left four lines above a pool of air and quietly
             hid the other twelve. */}
         {stays.map((s, i) => (
-          <div key={`s${i}`} className="flex items-baseline gap-2.5 text-[15px] shrink-0 min-h-[30px]">
+          <div key={`s${i}`} className="flex items-baseline gap-2.5 text-base shrink-0 min-h-[30px]">
             <b className="font-extrabold tabular-nums">
               {new Date(s.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
             </b>

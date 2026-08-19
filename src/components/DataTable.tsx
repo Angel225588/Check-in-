@@ -27,7 +27,7 @@ export default function DataTable({
           {t("upload.clear")}
         </button>
       </div>
-      <div className="overflow-x-auto glass rounded-[14px]">
+      <div className="overflow-x-auto glass rounded-card">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-black/5 dark:border-white/5">
@@ -47,7 +47,7 @@ export default function DataTable({
                   <span className="flex items-center gap-1.5">
                     {c.roomNumber}
                     {c.isVip && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-light text-dark">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-micro font-bold bg-brand-light text-dark">
                         VIP{c.vipLevel ? ` ${c.vipLevel}` : ""}
                       </span>
                     )}
@@ -66,7 +66,7 @@ export default function DataTable({
       </div>
       <button
         onClick={onConfirm}
-        className="w-full bg-brand text-white py-4 rounded-[52px] text-xl font-bold active:opacity-90 transition-opacity dark:glow-brand"
+        className="w-full bg-brand text-white py-4 rounded-pill text-xl font-bold active:opacity-90 transition-opacity dark:glow-brand"
       >
         {t("table.confirm")} ({clients.length} {t("upload.rooms")})
       </button>

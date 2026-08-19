@@ -113,7 +113,7 @@ export default function PortraitMetrics({
   const hidden = choice.hidden;
 
   return (
-    <div className="flex items-stretch gap-2 p-2 surface-chrome rounded-[16px]" data-role="portrait-metrics">
+    <div className="flex items-stretch gap-2 p-2 surface-chrome rounded-lg" data-role="portrait-metrics">
       {shown.map((m) => {
         const on = activeFilter === m.key;
         return (
@@ -126,20 +126,20 @@ export default function PortraitMetrics({
             /* Cut into the bar rather than outlined on it: four numbers in a
                row need to read as four things, and a border between each is a
                cage. Depth does it with light instead. */
-            className={`flex-1 min-w-0 min-h-[56px] px-1.5 rounded-[14px] text-center transition-transform active:scale-[0.96] ${
+            className={`flex-1 min-w-0 min-h-[56px] px-1.5 rounded-card text-center transition-transform active:scale-[0.96] ${
               on ? "glass-liquid-active" : "surface-inset"
             }`}
           >
-            <div className="text-[9.5px] font-black uppercase tracking-[0.08em] truncate text-muted">{m.label}</div>
+            <div className="text-micro font-black uppercase tracking-[0.08em] truncate text-muted">{m.label}</div>
             {progress[m.key] ? (
-              <div className={`text-[21px] font-black leading-[1.1] tabular-nums ${on ? "text-dark" : "text-dark"}`}>
+              <div className={`text-xl font-black leading-[1.1] tabular-nums ${on ? "text-dark" : "text-dark"}`}>
                 <AnimatedNumber value={progress[m.key]!.done} />
                 <span style={{ color: "var(--tab-idle)" }}>/{progress[m.key]!.of}</span>
               </div>
             ) : (
               <AnimatedNumber
                 value={m.value}
-                className={`text-[21px] font-black leading-[1.1] tabular-nums ${
+                className={`text-xl font-black leading-[1.1] tabular-nums ${
                   m.key === "remaining" ? "text-brand" : "text-dark"
                 }`}
               />
@@ -153,10 +153,10 @@ export default function PortraitMetrics({
           onClick={() => setSheet(true)}
           data-role="portrait-filter-more"
           aria-label={`Choisir les métriques (${hidden.length} de côté)`}
-          className="surface-inset relative shrink-0 w-[46px] min-h-[56px] rounded-[14px] grid place-items-center transition-transform active:scale-[0.94]"
+          className="surface-inset relative shrink-0 w-[46px] min-h-[56px] rounded-card grid place-items-center transition-transform active:scale-[0.94]"
         >
           <FunnelSimple size={18} weight="bold" style={{ color: "var(--tab-idle)" }} />
-          <span className="absolute bottom-1 text-[9px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
+          <span className="absolute bottom-1 text-micro font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
             +{hidden.length}
           </span>
         </button>

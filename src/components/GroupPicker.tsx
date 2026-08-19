@@ -31,7 +31,7 @@ export default function GroupPicker({
   if (blocks.length < 2) return null;
 
   const chip =
-    "min-h-[40px] shrink-0 px-3 rounded-[12px] inline-flex items-center gap-2 text-left transition-transform active:scale-[0.97]";
+    "min-h-[40px] shrink-0 px-3 rounded-md inline-flex items-center gap-2 text-left transition-transform active:scale-[0.97]";
 
   return (
     <div
@@ -60,8 +60,8 @@ export default function GroupPicker({
           ? { background: "var(--aur-gold-soft)", boxShadow: "inset 0 0 0 1.5px var(--aur-gold)" }
           : { background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px rgba(128,128,128,.12)" }}
       >
-        <span className="text-[13px] font-black text-dark">Tous</span>
-        <b className="text-[13px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
+        <span className="text-sm font-black text-dark">Tous</span>
+        <b className="text-sm font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
           {blocks.length}
         </b>
       </button>
@@ -82,7 +82,7 @@ export default function GroupPicker({
               : { background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px rgba(128,128,128,.12)" }}
           >
             <span
-              className="w-[18px] h-[18px] shrink-0 rounded-[6px] grid place-items-center"
+              className="w-[18px] h-[18px] shrink-0 rounded-sm grid place-items-center"
               style={on
                 ? { background: "var(--aur-gold)" }
                 : { boxShadow: "inset 0 0 0 1.5px rgba(128,128,128,.4)" }}
@@ -94,13 +94,13 @@ export default function GroupPicker({
                 though: two blocks can share one code and differ only by their
                 stay window, and two identical chips is a control you cannot
                 aim. The arrival date is what separates them. */}
-            <span className="text-[13px] font-black text-dark whitespace-nowrap">
+            <span className="text-sm font-black text-dark whitespace-nowrap">
               {b.rateCode || "Groupe"}
               {blocks.filter((x) => x.rateCode === b.rateCode).length > 1 && (
                 <span className="font-bold" style={{ color: "var(--tab-idle)" }}> · {b.arrivalDate.slice(0, 5)}</span>
               )}
             </span>
-            <b className="text-[13px] font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
+            <b className="text-sm font-black tabular-nums" style={{ color: "var(--tab-idle)" }}>
               {b.rooms}
             </b>
           </button>

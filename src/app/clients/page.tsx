@@ -25,7 +25,7 @@ function VipBadge({ level }: { level?: string }) {
   }
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${classes}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-micro font-bold uppercase tracking-wide ${classes}`}>
       {label}
     </span>
   );
@@ -33,7 +33,7 @@ function VipBadge({ level }: { level?: string }) {
 
 function CompBadge() {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-teal-400 text-white">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-micro font-bold uppercase tracking-wide bg-gradient-to-r from-emerald-500 to-teal-400 text-white">
       COMP
     </span>
   );
@@ -58,7 +58,7 @@ function ClientRow({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+      className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-card active:scale-[0.98] transition-all text-left"
     >
       {/* Room number */}
       <div className="shrink-0 w-14 text-center">
@@ -74,7 +74,7 @@ function ClientRow({
           {client.isVip && <VipBadge level={client.vipLevel} />}
           {isComp(client) && <CompBadge />}
         </div>
-        <div className="text-[11px] text-muted mt-0.5">
+        <div className="text-xs text-muted mt-0.5">
           {total} {t("clients.guests")}
         </div>
       </div>
@@ -86,21 +86,21 @@ function ClientRow({
             <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-[11px] font-semibold text-green-600 dark:text-green-400">{entered}/{total}</span>
+            <span className="text-xs font-semibold text-green-600 dark:text-green-400">{entered}/{total}</span>
           </div>
         ) : entered > 0 ? (
           <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">{entered}/{total}</span>
+            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">{entered}/{total}</span>
           </div>
         ) : (
           <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/10">
             <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
             </svg>
-            <span className="text-[11px] font-semibold text-red-400">0/{total}</span>
+            <span className="text-xs font-semibold text-red-400">0/{total}</span>
           </div>
         )}
       </div>
@@ -187,7 +187,7 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] p-3 pt-3 screen-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-background dark:bg-ink p-3 pt-3 screen-safe">
         <div className="skeleton h-8 w-40 mb-3" />
         <div className="grid grid-cols-5 gap-1.5 mb-3">
           {[0, 1, 2, 3, 4].map((i) => (
@@ -205,7 +205,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto bg-background dark:bg-ink screen-safe">
       {/* Header */}
       <div className="shrink-0 p-3 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
@@ -228,7 +228,7 @@ export default function ClientsPage() {
             >
               COURTYARD
             </span>
-            <span className="text-[10px] text-muted leading-tight">
+            <span className="text-micro text-muted leading-tight">
               by <span className="font-bold tracking-[0.05em] text-slate">MARRIOTT</span>
             </span>
           </div>
@@ -236,32 +236,32 @@ export default function ClientsPage() {
 
         {/* Title */}
         <h1 className="text-xl font-bold text-dark mb-0.5">{t("clients.title")}</h1>
-        <p className="text-[11px] text-muted mb-3">
+        <p className="text-xs text-muted mb-3">
           {stats.total} {t("clients.guests")} · {stats.sessionCount} {t("clients.sessions")}
         </p>
 
         {/* Stats summary — cumulative across all sessions */}
         {stats.total > 0 && (
           <div className="grid grid-cols-5 gap-1.5 mb-3">
-            <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
+            <div className="glass-liquid rounded-md px-2 py-2 text-center">
               <AnimatedNumber value={stats.total} className="text-lg font-bold text-dark" />
-              <div className="text-[9px] text-muted uppercase tracking-wide font-medium">Total</div>
+              <div className="text-micro text-muted uppercase tracking-wide font-medium">Total</div>
             </div>
-            <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
+            <div className="glass-liquid rounded-md px-2 py-2 text-center">
               <AnimatedNumber value={stats.vips} className="text-lg font-bold text-brand" />
-              <div className="text-[9px] text-muted uppercase tracking-wide font-medium">VIP</div>
+              <div className="text-micro text-muted uppercase tracking-wide font-medium">VIP</div>
             </div>
-            <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
+            <div className="glass-liquid rounded-md px-2 py-2 text-center">
               <AnimatedNumber value={stats.comps} className="text-lg font-bold text-emerald-600 dark:text-emerald-400" />
-              <div className="text-[9px] text-muted uppercase tracking-wide font-medium">Comp</div>
+              <div className="text-micro text-muted uppercase tracking-wide font-medium">Comp</div>
             </div>
-            <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
+            <div className="glass-liquid rounded-md px-2 py-2 text-center">
               <AnimatedNumber value={stats.entered} className="text-lg font-bold text-green-600 dark:text-green-400" />
-              <div className="text-[9px] text-muted uppercase tracking-wide font-medium">{t("clients.entered")}</div>
+              <div className="text-micro text-muted uppercase tracking-wide font-medium">{t("clients.entered")}</div>
             </div>
-            <div className="glass-liquid rounded-[12px] px-2 py-2 text-center">
+            <div className="glass-liquid rounded-md px-2 py-2 text-center">
               <AnimatedNumber value={stats.remaining} className="text-lg font-bold text-red-400" />
-              <div className="text-[9px] text-muted uppercase tracking-wide font-medium">{t("clients.noShow")}</div>
+              <div className="text-micro text-muted uppercase tracking-wide font-medium">{t("clients.noShow")}</div>
             </div>
           </div>
         )}
@@ -282,7 +282,7 @@ export default function ClientsPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("clients.searchPlaceholder")}
             aria-label={t("clients.searchPlaceholder")}
-            className="w-full pl-10 pr-10 py-2 glass-liquid rounded-[14px] text-sm text-dark placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+            className="w-full pl-10 pr-10 py-2 glass-liquid rounded-card text-sm text-dark placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
           />
           {search && (
             <button
@@ -362,7 +362,7 @@ export default function ClientsPage() {
                     key={`${session.date}-${i}`}
                     onClick={() => setExpandedDate(isExpanded ? null : session.date)}
                     className={`
-                      px-3 py-1.5 rounded-[52px] text-xs font-semibold transition-all active:scale-[0.96]
+                      px-3 py-1.5 rounded-pill text-xs font-semibold transition-all active:scale-[0.96]
                       ${isExpanded
                         ? "bg-gradient-to-r from-brand to-brand-light text-white shadow-md shadow-brand/20"
                         : "glass-liquid text-muted hover:text-dark"
@@ -393,7 +393,7 @@ export default function ClientsPage() {
                     return (
                       <div
                         key={`past-${session.date}-${client.roomNumber}-${i}`}
-                        className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-[14px] opacity-80"
+                        className="w-full flex items-center gap-3 px-3 py-2 glass-liquid rounded-card opacity-80"
                       >
                         <div className="shrink-0 w-14 text-center">
                           <span className="font-mono font-bold text-base text-dark">{client.roomNumber}</span>
@@ -406,7 +406,7 @@ export default function ClientsPage() {
                             {client.isVip && <VipBadge level={client.vipLevel} />}
                             {isComp(client) && <CompBadge />}
                           </div>
-                          <div className="text-[11px] text-muted mt-0.5">
+                          <div className="text-xs text-muted mt-0.5">
                             {total} {t("clients.guests")}
                           </div>
                         </div>
@@ -416,21 +416,21 @@ export default function ClientsPage() {
                               <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
-                              <span className="text-[11px] font-semibold text-green-600 dark:text-green-400">{entered}/{total}</span>
+                              <span className="text-xs font-semibold text-green-600 dark:text-green-400">{entered}/{total}</span>
                             </div>
                           ) : entered > 0 ? (
                             <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10">
                               <svg className="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
-                              <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">{entered}/{total}</span>
+                              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">{entered}/{total}</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/10">
                               <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
                               </svg>
-                              <span className="text-[11px] font-semibold text-red-400">0/{total}</span>
+                              <span className="text-xs font-semibold text-red-400">0/{total}</span>
                             </div>
                           )}
                         </div>

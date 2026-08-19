@@ -86,9 +86,9 @@ export default function NavDrawer({
 
   /** The landscape tile, at drawer width. */
   const tile =
-    "min-h-[68px] rounded-[16px] flex flex-col items-center justify-center gap-1 surface-chrome " +
+    "min-h-[68px] rounded-lg flex flex-col items-center justify-center gap-1 surface-chrome " +
     "active:scale-[0.96] transition-transform";
-  const tileLabel = "text-[10px] font-black uppercase tracking-[0.06em]";
+  const tileLabel = "text-micro font-black uppercase tracking-[0.06em]";
 
   /** Do it, then get out of the way — a drawer that stays open after a choice
    *  makes you dismiss it twice. Preferences are the exception: flipping a
@@ -122,7 +122,7 @@ export default function NavDrawer({
         }}
       >
         <div className={`shrink-0 flex items-center justify-between mb-2 px-1 ${side === "right" ? "flex-row-reverse" : ""}`}>
-          <b className="text-[13px] font-black uppercase tracking-[0.12em]" style={{ color: "var(--tab-idle)" }}>
+          <b className="text-sm font-black uppercase tracking-[0.12em]" style={{ color: "var(--tab-idle)" }}>
             Service
           </b>
           <button
@@ -163,7 +163,7 @@ export default function NavDrawer({
 
         {/* The day, right here. No tile in front of it. */}
         <div className={`shrink-0 flex items-center justify-between mb-1.5 px-1 ${showNav ? "mt-4" : "mt-1"}`}>
-          <b className="text-[11px] font-black uppercase tracking-[0.12em] inline-flex items-center gap-1.5"
+          <b className="text-xs font-black uppercase tracking-[0.12em] inline-flex items-center gap-1.5"
             style={{ color: "var(--tab-idle)" }}>
             <Clock size={13} weight="duotone" /> Activité · {recents.length}
           </b>
@@ -174,7 +174,7 @@ export default function NavDrawer({
             onClick={pick(onExpandActivity)}
             data-role="drawer-expand-activity"
             aria-label="Ouvrir l'activité en grand"
-            className="w-11 h-11 -mr-1 rounded-[12px] grid place-items-center active:scale-[0.92] transition-transform"
+            className="w-11 h-11 -mr-1 rounded-md grid place-items-center active:scale-[0.92] transition-transform"
           >
             <ArrowsOutSimple size={17} weight="bold" style={{ color: "var(--brand-ink)" }} />
           </button>
@@ -186,7 +186,7 @@ export default function NavDrawer({
           style={{ overscrollBehavior: "contain" }}
         >
           {recents.length === 0 && (
-            <span className="text-[13px] font-semibold px-1 py-2" style={{ color: "var(--tab-idle)" }}>
+            <span className="text-sm font-semibold px-1 py-2" style={{ color: "var(--tab-idle)" }}>
               Personne n&apos;est encore entré.
             </span>
           )}
@@ -222,11 +222,11 @@ export default function NavDrawer({
             data-role={s.role}
             role="switch"
             aria-checked={s.on}
-            className="shrink-0 mt-2 min-h-[52px] px-4 rounded-[14px] flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
+            className="shrink-0 mt-2 min-h-[52px] px-4 rounded-card flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
             style={{ background: "rgba(128,128,128,.08)", boxShadow: "inset 0 0 0 1px var(--aur-hairline)" }}
           >
             {s.icon}
-            <span className="flex-1 text-[14px] font-bold" style={{ color: "var(--aur-ink-2)" }}>{s.label}</span>
+            <span className="flex-1 text-sm font-bold" style={{ color: "var(--aur-ink-2)" }}>{s.label}</span>
             <span
               aria-hidden
               className="shrink-0 w-[46px] h-[27px] rounded-full relative transition-colors"
@@ -247,7 +247,7 @@ export default function NavDrawer({
             of it turns a guess into a fact. */}
         <span
           data-role="build-stamp"
-          className="shrink-0 mt-2 text-center text-[10px] font-bold tabular-nums tracking-[0.08em]"
+          className="shrink-0 mt-2 text-center text-micro font-bold tabular-nums tracking-[0.08em]"
           style={{ color: "var(--tab-idle)", opacity: 0.65 }}
         >
           build {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}

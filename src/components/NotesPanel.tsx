@@ -104,9 +104,9 @@ export default function NotesPanel({
   return (
     <div className="flex flex-col h-full min-h-0">
       {api.saveError && (
-        <div className="shrink-0 mb-2 flex items-start gap-2 rounded-[12px] px-3 py-2" style={{ background: "var(--aur-bad-soft)" }}>
+        <div className="shrink-0 mb-2 flex items-start gap-2 rounded-md px-3 py-2" style={{ background: "var(--aur-bad-soft)" }}>
           <WarningCircle weight="duotone" size={16} color="var(--aur-bad-ink)" className="shrink-0 mt-0.5" />
-          <div className="text-[12px] font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
+          <div className="text-xs font-bold leading-snug" style={{ color: "var(--aur-bad-ink)" }}>
             Note NON enregistrée — stockage plein.
             <button onClick={api.clearError} className="underline ml-1 font-black">Fermer</button>
           </div>
@@ -117,7 +117,7 @@ export default function NotesPanel({
       {draft && (
         <div className="flex-1 min-h-0 flex flex-col gap-2">
           <div className="shrink-0 flex items-center gap-2">
-            <span className="text-[12.5px] font-black flex-1" style={{ color: "var(--brand-ink)" }}>
+            <span className="text-xs font-black flex-1" style={{ color: "var(--brand-ink)" }}>
               {draft.editingId ? "Modifier" : "Nouvelle note"}
             </span>
             {expandBtn({ view: "compose", draft }, "Agrandir au centre")}
@@ -140,7 +140,7 @@ export default function NotesPanel({
                   onClick={() => pickTone(t)}
                   data-role="note-tone"
                   aria-pressed={on}
-                  className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-2 rounded-full text-[11.5px] font-extrabold transition-all"
+                  className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-2 rounded-full text-xs font-extrabold transition-all"
                   style={toneChipStyle(t, on)}
                 >
                   <NoteToneIcon tone={t} size={12} color={on ? m.color : "var(--tab-idle)"} />
@@ -157,7 +157,7 @@ export default function NotesPanel({
             placeholder="Titre"
             aria-label="Titre de la note"
             autoComplete="off"
-            className="shrink-0 min-h-[52px] px-3 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[16px] font-extrabold text-dark"
+            className="shrink-0 min-h-[52px] px-3 rounded-card bg-black/[0.04] dark:bg-white/[0.06] outline-none text-base font-extrabold text-dark"
           />
           <textarea
             value={draft.body}
@@ -165,13 +165,13 @@ export default function NotesPanel({
             data-role="note-body"
             placeholder="Détail…"
             aria-label="Contenu de la note"
-            className="flex-1 min-h-[140px] p-3 rounded-[14px] bg-black/[0.04] dark:bg-white/[0.06] outline-none text-[14.5px] leading-relaxed text-dark resize-none"
+            className="flex-1 min-h-[140px] p-3 rounded-card bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm leading-relaxed text-dark resize-none"
           />
 
           <button
             onClick={() => { setPinTouched(true); setDraft({ ...draft, pinned: !draft.pinned }); }}
             aria-pressed={draft.pinned}
-            className="shrink-0 min-h-[44px] rounded-full inline-flex items-center justify-center gap-1.5 text-[12.5px] font-extrabold"
+            className="shrink-0 min-h-[44px] rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-extrabold"
             style={draft.pinned
               ? { background: "var(--aur-gold-soft-2)", color: "var(--brand-ink)", boxShadow: "inset 0 0 0 1.5px var(--color-brand)" }
               : { background: "rgba(128,128,128,.10)", color: "var(--tab-idle)" }}
@@ -183,7 +183,7 @@ export default function NotesPanel({
           <button
             onClick={save}
             data-role="note-save"
-            className="shrink-0 min-h-[52px] rounded-full inline-flex items-center justify-center gap-2 text-white text-[14.5px] font-black active:scale-[0.97] transition-transform"
+            className="shrink-0 min-h-[52px] rounded-full inline-flex items-center justify-center gap-2 text-white text-sm font-black active:scale-[0.97] transition-transform"
             style={{ background: "var(--aur-good)", boxShadow: "0 8px 22px -10px rgba(47,111,79,.6)" }}
           >
             <Check weight="bold" size={17} /> Enregistrer
@@ -210,7 +210,7 @@ export default function NotesPanel({
       {!draft && !selected && (
         <>
           <div className="shrink-0 flex items-center gap-1.5 mb-1.5">
-            <span className="text-[10px] uppercase tracking-wide flex-1" style={{ color: "var(--tab-idle)" }}>
+            <span className="text-micro uppercase tracking-wide flex-1" style={{ color: "var(--tab-idle)" }}>
               {api.notes.length} note{api.notes.length > 1 ? "s" : ""}
             </span>
             {expandBtn({ view: "list" }, "Agrandir au centre")}
@@ -225,7 +225,7 @@ export default function NotesPanel({
                   key={t}
                   onClick={() => setTone(t as NoteTone | "all")}
                   aria-pressed={on}
-                  className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-3 rounded-full text-[12px] font-extrabold transition-all"
+                  className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-3 rounded-full text-xs font-extrabold transition-all"
                   style={toneChipStyle(t as NoteTone | "all", on)}
                 >
                   {m && <NoteToneIcon tone={t as NoteTone} size={13} color={on ? m.color : "var(--tab-idle)"} />}
@@ -236,9 +236,9 @@ export default function NotesPanel({
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 flex flex-col gap-2">
-            {!api.ready && <div className="text-[12.5px] text-center py-6" style={{ color: "var(--tab-idle)" }}>Déchiffrement…</div>}
+            {!api.ready && <div className="text-xs text-center py-6" style={{ color: "var(--tab-idle)" }}>Déchiffrement…</div>}
             {api.ready && visible.length === 0 && (
-              <div className="text-[12.5px] text-center py-6 leading-relaxed" style={{ color: "var(--tab-idle)" }}>
+              <div className="text-xs text-center py-6 leading-relaxed" style={{ color: "var(--tab-idle)" }}>
                 Aucune note{tone !== "all" ? " de ce type" : ""}.<br />
                 Ajoutez une allergie, une préférence, un événement.
               </div>
@@ -251,7 +251,7 @@ export default function NotesPanel({
           <button
             onClick={startNew}
             data-role="note-new"
-            className="shrink-0 mt-2 min-h-[48px] rounded-full inline-flex items-center justify-center gap-1.5 text-white text-[14px] font-black active:scale-[0.97] transition-all"
+            className="shrink-0 mt-2 min-h-[48px] rounded-full inline-flex items-center justify-center gap-1.5 text-white text-sm font-black active:scale-[0.97] transition-all"
             style={{ background: "var(--color-brand)", boxShadow: "0 8px 22px -10px rgba(166,105,20,.6)" }}
           >
             <Plus weight="bold" size={16} /> Ajouter une note
@@ -275,17 +275,17 @@ function NoteRow({ note, onOpen }: { note: GuestNote; onOpen: () => void }) {
       onClick={onOpen}
       data-role="note-row"
       data-note-tone={note.tone}
-      className="shrink-0 w-full text-left rounded-[14px] pl-3 pr-3 py-2 flex items-start gap-2 min-h-[56px] active:scale-[0.99] transition-transform relative overflow-hidden"
+      className="shrink-0 w-full text-left rounded-card pl-3 pr-3 py-2 flex items-start gap-2 min-h-[56px] active:scale-[0.99] transition-transform relative overflow-hidden"
       style={{ background: isAlert ? m.soft : "rgba(0,0,0,.035)" }}
     >
       <span className="absolute left-0 top-0 bottom-0 w-[3.5px]" style={{ background: m.color }} />
       <NoteToneIcon tone={note.tone} size={16} />
       <span className="min-w-0 flex-1">
-        <span className="block text-[13.5px] font-extrabold leading-snug truncate" style={{ color: isAlert ? m.color : undefined }}>
+        <span className="block text-sm font-extrabold leading-snug truncate" style={{ color: isAlert ? m.color : undefined }}>
           {note.title || note.body.slice(0, 60)}
         </span>
         {note.title && note.body && (
-          <span className="block text-[11.5px] truncate mt-0.5" style={{ color: "var(--tab-idle)" }}>{note.body}</span>
+          <span className="block text-xs truncate mt-0.5" style={{ color: "var(--tab-idle)" }}>{note.body}</span>
         )}
       </span>
       {note.pinned && <PushPin weight="fill" size={12} className="shrink-0 mt-0.5" style={{ color: m.color }} />}

@@ -32,11 +32,11 @@ export default function PinnedNoteChips({
   return (
     <div>
       <div className="flex items-baseline justify-between mb-2">
-        <span className="text-[10px] uppercase tracking-wide font-bold" style={{ color: "var(--tab-idle)" }}>
+        <span className="text-micro uppercase tracking-wide font-bold" style={{ color: "var(--tab-idle)" }}>
           À retenir pour ce client
         </span>
         {shown.length > 2 && (
-          <span className="text-[10px] font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
+          <span className="text-micro font-bold tabular-nums" style={{ color: "var(--tab-idle)" }}>
             {shown.length} notes
           </span>
         )}
@@ -56,7 +56,7 @@ export default function PinnedNoteChips({
               onClick={() => onOpen(n.id)}
               data-role="pinned-chip"
               data-note-tone={n.tone}
-              className="shrink-0 w-[228px] min-h-[60px] text-left px-3 py-2 rounded-[14px] flex items-start gap-2 active:scale-[0.97] transition-transform"
+              className="shrink-0 w-[228px] min-h-[60px] text-left px-3 py-2 rounded-card flex items-start gap-2 active:scale-[0.97] transition-transform"
               style={{
                 background: m.soft,
                 // An alert gets a ring; the others get their tint and nothing
@@ -71,14 +71,14 @@ export default function PinnedNoteChips({
               </span>
               <span className="min-w-0 flex-1">
                 <span
-                  className="block text-[13px] font-extrabold leading-tight truncate"
+                  className="block text-sm font-extrabold leading-tight truncate"
                   style={{ color: m.color }}
                 >
                   {n.title || m.label}
                 </span>
                 {n.body && n.body !== n.title && (
                   <span
-                    className="block text-[11.5px] font-semibold leading-snug line-clamp-2"
+                    className="block text-xs font-semibold leading-snug line-clamp-2"
                     style={{ color: "var(--aur-ink-2)" }}
                   >
                     {n.body}

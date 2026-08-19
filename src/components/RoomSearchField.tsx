@@ -25,7 +25,7 @@ export default function RoomSearchField({
 }) {
   return (
     <div
-      className="flex items-center gap-4 px-5 min-h-[84px] portrait:min-h-[clamp(64px,11vh,84px)] rounded-[24px] surface-field"
+      className="flex items-center gap-4 px-5 min-h-[84px] portrait:min-h-[clamp(64px,11vh,84px)] rounded-xl surface-field"
       data-role="search-field"
     >
       <MagnifyingGlass size={27} weight="bold" style={{ color: "var(--tab-idle)" }} className="shrink-0" />
@@ -42,7 +42,7 @@ export default function RoomSearchField({
         // self-stretch, so the tap target is the whole 84px band rather than
         // the 42px the glyphs happen to occupy: on a tablet you aim at the
         // field, not at the text inside it.
-        className="flex-1 min-w-0 self-stretch bg-transparent outline-none text-[28px] font-bold text-dark placeholder:font-normal placeholder:italic placeholder:text-[26px]"
+        className="flex-1 min-w-0 self-stretch bg-transparent outline-none text-3xl font-bold text-dark placeholder:font-normal placeholder:italic placeholder:text-2xl"
         style={{ fontFamily: "inherit" }}
       />
       {value && (

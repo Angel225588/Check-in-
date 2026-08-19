@@ -17,7 +17,21 @@
   --color-border: #C4C4C4;
   --color-error: #D0021B;
   --color-bg-alt: #F4F4F4;
-  --radius-card: 14px;
+  /* Type scale — the ONLY sizes allowed in components.
+     Before this existed the app used 44 different sizes (7px … 64px, including
+     9.5, 10.5, 11.5, 12.5, 13.5, 14.5). Every screen looked fine alone; together
+     they read as hand-eyeballed. A brand is recognisable because the same few
+     values repeat, so these are the values. `micro` is the only custom step —
+     the rest are Tailwind's own scale, which is already a good one. */
+  --text-micro: 0.625rem;      /* 10px — badges, table labels, dense meta */
+
+  /* Radius scale. Before: 16 different radii (3,6,7,8,10,12,14,16,18,20,24,52).
+     A card is one shape in a premium product, not eleven. */
+  --radius-sm: 8px;            /* chips, small controls */
+  --radius-md: 12px;           /* inner tiles, list rows */
+  --radius-card: 14px;         /* the card — the app's signature shape */
+  --radius-lg: 20px;           /* sheets, large panels */
+  --radius-xl: 24px;           /* modals */
   --radius-pill: 52px;
   /* Brand gold for SMALL text. #A66914 measures 4.44:1 on glass, and even a
      mid gold sat at 4.37:1 on the tinted active-payment chip — both under
@@ -27,6 +41,8 @@
   --tab-idle: #5C564C;
 
   /* shadcn/ui tokens — Courtyard by Marriott brand mapping */
+  --color-ink: #12100E;         /* dark-mode page ground */
+  --color-surface-dark: #1C1C1E;/* dark-mode raised surface */
   --color-background: #FBF8F3;
   --color-foreground: #1C1C1C;
   --color-card: #FFFFFF;

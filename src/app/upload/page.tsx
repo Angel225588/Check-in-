@@ -63,7 +63,7 @@ function HistoryDrawer({
   return (
     <div className="fixed inset-0 z-50 flex screen-safe">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="ml-auto relative w-full max-w-sm bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
+      <div className="ml-auto relative w-full max-w-sm bg-background dark:bg-ink h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         <div className="shrink-0 p-4 pt-3 flex items-center justify-between">
           <h2 className="text-xl font-bold text-dark">{t("history.pastSessions")}</h2>
           <button onClick={onClose} className="p-2 glass-liquid rounded-full active:scale-95 transition-transform">
@@ -80,7 +80,7 @@ function HistoryDrawer({
             <button
               key={i}
               onClick={() => onViewSession(s)}
-              className="w-full text-left p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all"
+              className="w-full text-left p-4 glass-liquid rounded-card active:scale-[0.98] transition-all"
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="font-bold text-dark">{s.date}</span>
@@ -143,7 +143,7 @@ function SessionDetailDrawer({
   return (
     <div className="fixed inset-0 z-50 flex screen-safe">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="ml-auto relative w-full max-w-lg bg-[#FBF8F3] dark:bg-[#12100E] h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
+      <div className="ml-auto relative w-full max-w-lg bg-background dark:bg-ink h-full shadow-xl flex flex-col animate-[slideIn_0.25s_ease-out]">
         {/* Header */}
         <div className="shrink-0 p-4 pt-3">
           <div className="flex items-center justify-between mb-3">
@@ -164,23 +164,23 @@ function SessionDetailDrawer({
           {/* Metric filter cards */}
           <div className="grid grid-cols-4 gap-1.5">
             <button onClick={() => handleFilterTap("all")}
-              className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "all" ? "glass-liquid-active ring-1 ring-brand/30" : "glass-liquid"}`}>
-              <div className="text-[8px] text-muted uppercase">{t("report.totalRooms")}</div>
+              className={`rounded-md p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "all" ? "glass-liquid-active ring-1 ring-brand/30" : "glass-liquid"}`}>
+              <div className="text-micro text-muted uppercase">{t("report.totalRooms")}</div>
               <div className="text-xl font-black text-dark">{session.totalRooms}</div>
             </button>
             <button onClick={() => handleFilterTap("entered")}
-              className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "entered" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
-              <div className="text-[8px] text-green-700 dark:text-green-400 uppercase">{t("metrics.entered")}</div>
+              className={`rounded-md p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "entered" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
+              <div className="text-micro text-green-700 dark:text-green-400 uppercase">{t("metrics.entered")}</div>
               <div className="text-xl font-black text-green-700 dark:text-green-400">{session.totalEntered}</div>
             </button>
             <button onClick={() => handleFilterTap("remaining")}
-              className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "remaining" ? "glass-liquid-active ring-1 ring-red-500/30" : "glass-liquid"}`}>
-              <div className="text-[8px] text-error uppercase">{t("metrics.remaining")}</div>
+              className={`rounded-md p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "remaining" ? "glass-liquid-active ring-1 ring-red-500/30" : "glass-liquid"}`}>
+              <div className="text-micro text-error uppercase">{t("metrics.remaining")}</div>
               <div className="text-xl font-black text-error">{session.totalRemaining}</div>
             </button>
             <button onClick={() => handleFilterTap("comp")}
-              className={`rounded-[12px] p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "comp" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
-              <div className="text-[8px] text-muted uppercase">COMP</div>
+              className={`rounded-md p-2 text-center transition-all active:scale-[0.96] ${sessionFilter === "comp" ? "glass-liquid-active ring-1 ring-green-500/30" : "glass-liquid"}`}>
+              <div className="text-micro text-muted uppercase">COMP</div>
               <div className="text-xl font-black text-green-700 dark:text-green-400">{compClients.length}</div>
             </button>
           </div>
@@ -189,12 +189,12 @@ function SessionDetailDrawer({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
           {/* Client table — same style as report */}
-          <div className="glass-liquid rounded-[14px] overflow-hidden">
+          <div className="glass-liquid rounded-card overflow-hidden">
             <div className="grid grid-cols-[55px_1fr_45px_50px] px-3 py-2 border-b border-black/5 dark:border-white/8">
-              <span className="text-[9px] text-muted uppercase font-semibold">{t("table.room")}</span>
-              <span className="text-[9px] text-muted uppercase font-semibold">{t("table.name")}</span>
-              <span className="text-[9px] text-muted uppercase font-semibold text-center">N</span>
-              <span className="text-[9px] text-muted uppercase font-semibold text-right"></span>
+              <span className="text-micro text-muted uppercase font-semibold">{t("table.room")}</span>
+              <span className="text-micro text-muted uppercase font-semibold">{t("table.name")}</span>
+              <span className="text-micro text-muted uppercase font-semibold text-center">N</span>
+              <span className="text-micro text-muted uppercase font-semibold text-right"></span>
             </div>
             {pageClients.map((c, i) => {
               const comp = isComp(c);
@@ -206,7 +206,7 @@ function SessionDetailDrawer({
                   }`}>
                   <div className="flex items-center gap-1">
                     <span className="text-sm font-bold font-mono text-dark">{c.roomNumber}</span>
-                    {c.isVip && <span className="text-[7px] bg-gradient-to-r from-brand to-brand-light text-white px-1 py-0.5 rounded-full font-black leading-none">V</span>}
+                    {c.isVip && <span className="text-micro bg-gradient-to-r from-brand to-brand-light text-white px-1 py-0.5 rounded-full font-black leading-none">V</span>}
                   </div>
                   <div className="min-w-0">
                     <span className={`text-xs text-dark truncate block ${comp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""}`}>
@@ -218,11 +218,11 @@ function SessionDetailDrawer({
                   </div>
                   <div className="text-right">
                     {comp ? (
-                      <span className="text-[8px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">COMP</span>
+                      <span className="text-micro bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">COMP</span>
                     ) : entered ? (
-                      <span className="text-[8px] bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">IN</span>
+                      <span className="text-micro bg-green-500/15 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-bold">IN</span>
                     ) : (
-                      <span className="text-[8px] bg-black/5 dark:bg-white/8 text-muted px-1.5 py-0.5 rounded-full font-bold">—</span>
+                      <span className="text-micro bg-black/5 dark:bg-white/8 text-muted px-1.5 py-0.5 rounded-full font-bold">—</span>
                     )}
                   </div>
                 </div>
@@ -245,7 +245,7 @@ function SessionDetailDrawer({
           {session.checkIns.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">{t("history.checkinLog")}</h3>
-              <div className="glass-liquid rounded-[14px] divide-y divide-black/5 dark:divide-white/8 overflow-hidden">
+              <div className="glass-liquid rounded-card divide-y divide-black/5 dark:divide-white/8 overflow-hidden">
                 {session.checkIns.map((r) => (
                   <div key={r.id} className="flex items-center gap-2 px-3 py-2">
                     <span className="font-mono text-muted text-xs w-12">
@@ -266,7 +266,7 @@ function SessionDetailDrawer({
               <summary className="text-xs text-muted cursor-pointer font-medium uppercase tracking-wide">
                 {t("history.rawData")}
               </summary>
-              <pre className="mt-2 text-[10px] glass-liquid p-3 rounded-[14px] overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto text-dark">
+              <pre className="mt-2 text-micro glass-liquid p-3 rounded-card overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto text-dark">
                 {session.rawUploadText}
               </pre>
             </details>
@@ -645,7 +645,7 @@ export default function UploadPage() {
   // ─── HOME VIEW ───
   if (view === "home") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-background dark:bg-ink screen-safe">
         {/* Background decorative gradient */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-brand/[0.04] blur-3xl" />
@@ -655,7 +655,7 @@ export default function UploadPage() {
         <div className="relative flex-1 flex flex-col px-5 pt-6 pb-5">
           {/* Add-mode banner */}
           {isAddMode && (
-            <div className="mb-3 flex items-center gap-2 bg-brand/10 dark:bg-brand/15 rounded-[14px] px-4 py-2">
+            <div className="mb-3 flex items-center gap-2 bg-brand/10 dark:bg-brand/15 rounded-card px-4 py-2">
               <svg className="w-5 h-5 text-brand shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -696,7 +696,7 @@ export default function UploadPage() {
 
           {/* Greeting */}
           <div className="mt-6 mb-auto">
-            <h1 className="text-[32px] font-black text-dark leading-tight tracking-tight">
+            <h1 className="text-3xl font-black text-dark leading-tight tracking-tight">
               {getGreeting(t)}
             </h1>
             <p className="text-base text-muted mt-1">{t("upload.subtitle2")}</p>
@@ -708,7 +708,7 @@ export default function UploadPage() {
             {activeSession ? (
               <button
                 onClick={() => router.push("/search")}
-                className="w-full group relative overflow-hidden rounded-[20px] active:scale-[0.97] transition-all"
+                className="w-full group relative overflow-hidden rounded-lg active:scale-[0.97] transition-all"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-600 to-green-500 opacity-90" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
@@ -729,7 +729,7 @@ export default function UploadPage() {
             ) : (
               <button
                 onClick={() => setActionSheetOpen(true)}
-                className="w-full group relative overflow-hidden rounded-[20px] active:scale-[0.97] transition-all"
+                className="w-full group relative overflow-hidden rounded-lg active:scale-[0.97] transition-all"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-brand via-brand to-brand-light opacity-90" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
@@ -756,7 +756,7 @@ export default function UploadPage() {
               {/* Briefing Matin */}
               <button
                 onClick={() => router.push("/morning-brief")}
-                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-lg p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
                   <PhSparkle weight="duotone" className="w-5 h-5 text-brand" />
@@ -767,7 +767,7 @@ export default function UploadPage() {
               {/* Clients */}
               <button
                 onClick={() => router.push("/clients")}
-                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-lg p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
                   <PhUsersThree weight="duotone" className="w-5 h-5 text-brand" />
@@ -778,7 +778,7 @@ export default function UploadPage() {
               {/* Reports */}
               <button
                 onClick={() => router.push("/report")}
-                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-lg p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
                   <PhFileText weight="duotone" className="w-5 h-5 text-brand" />
@@ -789,7 +789,7 @@ export default function UploadPage() {
               {/* Dashboard */}
               <button
                 onClick={() => router.push("/dashboard")}
-                className="glass-liquid rounded-[16px] p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
+                className="glass-liquid rounded-lg p-4 flex flex-col items-center gap-2 active:scale-[0.96] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-brand/8 dark:bg-brand/15 flex items-center justify-center">
                   <PhChartBar weight="duotone" className="w-5 h-5 text-brand" />
@@ -802,7 +802,7 @@ export default function UploadPage() {
             {!activeSession && (
               <button
                 onClick={() => setActionSheetOpen(true)}
-                className="w-full glass-liquid rounded-[16px] p-3 flex items-center gap-3 active:scale-[0.97] transition-all"
+                className="w-full glass-liquid rounded-lg p-3 flex items-center gap-3 active:scale-[0.97] transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
                   <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -855,7 +855,7 @@ export default function UploadPage() {
         {actionSheetOpen && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe" onClick={() => setActionSheetOpen(false)}>
             <div
-              className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+              className="w-full max-w-2xl bg-white dark:bg-surface-dark rounded-t-lg p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
@@ -866,7 +866,7 @@ export default function UploadPage() {
                 {/* PDF Upload — Primary option */}
                 <button
                   onClick={() => { setActionSheetOpen(false); pdfInputRef.current?.click(); }}
-                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-card active:scale-[0.98] transition-all text-left"
                 >
                   <div className="w-11 h-11 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
                     <svg className="w-5.5 h-5.5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -874,7 +874,7 @@ export default function UploadPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[15px] font-bold text-dark">{t("home.uploadPdf")}</div>
+                    <div className="text-base font-bold text-dark">{t("home.uploadPdf")}</div>
                     <div className="text-xs text-muted mt-0.5">{t("home.uploadPdfDesc")}</div>
                   </div>
                   <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -885,7 +885,7 @@ export default function UploadPage() {
                 {/* Camera / Scanner */}
                 <button
                   onClick={() => { setActionSheetOpen(false); setView("processing"); setPendingAction("scanner"); }}
-                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-card active:scale-[0.98] transition-all text-left"
                 >
                   <div className="w-11 h-11 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
                     <svg className="w-5.5 h-5.5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -894,7 +894,7 @@ export default function UploadPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[15px] font-bold text-dark">{t("home.camera")}</div>
+                    <div className="text-base font-bold text-dark">{t("home.camera")}</div>
                     <div className="text-xs text-muted mt-0.5">{t("home.cameraDesc")}</div>
                   </div>
                   <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -905,7 +905,7 @@ export default function UploadPage() {
                 {/* Gallery */}
                 <button
                   onClick={() => { setActionSheetOpen(false); setView("processing"); setPendingAction("gallery"); }}
-                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-card active:scale-[0.98] transition-all text-left"
                 >
                   <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
                     <svg className="w-5.5 h-5.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -913,7 +913,7 @@ export default function UploadPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[15px] font-bold text-dark">{t("home.gallery")}</div>
+                    <div className="text-base font-bold text-dark">{t("home.gallery")}</div>
                     <div className="text-xs text-muted mt-0.5">{t("home.galleryDesc")}</div>
                   </div>
                   <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -924,7 +924,7 @@ export default function UploadPage() {
                 {/* Paste CSV */}
                 <button
                   onClick={() => { setActionSheetOpen(false); setShowManual(true); setView("review"); }}
-                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-card active:scale-[0.98] transition-all text-left"
                 >
                   <div className="w-11 h-11 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
                     <svg className="w-5.5 h-5.5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -932,7 +932,7 @@ export default function UploadPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[15px] font-bold text-dark">{t("home.pasteCsv")}</div>
+                    <div className="text-base font-bold text-dark">{t("home.pasteCsv")}</div>
                     <div className="text-xs text-muted mt-0.5">{t("home.pasteCsvDesc")}</div>
                   </div>
                   <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -943,7 +943,7 @@ export default function UploadPage() {
                 {/* Add Client manually */}
                 <button
                   onClick={() => { setActionSheetOpen(false); setAddClientOpen(true); }}
-                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-[14px] active:scale-[0.98] transition-all text-left"
+                  className="w-full flex items-center gap-4 p-4 glass-liquid rounded-card active:scale-[0.98] transition-all text-left"
                 >
                   <div className="w-11 h-11 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
                     <svg className="w-5.5 h-5.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -951,7 +951,7 @@ export default function UploadPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[15px] font-bold text-dark">{t("home.addClient")}</div>
+                    <div className="text-base font-bold text-dark">{t("home.addClient")}</div>
                     <div className="text-xs text-muted mt-0.5">{t("home.addClientDesc")}</div>
                   </div>
                   <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -963,7 +963,7 @@ export default function UploadPage() {
               {/* Cancel */}
               <button
                 onClick={() => setActionSheetOpen(false)}
-                className="w-full mt-4 py-3 rounded-[52px] glass-liquid text-muted font-semibold text-[15px] active:scale-[0.97] transition-all"
+                className="w-full mt-4 py-3 rounded-pill glass-liquid text-muted font-semibold text-base active:scale-[0.97] transition-all"
               >
                 {t("checkin.cancel")}
               </button>
@@ -975,7 +975,7 @@ export default function UploadPage() {
         {addClientOpen && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 dark:bg-black/60 screen-safe" onClick={() => setAddClientOpen(false)}>
             <div
-              className="w-full max-w-2xl bg-white dark:bg-[#1C1C1E] rounded-t-[20px] p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
+              className="w-full max-w-2xl bg-white dark:bg-surface-dark rounded-t-lg p-5 pb-8 animate-[slideUp_0.2s_ease-out]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-10 h-1 rounded-full bg-black/10 dark:bg-white/15 mx-auto mb-4" />
@@ -1038,14 +1038,14 @@ export default function UploadPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setAddClientOpen(false)}
-                  className="flex-1 py-3 rounded-[52px] glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
+                  className="flex-1 py-3 rounded-pill glass-liquid text-muted font-semibold active:scale-[0.97] transition-all"
                 >
                   {t("checkin.cancel")}
                 </button>
                 <button
                   onClick={handleAddManualClient}
                   disabled={!newRoom.trim() || !newName.trim()}
-                  className="flex-1 py-3 rounded-[52px] bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 disabled:opacity-40 dark:glow-brand"
+                  className="flex-1 py-3 rounded-pill bg-gradient-to-r from-brand to-brand-light text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/20 disabled:opacity-40 dark:glow-brand"
                 >
                   {t("checkin.save")}
                 </button>
@@ -1071,7 +1071,7 @@ export default function UploadPage() {
   // ─── PROCESSING VIEW: Scanning & processing pages ───
   if (view === "processing") {
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-background dark:bg-ink screen-safe">
         {/* Header */}
         <div className="shrink-0 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-4">
@@ -1100,7 +1100,7 @@ export default function UploadPage() {
             </div>
           </div>
 
-          <h1 className="text-[26px] font-black text-dark leading-tight">
+          <h1 className="text-2xl font-black text-dark leading-tight">
             {t("processing.title")}
           </h1>
           <p className="text-sm text-muted mt-0.5">{t("processing.desc")}</p>
@@ -1146,7 +1146,7 @@ export default function UploadPage() {
     const totalClients = pdfUploads.reduce((s, p) => s + p.clients.length, 0);
 
     return (
-      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+      <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-background dark:bg-ink screen-safe">
         <div className="shrink-0 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-4">
             <button
@@ -1161,7 +1161,7 @@ export default function UploadPage() {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[26px] font-black text-dark leading-tight">
+              <h1 className="text-2xl font-black text-dark leading-tight">
                 {t("processing.title")}
               </h1>
               <p className="text-sm text-muted mt-0.5">
@@ -1180,7 +1180,7 @@ export default function UploadPage() {
 
         <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6 space-y-3">
           {pdfUploads.map((pdf, i) => (
-            <div key={i} className="glass-liquid rounded-[14px] p-4">
+            <div key={i} className="glass-liquid rounded-card p-4">
               <div className="flex items-center gap-3">
                 {/* Status icon */}
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -1219,7 +1219,7 @@ export default function UploadPage() {
                         <span className="text-red-500">{pdf.error}</span>
                         <button
                           onClick={() => processPdf(pdf.file, i)}
-                          className="text-brand font-bold text-[11px] underline"
+                          className="text-brand font-bold text-xs underline"
                         >
                           Retry
                         </button>
@@ -1230,7 +1230,7 @@ export default function UploadPage() {
 
                 {/* Verification badge */}
                 {pdf.verification && (
-                  <div className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                  <div className={`px-2 py-1 rounded-full text-micro font-bold ${
                     pdf.verification.verified
                       ? "bg-green-500/10 text-green-700"
                       : "bg-yellow-500/10 text-yellow-700"
@@ -1275,7 +1275,7 @@ export default function UploadPage() {
 
   // ─── REVIEW VIEW: After data is captured ───
   return (
-    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-[#FBF8F3] dark:bg-[#12100E] screen-safe">
+    <div className="flex flex-col h-dvh w-full max-w-2xl mx-auto overflow-hidden bg-background dark:bg-ink screen-safe">
       {/* Header */}
       <div className="shrink-0 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/8 to-brand-light/5 dark:from-brand/5 dark:to-brand-light/3" />
@@ -1308,7 +1308,7 @@ export default function UploadPage() {
             </div>
           </div>
 
-          <h1 className="text-[26px] font-black text-dark leading-tight">
+          <h1 className="text-2xl font-black text-dark leading-tight">
             {t("upload.title")}
           </h1>
           <p className="text-sm text-muted mt-0.5">{t("upload.subtitle")}</p>
@@ -1322,7 +1322,7 @@ export default function UploadPage() {
 
         {/* OCR error fallback */}
         {ocrRawText && parsedClients.length === 0 && (
-          <div className="bg-brand-50 border border-brand-light/30 rounded-[14px] p-3">
+          <div className="bg-brand-50 border border-brand-light/30 rounded-card p-3">
             <p className="text-brand text-sm font-medium mb-2">
               {t("upload.noDetect")}
             </p>
@@ -1337,7 +1337,7 @@ export default function UploadPage() {
 
         {/* VIP status */}
         {vipRawClients.length > 0 && (
-          <div className="bg-brand-50 border border-brand-light/30 rounded-[14px] p-3 text-brand text-sm font-medium">
+          <div className="bg-brand-50 border border-brand-light/30 rounded-card p-3 text-brand text-sm font-medium">
             {vipCount} VIP(s) tagged
             {parsedClients.length > baseClients.length
               ? `, ${parsedClients.length - baseClients.length} new room(s) added`
@@ -1356,7 +1356,7 @@ export default function UploadPage() {
           const hasIssues = noName > 0 || zeroGuests > 0;
 
           return (
-            <div className="glass-liquid rounded-[14px] p-3 space-y-2">
+            <div className="glass-liquid rounded-card p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasIssues ? "bg-yellow-500/10" : "bg-green-500/10"}`}>
@@ -1378,7 +1378,7 @@ export default function UploadPage() {
                     {analysisMs !== null && (
                       <span
                         title={t("upload.analysedInHint")}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full tabular-nums"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full tabular-nums"
                       >
                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13 2L4.5 13H11l-1 9 9-11h-6l1-9z" />
@@ -1413,10 +1413,10 @@ export default function UploadPage() {
                 return (
                   <div className="rounded-lg bg-white/30 dark:bg-white/5 p-2 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-wide text-muted font-bold">
+                      <span className="text-micro uppercase tracking-wide text-muted font-bold">
                         {t("upload.reportTotals")} · {reportTotals.date}
                       </span>
-                      <span className="text-[11px] font-bold text-dark tabular-nums">
+                      <span className="text-xs font-bold text-dark tabular-nums">
                         {reportTotals.total} {t("verify.totalGuests")}
                       </span>
                     </div>
@@ -1424,7 +1424,7 @@ export default function UploadPage() {
                       {Object.entries(reportTotals.counts).map(([code, n]) => (
                         <span
                           key={code}
-                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full tabular-nums ${
                             code === "BKF COMP"
                               ? "bg-green-500/10 text-green-700 dark:text-green-400"
                               : "bg-black/[0.04] dark:bg-white/10 text-muted"
@@ -1435,7 +1435,7 @@ export default function UploadPage() {
                       ))}
                     </div>
                     {compDrift && (
-                      <div className="text-[11px] text-yellow-700 dark:text-yellow-400">
+                      <div className="text-xs text-yellow-700 dark:text-yellow-400">
                         {t("upload.compDrift")
                           .replace("{printed}", String(printedComp))
                           .replace("{counted}", String(compAdults))}
@@ -1445,7 +1445,7 @@ export default function UploadPage() {
                       // Children sit in a COMP room but are not in the hotel's
                       // COMP figure. Reception has to decide whether they eat
                       // free, so the number is stated rather than hidden.
-                      <div className="text-[11px] text-muted">
+                      <div className="text-xs text-muted">
                         {t("upload.compChildren").replace("{n}", String(compChildren))}
                       </div>
                     )}
@@ -1456,15 +1456,15 @@ export default function UploadPage() {
               <div className="grid grid-cols-3 gap-1.5 text-center">
                 <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">
                   <div className="text-lg font-bold text-dark">{uniqueRooms.size}</div>
-                  <div className="text-[9px] text-muted uppercase">{t("upload.rooms")}</div>
+                  <div className="text-micro text-muted uppercase">{t("upload.rooms")}</div>
                 </div>
                 <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">
                   <div className="text-lg font-bold text-dark">{totalGuests}</div>
-                  <div className="text-[9px] text-muted uppercase">{t("verify.totalGuests")}</div>
+                  <div className="text-micro text-muted uppercase">{t("verify.totalGuests")}</div>
                 </div>
                 <div className="bg-white/30 dark:bg-white/5 rounded-lg py-1.5 px-1">
                   <div className="text-lg font-bold text-dark">{sharedRooms}</div>
-                  <div className="text-[9px] text-muted uppercase">{t("verify.sharedRooms")}</div>
+                  <div className="text-micro text-muted uppercase">{t("verify.sharedRooms")}</div>
                 </div>
               </div>
 
@@ -1530,7 +1530,7 @@ export default function UploadPage() {
               setValidating(false);
             }}
             disabled={validating}
-            className="glass-liquid rounded-[14px] p-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-all w-full"
+            className="glass-liquid rounded-card p-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-all w-full"
           >
             {validating ? (
               <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
@@ -1551,7 +1551,7 @@ export default function UploadPage() {
         )}
 
         {/* ── Toggle: Clean Data (default open, paginated) ── */}
-        <div className="glass-liquid rounded-[14px] overflow-hidden">
+        <div className="glass-liquid rounded-card overflow-hidden">
           <button
             onClick={() => setOpenToggle(openToggle === "clean" ? null : "clean")}
             className="w-full flex items-center justify-between p-3 active:bg-white/50 transition-colors"
@@ -1583,7 +1583,7 @@ export default function UploadPage() {
                           <tr key={i} className={`border-t border-black/5 dark:border-white/5 ${comp ? "bg-green-500/5 dark:bg-green-500/8" : c.isVip ? "bg-brand-50/50" : ""}`}>
                             <td className="px-2 py-1.5 font-mono font-bold text-dark">
                               {c.roomNumber}
-                              {c.isVip && <span className="ml-1 text-[9px] bg-gradient-to-r from-brand to-brand-light text-white px-1.5 rounded-full font-bold">VIP</span>}
+                              {c.isVip && <span className="ml-1 text-micro bg-gradient-to-r from-brand to-brand-light text-white px-1.5 rounded-full font-bold">VIP</span>}
                             </td>
                             <td className={`px-2 py-1.5 truncate max-w-[140px] text-dark ${comp ? "underline decoration-green-500 decoration-2 underline-offset-2" : ""}`}>
                               {c.name}
@@ -1591,7 +1591,7 @@ export default function UploadPage() {
                             <td className="px-2 py-1.5 text-center font-mono font-bold text-dark">{c.adults + c.children}</td>
                             <td className="px-2 py-1.5 text-center">
                               {comp && (
-                                <span className="text-[9px] font-bold bg-green-500/10 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full">COMP</span>
+                                <span className="text-micro font-bold bg-green-500/10 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full">COMP</span>
                               )}
                             </td>
                           </tr>
@@ -1627,7 +1627,7 @@ export default function UploadPage() {
 
         {/* ── Toggle: Raw Data ── */}
         {ocrRawText && (
-          <div className="glass-liquid rounded-[14px] overflow-hidden">
+          <div className="glass-liquid rounded-card overflow-hidden">
             <button
               onClick={() => setOpenToggle(openToggle === "raw" ? null : "raw")}
               className="w-full flex items-center justify-between p-3 active:bg-white/50 transition-colors"
@@ -1638,7 +1638,7 @@ export default function UploadPage() {
               </svg>
             </button>
             {openToggle === "raw" && (
-              <pre className="px-3 pb-3 text-[10px] overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto text-muted">
+              <pre className="px-3 pb-3 text-micro overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto text-muted">
                 {ocrRawText}
               </pre>
             )}
@@ -1647,7 +1647,7 @@ export default function UploadPage() {
 
         {/* ── Toggle: PDF Files ── */}
         {pdfUploads.length > 0 && (
-          <div className="glass-liquid rounded-[14px] overflow-hidden">
+          <div className="glass-liquid rounded-card overflow-hidden">
             <button
               onClick={() => setOpenToggle(openToggle === "pdf" ? null : "pdf")}
               className="w-full flex items-center justify-between p-3 active:bg-white/50 transition-colors"
@@ -1678,7 +1678,7 @@ export default function UploadPage() {
 
         {/* Manual paste */}
         {showManual && (
-          <div className="glass-liquid rounded-[14px] p-4 animate-[fadeSlideUp_0.2s_ease-out]">
+          <div className="glass-liquid rounded-card p-4 animate-[fadeSlideUp_0.2s_ease-out]">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-bold text-dark">{t("upload.pasteReportData")}</span>
               <button
@@ -1696,7 +1696,7 @@ export default function UploadPage() {
       {/* Merge result banner */}
       {mergeBanner && (
         <div className="shrink-0 px-4 pt-2">
-          <div className="glass-liquid rounded-[14px] p-3 text-sm animate-[fadeSlideUp_0.3s_ease-out]">
+          <div className="glass-liquid rounded-card p-3 text-sm animate-[fadeSlideUp_0.3s_ease-out]">
             <div className="flex items-center gap-2 font-bold text-dark mb-1">
               <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1716,10 +1716,10 @@ export default function UploadPage() {
 
       {/* Bottom confirm bar */}
       {clientsUploaded && !mergeBanner && (
-        <div className="shrink-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#FBF8F3] dark:from-[#12100E] via-[#FBF8F3] dark:via-[#12100E] to-transparent">
+        <div className="shrink-0 px-4 pb-4 pt-2 bg-gradient-to-t from-background dark:from-ink via-background dark:via-ink to-transparent">
           <button
             onClick={handleConfirm}
-            className="w-full bg-gradient-to-r from-brand to-brand-light text-white py-4 rounded-[52px] text-xl font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25 dark:glow-brand"
+            className="w-full bg-gradient-to-r from-brand to-brand-light text-white py-4 rounded-pill text-xl font-bold active:scale-[0.97] transition-all shadow-lg shadow-brand/25 dark:glow-brand"
           >
             {t("upload.startSession")} ({parsedClients.length} {t("upload.rooms")})
           </button>

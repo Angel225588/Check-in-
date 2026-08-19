@@ -64,7 +64,7 @@ export default function InstallPrompt() {
          iPad in portrait it covered the whole last row, so the one screen that
          tells you to install the app is the screen where the app stops working.
          Nothing may occupy the dock's band except the dock. */
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-[80] w-[min(560px,calc(100vw-32px))] rounded-[20px] px-5 py-4 flex items-center gap-4 animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
+      className="fixed top-3 left-1/2 -translate-x-1/2 z-[80] w-[min(560px,calc(100vw-32px))] rounded-lg px-5 py-4 flex items-center gap-4 animate-[cardIn_.3s_cubic-bezier(.2,.9,.25,1)]"
       style={{
         background: "var(--aur-bg-elev)",
         boxShadow: "0 24px 60px -20px rgba(20,12,0,.55), inset 0 0 0 1px var(--aur-hairline)",
@@ -78,10 +78,10 @@ export default function InstallPrompt() {
       </span>
 
       <div className="flex-1 min-w-0">
-        <div className="text-[14.5px] font-black" style={{ color: "var(--brand-ink)" }}>
+        <div className="text-sm font-black" style={{ color: "var(--brand-ink)" }}>
           Installer l&apos;app
         </div>
-        <div className="text-[12.5px] font-semibold leading-snug" style={{ color: "var(--tab-idle)" }}>
+        <div className="text-xs font-semibold leading-snug" style={{ color: "var(--tab-idle)" }}>
           {ios ? (
             <>
               Dans <b style={{ color: "var(--aur-ink-2)" }}>Safari</b> :{" "}
@@ -103,7 +103,7 @@ export default function InstallPrompt() {
             dismiss();
           }}
           data-role="install-accept"
-          className="shrink-0 min-h-[44px] px-4 rounded-full text-white text-[13.5px] font-black active:scale-[0.97] transition-transform"
+          className="shrink-0 min-h-[44px] px-4 rounded-full text-white text-sm font-black active:scale-[0.97] transition-transform"
           style={{ background: "var(--color-brand)" }}
         >
           Installer
