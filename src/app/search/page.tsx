@@ -1139,7 +1139,7 @@ export default function SearchPage() {
               /* Bubbles, like the counter on the check-in screen. Round reads
                  as "adjusts a number"; the square slabs read as another
                  commit button sitting either side of the real one. */
-              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-4xl font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-4xl font-black grid place-items-center control-bubble disabled:opacity-25"
             >
               −
             </button>
@@ -1179,7 +1179,7 @@ export default function SearchPage() {
               onClick={() => setCount((c) => Math.min(Math.max(1, maxCount), c + 1))}
               disabled={!hit || count >= maxCount}
               aria-label="Une personne de plus"
-              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-4xl font-black grid place-items-center surface-chrome active:scale-[0.92] transition-transform disabled:opacity-25"
+              className="w-[clamp(64px,9vh,84px)] h-[clamp(64px,9vh,84px)] shrink-0 rounded-full text-4xl font-black grid place-items-center control-bubble disabled:opacity-25"
             >
               +
             </button>

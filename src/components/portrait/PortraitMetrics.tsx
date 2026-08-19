@@ -60,7 +60,10 @@ export default function PortraitMetrics({
      of what is being asked, and drops the half that changes what reception does
      next. Landscape has said 2/15 since the beginning; the port lost it. */
   const progress = useMemo(() => ({
-    comp: subsetProgress(clients, checkIns, (c) => isComp(c)),
+    // Adults only — the same rule as the landscape bar and as the hotel's R118
+    // totals page. Two bars that disagree about one number are two mental
+    // models for the same morning.
+    comp: subsetProgress(clients, checkIns, (c) => isComp(c), (c) => Number(c.adults) || 0),
     vip: subsetProgress(clients, checkIns, (c) => !!c.isVip),
     groups: subsetProgress(clients, checkIns, (c) => groupRooms.has(c.roomNumber)),
     children: subsetProgress(clients, checkIns, (c) => (c.children || 0) > 0),

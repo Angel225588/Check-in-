@@ -148,3 +148,68 @@ a bug in the gate.
   build; it is a safety issue, not a polish item.
 - Simulated usability testing has real limits. One morning of watching a
   receptionist work the 7am rush will surface more than another audit round.
+
+---
+
+## 6. The scales (locked 2026-08-19)
+
+Before this, the app used **44 text sizes** (7px…64px, including 9.5, 10.5,
+11.5, 12.5, 13.5, 14.5) and **16 corner radii**, while declaring 145 tokens it
+then bypassed with 148 raw hex values. Every screen looked fine alone. Together
+they read as hand-eyeballed, because they were.
+
+Brands people recognise are recognisable because **the same few values repeat**.
+So there are now few values.
+
+| | Values |
+|---|---|
+| **Type** | `text-micro` 10 · `xs` 12 · `sm` 14 · `base` 16 · `lg` 18 · `xl` 20 · `2xl` 24 · `3xl` 30 |
+| **Radius** | `sm` 8 · `md` 12 · **`card` 14** · `lg` 20 · `xl` 24 · `pill` 52 |
+| **Colour** | the `--aur-*` and `--color-*` tokens. No raw hex in a component. |
+
+`micro` is the only custom type step; the rest is Tailwind's own scale. **14px
+stays the signature card radius** — it is the shape the product is recognised by.
+
+Enforced, not just documented: `node scripts/design-audit.mjs --strict` fails
+the moment an off-scale value appears. Text sizes and radii sit at zero. The
+previous system was documented but not enforced, which is exactly why it drifted
+— this is the part that stops it happening again.
+
+## 7. Elevation — depth is a promise that something is touchable
+
+Cards sit. Controls rise. Overlays float. **Nothing decorative gets a shadow.**
+
+That is what makes a Nest dial or an Apple control read as expensive: exactly
+one thing on screen looks pressable, so the eye knows where to go without being
+told. Depth is a signal, and a signal spent everywhere means nothing.
+
+| Class | Use |
+|---|---|
+| `surface-inset` | wells — search field, inactive pills |
+| `surface-card` / `glass-liquid` | content that sits on the page |
+| `control-bubble` | **the tactile key** — round, lit, inverts on press |
+| `control-bubble--live` | gold halo = *this is live now*. State, never decoration. |
+| `glass-*` | overlays, sheets, drawers |
+
+### What we deliberately did NOT do
+
+Classic neumorphism — the `#E5E5E5` tutorial look — needs the control to be the
+same value as the page. That is why it died: it trades contrast for looks.
+Reception reads this tablet at arm's length at 6am, and the room number is the
+whole job.
+
+So the **chrome gets the depth and the content keeps its contrast**. Soft
+surface, hard numerals. In dark mode the recipe inverts: a grey drop shadow is
+invisible on a dark ground, so the object is described by its *lit edge* — a
+bright top rim, a gradient down the face, a dark halo beneath. Same physical
+logic, opposite light source. That is the glass reading, and it is the one that
+holds up on the dark UI the hotel actually uses.
+
+### The gold
+
+Gold is the brand, so it is spent carefully: a gold halo means **live**, not
+pretty. Used on everything it stops meaning anything, and the one place it
+matters — the thing needing attention right now — stops being findable.
+
+When the real palette and logo arrive, they are a token swap in `globals.css`.
+Nothing in a component names a colour.
