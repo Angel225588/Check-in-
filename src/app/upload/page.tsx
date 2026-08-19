@@ -1401,11 +1401,15 @@ export default function UploadPage() {
                   in the rows is surfaced rather than quietly reconciled. */}
               {reportTotals && (() => {
                 const printedComp = reportTotals.counts["BKF COMP"];
-                const countedComp = parsedClients
-                  .filter((c) => isComp(c))
-                  .reduce((s, c) => s + c.adults + c.children, 0);
+                // The R118 COMP forecast counts ADULTS only — verified against
+                // the real export: 13 COMP rooms = 20 adults + 1 child, and the
+                // report prints 20. Comparing our persons total against it
+                // looked like a one-cover error when nothing was wrong.
+                const compRooms = parsedClients.filter((c) => isComp(c));
+                const compAdults = compRooms.reduce((s, c) => s + c.adults, 0);
+                const compChildren = compRooms.reduce((s, c) => s + c.children, 0);
                 const compDrift =
-                  typeof printedComp === "number" && printedComp !== countedComp;
+                  typeof printedComp === "number" && printedComp !== compAdults;
                 return (
                   <div className="rounded-lg bg-white/30 dark:bg-white/5 p-2 space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -1434,7 +1438,15 @@ export default function UploadPage() {
                       <div className="text-[11px] text-yellow-700 dark:text-yellow-400">
                         {t("upload.compDrift")
                           .replace("{printed}", String(printedComp))
-                          .replace("{counted}", String(countedComp))}
+                          .replace("{counted}", String(compAdults))}
+                      </div>
+                    )}
+                    {!compDrift && compChildren > 0 && (
+                      // Children sit in a COMP room but are not in the hotel's
+                      // COMP figure. Reception has to decide whether they eat
+                      // free, so the number is stated rather than hidden.
+                      <div className="text-[11px] text-muted">
+                        {t("upload.compChildren").replace("{n}", String(compChildren))}
                       </div>
                     )}
                   </div>
