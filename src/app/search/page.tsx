@@ -191,7 +191,7 @@ export default function SearchPage() {
 
   /** Notes for the one resolved room — one decrypt per resolved guest, not per
    *  row. An alert here is the whole reason the shortcut must not fire. */
-  const hitNotes = useGuestNotes(hit?.roomNumber ?? "", hit?.name ?? "", "reception");
+  const hitNotes = useGuestNotes(hit?.name ?? "", "reception");
 
   /**
    * Can this be committed from here, or does it need the room's own screen?

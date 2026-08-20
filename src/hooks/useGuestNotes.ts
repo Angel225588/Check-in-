@@ -18,8 +18,12 @@ export interface NotesApi {
 /**
  * Notes are encrypted, so every read and write is async. The component tree
  * gets a plain array and four actions; the awaiting lives here.
+ *
+ * Keyed on the guest alone. The room used to be part of this signature and was
+ * part of the storage key, which is why a returning guest's notes came back
+ * empty: the note was addressed to a room, and the guest had a new one.
  */
-export function useGuestNotes(roomNumber: string, clientName: string, author: string): NotesApi {
+export function useGuestNotes(clientName: string, author: string): NotesApi {
   const [notes, setNotes] = useState<GuestNote[]>([]);
   const [ready, setReady] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -28,11 +32,11 @@ export function useGuestNotes(roomNumber: string, clientName: string, author: st
   useEffect(() => {
     alive.current = true;
     setReady(false);
-    loadNotes(roomNumber, clientName)
+    loadNotes(clientName)
       .then((n) => { if (alive.current) { setNotes(n); setReady(true); } })
       .catch(() => { if (alive.current) { setNotes([]); setReady(true); } });
     return () => { alive.current = false; };
-  }, [roomNumber, clientName]);
+  }, [clientName]);
 
   const run = useCallback(async (op: () => Promise<GuestNote[]>) => {
     try {
@@ -50,9 +54,9 @@ export function useGuestNotes(roomNumber: string, clientName: string, author: st
     ready,
     saveError,
     clearError: useCallback(() => setSaveError(false), []),
-    add: useCallback((input) => run(() => addNote(roomNumber, clientName, { ...input, author })), [run, roomNumber, clientName, author]),
-    edit: useCallback((id, patch) => run(() => updateNote(roomNumber, clientName, id, patch, author)), [run, roomNumber, clientName, author]),
-    remove: useCallback((id) => run(() => deleteNote(roomNumber, clientName, id)), [run, roomNumber, clientName]),
-    pin: useCallback((id) => run(() => togglePin(roomNumber, clientName, id, author)), [run, roomNumber, clientName, author]),
+    add: useCallback((input) => run(() => addNote(clientName, { ...input, author })), [run, clientName, author]),
+    edit: useCallback((id, patch) => run(() => updateNote(clientName, id, patch, author)), [run, clientName, author]),
+    remove: useCallback((id) => run(() => deleteNote(clientName, id)), [run, clientName]),
+    pin: useCallback((id) => run(() => togglePin(clientName, id, author)), [run, clientName, author]),
   };
 }

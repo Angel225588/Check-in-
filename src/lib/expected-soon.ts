@@ -21,6 +21,7 @@
 
 import { arrivalPattern, hhmmOf, MIN_MORNINGS } from "./arrival-pattern";
 import type { Client, CheckInRecord, SessionRecord } from "./types";
+import { guestIdentity } from "./guest-identity";
 
 export interface ExpectedGuest {
   roomNumber: string;
@@ -38,18 +39,14 @@ export interface ExpectedGuest {
  */
 const GRACE = 15;
 
-/** The same person however the arrivals list spelled them that morning. */
-export function guestKey(name: string): string {
-  return (name || "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .sort()
-    .join(" ");
-}
+/**
+ * The same person however the arrivals list spelled them that morning.
+ *
+ * Re-exported from `guest-identity`, which is now the single definition. Guest
+ * notes key on the very same function: a guest the app recognises for their
+ * arrival habit and a guest it recognises for their allergy must be one guest.
+ */
+export const guestKey = guestIdentity;
 
 /**
  * One arrival time per guest per morning, in minutes since local midnight.

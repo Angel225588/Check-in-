@@ -24,16 +24,17 @@ import {
   TONES,
 } from "./notes";
 import { encryptString, decryptString } from "./notes-crypto";
+import { guestIdentity } from "./guest-identity";
 
 export const NOTES_KEY_PREFIX = "gn_";
 const SALT_KEY = `${NOTES_KEY_PREFIX}salt`;
 
 /**
- * A per-device salt. Room numbers are 3-4 digits and guest names come from a
- * finite list, so an unsalted digest could be brute-forced by anyone holding a
- * dump. The salt makes that work device-specific rather than reusable. It is
- * stored beside the data, so it does not hide anything from someone who
- * already has the device — the encryption is what protects the content.
+ * A per-device salt. Guest names come from a finite list, so an unsalted
+ * digest could be brute-forced by anyone holding a dump. The salt makes that
+ * work device-specific rather than reusable. It is stored beside the data, so
+ * it does not hide anything from someone who already has the device — the
+ * encryption is what protects the content.
  */
 function deviceSalt(): string {
   if (typeof localStorage === "undefined") return "no-store";
@@ -50,13 +51,22 @@ function deviceSalt(): string {
   }
 }
 
-/** Match the name normalisation the rest of the app already uses. */
-function normName(name: string): string {
-  return String(name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-export async function guestKey(roomNumber: string, name: string): Promise<string> {
-  const material = `${deviceSalt()}|${String(roomNumber ?? "").trim()}|${normName(name)}`;
+/**
+ * Where a guest's notes live.
+ *
+ * The room number is deliberately absent. It used to be in here, and that is
+ * exactly what made notes disappear: reception writes "allergie arachide"
+ * against room 451 tonight, the guest returns in 208 next month, the app
+ * computes a different key and finds nothing. The note was never deleted — it
+ * was addressed to a room, and rooms do not come back.
+ *
+ * `guestIdentity` is the app's one definition of the same person, shared with
+ * arrival habits, so the two cannot drift apart.
+ */
+export async function guestKey(name: string): Promise<string> {
+  const identity = guestIdentity(name);
+  if (!identity) throw new Error("no guest identity");
+  const material = `${deviceSalt()}|${identity}`;
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
   let hex = "";
   for (const b of new Uint8Array(digest)) hex += b.toString(16).padStart(2, "0");
@@ -77,11 +87,13 @@ function isNote(v: unknown): v is GuestNote {
   );
 }
 
-export async function loadNotes(roomNumber: string, name: string): Promise<GuestNote[]> {
+export async function loadNotes(name: string): Promise<GuestNote[]> {
   if (typeof localStorage === "undefined") return [];
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(NOTES_KEY_PREFIX + (await guestKey(roomNumber, name)));
+    // A guest with no usable name has no notes. Returning [] rather than
+    // reading a shared bucket keeps one nameless row from showing another's.
+    raw = localStorage.getItem(NOTES_KEY_PREFIX + (await guestKey(name)));
   } catch {
     return [];
   }
@@ -108,45 +120,46 @@ export async function loadNotes(roomNumber: string, name: string): Promise<Guest
  * this lesson: a UI that says "saved" when nothing was saved is worse than one
  * that admits the failure.
  */
-async function persist(roomNumber: string, name: string, notes: GuestNote[]): Promise<GuestNote[]> {
+async function persist(name: string, notes: GuestNote[]): Promise<GuestNote[]> {
+  // Resolve the key BEFORE compacting, so a nameless guest throws instead of
+  // silently writing somewhere shared.
+  const key = NOTES_KEY_PREFIX + (await guestKey(name));
   const compacted = compactNotes(notes);
   const envelope = await encryptString(JSON.stringify(compacted));
-  localStorage.setItem(NOTES_KEY_PREFIX + (await guestKey(roomNumber, name)), envelope);
+  localStorage.setItem(key, envelope);
   return compacted;
 }
 
-export async function addNote(roomNumber: string, name: string, input: NoteInput): Promise<GuestNote[]> {
-  const current = await loadNotes(roomNumber, name);
-  return persist(roomNumber, name, [...current, makeNote(input)]);
+export async function addNote(name: string, input: NoteInput): Promise<GuestNote[]> {
+  const current = await loadNotes(name);
+  return persist(name, [...current, makeNote(input)]);
 }
 
 export async function updateNote(
-  roomNumber: string,
   name: string,
   id: string,
   patch: Partial<Pick<GuestNote, "tone" | "title" | "body" | "pinned">>,
   author: string
 ): Promise<GuestNote[]> {
-  const current = await loadNotes(roomNumber, name);
+  const current = await loadNotes(name);
   const next = current.map((n) => (n.id === id ? applyEdit(n, patch, author) : n));
-  return persist(roomNumber, name, next);
+  return persist(name, next);
 }
 
 export async function togglePin(
-  roomNumber: string,
   name: string,
   id: string,
   author: string
 ): Promise<GuestNote[]> {
-  const current = await loadNotes(roomNumber, name);
+  const current = await loadNotes(name);
   const target = current.find((n) => n.id === id);
   if (!target) return current;
-  return updateNote(roomNumber, name, id, { pinned: !target.pinned }, author);
+  return updateNote(name, id, { pinned: !target.pinned }, author);
 }
 
-export async function deleteNote(roomNumber: string, name: string, id: string): Promise<GuestNote[]> {
-  const current = await loadNotes(roomNumber, name);
+export async function deleteNote(name: string, id: string): Promise<GuestNote[]> {
+  const current = await loadNotes(name);
   const next = current.filter((n) => n.id !== id);
   if (next.length === current.length) return current;
-  return persist(roomNumber, name, next);
+  return persist(name, next);
 }

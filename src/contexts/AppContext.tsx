@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Lang, TranslationKey, t as translate } from "@/lib/i18n";
 import { autoCloseStale, reclaimStorageSpace } from "@/lib/storage";
+import { runNotesMigrationOnce } from "@/lib/notes-migrate";
 
 interface AppContextValue {
   lang: Lang;
@@ -37,6 +38,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Auto-close any sessions from previous days that were never closed
     try { autoCloseStale(); } catch (e) { console.error("autoCloseStale failed:", e); }
+
+    // Ask the browser not to evict us under storage pressure. Notes are the
+    // only thing here that is genuinely irreplaceable — a lost day can be
+    // re-uploaded from the printout, a lost allergy cannot. Best-effort by
+    // design: it resolves false where the browser declines, and that is not an
+    // error worth a console line on a tablet.
+    try {
+      void navigator.storage?.persist?.();
+    } catch { /* not supported — nothing to do */ }
+
+    // Recover notes written under the old room-scoped key. Runs once per
+    // device, is idempotent, and never throws. See notes-migrate.ts.
+    void runNotesMigrationOnce().catch(() => { /* silent: see notes-store */ });
   }, []);
 
   useEffect(() => {

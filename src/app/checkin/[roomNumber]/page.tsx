@@ -233,7 +233,7 @@ export default function CheckInPage({
 
   // Called unconditionally (hook rules); it simply resolves to an empty list
   // until the guest is loaded.
-  const notesApi = useGuestNotes(client?.roomNumber ?? "", client?.name ?? "", "Réception");
+  const notesApi = useGuestNotes(client?.name ?? "", "Réception");
 
   if (!client) {
     return (
