@@ -707,8 +707,8 @@ export default function CheckInPage({
             <div className="flex items-center gap-3 px-4 py-3 rounded-lg" style={{ background: "linear-gradient(90deg,#FFF4E0,#FFE9C7)", border: "1.5px solid #E7A427", boxShadow: "0 8px 24px -12px rgba(180,110,10,.5)" }}>
               <span className="grid place-items-center gap-0.5 w-10 h-10 rounded-md bg-brand-light text-white shrink-0" style={{gridAutoFlow:"column"}}><Coffee weight="duotone" size={17} /><Prohibit weight="bold" size={12} /></span>
               <div className="min-w-0">
-                <div className="font-black text-base text-brand-ink">Petit-déjeuner NON inclus — à encaisser</div>
-                <div className="text-xs font-semibold text-brand-ink">Demandez au client : l&apos;ajouter à la chambre, ou payer maintenant ?</div>
+                <div className="font-black text-base text-notice-ink">Petit-déjeuner NON inclus — à encaisser</div>
+                <div className="text-xs font-semibold text-notice-ink-2">Demandez au client : l&apos;ajouter à la chambre, ou payer maintenant ?</div>
               </div>
             </div>
           )}

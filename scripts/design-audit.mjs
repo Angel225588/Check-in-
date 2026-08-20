@@ -79,6 +79,43 @@ const metrics = {
   rawOpacity: hits.rawOpacity.length,
 };
 
+/**
+ * Token classes that resolve to nothing.
+ *
+ * Tailwind only generates `text-x` / `bg-x` from a `--color-x` token. Writing
+ * `text-brand-ink` when the variable is `--brand-ink` produces a class that is
+ * silently INERT — the element keeps whatever colour it inherited. That is how
+ * the "petit-déjeuner NON inclus" banner lost its contrast: a codemod folded
+ * two dark browns into a token name Tailwind never emitted, and nothing failed.
+ * A class that does nothing must never ship quietly again.
+ */
+const css = readFileSync("src/app/globals.css", "utf8");
+const declared = new Set([...css.matchAll(/--color-([a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+const TAILWIND_BUILTIN = /^(white|black|transparent|current|inherit|red|green|blue|yellow|amber|slate|gray|grey|zinc|neutral|stone|orange|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)(-\d{1,3})?$/;
+const inert = [];
+for (const f of files) {
+  const src = readFileSync(f, "utf8");
+  // The lookbehind matters: `var(--aur-bg-elev)` contains the literal
+  // "bg-elev", and without it every CSS variable reads as a broken class.
+  for (const m of src.matchAll(/(?<![-\w])(?:bg|text|border|ring|from|to|via)-([a-z][a-z0-9-]*)\b/g)) {
+    // `border-l-brand` colours the left edge — the side is not part of the
+    // token name, so strip it before asking whether the colour exists.
+    const name = m[1].replace(/^(?:t|b|l|r|x|y|s|e)-/, "");
+    if (declared.has(name) || TAILWIND_BUILTIN.test(name)) continue;
+    // Not colours: Tailwind's type scale, radii, sides, and layout keywords.
+    // `border-t`, `bg-gradient-to-r` and friends are structure, not paint.
+    if (
+      /^(xs|sm|base|lg|xl|\dxl|micro|card|pill|md|full|none|auto|hidden)$/.test(name) ||
+      /^(t|b|l|r|x|y)(-\d+)?$/.test(name) ||
+      /^gradient-to-[a-z]{1,2}$/.test(name) ||
+      /^(left|right|center|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip|top|bottom|middle|solid|dashed|dotted|double|inherit|opacity)$/.test(name) ||
+      /^\d/.test(name)
+    ) continue;
+    inert.push(`${relative(process.cwd(), f)}  ${m[0]}`);
+  }
+}
+const inertClasses = [...new Set(inert)];
+
 const tokenCount = (readFileSync("src/app/globals.css", "utf8").match(/^\s*--[a-z-]/gm) || []).length;
 
 console.log(`\n  Design drift — ${files.length} components, ${tokenCount} tokens declared\n`);
@@ -89,6 +126,18 @@ const rows = [
   ["raw white/black opacity", metrics.rawOpacity, BUDGET.rawOpacity, ""],
 ];
 let over = false;
+
+/* A class that paints nothing is worse than an off-scale value: it fails
+   silently and only a human eye catches it. This is a hard fail, not a
+   budget. */
+if (inertClasses.length) {
+  console.log("  ✗ INERT colour classes — no matching --color-* token, so they paint nothing:");
+  for (const i of inertClasses.slice(0, 12)) console.log(`      ${i}`);
+  over = true;
+} else {
+  console.log("  ✓ every colour class resolves to a declared token");
+}
+
 for (const [label, value, budget, note] of rows) {
   const bad = value > budget;
   if (bad) over = true;

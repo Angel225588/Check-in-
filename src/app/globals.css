@@ -41,6 +41,12 @@
   --tab-idle: #5C564C;
 
   /* shadcn/ui tokens — Courtyard by Marriott brand mapping */
+  /* Inks for the fixed-cream notice banner ("petit-déjeuner NON inclus").
+     Deliberately NOT theme-flipping: that surface is cream in BOTH themes, so
+     a token that lightens in dark mode would make the text vanish — which is
+     exactly what happened when these were folded into --brand-ink. */
+  --color-notice-ink: #9A5B00;
+  --color-notice-ink-2: #7A5010;
   --color-ink: #12100E;         /* dark-mode page ground */
   --color-surface-dark: #1C1C1E;/* dark-mode raised surface */
   --color-background: #FBF8F3;
