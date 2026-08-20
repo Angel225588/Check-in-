@@ -5,7 +5,11 @@
 //   1. Privacy  — the room number never appears in the URL or in any request
 //   2. Check-in — checking a guest in works, the success state is shown, and it
 //                 PERSISTS across navigation/reload
-//   3. Storage  — the day is stored compressed at rest (LZ marker)
+//   3. Storage  — (was: "the day is stored compressed at rest (LZ marker)".
+//                 There is no such check in this file and no such compression
+//                 in the app: sessionHistory is plain JSON.stringify. The line
+//                 described an intention. Removed rather than left to be
+//                 believed — see CLAUDE.md, still open.)
 //   4. Honesty  — when localStorage is full, the UI shows a red "NOT saved"
 //                 error instead of a fake success (the original incident)
 //

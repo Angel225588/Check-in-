@@ -5,6 +5,8 @@ import {
   migrateNotesToGuestIdentity,
   historicalGuestPairs,
   runNotesMigrationOnce,
+  ensureNotesMigration,
+  __resetMigrationMemo,
   MIGRATION_FLAG,
 } from "@/lib/notes-migrate";
 import { guestKey, loadNotes, addNote, NOTES_KEY_PREFIX } from "@/lib/notes-store";
@@ -14,6 +16,7 @@ import { makeNote, type GuestNote } from "@/lib/notes";
 beforeEach(() => {
   localStorage.clear();
   __resetKeyCache();
+  __resetMigrationMemo();
   // Every tablet that ever stored a note has a device salt — the shipped app
   // minted one on the first write. Seeding it makes these fixtures a real
   // device rather than an impossible one, and the sweep rightly declines to
@@ -235,5 +238,37 @@ describe("the once-per-device guard", () => {
   it("does not scan again on the next load", async () => {
     localStorage.setItem(MIGRATION_FLAG, "done");
     expect(await runNotesMigrationOnce()).toBeNull();
+  });
+});
+
+/**
+ * React runs child effects before parent ones, so the guest screen's notes
+ * hook can reach for the store before the app shell has even started the
+ * recovery. Both go through one shared promise for that reason.
+ */
+describe("everyone waits on the same sweep", () => {
+  it("runs the sweep only once however many callers ask", async () => {
+    localStorage.setItem(
+      "sessionHistory",
+      JSON.stringify([{ date: "2026-08-19", clients: [{ roomNumber: "451", name: "SHEN, JIA" }], checkIns: [] }])
+    );
+    await seedLegacy("451", "SHEN, JIA", [note("Allergie arachide")]);
+
+    // The hook and the shell, racing exactly as they do in the browser.
+    const [a, b] = await Promise.all([ensureNotesMigration(), ensureNotesMigration()]);
+
+    expect(a).toBe(b); // the same result object: one sweep, not two
+    expect(a?.notesRecovered).toBe(1);
+    expect(await loadNotes("SHEN, JIA")).toHaveLength(1);
+  });
+
+  it("resolves for a later caller without re-scanning", async () => {
+    await ensureNotesMigration();
+    expect(await ensureNotesMigration()).toBe(await ensureNotesMigration());
+  });
+
+  it("never rejects, so a caller can always await it", async () => {
+    localStorage.setItem("sessionHistory", "{{{ not json");
+    await expect(ensureNotesMigration()).resolves.not.toThrow();
   });
 });

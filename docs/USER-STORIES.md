@@ -1012,6 +1012,82 @@ of it.
     so the shared arithmetic (`report-v2`, group detection) is built once and
     read twice, but the surface it lands on is the dashboard.
 
+### US-40 — A note outlives the stay it was written in — BUILT
+
+    As      Réception
+    I need  a note I wrote against a guest to still be there when they come
+            back, whatever room they are given
+    So that an allergy recorded in March is read in August
+
+    Scenario: the morning after
+      Given  I wrote "allergie arachide" on SHEN, JIA in room 451 yesterday
+      When   the day is closed, tomorrow's sheet arrives, and she is in 208
+      Then   the note is on her screen before I have finished reading her name
+
+    Never:  a note that survives the encryption, the reload and the day close,
+            and is lost by a room change. That is worse than paper — paper does
+            not quietly pretend the allergy was never written.
+    Proof:  notes-identity.test.ts (15) · notes-migrate.test.ts (20) ·
+            `node scripts/prove-notes.mjs` N1–N4, which writes the note through
+            the compose panel, closes the day, and reads it back in another room
+
+    The key used to be `sha256(salt | room | name)`. Rooms are not identity;
+    they are where somebody slept once. The room is out of the key, and
+    `guestIdentity` — the function `expected-soon` already used to recognise a
+    guest's arrival habit across days — decides who is who. One definition, so
+    a guest whose habit the app remembers and whose allergy it does not can no
+    longer exist.
+
+    The two real documents taught it the rest: the VIP list prints
+    "SHEN,JIA,Mrs" and the roster prints "SHEN, JIA" on the same morning, so
+    honorifics and lone initials are not identity either.
+
+### US-41 — Notes written before the fix come back — BUILT
+
+    As      Réception
+    I need  the notes I already wrote to reappear, not to start again
+    So that trusting the app once does not cost me the work
+
+    Scenario: the update lands on the tablet
+      Given  notes are stranded under room-scoped keys nobody can compute
+      When   I open the app
+      Then   they are back on their guests, and the orphans are gone
+
+    Never:  a blob deleted because it could not be read this morning.
+            Unreadable today is not worthless.
+    Proof:  notes-migrate.test.ts (20) · `node scripts/prove-notes.mjs` R1–R6,
+            which strands a note the app itself encrypted, photographs the
+            empty panel, then shows it recovered
+
+    Bounded honestly: the rooms come from the device's own 30-day history, so a
+    stay already aged out cannot be found. Runs once, merges across rooms, and
+    deletes the old address only after the new one is written.
+
+### US-42 — A VIP not on the breakfast list still has their dates — BUILT
+
+    As      Réception
+    I need  arrival and departure for every guest on the screen, including the
+            VIP whose breakfast is not included
+    So that I can answer "how long are you with us?" without the paper
+
+    Scenario: room 451, 20/08
+      Given  SHEN, JIA is on the VIP list and NOT on the R118 roster
+      When   I open her card
+      Then   17/08/26 and 21/08/26 are on it, as printed on the sheet
+
+    Never:  a field that is blank on the tablet and filled on the paper next to
+            it. That is the moment reception stops believing the screen.
+    Proof:  vip-dates.test.ts (18) over the real 20/08 documents —
+            fixtures/vip-inhouse-2008.md and roster-r118-2008.md, whose row
+            alignment reproduces the report's own "Total Rooms 14  Total 21 0" ·
+            `node scripts/prove-notes.mjs` V1
+
+    Two defects met here. `VipField` had no date members, so the VIP parser
+    could not return a date it had read; and `mergeVipIntoClients` never
+    backfilled dates onto a matched guest. Thirteen of the fourteen VIPs looked
+    right only because the roster supplied their dates — 451 is the one not on
+    the roster, so it showed the bug alone.
+
 ## Open — stories without proof yet
 
 These are the honest gaps. Each is a rule waiting to be written.

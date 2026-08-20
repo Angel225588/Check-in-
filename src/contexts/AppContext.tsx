@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Lang, TranslationKey, t as translate } from "@/lib/i18n";
 import { autoCloseStale, reclaimStorageSpace } from "@/lib/storage";
-import { runNotesMigrationOnce } from "@/lib/notes-migrate";
+import { ensureNotesMigration } from "@/lib/notes-migrate";
 
 interface AppContextValue {
   lang: Lang;
@@ -50,7 +50,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Recover notes written under the old room-scoped key. Runs once per
     // device, is idempotent, and never throws. See notes-migrate.ts.
-    void runNotesMigrationOnce().catch(() => { /* silent: see notes-store */ });
+    void ensureNotesMigration();
   }, []);
 
   useEffect(() => {

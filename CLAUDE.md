@@ -10,16 +10,26 @@ The user is standing, one-handed, with a queue in front of them between 06:30 an
 
 ## Tech Stack
 - Next.js 16 App Router, TypeScript, Tailwind CSS v4
-- Gemini 2.5 Flash Vision API for OCR, Tesseract.js as fallback
-- localStorage for persistence (compressed, 30-day ring buffer)
-- Notes encrypted at rest: AES-GCM, non-extractable key in IndexedDB
+- Mistral OCR (EU-hosted, Paris) for OCR — `src/lib/ai/`, `mistral-ocr.ts`,
+  `mistral-parser.ts`. Migrated off Gemini in 174d18f so guest PII reaches one
+  EU provider; Tesseract.js remains the local fallback
+- localStorage for persistence (30-day ring buffer). The closed day is
+  *compacted* — `compactSession` drops the raw OCR dump — but it is **not**
+  compressed: `sessionHistory` is plain `JSON.stringify`. The only gzip in the
+  codebase is inside the note envelope. This line used to claim compression
+  that does not exist; `autoCloseStale` also skips `compactSession`, so a day
+  that rolls over untouched keeps up to 30KB of dead OCR text. Both are open.
+- Notes encrypted at rest: AES-GCM, non-extractable key in IndexedDB, gzipped
+  inside the envelope
+- **A note is keyed on the guest, never the room** (`guest-identity.ts`). The
+  room was in the key once and that is how notes vanished on a returning guest
 - Vitest + jsdom for logic; Playwright for design rules and end-to-end
 
 ## TDD Workflow (MANDATORY)
 1. **Write tests FIRST** before implementing any feature or fix
 2. Tests live in `src/__tests__/` with pattern `*.test.ts`
 3. Run tests: `npx vitest run` — single file: `npx vitest run src/__tests__/x.test.ts`
-4. All tests must pass before committing — **562 tests across 50 files**
+4. All tests must pass before committing — **741 tests across 65 files**
 5. Layout and behaviour that a unit test cannot see belong in the design rules,
    not in a screenshot: `node scripts/design-rules.mjs` (118 checks, real browser)
    — and **a rule that can be satisfied by a broken screen is not a rule**: R25a
@@ -30,9 +40,11 @@ The user is standing, one-handed, with a queue in front of them between 06:30 an
    shipped with UTC timestamps that buried real check-ins. `node
    scripts/preflight.mjs` clicks through the app's own demo loader instead
    (24 checks, both orientations), and `node scripts/story-pass.mjs` walks
-   reception's morning asserting each story's own Never line (33 checks).
-   **Both need the demo loader, which production does not ship** — build with
-   `NEXT_PUBLIC_TEST_TOOLS=1 npm run build` before running either
+   reception's morning asserting each story's own Never line (33 checks), and
+   `node scripts/prove-notes.mjs` reproduces the note lifecycle across a day
+   close and a room change (11 checks). **All three need the demo loader, which
+   production does not ship** — build with `NEXT_PUBLIC_TEST_TOOLS=1 npm run
+   build` before running any of them
 7. Performance claims get measured: `node scripts/pad-latency.mjs` times
    key-down to digit-on-screen against a full house and 30 days of history
 8. Full gate: `bash scripts/validate.sh` — tsc, vitest, build, end-to-end.

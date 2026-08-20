@@ -13,6 +13,137 @@ git for those.
 
 ---
 
+## 2026-08-20 (afternoon) — the notes that were never lost, and 451's dates
+
+**741 tests across 65 files** (was 691) · **11/11 prove-notes** · 24/24
+preflight · 33/33 story pass · design audit green.
+
+Two reports from the desk, one morning apart. Both turned out to be a key or a
+type declaring something that was not true.
+
+### "I add notes, close the day, and they disappear"
+
+They never disappeared. `closeDay` does not touch the `gn_` prefix and nothing
+else does either — every note Angel wrote is still on that tablet, encrypted,
+under an address nobody would ever compute again.
+
+The address was the bug:
+
+    sha256(salt | roomNumber | name)
+
+A note ADDRESSED to a room. Rooms change every stay, so the address changed
+with them. Write "allergie arachide" against 451 tonight; the guest returns in
+208; the app hashes a different string and finds an empty slot. It leaked too —
+one orphaned blob per room a guest ever occupied, unreadable and unevictable.
+
+The room is out of the key. `guestIdentity` decides who is who, and it is not a
+new function: `expected-soon.ts` already had exactly it, to recognise a guest's
+arrival habit across days. It moved to `guest-identity.ts` and both callers
+share it. **Its 13 tests passed unchanged, which is what made the move safe** —
+a guest whose habit the app remembers and whose allergy it does not was never
+a coherent state.
+
+The two real documents supplied the rest. On 20/08 the VIP list prints
+`SHEN,JIA,Mrs` and the R118 roster prints `SHEN, JIA` — same guest, same
+morning, two identities. Honorifics (`Mr` `Mrs` `Ms` `HERR` `SIGNOR`, all
+present in one real export) and lone initials are stripped.
+
+**My test for that passed while the bug was live.** It compared two spellings
+that BOTH carried the honorific. A test that cannot fail is not a test; it now
+compares the two spellings the two documents actually produce.
+
+### Getting them back
+
+The old address is recomputable: the salt is still on the device and the rooms
+are in the 30 days of history it keeps. `notes-migrate.ts` walks every (room,
+guest) pair ever recorded, reads the old address, and moves what it finds onto
+the guest — merging across rooms, keeping the newer edit on an id collision,
+deleting the old key only AFTER the new one is written.
+
+A blob it cannot decrypt is counted and **left in place**. Unreadable today is
+not worthless.
+
+Honest ceiling: a stay already aged out of the 30-day window leaves no record
+of which room to look under. Those are gone, and no amount of care recovers
+them.
+
+Writing the browser proof surfaced a race worth more than the proof did. React
+runs child effects **before** parent ones, so the guest screen's notes hook can
+reach the store before the app shell has started the sweep — a blank panel on
+the first load after the update, which is the exact symptom the sweep exists to
+end. Both now await one shared promise.
+
+### How long notes last
+
+No expiry, which is right for a guest note. `navigator.storage.persist()` is
+now requested on load so the browser does not evict under pressure. Reception
+runs the app from the home-screen icon, so Safari's 7-day eviction rule for
+tabs does not apply — that answer would have been different for a tab, and it
+was worth asking.
+
+### Room 451 had no arrival and no departure
+
+Reception was right: the dates are plainly on the page. Two defects, and the
+second explains why only one room looked wrong.
+
+    type VipField = "roomNumber" | "name" | "vipLevel" | "vipNotes";
+
+`classifyVipHeader` could not return a date if it wanted to. Every VIP row was
+built from `emptyClient()` and kept its empty strings — while the comment above
+the column loop read *"Any other columns the header did name (notes, dates)
+still map through"*. **It described an intention, and intentions do not parse
+documents.** Run against the fixture that has always carried `Arr. Date | Dep.
+Date | Room Type` columns, all six rows came back `arr="" dep="" type=""`.
+
+Then `mergeVipIntoClients` copied isVip, level and notes onto a matched guest
+and stopped. Thirteen of the fourteen VIPs looked fine **only because the
+roster had already supplied their dates**. The bug was in all fourteen rows;
+the roster was masking it. 451 is the single VIP not on the breakfast roster
+(non inclus), so it fell to the other branch with nothing to inherit and showed
+the defect alone.
+
+Backfill only, never overwrite: the roster is the operational document for the
+morning, so where the two disagree the desk works from the roster.
+
+### The fused columns, and a greedy regex
+
+In the PDF's own text layer the three columns touch — 451 prints as one token,
+`17/08/2621/08/26EXST`. Mistral reads the rendered page and usually separates
+them, but a parser that needs the OCR to be tidy is one bad page from blank
+dates again.
+
+The year pattern is `\d{2}(?:\d{2}(?!\/))?`, not `\d{2,4}`. Written greedily it
+reads the year as "2621" and eats the next date's day — one wrong date instead
+of two right ones. **Caught by the fused fixture, not by reasoning about it.**
+
+### The fixtures are the real morning
+
+`vip-inhouse-2008.md` and `roster-r118-2008.md` carry the real 20/08/26 guest
+data from the two PDFs reception uploaded. The row alignment is not eyeballed:
+it reproduces the VIP report's own totals line, **"Total Rooms 14  Total 21 0"**,
+and every room on both documents has matching dates.
+
+Live OCR was not run — no API key in that environment. These are real data in a
+known output shape, not a live capture, and the difference is worth stating.
+A fixture whose table has no date columns at all still returns empty dates:
+nothing is invented.
+
+### The proof is a browser, not an assertion
+
+`scripts/prove-notes.mjs` (11 checks) reproduces the complaint by clicking:
+writes a note through the compose panel, rolls the day over through
+`autoCloseStale`, seeds the next morning with the same guest in **208**, and
+reads the note back. Then it strands a note the app itself encrypted under the
+old address, photographs the empty panel — *"0 NOTE · Aucune note"* — and shows
+it recovered.
+
+R3 failed on the first run, and the reason was good news: the recovery fired on
+the very next page load and had fixed the bug before the screen was asked. True,
+and useless as evidence. **A fix nobody watched fail is a fix nobody can check** —
+so the broken state is now pinned, photographed, and released.
+
+---
+
 ## 2026-08-09 (afternoon) — six things from one service
 
 615 tests across 54 files · **24/24 preflight** · **33/33 story pass**. Five

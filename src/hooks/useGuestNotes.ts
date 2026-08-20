@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { GuestNote, NoteTone } from "@/lib/notes";
 import { loadNotes, addNote, updateNote, deleteNote, togglePin } from "@/lib/notes-store";
+import { ensureNotesMigration } from "@/lib/notes-migrate";
 
 export interface NotesApi {
   notes: GuestNote[];
@@ -32,7 +33,12 @@ export function useGuestNotes(clientName: string, author: string): NotesApi {
   useEffect(() => {
     alive.current = true;
     setReady(false);
-    loadNotes(clientName)
+    // Wait for the one-time recovery of room-scoped notes before reading.
+    // Without this, a guest screen opened in the first moments after the
+    // update reads an empty store and shows a blank panel — the very symptom
+    // the recovery exists to end. Resolves immediately once it has run.
+    ensureNotesMigration()
+      .then(() => loadNotes(clientName))
       .then((n) => { if (alive.current) { setNotes(n); setReady(true); } })
       .catch(() => { if (alive.current) { setNotes([]); setReady(true); } });
     return () => { alive.current = false; };

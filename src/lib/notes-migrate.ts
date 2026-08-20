@@ -245,6 +245,30 @@ export function historicalGuestPairs(): Array<{ roomNumber: string; name: string
 }
 
 /**
+ * The sweep, started at most once per page load and shared by every caller.
+ *
+ * Both the app shell and the notes hook need it: the shell so it happens early
+ * on a device that has been sitting idle, the hook so that a guest screen
+ * opened before it finished does not read an empty store and show a blank
+ * panel until someone reloads. React runs child effects BEFORE parent ones, so
+ * the guest screen genuinely can get there first — the shell cannot be relied
+ * on to have started it.
+ */
+let migrationPromise: Promise<MigrationReport | null> | null = null;
+
+export function ensureNotesMigration(): Promise<MigrationReport | null> {
+  if (!migrationPromise) {
+    migrationPromise = runNotesMigrationOnce().catch(() => null);
+  }
+  return migrationPromise;
+}
+
+/** Tests only: forget that the sweep already ran this session. */
+export function __resetMigrationMemo(): void {
+  migrationPromise = null;
+}
+
+/**
  * Run the sweep once per device, on app load.
  *
  * Returns null when it has already run. The flag is set even for a device with
