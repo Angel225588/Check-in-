@@ -99,15 +99,61 @@ export function detectDocType(md: string): DocType {
   return "clients";
 }
 
-type VipField = "roomNumber" | "name" | "vipLevel" | "vipNotes";
+type VipField =
+  | "roomNumber" | "name" | "vipLevel" | "vipNotes"
+  | "arrivalDate" | "departureDate" | "roomType";
 
+/**
+ * Order matters, and two of these lines are load-bearing:
+ *
+ *  - the date columns are tested BEFORE `name`/`room`, because the real export
+ *    heads them "Arr. Date" and "Dep. Date" and a header cell can carry more
+ *    than one word;
+ *  - `type` is tested before `room`, or "Room Type" classifies as the room
+ *    number and EXST arrives where 451 should be.
+ *
+ * The dots are stripped first so "Arr." and "Dep." reduce to bare words —
+ * matching on /arriv/ (as the roster's `classifyHeader` does) would miss the
+ * VIP export entirely, since it abbreviates.
+ */
 function classifyVipHeader(raw: string): VipField | null {
-  const s = raw.toLowerCase().replace(/\s+/g, " ").trim();
+  const s = raw.toLowerCase().replace(/\./g, " ").replace(/\s+/g, " ").trim();
   if (/vip|level/.test(s)) return "vipLevel";
   if (/note|special|instruct|prefer/.test(s)) return "vipNotes";
+  if (/\barr\b|arriv/.test(s)) return "arrivalDate";
+  if (/\bdep\b|depart/.test(s)) return "departureDate";
+  if (/type/.test(s)) return "roomType";
   if (/guest|name/.test(s)) return "name";
   if (/room/.test(s)) return "roomNumber";
   return null;
+}
+
+/**
+ * A printed date on these reports: dd/mm/yy, occasionally dd/mm/yyyy.
+ *
+ * The year is deliberately not `\d{2,4}`. Written that way it is greedy, and
+ * on a fused pair — "17/08/2621/08/26" — it reads the year as "2621" and eats
+ * the next date's day, yielding one wrong date instead of two right ones.
+ * The optional third and fourth year digits are therefore taken only when a
+ * "/" does NOT follow, which is exactly when they are a real four-digit year
+ * rather than the start of the next date.
+ */
+const DATE_RE = /\d{2}\/\d{2}\/\d{2}(?:\d{2}(?!\/))?/g;
+
+/**
+ * In the PDF's text layer the arrival, departure and room-type columns touch:
+ * room 451 prints as one token, "17/08/2621/08/26EXST". Mistral reads the
+ * rendered page and usually separates them — but a parser that depends on the
+ * OCR being tidy is one bad page away from blank dates on the tablet again.
+ *
+ * Returns the dates found in the cell, plus whatever text is left once they
+ * are removed (the room type, in the fused case).
+ */
+function unfuse(cell: string): { dates: string[]; rest: string } {
+  const text = (cell ?? "").trim();
+  const dates = text.match(DATE_RE) ?? [];
+  const rest = text.replace(DATE_RE, " ").replace(/\s+/g, " ").trim();
+  return { dates, rest };
 }
 
 /**
@@ -201,7 +247,12 @@ export function parseMistralVip(md: string): Client[] {
     e.roomNumber = roomRaw;
     e.name = name;
     e.vipLevel = vipLevel;
-    // Any other columns the header did name (notes, dates) still map through.
+
+    // Dates are collected rather than copied cell-to-field: one cell can carry
+    // both of them glued together, and a straight copy would lose the second.
+    const dates: string[] = [];
+    let fusedType = "";
+
     map.forEach((field, i) => {
       if (!field || i === roomCol || i === nameCol || i === levelCol) return;
       // Never let a later column re-assign an identity field we already
@@ -209,8 +260,36 @@ export function parseMistralVip(md: string): Client[] {
       // real room with a room-type code.
       if (field === "roomNumber" || field === "name" || field === "vipLevel") return;
       const v = (cells[i] ?? "").trim();
-      if (v) e[field] = v;
+      if (!v) return;
+      if (field === "arrivalDate" || field === "departureDate") {
+        const { dates: found, rest } = unfuse(v);
+        dates.push(...found);
+        // What is left of "17/08/2621/08/26EXST" once the dates are out.
+        if (!fusedType && /^[A-Z]{3,6}$/.test(rest)) fusedType = rest;
+        return;
+      }
+      e[field] = v;
     });
+
+    // Fallback for a page where the header named no date column, or named one
+    // and the OCR put both dates inside it: take every printed date left in
+    // the row, in the order the report printed them. No de-duplication — a
+    // same-day arrival and departure are two facts, not one repeated.
+    if (dates.length < 2) {
+      const scanned: string[] = [];
+      for (let i = 0; i < cells.length; i++) {
+        if (i === roomCol || i === nameCol || i === levelCol) continue;
+        const { dates: found, rest } = unfuse(cells[i] ?? "");
+        scanned.push(...found);
+        if (!fusedType && found.length && /^[A-Z]{3,6}$/.test(rest)) fusedType = rest;
+      }
+      if (scanned.length > dates.length) dates.splice(0, dates.length, ...scanned);
+    }
+
+    if (dates[0]) e.arrivalDate = dates[0];
+    if (dates[1]) e.departureDate = dates[1];
+    if (!e.roomType && fusedType) e.roomType = fusedType;
+
     out.push(e);
   }
   return out;

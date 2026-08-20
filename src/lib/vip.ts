@@ -38,6 +38,24 @@ export function mergeVipIntoClients(
       existing.isVip = true;
       existing.vipLevel = vip.vipLevel;
       existing.vipNotes = vip.vipNotes;
+
+      // Backfill, never overwrite.
+      //
+      // For a long time this branch copied those three fields and stopped, so
+      // a VIP whose roster row had lost a column stayed blank even though the
+      // VIP sheet in the same upload carried the answer. It never showed,
+      // because the roster normally has the dates — and the one guest it did
+      // show on, room 451 on 20/08, was not on the roster at all and so came
+      // through the branch below instead.
+      //
+      // The roster is the operational document for the morning: where the two
+      // disagree the desk works from the roster, so only empties are filled.
+      if (!existing.arrivalDate && vip.arrivalDate) existing.arrivalDate = vip.arrivalDate;
+      if (!existing.departureDate && vip.departureDate) existing.departureDate = vip.departureDate;
+      if (!existing.roomType && vip.roomType) existing.roomType = vip.roomType;
+      if (!existing.confirmationNumber && vip.confirmationNumber) {
+        existing.confirmationNumber = vip.confirmationNumber;
+      }
     } else {
       // Check if this room+name combo is already added as VIP
       const alreadyAdded = updated.find(
