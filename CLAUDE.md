@@ -42,9 +42,19 @@ The user is standing, one-handed, with a queue in front of them between 06:30 an
    (24 checks, both orientations), and `node scripts/story-pass.mjs` walks
    reception's morning asserting each story's own Never line (33 checks), and
    `node scripts/prove-notes.mjs` reproduces the note lifecycle across a day
-   close and a room change (11 checks). **All three need the demo loader, which
+   close and a room change (11 checks), and `node scripts/prove-preview-card.mjs`
+   holds the guest card still while the notes on it change (85 checks, 3
+   viewports x 2 themes x 0/1/2/4 notes). **All four need the demo loader, which
    production does not ship** — build with `NEXT_PUBLIC_TEST_TOOLS=1 npm run
    build` before running any of them
+
+   **A green proof script proves nothing until you have watched it go red.**
+   `prove-preview-card.mjs` passed twice against the broken component before it
+   was any use: once because it compared four *absent* measurements and
+   `Math.max()` of nothing is zero, and once because it copied localStorage into
+   a fresh browser context and left the note key behind in IndexedDB, so every
+   card it measured had no notes on it. Revert the fix and run it; if it does
+   not fail, it is not a test yet.
 7. Performance claims get measured: `node scripts/pad-latency.mjs` times
    key-down to digit-on-screen against a full house and 30 days of history
 8. Full gate: `bash scripts/validate.sh` — tsc, vitest, build, end-to-end.

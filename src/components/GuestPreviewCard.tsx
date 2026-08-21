@@ -128,8 +128,14 @@ export default function GuestPreviewCard({
         {client.name}
       </div>
 
-      {shown.length > 0 && (
-        <div className="shrink-0 flex flex-col gap-1 mt-1" data-role="preview-notes">
+      {/* A fixed 28px lane, reserved whether or not this guest has notes.
+          Two things were wrong before: the chips stacked vertically, so each
+          note pushed the stay row further down; and the row below was then
+          *hidden* on a short screen to absorb the overflow, taking arrival,
+          departure, pax and COMP with it. Reception lost the answer to "vous
+          partez quand ?" precisely on the guests carrying an allergy.
+          One lane, one height, always the same box — only its contents change. */}
+      <div className="shrink-0 flex items-center gap-1.5 mt-1 h-7 overflow-hidden" data-role="preview-notes">
           {shown.map((n) => {
             const alert = n.tone === "alert";
             return (
@@ -137,7 +143,7 @@ export default function GuestPreviewCard({
                 key={n.id}
                 data-role="preview-note"
                 data-note-tone={n.tone}
-                className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-md truncate"
+                className="flex shrink items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-md min-w-0 max-w-[46%]"
                 style={alert
                   ? {
                       background: vip ? "rgba(0,0,0,.34)" : "var(--aur-bad-soft)",
@@ -154,14 +160,13 @@ export default function GuestPreviewCard({
             );
           })}
           {overflow > 0 && (
-            <span className="text-xs font-black" style={{ color: vip ? "rgba(255,255,255,.85)" : "var(--tab-idle)" }}>
-              +{overflow} autre{overflow > 1 ? "s" : ""}
+            <span data-role="preview-note-overflow" className="shrink-0 text-xs font-black" style={{ color: vip ? "rgba(255,255,255,.85)" : "var(--tab-idle)" }}>
+              +{overflow}
             </span>
           )}
-        </div>
-      )}
+      </div>
 
-      <div className={`flex items-center gap-2 flex-wrap mt-auto portrait:mt-3 pt-2 min-h-0 overflow-hidden ${shown.length > 0 ? "[@media(max-height:720px)]:hidden" : ""}`}>
+      <div data-role="preview-info" className="flex items-center gap-2 flex-wrap mt-auto portrait:mt-3 pt-2 min-h-0 overflow-hidden">
         <b className="text-base" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
           {pax} pers.
         </b>

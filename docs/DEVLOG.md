@@ -13,6 +13,58 @@ git for those.
 
 ---
 
+## 2026-08-21 — the card that moved, and two tests that lied about it
+
+**744/744 tests · 133/133 design rules · 85/85 prove-preview-card · tsc clean.**
+
+### What reception saw
+A guest with two pinned notes, and no arrival or departure on the card. From
+the screenshot: room 614, two chips stacked one under the other, and the row
+that answers *"vous partez quand ?"* simply gone.
+
+### What was wrong
+Two faults, and only together do they produce that screen.
+
+The chips were laid out `flex-col`, so each note pushed everything beneath it
+further down. To absorb the overflow somebody had given the row below:
+
+    ${shown.length > 0 ? "[@media(max-height:720px)]:hidden" : ""}
+
+So on any screen 720px or shorter, *having a note at all* deleted pax, the visit
+count, arrival, departure, À ENCAISSER, COMP and the VIP level. The guests who
+lose their dates are exactly the guests carrying an allergy — the note is what
+triggers the hiding.
+
+### What changed
+One fixed 28px lane, reserved whether or not the guest has notes, chips side by
+side with a `+N` counter for what does not fit. The info row is never hidden.
+The card's geometry no longer depends on its contents.
+
+| | broken | fixed |
+|---|---|---|
+| checks passed | **37/85** | **85/85** |
+| note lane, 0/1/2/4 notes | —/24/52/72px | 28/28/28/28px |
+| arrival + departure at 1024x700 | **absent on 1, 2 and 4 notes** | present in all |
+
+### What proved it — after failing to twice
+`prove-preview-card.mjs` measures an invariant rather than a screenshot: the
+stay row sits at the same offset from the card's top whether the guest carries
+zero notes or four, across three viewports and both themes.
+
+It passed against the **broken** component twice before it was worth anything.
+
+1. It compared four missing measurements. `Math.max()` of nulls is 0, the
+   spread was 0, and the check went green on a card that was not drawing the
+   row at all. An absent measurement is now a failure, never a match.
+2. It carried state between browser contexts by copying localStorage — and the
+   note key is a non-extractable AES key in **IndexedDB**. Nothing decrypted,
+   every card measured had zero chips, and the lane it was proving was empty.
+   One context now, resized rather than reopened.
+
+Both were caught by reverting the component and checking the test went red.
+Neither would have been caught by reading it. **R25a's lesson again, from the
+other side: a rule that cannot fail is not a rule.**
+
 ## 2026-08-20 (afternoon) — the notes that were never lost, and 451's dates
 
 **741 tests across 65 files** (was 691) · **11/11 prove-notes** · 24/24
