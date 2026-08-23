@@ -297,7 +297,26 @@ which is **stale** — Gemini is gone. Remove it.
 
 ---
 
-## 9. Remediation order
+## 9. Remediation — status
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Delete the four dead fields | **Done** — `confirmationNumber`, `rtc`, `reservationStatus`, `roomType` removed from types, both parsers, the VIP merge, storage and the seeder. Chunk dedup re-keyed on room + name. Ratcheted by `data-minimisation.test.ts` |
+| 2 | Encrypt roster and `vipNotes` at rest | **Not done** — see §6. The pattern and key management already exist in `notes-crypto.ts`; the roster was simply never brought into it |
+| 3 | Pseudonymise names at day close | **Not done** — §1.3 stands as the recommendation |
+| 4 | Configurable retention + full purge + purge log | **Done** — `NEXT_PUBLIC_RETENTION_DAYS`, default 90, clamped 1–730. Purge covers all five stores; runs on load; idempotent; logged |
+| 5 | Erasure + export, per guest and per property | **Done** — `src/lib/privacy/subject-rights.ts`. API routes answer 503 with a reason while data is device-local |
+| 6 | Access logging, retained separately | **Done** — salted-hash subject, append-only, 365-day window untouched by the guest-data purge |
+| 7 | `API_AUTH_TOKEN` fails closed; CSP cleanup | **Done** — production refuses to serve without the token; retired Gemini endpoint removed from `connect-src`. `unsafe-inline`/`unsafe-eval` remain (M-level, §6) |
+| 8 | Supabase isolation + the A-cannot-read-B test | **Done** — schema rewritten with a tenant claim, per-verb scoped policies, forced RLS, revoked `anon`, `security_invoker` views. Proven by 25 assertions against a real Postgres, enumerating views and functions from `pg_catalog`. Verified by mutation: restoring the old permissive policies turns 19 red. CI runs it and fails if the suite skipped itself |
+| 9 | Legal documents | **Drafted** — `/legal`, marked for lawyer review |
+
+Still outstanding, in the order I would take them: **item 2** (encrypt the
+roster — the asymmetry in §6 is the largest remaining technical gap), then
+**item 3**, then the two configuration items in §8 (pin the Vercel region;
+confirm Mistral's terms).
+
+### Original ordering, for reference
 
 Ordered by risk removed per unit of work.
 
