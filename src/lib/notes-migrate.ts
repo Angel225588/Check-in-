@@ -23,6 +23,7 @@
 
 import { GuestNote, compactNotes } from "./notes";
 import { encryptString, decryptString } from "./notes-crypto";
+import { wrapEnvelope, unwrapEnvelope } from "./note-envelope";
 import { guestIdentity } from "./guest-identity";
 import { NOTES_KEY_PREFIX, guestKey } from "./notes-store";
 
@@ -90,7 +91,7 @@ async function readBlob(key: string): Promise<GuestNote[] | null> {
     return null;
   }
   if (!raw) return null;
-  const plain = await decryptString(raw);
+  const plain = await decryptString(unwrapEnvelope(raw));
   if (plain === null) return null;
   try {
     const parsed: unknown = JSON.parse(plain);
@@ -171,7 +172,7 @@ export async function migrateNotesToGuestIdentity(
       const before = existing.length;
       const merged = compactNotes(mergeById(existing, legacyNotes));
 
-      localStorage.setItem(destKey, await encryptString(JSON.stringify(merged)));
+      localStorage.setItem(destKey, wrapEnvelope(await encryptString(JSON.stringify(merged))));
       // Only now is it safe to drop the old address.
       localStorage.removeItem(legacyKey);
 

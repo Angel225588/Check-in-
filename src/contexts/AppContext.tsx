@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { Lang, TranslationKey, t as translate } from "@/lib/i18n";
 import { autoCloseStale, reclaimStorageSpace } from "@/lib/storage";
 import { ensureNotesMigration } from "@/lib/notes-migrate";
+import { purgeExpired } from "@/lib/privacy/purge";
+import { pruneAccessLog } from "@/lib/privacy/access-log";
 
 interface AppContextValue {
   lang: Lang;
@@ -51,6 +53,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Recover notes written under the old room-scoped key. Runs once per
     // device, is idempotent, and never throws. See notes-migrate.ts.
     void ensureNotesMigration();
+
+    // Retention. The purge runs on load rather than on a timer because the app
+    // is a PWA on a tablet that is opened each morning and closed after
+    // service — there is no long-lived process to schedule against, and a
+    // window that only shrinks while someone is looking at the screen would
+    // never run at all. Both purges are idempotent and log what they removed.
+    void (async () => {
+      try {
+        await purgeExpired({ triggerSource: "auto" });
+      } catch (e) {
+        console.error("retention purge failed:", e);
+      }
+      try {
+        // The audit trail has its own, longer window (see privacy/config.ts).
+        pruneAccessLog();
+      } catch (e) {
+        console.error("access log prune failed:", e);
+      }
+    })();
   }, []);
 
   useEffect(() => {

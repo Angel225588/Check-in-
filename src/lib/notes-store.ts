@@ -24,6 +24,7 @@ import {
   TONES,
 } from "./notes";
 import { encryptString, decryptString } from "./notes-crypto";
+import { wrapEnvelope, unwrapEnvelope } from "./note-envelope";
 import { guestIdentity } from "./guest-identity";
 
 export const NOTES_KEY_PREFIX = "gn_";
@@ -99,7 +100,7 @@ export async function loadNotes(name: string): Promise<GuestNote[]> {
   }
   if (!raw) return [];
 
-  const plain = await decryptString(raw);
+  const plain = await decryptString(unwrapEnvelope(raw));
   if (plain === null) return [];
 
   try {
@@ -125,8 +126,8 @@ async function persist(name: string, notes: GuestNote[]): Promise<GuestNote[]> {
   // silently writing somewhere shared.
   const key = NOTES_KEY_PREFIX + (await guestKey(name));
   const compacted = compactNotes(notes);
-  const envelope = await encryptString(JSON.stringify(compacted));
-  localStorage.setItem(key, envelope);
+  const ciphertext = await encryptString(JSON.stringify(compacted));
+  localStorage.setItem(key, wrapEnvelope(ciphertext));
   return compacted;
 }
 

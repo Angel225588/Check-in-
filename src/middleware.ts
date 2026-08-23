@@ -40,9 +40,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 1. Check API auth token (if configured)
+  // 1. API auth. FAILS CLOSED.
+  //
+  // This used to be `if (apiToken) { ...check... }` — so an unset token meant
+  // no check at all, and a deploy that simply forgot the environment variable
+  // silently published every OCR route to the internet. Absent configuration
+  // is not permission to skip authentication; in production it is a
+  // misconfiguration and the request is refused.
+  //
+  // Development keeps the open path deliberately, so `next dev` works with no
+  // setup, and says so in the response rather than looking authenticated.
   const apiToken = process.env.API_AUTH_TOKEN;
-  if (apiToken) {
+  if (!apiToken) {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "server_misconfigured", detail: "API_AUTH_TOKEN is not set" },
+        { status: 500 }
+      );
+    }
+  } else {
     const authHeader = request.headers.get("authorization");
     const bearerToken = authHeader?.replace("Bearer ", "");
 
