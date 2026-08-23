@@ -1,231 +1,264 @@
 # GDPR Audit — Check-in PWA (data processor role)
 
 **Date:** 2026-08-23
-**Scope:** `Angel225588/Check-in-` @ branch `claude/gdpr-compliance-audit-vdkmyn`
-**Baseline:** 220 tests passing across 15 files, no code changed by this audit.
-**Role assumed:** the hotel (Marriott property) is the **controller**; this app is the **processor** (sous-traitant), Art. 28 GDPR.
+**Repo:** `Angel225588/Check-in-` — audited against `origin/main` @ `802d30d`
+**Branch:** `claude/gdpr-compliance-audit-vdkmyn`
+**Baseline:** 744 tests passing across 65 files. No application code changed by the audit itself.
+**Role assumed:** the hotel (Marriott property) is the **controller**; this app is the
+**processor** (*sous-traitant*), Art. 28 GDPR.
 
-> This is a technical audit by an engineer, not legal advice. Items marked **[FLAG]**
-> need a human decision or a lawyer before they can be closed.
+> Technical audit by an engineer, not legal advice. **[FLAG]** marks items needing a
+> human decision or a lawyer.
 
 ---
 
-## 0. The single most important structural fact
+## 0. Two facts that frame everything
 
-**Supabase is not used at runtime.** `src/lib/supabase.ts` creates a client that is
-imported by **zero** files. Every byte of guest data today lives in the browser's
-`localStorage` on the reception device. `supabase/schema.sql` has never been verified
-as applied — the only candidate project in the account
-(`anishbaamernlrijioic`, eu-west-3 / Paris) is **INACTIVE/paused** and could not be
-queried. I did not restore it.
+**(a) There is no server-side database.** `src/lib/supabase.ts` does not exist on
+`main`, and nothing imports `@supabase/supabase-js`. Every byte of guest data lives in
+`localStorage` and IndexedDB **on the reception device**. `supabase/schema.sql` is an
+unapplied design document. The only candidate project in the account
+(`anishbaamernlrijioic`, eu-west-3 / Paris) is **paused**; I did not restore it.
 
-This has two consequences:
+So today's tenant isolation is *device* isolation — one tablet, one hotel. That is
+accidentally safe, and it is why nothing has leaked. It is also why §2 must land
+**before** the first `supabase.from(...)` call, not after.
 
-1. Today's "multi-tenant isolation" is **device isolation**. One tablet, one hotel.
-   That is accidentally safe, and it is why nothing has leaked yet.
-2. The schema as written is a **loaded gun for the day you wire it up** (§2). The
-   isolation work must land *before* the first `supabase.from(...)` call, not after.
+**(b) The only cloud AI provider is Mistral, EU-hosted.** `src/lib/ai/config.ts` pins
+`https://api.mistral.ai` (Paris) with `mistral-ocr-4-1` and `mistral-large-2512`.
+Gemini is fully gone from the runtime — only four stale comments remain. This is a
+materially better GDPR posture than the previous Google pipeline and it is what the
+DPA will name.
+
+> **Correction to the first draft of this audit.** It was written against a stale
+> branch that predated the Mistral migration by ~19.6k lines and reported Google
+> Gemini as the sub-processor, recommended deleting `rateCode` (now load-bearing),
+> and reported findings since fixed on `main`. Superseded in full by this document.
 
 ---
 
 ## 1. DATA MINIMISATION
 
-### 1.1 Inventory — every personal-data field the app holds
+### 1.1 Where personal data actually lives
 
-Storage keys in `localStorage`:
-
-| Key | Contents | Lifetime today |
-|---|---|---|
-| `dailyData_<YYYY-MM-DD>` | full `Client[]` + `CheckInRecord[]` + `rawUploadText` | until day close / auto-close |
-| `sessionHistory` | last 30 closed days, **including full `clients[]` and `rawUploadText`** | ~30 sessions, no time bound |
-| `guest_profiles` | cross-stay guest profiles | **forever** |
-| `morningBrief_<date>` | employee duty roster, complaints, anniversaries, VIP names | **forever** |
-| `app_settings`, `app-lang`, `app-dark`, `staffCount*` | non-personal | n/a |
-
-### 1.2 Per-field analysis and recommendation
-
-The test for each field is the one you set: **could this work with a room number and
-an entitlement status instead?**
-
-| # | Field | What it is actually used for (verified in code) | Verdict | Recommendation |
+| Store | Key | Contents | Encrypted at rest? | Retention today |
 |---|---|---|---|---|
-| 1 | `confirmationNumber` | **Nothing user-facing.** Parsed, stored, copied through `vip.ts`/`storage.ts`. Only functional use: one component of the chunk-dedup key in `ocr-helpers.ts:94`. Never rendered. | **DELETE** | Stop extracting. Change dedup key to `room + name`. Highest-value, lowest-risk deletion in the app — it is the field most directly linkable back to the PMS reservation. |
-| 2 | `rtc` | **Nothing.** Parsed in `parser.ts` only. Never rendered, never decides anything. | **DELETE** | Remove from types, prompts, parser. |
-| 3 | `rateCode` | **Nothing.** Parsed and copied. Never rendered. (Commercially sensitive to Marriott as well as personal.) | **DELETE** | Remove. |
-| 4 | `reservationStatus` | **Nothing.** Parsed in `parser.ts`. Never rendered. | **DELETE** | Remove. |
-| 5 | `name` | Alpha search (`utils.ts:81`), shared-room disambiguation, the check-in hero card, guest-profile key, reports/CSV. | **KEEP for the session, PURGE at close** | Cannot be removed outright: staff verify a person verbally at a breakfast door and shared rooms are deliberately separate entries. But it does **not** need to survive the day. See §1.3. |
-| 6 | `roomNumber` | The primary key of the whole app. | **KEEP** | Pseudonymous on its own; still personal data in context. |
-| 7 | `packageCode` | Drives `isComp()` and the "must ask for payment" logic — **this is the entitlement status.** | **KEEP** | This field is the answer to your question: it is what the app actually decides on. |
-| 8 | `adults` / `children` | Cover counts, KPI maths, cost-per-cover. | **KEEP, reduce** | Keep the numbers. `children` is a data point about minors — keep the count, never a name. |
-| 9 | `arrivalDate` / `departureDate` | Rendered on the check-in card only (`checkin/page.tsx:466,470`) and the DataTable. Informational. | **REDUCE** | Departure date has genuine operational use (last-morning breakfast). Arrival date has none I can find. Drop `arrivalDate`; keep `departureDate`. |
-| 10 | `roomType` | Rendered nowhere except OCR round-trip. | **DELETE** | Not personal data strictly, but unused — delete for hygiene. |
-| 11 | `isVip` / `vipLevel` | Badge on the card and report. Operationally real. | **KEEP** | `vipLevel` is a Marriott loyalty tier — keep, it is an entitlement. |
-| 12 | `vipNotes` | Free text. Prompt instructs the model to combine **"all specials and preferences"**. | **[FLAG] — HIGH RISK** | In hotel PMS exports this field routinely carries allergies, dietary requirements, and mobility needs — i.e. **Article 9 special-category (health) data**. The app has no special handling for it. See §1.4. |
-| 13 | `vipSource` | Distinguishes walk-in vs list. | **KEEP** | Non-identifying. |
-| 14 | `pendingPaymentAction` / `paymentAction` | Payment routing at the door. | **KEEP** | Not card data — only a routing choice (`points`/`room`/`pass`). Confirm no PAN ever enters here. |
-| 15 | `rawUploadText` | The **entire verbatim OCR text of the hotel's daily report**, stored on the device and copied into `sessionHistory`. Rendered in a debug panel on `/report`. | **DELETE (or session-only)** | This is a second, unstructured copy of *everything* — including guests who never came to breakfast and fields you just deleted above. Deleting fields 1–4 is pointless while this blob persists. Biggest single minimisation win after the dead fields. |
-| 16 | `CheckInRecord.clientName` | Denormalised copy of the name for history/reports. | **REDUCE** | Once §1.3 lands, this becomes the last name-bearing record. Replace with `clientId` reference. |
-| 17 | `GuestProfile.*` (`name`, `visitCount`, `firstVisit`, `lastVisit`, `roomHistory[5]`, `birthday`, `notes`) | Returning-guest badges ("Loyal", "Frequent"). | **[FLAG] — needs a controller decision** | This is **profiling across stays with no time limit**. It is the only feature in the app that genuinely needs a persistent identity. It is also the one a hotel's DPO will ask about first. See §1.5. |
-| 18 | `MorningBrief.*` (`duty`, `internalAnniversary`, `complaints`, `ambassadors`, `topVips`) | Staff briefing screen. | **SEPARATE REGIME** | This is **employee** personal data, not guest data. Different lawful basis, different retention, and in France likely CSE/works-council implications. Never purged today. |
+| localStorage | `dailyData_<date>` | `Client[]`, `CheckInRecord[]`, `PaxDiscrepancy[]`, capped `rawUploadText` | **No** | cleared at day close / auto-close |
+| localStorage | `sessionHistory` | closed days: full `clients[]` + `checkIns[]` | **No** | **30 days** (`RETENTION_DAYS`, hardcoded) |
+| localStorage | `guest_profiles` | cross-stay profiles | **No** | **forever** |
+| localStorage | `gn_<hash>` | guest notes — **allergies**, preferences, events | **Yes** — AES-GCM-256 | **forever** |
+| localStorage | `gn_salt` | salt for the note key derivation | n/a | forever |
+| IndexedDB | `checkin-notes-key` | the AES key, `extractable: false` | n/a (non-exportable) | forever |
+| localStorage | `morningBrief_<date>` | **employee** duty roster, complaints, anniversaries | **No** | **forever** |
 
-### 1.3 The core recommendation on names
+`notes-crypto.ts` and `notes-store.ts` are genuinely good work — non-extractable
+CryptoKey, a hashed storage key so `gn_524_POLANCO` never appears, and an honest
+threat model in the header that declines to overclaim. **That is the standard the rest
+of the storage layer should be held to, and currently isn't.**
 
-Names are needed **during** a breakfast service and essentially never after it.
+### 1.2 Per-field analysis
 
-Proposed model:
-- During the open session: keep `name` as today. Nothing changes operationally.
-- At day close (`closeDay()` / `autoCloseStale()`): **pseudonymise before writing to
-  `sessionHistory`.** Replace `name` with a salted hash + display initials
-  (`"MARTIN, Jean"` → `"M., J."`), drop `rawUploadText` entirely.
-- All dashboards, KPI maths, monthly stats, rush-hour buckets and cost-per-cover
-  work on counts — I checked, **none of them read `name`**. They will not regress.
-- `getClientHistory()` and the returning-guest badge are the only two features that
-  break. Both can run off the salted hash instead of the plaintext name.
+The test is the one you set: **could this work with a room number and an entitlement
+status instead of a guest name?**
 
-Net effect: the app stops holding a 30-day rolling list of who slept in which room
-at a Marriott property, while keeping every number the business actually uses.
-**This is the recommendation I would push hardest.**
+| # | Field | Actual use, verified on `main` | Verdict | Recommendation |
+|---|---|---|---|---|
+| 1 | `confirmationNumber` | Never rendered. Copied through `vip.ts`, `storage.ts`, `parser.ts`. One functional use: a component of the chunk-dedup key (`ocr-helpers.ts:94`). | **DELETE** | Stop extracting. Re-key dedup on `room + name`. It is the field that links most directly back to the Marriott PMS reservation — highest value per unit of effort. |
+| 2 | `rtc` | Never rendered. Parsed in `parser.ts` / `mistral-parser.ts` only. | **DELETE** | Remove from type, parsers, column map. |
+| 3 | `reservationStatus` | Never rendered. Parsed only. | **DELETE** | Remove. |
+| 4 | `roomType` | Never rendered anywhere. Only parsed, merged in `vip.ts`, copied in `storage.ts`. | **DELETE** | Remove. |
+| 5 | `rateCode` | **Load-bearing.** `groups.ts:83` keys group blocks on `rateCode + arrival + departure`; rendered by `GroupPicker` and `DayGroups`. | **KEEP** | *(The first draft wrongly said delete — that was true only on the stale branch.)* |
+| 6 | `arrivalDate` / `departureDate` | **Load-bearing.** Group-block key, plus rendered on `GuestPreviewCard`, `DataTable`, the check-in card, `DayGroups`. | **KEEP** | |
+| 7 | `name` | Alpha search, shared-room disambiguation, check-in card, note key derivation, reports. | **KEEP live, PSEUDONYMISE at close** | See §1.3. The single highest-value change in this audit. |
+| 8 | `roomNumber` | Primary key of the app. | **KEEP** | |
+| 9 | `packageCode` | Drives `isComp()` and the "must ask for payment" branch. | **KEEP** | This **is** the entitlement status — the answer to your framing question. |
+| 10 | `adults` / `children` | Cover counts, KPIs, cost-per-cover. | **KEEP** | Counts only, never names. `children` is data about minors — keep it a number. |
+| 11 | `isVip` / `vipLevel` | Badge on card and report. | **KEEP** | A loyalty tier is an entitlement. |
+| 12 | `vipNotes` | Free text from the VIP sheet: "all specials and preferences combined". | **CONFIRMED Art. 9 risk** | See §1.4. |
+| 13 | `vipSource` | walk-in vs list. | **KEEP** | Non-identifying. |
+| 14 | `paymentAction` / `viaBox` | Payment routing and takeaway-box flag. | **KEEP** | No PAN involved — routing choice only. Verified. |
+| 15 | `PaxDiscrepancy` | Records that the sheet said 1 and 3 arrived. Carries `clientName`. | **REDUCE** | The error-rate metric needs the delta, not the name. Drop `clientName`, keep `roomNumber`. |
+| 16 | `rawUploadText` | Verbatim OCR dump, capped at 30k chars, shown in a debug view. | **DELETE at close** | Already `compactSession()`-stripped from history — good. Still an unstructured copy of everything for the live day, including guests who never came. |
+| 17 | `CheckInRecord.clientName` | Denormalised name copy. | **REDUCE** | After §1.3 this is the last name-bearing record in history. |
+| 18 | `GuestProfile.*` | `visitCount`, `firstVisit`, `lastVisit`, `roomHistory[5]`, `birthday`, `notes`. | **[FLAG] — you chose "keep as-is, document"** | §1.5. |
+| 19 | `GuestNote.*` + `author` + `revisions[]` | Allergies and preferences, with author and edit history. | **KEEP, add retention** | Encrypted, and `author` gives real accountability. But **never purged** — an allergy note outlives the stay indefinitely. |
+| 20 | `MorningBrief.*` | Duty roster, complaints, internal anniversaries. | **SEPARATE REGIME** | **Employee** data, not guest data. Different lawful basis, and in France plausibly CSE/works-council territory. Never purged. **[FLAG]** |
 
-### 1.4 [FLAG] `vipNotes` and Article 9
+### 1.3 The core recommendation: names are needed *during* service, not after
 
-`ocr-vip/route.ts:22` instructs the model to capture *"all special notes/preferences
-... (e.g. Member Rate (M5), High Floor Room (H1), Non Smoking Room (N3))"*. The
-examples given are benign. Real Marriott VIP/preference exports also carry allergy,
-dietary and accessibility flags. If those land in `vipNotes`, the app processes
-health data, and the compliance bar rises sharply (explicit Art. 9 basis, likely a
-DPIA).
+Nothing in the analytics layer reads `name`. I checked every consumer —
+`monthly-stats`, `kpi-math`, `rush-buckets`, `report-v2`, `package-forecast`,
+`metric-*` — all operate on counts.
 
-I cannot tell from the code which it is — it depends on the actual PDFs.
-**Decision needed:** either (a) confirm with the property that preference exports
-never contain health data, or (b) allow-list `vipNotes` to known codes and discard
-free text. I recommend (b) regardless — it is cheap and it removes the question.
+Proposed: at `closeDay()` / `autoCloseStale()`, before writing to `sessionHistory`,
+replace `name` with salted-hash + display initials (`"MARTIN, Jean"` → `"M., J."`) and
+drop `rawUploadText`. Reuse the existing `gn_salt` derivation so notes still resolve.
 
-### 1.5 [FLAG] Guest profiles
+Only two features touch plaintext names historically — `getClientHistory()` and the
+returning-guest badge — and both work off the hash instead.
 
-`recordGuestVisit()` builds a permanent record: how many times a named person stayed,
-first and last visit, their last five room numbers, plus optional birthday and free
-notes. Nothing ever deletes it.
+**Net:** the app stops holding a rolling multi-week list of who slept in which room at
+a Marriott property, and loses no number the business uses. This is the
+recommendation I would push hardest.
 
-Under a processor relationship this is the hardest feature to defend, because it
-serves the *hotel's* marketing/recognition interest rather than the breakfast
-service. **Options, in order of my preference:**
-1. Drop the feature. Cleanest.
-2. Keep it, keyed on the salted hash, with the same 90-day window as everything else
-   (badges degrade but still work for regulars).
-3. Keep it as-is and have the controller document it in *their* record of processing
-   with their own lawful basis, and expose it to erasure requests.
+### 1.4 `vipNotes` and Article 9 — now CONFIRMED, not a maybe
 
-**This one is your call, not mine.**
+The first draft flagged this as *possible*. Reading `main` settles it: allergies are a
+**designed, first-class feature**. `notes.ts` defines `tone: "alert"`,
+`shouldPinByDefault()` auto-pins it, `PinnedNoteChips` surfaces it without opening
+anything, and the code comments are explicit — *"a severe allergy that sorts below
+three loyalty notes is an allergy nobody reads."*
+
+That is **health data under Art. 9**, processed deliberately and correctly for guest
+safety. This is not a defect — it is the right product decision. But it raises the
+compliance bar, and it must be stated plainly rather than buried:
+
+- The DPA and the register must name special-category data explicitly.
+- The Art. 9 condition is the **controller's** to establish (Art. 9(2)(a) explicit
+  consent at booking, or vital interests). As processor you inherit the obligation to
+  handle it, not to justify it.
+- It materially strengthens the case that a **DPIA** is warranted. **[FLAG]**
+- Mitigations already in place and worth crediting: AES-GCM-256 at rest, hashed
+  storage keys, notes excluded from logs.
+- Still missing: notes are **never purged**, and `vipNotes` (the OCR-extracted field,
+  as opposed to typed notes) is **not** encrypted — it sits in plaintext inside
+  `dailyData_*` and `sessionHistory`. **That asymmetry is the real finding here:**
+  the allergy a receptionist types is encrypted; the same allergy arriving on the VIP
+  sheet is not.
+
+### 1.5 Guest profiles — your decision recorded
+
+You chose **keep as-is and document**. Recorded, and reflected in the register and the
+DPA. For the record, the residual risk you are accepting:
+
+`recordGuestVisit()` builds a permanent, unbounded record of how many times a named
+person stayed, when they first and last came, and their last five room numbers. It is
+the one feature that serves the hotel's recognition interest rather than the breakfast
+service, and it is the first thing a hotel DPO will ask about.
+
+Consequences of the choice, which the documents now carry:
+- The register lists it as a distinct processing activity with **no time limit**.
+- The controller must state its own lawful basis for it.
+- It must be reachable by the erasure endpoint (§4) — which it will be.
+- Erasure requests become **more** frequent to serve, not less, because the data
+  outlives the stay.
+
+I would still recommend the 90-day window over "forever", but it is your call and I
+have implemented what you asked.
 
 ---
 
-## 2. MULTI-TENANT ISOLATION — **CRITICAL**
+## 2. MULTI-TENANT ISOLATION — **CRITICAL (latent)**
 
-You called this the one that ends the company. The audit agrees, with a caveat that
-buys you time: it is not live yet (§0).
+Not exploitable today (§0a). Catastrophic the day Supabase is wired up.
 
-### C1 — RLS is enabled but neutralised
-`supabase/schema.sql` ends with:
+### C1 — RLS is enabled and then neutralised
+`supabase/schema.sql:105-116` enables RLS on all five tables, then:
 ```sql
 create policy "Allow all on clients" on clients for all using (true) with check (true);
 ```
-…on all five tables. `alter table ... enable row level security` followed by a
-`using (true)` policy is **functionally identical to no RLS at all**. The file's own
-comment says "permissive for now — tighten later".
+`enable row level security` followed by `using (true)` is **functionally identical to
+no RLS**. The file's own comment says "permissive for now — tighten later".
 
-Combined with the fact that the key in use is `NEXT_PUBLIC_SUPABASE_ANON_KEY` — a key
-that by design ships to every browser and is readable in devtools — the day this
-schema is applied and wired up, **anyone who opens the app at any hotel can read
-every guest row of every other hotel** with one `fetch`.
+The intended key is `NEXT_PUBLIC_SUPABASE_ANON_KEY` — by design shipped to every
+browser. Applied as written, **any user at any hotel could read every guest row of
+every other hotel with one `fetch`.**
 
-### C2 — There is nothing to scope a policy *by*
-`property_code` exists on `sessions` only. `clients`, `check_ins`, `pdf_uploads` and
-`billing_records` reach a tenant only through a `session_id` join. Correct policies
-are still writable (via `exists (select 1 from sessions ...)`), but they are slower,
-easy to get subtly wrong, and break the moment a row is orphaned. **Recommend a
-denormalised, `not null` `property_code` on all five tables**, enforced by trigger.
+### C2 — Nothing to scope a policy *by*
+`property_code` exists on `sessions` only. `clients`, `check_ins`, `pdf_uploads`,
+`billing_records` reach a tenant through a `session_id` join. Join-based policies are
+writable but slower and easy to get subtly wrong. **Recommend a denormalised
+`property_code text not null` on all five tables**, enforced by trigger.
 
-### C3 — There is no authentication at all
-No login, no user identity, no `auth.uid()`. The only gate is `API_AUTH_TOKEN` in
-`middleware.ts` — **optional** (`if (apiToken)`), and a single shared secret for all
-hotels if set. If it is unset in the Vercel project, every OCR endpoint is open to
-the internet: anyone can POST images and consume your Gemini key.
+### C3 — No authentication exists
+No login, no `auth.uid()`. The only gate is `API_AUTH_TOKEN` in `middleware.ts:45`,
+which is **optional** (`if (apiToken)`) and a single shared secret across all hotels if
+set. If unset in Vercel, every OCR route is open to the internet and anyone can burn
+your Mistral key.
 
-RLS scoped "by hotel" is **impossible to write** until an authenticated identity
-carries a property claim. This is a prerequisite, not a parallel task.
+**RLS scoped by hotel is impossible to write until an authenticated identity carries a
+property claim.** This is a prerequisite, not a parallel task.
 
-### Recommended fix (proposed, not yet implemented)
-1. Supabase Auth, one account per property (or a `property_code` custom JWT claim).
-2. `property_code text not null` on all five tables.
-3. Replace all five `using (true)` policies with
-   `using (property_code = (auth.jwt() ->> 'property_code'))`, separate policies per
-   verb, plus `with check` on write.
-4. **Revoke** all grants to `anon` on these tables. Anonymous access should be zero.
-5. `security_invoker = on` on any view; `security definer` functions must filter
-   explicitly — a `security definer` RPC bypasses RLS entirely and is the classic
-   hole left after the table policies are fixed.
-6. **The test you asked for:** two properties, two JWTs, seeded rows on both sides,
-   asserting hotel A gets exactly zero of hotel B's rows through (a) direct table
-   select, (b) each API route, (c) every view, (d) every RPC — and that a *write*
-   with a forged `property_code` is rejected by `with check`. Enumerating views and
-   RPCs from `pg_catalog` rather than hardcoding them, so a new one added later fails
-   the test by default.
-
-**[FLAG]** That test needs a live project (or a local `supabase start` stack) to run
-against. The candidate project is paused. Tell me which project is the real one and
-whether I may restore it, or whether to write the test against a local stack.
+### Fix, and how it is proven
+1. Supabase Auth, one account per property, `property_code` as a JWT claim.
+2. `property_code text not null` on all five tables + trigger to derive it.
+3. Per-verb policies scoped `property_code = auth.jwt() ->> 'property_code'`, with
+   `with check` on every write.
+4. **Revoke all grants to `anon`.**
+5. `security_invoker = on` on views; `security definer` functions filter explicitly —
+   a `security definer` RPC bypasses RLS and is the classic hole left behind after the
+   table policies look correct.
+6. **The test.** You said "no idea" what to run it against — decided: a **real local
+   Postgres 16**, no Docker or Supabase CLI needed, so it runs in CI. Supabase's
+   `auth.jwt()` reads `request.jwt.claims`, so a faithful stand-in is exact. It asserts
+   hotel A sees zero of hotel B's rows via direct select, every view, and every RPC;
+   that a forged `property_code` write is rejected by `with check`; and it enumerates
+   views and functions from `pg_catalog` so **a new one added later fails the test by
+   default** rather than being silently uncovered.
 
 ---
 
-## 3. RETENTION — currently none
+## 3. RETENTION — partial
 
-- `guest_profiles`: **unbounded, forever.**
-- `morningBrief_*`: **unbounded, forever** (employee data).
-- `sessionHistory`: capped at 30 entries — this is a *storage* cap, not a retention
-  policy. 30 entries could be 30 days or 30 months. It also only shrinks when the
-  quota errors out (`closeDay()` catch blocks), which is not a control.
-- `dailyData_*`: cleared on close/auto-close. This one is actually fine.
-- No purge job, no logging of deletion.
+Better than the first draft reported. `pruneByAge()` (`storage.ts:490`) is real, is
+tested, and handles junk and future dates sensibly.
 
-**Recommended:** `RETENTION_DAYS` (default 90, configurable), a purge that runs on
-app load and on a Vercel Cron for the server side, covering all four key families,
-writing an append-only purge log (counts and date ranges only — never names).
+| Store | Covered? |
+|---|---|
+| `sessionHistory` | **Yes — 30 days**, but `RETENTION_DAYS = 30` is a hardcoded const |
+| `dailyData_*` | Yes, via close / auto-close |
+| `guest_profiles` | **No — forever** |
+| `gn_*` notes (incl. allergies) | **No — forever** |
+| `morningBrief_*` | **No — forever** (employee data) |
+
+Gaps: not configurable; three of five stores uncovered; no purge log.
+
+> **[FLAG] — you asked for a default of 90 days; the app currently keeps 30.**
+> Implementing your instruction **triples** the window and is a step *away* from
+> minimisation. I have built it configurable with a 90-day default as asked, but I
+> recommend setting it to 30 in production. The knob is one env var.
 
 ---
 
 ## 4. ERASURE AND EXPORT — absent
 
-Nothing exists today. A guest asking a hotel to erase their data cannot be served,
-and the hotel cannot get its own data out except by screenshotting `/debug`.
-Needed: per-guest export + erasure, and whole-property export + erasure (the
-processor's Art. 28(3)(g) return-or-delete obligation at end of contract).
+Nothing exists. A guest asking a hotel to erase their data cannot be served, and the
+hotel cannot extract its own data. Art. 28(3)(e) (assisting with data-subject rights)
+and 28(3)(g) (return or delete at end of contract) are both unmet.
 
 ---
 
-## 5. ACCESS LOGGING — absent
+## 5. ACCESS LOGGING — partial
 
-No log of who read or wrote guest data. The `check_ins.checked_in_by` column exists
-in the schema and **nothing ever populates it** — so even check-in attribution is
-lost. Access logs must be retained separately from and outlive the data itself
-(otherwise the purge erases the evidence of who touched it).
+`GuestNote.author` and `NoteRevision{at, author, summary}` are real accountability for
+*notes* — who wrote what, when, and an edit history. Credit where due.
+
+Everything else is unlogged: no record of who viewed a guest, ran a search, checked
+someone in, or exported a report. `check_ins.checked_in_by` exists in the schema and
+**nothing populates it**. Access logs must also be retained **separately from and
+outliving** the data, or the purge destroys the evidence of who touched it.
 
 ---
 
 ## 6. ENCRYPTION
 
-| Layer | Status | Note |
-|---|---|---|
-| Browser ↔ Vercel | **OK** | HTTPS + HSTS `max-age=63072000; includeSubDomains; preload` in `next.config.ts`. |
-| Vercel ↔ Google Gemini | **OK** | TLS. |
-| Vercel ↔ Supabase | **OK** | TLS. |
-| Supabase at rest | **OK (platform)** | AES-256 disk encryption is standard. Unverifiable while the project is paused. |
-| **Browser localStorage at rest** | **NOT ENCRYPTED** | Plaintext JSON, all guest names, on a shared reception tablet. Readable by anyone with the device, and by any XSS. **This is where 100% of your production data lives today.** |
-| Uploaded files in storage | **N/A today** | `pdf_uploads.file_url` exists but no Supabase Storage bucket is in use. Nothing to encrypt yet — and nothing configured for when there is. |
-| **PDFs at Google** | **[FLAG]** | `ocr-pdf/route.ts` uploads whole PDFs to the Gemini **Files API**. Cleanup exists (`deleteGeminiFile`) but at line 247 it is **not awaited** — fire-and-forget, and swallows errors. Google also retains Files API uploads server-side (documented as up to 48h) irrespective of your delete call. |
+| Layer | Status |
+|---|---|
+| Browser ↔ Vercel | **OK** — HTTPS, HSTS `max-age=63072000; includeSubDomains; preload` |
+| Vercel ↔ Mistral (Paris) | **OK** — TLS, server-side only, key never reaches the browser |
+| Supabase at rest | **N/A today**; AES-256 platform default when adopted |
+| Guest **notes** at rest | **OK** — AES-GCM-256, non-extractable key in IndexedDB, hashed keys |
+| Roster at rest (`dailyData_*`, `sessionHistory`) | **NOT ENCRYPTED** — plaintext names and rooms |
+| `vipNotes` at rest | **NOT ENCRYPTED** — the allergy from the VIP sheet, in plaintext |
+| Uploaded files in storage | **N/A** — no bucket in use; `pdf_uploads.file_url` unused |
 
-Related weakness: the CSP allows `script-src 'self' 'unsafe-inline' 'unsafe-eval'`.
-Since plaintext PII sits in `localStorage`, XSS containment *is* your at-rest control,
-and `unsafe-eval`/`unsafe-inline` substantially weakens it.
+**The asymmetry is the finding.** The encryption work already done proves the pattern
+and the key management; the roster and `vipNotes` simply were not brought into it.
+
+Related: CSP still allows `script-src 'unsafe-inline' 'unsafe-eval'`. With plaintext
+PII in `localStorage`, XSS containment *is* an at-rest control — `notes-crypto.ts`
+says so itself. The CSP also still allows `connect-src ... generativelanguage.googleapis.com`,
+which is **stale** — Gemini is gone. Remove it.
 
 ---
 
@@ -233,64 +266,52 @@ and `unsafe-eval`/`unsafe-inline` substantially weakens it.
 
 | ID | Sev | Finding |
 |---|---|---|
-| H6 | High | `/debug` is **unauthenticated in production** — enumerates every `localStorage` key with sizes, and offers seed/wipe buttons. |
-| M5 | Med | `middleware.ts` rate limiter is an in-memory `Map` — per-instance, resets on cold start, ineffective across Vercel's serverless fleet. Also `setInterval` at module scope in edge middleware is unreliable. |
-| M6 | Med | No documented confirmation that the Gemini API tier in use excludes prompt data from model training. **[FLAG] — see §8.** |
-| L1 | Low | `CLAUDE.md` says "91 tests across 5 files"; actual is **220 tests across 15 files**. |
-| L3 | Low | `log-safe.ts` is good and correctly motivated — but its `potential_room` pattern is defined and never applied, so 3–4 digit room numbers still reach logs via the `name` path. |
+| M1 | Med | `API_AUTH_TOKEN` optional (`middleware.ts:45`) — unset means unauthenticated OCR routes. Should fail closed. |
+| M2 | Med | Rate limiter is an in-memory `Map` — per-instance, resets on cold start, ineffective across Vercel's fleet. |
+| M3 | Med | CSP `connect-src` still allows the retired Gemini endpoint. |
+| L1 | Low | `CLAUDE.md` says "91 tests across 5 files"; actual is **744 across 65**. It also still says "Gemini 2.5 Flash Vision API" — stale since the Mistral migration. |
+| L2 | Low | Four stale Gemini comments in `ocr-pdf/route.ts`, `ocr-morning-brief/route.ts`, `pdf-split.ts`, `ocr-helpers.ts`. |
+| ✅ | — | **Fixed on `main` since the first draft:** `/debug` now refuses in production; `rawUploadText` capped at 30k and stripped from history; retention window exists; Gemini removed. |
 
 ---
 
-## 8. [FLAG] Things I am not confident about — do not let these pass silently
+## 8. [FLAG] Not confident — do not let these pass silently
 
-1. **Mistral is not in this codebase.** You listed sub-processors as *Mistral,
-   Supabase, Vercel*. The code calls **Google Gemini 2.5 Flash**
-   (`generativelanguage.googleapis.com`) from all five OCR routes, with `tesseract.js`
-   as a local fallback. There is no Mistral dependency, key, or endpoint anywhere.
-   A DPA that names Mistral while the app sends guest data to Google is **materially
-   false** and is exactly the kind of error that voids the document.
-   **I need you to tell me which is true:** are you switching to Mistral (EU-hosted,
-   which would be a genuinely better GDPR posture), or is the DPA list wrong?
-   I have drafted nothing until you confirm.
-2. **Gemini API terms.** Free-tier and paid-tier Google AI terms differ on whether
-   submitted data may be used to improve the service, and on EU data residency. I am
-   not confident of the current terms and will not assert them in a legal document.
-   Needs verification against your actual Google Cloud / AI Studio contract.
-3. **Vercel function region.** Not pinned in `next.config.ts`. If functions execute
-   in `iad1` (US default), guest data transits the US and you need a transfer basis.
-   Easy fix (`vercel.json` region pin to `cdg1`), but I could not verify the current
-   setting.
-4. **Who is the controller, and who signs.** Marriott franchised vs managed
-   properties differ. The counterparty for the DPA may be the individual property,
-   the management company, or Marriott International. A lawyer should confirm.
-5. **The `localOCR` "Marriott-confidential mode" flag** suggests someone already
-   suspected that sending this data to a third-party LLM may breach a Marriott
-   contract. **That contract question is prior to the GDPR question** and I cannot
-   see the contract.
-6. **DPIA.** My read: not mandatory today, *unless* §1.4 (health data in `vipNotes`)
-   or §1.5 (indefinite cross-stay profiling) is confirmed — either would push toward
-   one. Lawyer call.
-7. **CNIL specifics.** France applies national rules on top of GDPR (and the
-   `morningBrief` employee data may engage works-council consultation). Out of my
-   depth; flagged for counsel.
+1. **Mistral API terms.** I have not verified whether your Mistral plan excludes
+   submitted data from training, or its stated retention for OCR uploads. EU hosting
+   solves residency, **not** retention or training. Must be confirmed against your
+   actual contract before the DPA is signed — I will not assert it in a legal document.
+2. **Vercel function region.** Not pinned in `next.config.ts`. If functions run in
+   `iad1` (US default), guest data transits the US and needs a transfer basis. Fix is
+   a one-line `vercel.json` region pin to `cdg1`; I could not verify the current setting.
+3. **Who signs.** Marriott franchised vs managed properties differ. The DPA
+   counterparty may be the property, the management company, or Marriott International.
+4. **The `localOCR` "Marriott-confidential mode" flag** implies someone already
+   suspected sending this data to a third-party AI may breach a Marriott contract.
+   **That contract question is prior to the GDPR question** and I cannot see the contract.
+5. **DPIA.** With Art. 9 allergy data (§1.4) confirmed *and* indefinite cross-stay
+   profiling retained by your choice (§1.5), my read is that a DPIA is now **more
+   likely than not** required. Lawyer call.
+6. **CNIL / French specifics**, and works-council implications of the `morningBrief`
+   employee data. Out of my depth — flagged for counsel.
 
 ---
 
-## 9. Proposed remediation order
+## 9. Remediation order
 
-Ordered by risk removed per unit of work, not by your list order.
+Ordered by risk removed per unit of work.
 
-1. **Delete the dead fields** (`confirmationNumber`, `rtc`, `rateCode`,
-   `reservationStatus`, `roomType`, `arrivalDate`) and **`rawUploadText`**. Pure
-   deletion, no feature loss, removes a whole class of risk. *(§1.2)*
-2. **Pseudonymise at day close.** *(§1.3)*
-3. **Retention window + purge job + purge log.** *(§3)*
-4. **Erasure + export endpoints.** *(§4)*
-5. **Access logging.** *(§5)*
-6. **Lock `/debug` behind an env flag.** *(H6)*
-7. **The Supabase isolation work** — auth, `property_code`, real policies, and the
-   A-cannot-read-B test — **as a gate on the first line of Supabase integration
-   code.** *(§2)*
-8. Legal documents in `/legal`, once §8.1 is answered.
+1. Delete the four dead fields (`confirmationNumber`, `rtc`, `reservationStatus`,
+   `roomType`) — pure deletion, no feature loss. *(§1.2)*
+2. Encrypt the roster and `vipNotes` at rest, reusing `notes-crypto.ts`. *(§6)*
+3. Pseudonymise names at day close. *(§1.3)*
+4. Configurable retention + extend the purge to notes, profiles and morning briefs +
+   a purge log. *(§3)*
+5. Erasure + export, per-guest and per-property. *(§4)*
+6. Access logging, retained separately. *(§5)*
+7. `API_AUTH_TOKEN` fails closed; CSP cleanup. *(§7)*
+8. Supabase isolation — auth, `property_code`, real policies, and the executable
+   A-cannot-read-B test — **as a gate on the first line of Supabase code.** *(§2)*
+9. Legal documents in `/legal`, naming Mistral, Supabase and Vercel.
 
-Per the project's TDD rule, every one of these lands as a failing test first.
+Per the project's TDD rule, each lands as a failing test first.
