@@ -8,13 +8,9 @@ import {
 function client(over: Partial<Client> = {}): Client {
   return {
     roomNumber: "100",
-    roomType: "",
-    rtc: "",
-    confirmationNumber: "",
     name: "Guest",
     arrivalDate: "",
     departureDate: "",
-    reservationStatus: "",
     adults: 2,
     children: 0,
     rateCode: "",

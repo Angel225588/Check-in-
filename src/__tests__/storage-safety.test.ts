@@ -35,13 +35,9 @@ function makeBoundedLocalStorage(maxBytes: number) {
 function makeClient(overrides: Partial<Client> = {}): Client {
   return {
     roomNumber: "101",
-    roomType: "DLXK",
-    rtc: "",
-    confirmationNumber: "100",
     name: "TEST GUEST",
     arrivalDate: "01/03/26",
     departureDate: "05/03/26",
-    reservationStatus: "CKIN",
     adults: 2,
     children: 0,
     rateCode: "",

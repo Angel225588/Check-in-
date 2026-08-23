@@ -29,10 +29,8 @@ const toVipEntries = (vips: Client[]): VipEntry[] =>
     name: c.name,
     vipLevel: c.vipLevel || "",
     vipNotes: c.vipNotes || "",
-    confirmationNumber: c.confirmationNumber,
     arrivalDate: c.arrivalDate,
     departureDate: c.departureDate,
-    roomType: c.roomType,
     adults: c.adults,
     children: c.children,
     rateCode: c.rateCode,
@@ -90,8 +88,11 @@ describe("the VIP list carries dates, and they must survive the parse", () => {
     });
   });
 
-  it("picks up the room type from the same table", () => {
-    expect(byRoom(parseMistralVip(VIP()), "451")!.roomType).toBe("EXST");
+  it("does not mistake the room-type column for the room number", () => {
+    // Room type is no longer stored, but its column must still be recognised:
+    // unclassified, it falls through to the /room/ test and replaces the real
+    // room with a type code.
+    expect(byRoom(parseMistralVip(VIP()), "451")!.roomNumber).toBe("451");
   });
 
   it("does not mistake the room-type column for the room number", () => {
@@ -119,17 +120,16 @@ describe("when the columns are printed touching", () => {
     const shen = byRoom(parseMistralVip(VIP_FUSED()), "451")!;
     expect(shen.arrivalDate).toBe("17/08/26");
     expect(shen.departureDate).toBe("21/08/26");
-    expect(shen.roomType).toBe("EXST");
   });
 
   it("handles every fused row, not just the one", () => {
     const got = parseMistralVip(VIP_FUSED()).map(
-      (c) => `${c.roomNumber} ${c.arrivalDate}→${c.departureDate} ${c.roomType}`
+      (c) => `${c.roomNumber} ${c.arrivalDate}→${c.departureDate}`
     );
     expect(got).toEqual([
-      "151 18/08/26→23/08/26 EXST",
-      "451 17/08/26→21/08/26 EXST",
-      "708 19/08/26→20/08/26 JSHF",
+      "151 18/08/26→23/08/26",
+      "451 17/08/26→21/08/26",
+      "708 19/08/26→20/08/26",
     ]);
   });
 });
@@ -183,15 +183,15 @@ describe("a VIP who is not on the breakfast roster", () => {
 describe("backfilling a matched VIP", () => {
   const roster = (over: Partial<Client> = {}): Client[] => [
     {
-      roomNumber: "151", roomType: "", rtc: "", confirmationNumber: "178198240",
-      name: "WU, TUNG-AN", arrivalDate: "", departureDate: "", reservationStatus: "CKIN",
+      roomNumber: "151", 
+      name: "WU, TUNG-AN", arrivalDate: "", departureDate: "", 
       adults: 2, children: 0, rateCode: "25MRYA", packageCode: "BKF COMP", ...over,
     },
   ];
   const vip: VipEntry[] = [{
     roomNumber: "151", name: "WU,TUNG-AN", vipLevel: "P6", vipNotes: "",
-    confirmationNumber: "99259007", arrivalDate: "18/08/26", departureDate: "23/08/26",
-    roomType: "EXST", adults: 2, children: 0, rateCode: "25MRYA",
+    arrivalDate: "18/08/26", departureDate: "23/08/26",
+    adults: 2, children: 0, rateCode: "25MRYA",
   }];
 
   it("fills dates the roster row was missing", () => {
@@ -201,20 +201,19 @@ describe("backfilling a matched VIP", () => {
     expect(c.isVip).toBe(true);
   });
 
-  it("fills a missing room type", () => {
-    expect(mergeVipIntoClients(roster(), vip)[0].roomType).toBe("EXST");
+  it("merges the VIP row onto the matching roster room", () => {
+    expect(mergeVipIntoClients(roster(), vip)[0].isVip).toBe(true);
   });
 
   it("never overwrites what the roster already knows", () => {
     // The roster is the operational document for the morning. If the two
     // disagree, the desk works from the roster — backfill, never overwrite.
     const [c] = mergeVipIntoClients(
-      roster({ arrivalDate: "01/01/26", departureDate: "02/01/26", roomType: "STKG" }),
+      roster({ arrivalDate: "01/01/26", departureDate: "02/01/26"}),
       vip
     );
     expect(c.arrivalDate).toBe("01/01/26");
     expect(c.departureDate).toBe("02/01/26");
-    expect(c.roomType).toBe("STKG");
   });
 
   it("still does the three things it always did", () => {

@@ -83,15 +83,20 @@ export function overlayPackageForecast<
 
 /**
  * De-duplicate client rows merged from parallel PDF page-chunks. Keyed on
- * confirmation number + room + name so the same guest appearing on a chunk
- * boundary isn't counted twice. Preserves order (first occurrence wins).
+ * room + name so the same guest appearing on a chunk boundary is not counted
+ * twice. Preserves order (first occurrence wins).
+ *
+ * The confirmation number used to be part of this key and was removed with the
+ * field (docs/GDPR-AUDIT.md section 1.2). Room + name is sufficient: a shared
+ * room with two different names stays two rows, which is what the app has
+ * always wanted, and the same name twice in the same room on one morning is
+ * the same person.
  */
 export function dedupClients(rows: Record<string, unknown>[]): Record<string, unknown>[] {
   const seen = new Set<string>();
   const out: Record<string, unknown>[] = [];
   for (const r of rows) {
     const key = [
-      String(r.confirmationNumber || "").trim(),
       String(r.roomNumber || "").trim(),
       String(r.name || "").trim().toLowerCase(),
     ].join("|");

@@ -5,13 +5,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const VALID_CLIENT = {
   roomNumber: "101",
-  roomType: "DLXK",
-  rtc: "",
-  confirmationNumber: "123456",
   name: "John Smith",
   arrivalDate: "05/03/26",
   departureDate: "07/03/26",
-  reservationStatus: "CKIN",
   adults: 2,
   children: 1,
   rateCode: "RACK",
@@ -139,7 +135,7 @@ describe("OCR API - Response Parsing", () => {
     const mixed = [
       VALID_CLIENT,
       { roomNumber: "", name: "Bad" },
-      { roomNumber: "202", name: "Good Guest", roomType: "PRMK" },
+      { roomNumber: "202", name: "Good Guest"},
       { garbage: true },
     ];
 
@@ -164,13 +160,9 @@ describe("OCR API - Gemini Response Scenarios", () => {
   it("handles response with missing optional fields", () => {
     const minimal = {
       roomNumber: "101",
-      roomType: "",
-      rtc: "",
-      confirmationNumber: "",
       name: "Test Guest",
       arrivalDate: "",
       departureDate: "",
-      reservationStatus: "",
       adults: 0,
       children: 0,
       rateCode: "",

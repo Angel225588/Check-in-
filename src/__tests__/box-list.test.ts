@@ -16,9 +16,9 @@ import type { Client, CheckInRecord } from "@/lib/types";
  * payment: `viaBox` sits beside the payment, never instead of it.
  */
 const c = (room: string, name: string, adults = 2, rate = "TOMEU"): Client => ({
-  roomNumber: room, roomType: "DLXK", rtc: "", confirmationNumber: "9" + room,
+  roomNumber: room, 
   name, arrivalDate: "04/08/26", departureDate: "07/08/26",
-  reservationStatus: "CKIN", adults, children: 0, rateCode: rate, packageCode: "BKF GRP",
+  adults, children: 0, rateCode: rate, packageCode: "BKF GRP",
 });
 
 /* The real client name, not a placeholder: a check-in is matched on room AND

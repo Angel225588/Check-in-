@@ -13,9 +13,9 @@ import { Client, CheckInRecord } from "@/lib/types";
  * with everything.
  */
 const client = (roomNumber: string): Client => ({
-  roomNumber, roomType: "DLXK", rtc: "", confirmationNumber: "9" + roomNumber,
+  roomNumber, 
   name: "DUPONT/MARIA", arrivalDate: "03/08/26", departureDate: "07/08/26",
-  reservationStatus: "CKIN", adults: 2, children: 0, rateCode: "", packageCode: "BKF INC",
+  adults: 2, children: 0, rateCode: "", packageCode: "BKF INC",
 });
 
 const checkIn = (roomNumber: string, iso: string): CheckInRecord => ({

@@ -29,7 +29,6 @@ const INTL_NAMES = [
   "Patel Priya", "O'Brien Sean", "Müller Klaus", "Singh Arjun", "Rossi Luca",
   "Chen Wei", "Smith Emma", "Johansson Astrid", "Park Eun-Ji", "Hassan Layla",
 ];
-const ROOM_TYPES = ["DLXK", "PRMK", "STHT", "STKD", "STKG", "EXST"];
 const VIP_LEVELS = ["X4", "X5", "Platinum", "Gold", "Silver", "Bronze"];
 const PACKAGES = [
   { code: "BKF INC", weight: 6 },   // included in rate
@@ -69,13 +68,9 @@ function buildClient(
   const leaves = Math.random() < 0.17 ? 0 : 1 + Math.floor(Math.random() * 3);
   return {
     roomNumber,
-    roomType: pick(ROOM_TYPES),
-    rtc: "",
-    confirmationNumber: String(Math.floor(80000000 + Math.random() * 19999999)),
     name,
     arrivalDate: shortDate(day, arrived),
     departureDate: shortDate(day, leaves),
-    reservationStatus: "CKIN",
     adults: 1 + Math.floor(Math.random() * 2),
     children: Math.random() < 0.2 ? 1 : 0,
     rateCode: "",
@@ -386,13 +381,9 @@ function buildCompactDay(date: string, scale: number): SessionRecord {
   const clients: Client[] = [
     {
       roomNumber: "000",
-      roomType: "",
-      rtc: "",
-      confirmationNumber: "",
       name: "(demo)",
       arrivalDate: "",
       departureDate: "",
-      reservationStatus: "CKIN",
       adults: totalGuests,
       children: 0,
       rateCode: "",

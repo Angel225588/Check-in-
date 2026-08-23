@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { searchClients } from "@/lib/utils";
 import type { Client } from "@/lib/types";
 const mk = (r: string, n: string): Client => ({
-  roomNumber: r, roomType: "", rtc: "", confirmationNumber: "", name: n,
-  arrivalDate: "", departureDate: "", reservationStatus: "", adults: 1, children: 0,
+  roomNumber: r, name: n,
+  arrivalDate: "", departureDate: "", adults: 1, children: 0,
   rateCode: "", packageCode: "",
 });
 const CL = [mk("822", "LEFÈVRE/CLAIRE"), mk("224", "POLANCO/ANGEL"), mk("601", "SÉDALO/TETE")];

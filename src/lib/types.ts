@@ -1,12 +1,8 @@
 export interface Client {
   roomNumber: string;
-  roomType: string;
-  rtc: string;
-  confirmationNumber: string;
   name: string;
   arrivalDate: string;
   departureDate: string;
-  reservationStatus: string;
   adults: number;
   children: number;
   rateCode: string;
@@ -23,10 +19,8 @@ export interface VipEntry {
   name: string;
   vipLevel: string;
   vipNotes: string;
-  confirmationNumber: string;
   arrivalDate: string;
   departureDate: string;
-  roomType: string;
   adults: number;
   children: number;
   rateCode: string;

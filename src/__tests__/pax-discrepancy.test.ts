@@ -12,8 +12,8 @@ import type { Client } from "@/lib/types";
 
 function mk(roomNumber: string, name: string, adults: number, children: number): Client {
   return {
-    roomNumber, roomType: "DLXK", rtc: "", confirmationNumber: `9${roomNumber}`,
-    name, arrivalDate: "27/07/26", departureDate: "29/07/26", reservationStatus: "CKIN",
+    roomNumber, 
+    name, arrivalDate: "27/07/26", departureDate: "29/07/26", 
     adults, children, rateCode: "", packageCode: "BKF INC",
   };
 }

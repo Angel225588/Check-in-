@@ -52,10 +52,6 @@ export function mergeVipIntoClients(
       // disagree the desk works from the roster, so only empties are filled.
       if (!existing.arrivalDate && vip.arrivalDate) existing.arrivalDate = vip.arrivalDate;
       if (!existing.departureDate && vip.departureDate) existing.departureDate = vip.departureDate;
-      if (!existing.roomType && vip.roomType) existing.roomType = vip.roomType;
-      if (!existing.confirmationNumber && vip.confirmationNumber) {
-        existing.confirmationNumber = vip.confirmationNumber;
-      }
     } else {
       // Check if this room+name combo is already added as VIP
       const alreadyAdded = updated.find(
@@ -73,13 +69,9 @@ export function mergeVipIntoClients(
 
       updated.push({
         roomNumber: vip.roomNumber,
-        roomType: vip.roomType || "",
-        rtc: "",
-        confirmationNumber: vip.confirmationNumber || "",
         name: vip.name,
         arrivalDate: vip.arrivalDate || "",
         departureDate: vip.departureDate || "",
-        reservationStatus: "",
         adults: vip.adults || 1,
         children: vip.children || 0,
         rateCode: vip.rateCode || "",

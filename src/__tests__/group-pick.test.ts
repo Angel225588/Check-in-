@@ -14,9 +14,9 @@ import { Client } from "@/lib/types";
  * checklist is what you open when you want less than everything.
  */
 const client = (roomNumber: string, rateCode: string): Client => ({
-  roomNumber, roomType: "DLXK", rtc: "", confirmationNumber: "9" + roomNumber,
+  roomNumber, 
   name: `NOM${roomNumber}/X`, arrivalDate: "04/08/26", departureDate: "07/08/26",
-  reservationStatus: "CKIN", adults: 2, children: 0, rateCode, packageCode: "BKF GRP",
+  adults: 2, children: 0, rateCode, packageCode: "BKF GRP",
 });
 
 const block = (key: string, rooms: string[]): GroupBlock => ({

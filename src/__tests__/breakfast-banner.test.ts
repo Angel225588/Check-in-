@@ -7,8 +7,8 @@ import type { Client } from "../lib/types";
 // leak (off-list / no-package guests waved in for free) can't silently return.
 function client(over: Partial<Client>): Client {
   return {
-    roomNumber: "101", roomType: "", rtc: "", confirmationNumber: "", name: "Guest",
-    arrivalDate: "", departureDate: "", reservationStatus: "", adults: 1, children: 0,
+    roomNumber: "101", name: "Guest",
+    arrivalDate: "", departureDate: "", adults: 1, children: 0,
     rateCode: "", packageCode: "", ...over,
   };
 }

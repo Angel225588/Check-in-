@@ -11,13 +11,9 @@ import { Client } from "../lib/types";
 function makeClient(room: string, name: string): Client {
   return {
     roomNumber: room,
-    roomType: "",
-    rtc: "",
-    confirmationNumber: "",
     name,
     arrivalDate: "",
     departureDate: "",
-    reservationStatus: "",
     adults: 2,
     children: 0,
     rateCode: "",

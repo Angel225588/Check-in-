@@ -5,13 +5,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const VALID_CLIENT = {
   roomNumber: "101",
-  roomType: "DLXK",
-  rtc: "",
-  confirmationNumber: "123456",
   name: "John Smith",
   arrivalDate: "05/03/26",
   departureDate: "07/03/26",
-  reservationStatus: "CKIN",
   adults: 2,
   children: 1,
   rateCode: "RACK",
@@ -23,10 +19,8 @@ const VALID_VIP = {
   name: "Marie Dupont",
   vipLevel: "X4",
   vipNotes: "Allergic to gluten, extra pillows",
-  confirmationNumber: "789012",
   arrivalDate: "05/03/26",
   departureDate: "10/03/26",
-  roomType: "PRMK",
   adults: 2,
   children: 0,
   rateCode: "CORP",
@@ -240,7 +234,7 @@ describe("PDF OCR API - Response Parsing", () => {
     const mixed = [
       VALID_CLIENT,
       { roomNumber: "", name: "Bad Room" },
-      { roomNumber: "202", name: "Good Guest", roomType: "PRMK" },
+      { roomNumber: "202", name: "Good Guest"},
       { garbage: true },
       { roomNumber: "303" }, // missing name
       VALID_VIP,

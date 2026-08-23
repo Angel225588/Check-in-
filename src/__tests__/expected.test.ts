@@ -3,8 +3,8 @@ import { expectedFromYesterday } from "@/lib/expected";
 import type { Client, SessionRecord, CheckInRecord } from "@/lib/types";
 
 const mk = (roomNumber: string, name: string, adults = 2, children = 0): Client => ({
-  roomNumber, roomType: "DLXK", rtc: "", confirmationNumber: "9" + roomNumber,
-  name, arrivalDate: "01/08/26", departureDate: "05/08/26", reservationStatus: "CKIN",
+  roomNumber, 
+  name, arrivalDate: "01/08/26", departureDate: "05/08/26", 
   adults, children, rateCode: "", packageCode: "BKF INC",
 });
 
