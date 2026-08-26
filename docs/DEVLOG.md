@@ -15,7 +15,7 @@ git for those.
 
 ## 2026-08-26 — GDPR: the audit, and the eight things it found
 
-**881/881 tests · 75 files · tsc clean · build clean · csp-smoke 8/8.** Nine commits on
+**881/881 tests · 76 files · tsc clean · build clean · csp-smoke 8/8.** Nine commits on
 `claude/gdpr-compliance-audit-vdkmyn`, not yet on `main`.
 
 Stories: US-43 … US-51.
@@ -218,6 +218,78 @@ Costs, measured rather than assumed:
 `style-src 'unsafe-inline'` stays, and is disclosed in the DPA rather than
 quietly dropped: styled-jsx injects style elements at runtime, and injected CSS
 cannot read storage or call into the app.
+
+### 8. Two things I broke, and what they cost
+
+Recorded because the fixes are less useful than the reasons.
+
+**The API gate took the app down.** The audit found `if (apiToken) { ...check... }`
+— an unset variable disabled the check entirely — and I made a missing token a
+hard 500 in production. Reception's preview then answered
+`server_misconfigured` on every PDF upload.
+
+Setting the variable would have broken it too, for a better reason: these
+routes are called by the tablet's own browser, which sends no Authorization
+header, and **a secret the browser must present is not a secret**. A bearer
+token cannot gate an unauthenticated PWA. The audit's C3 was right that the
+gate did nothing; the fix I chose was unimplementable for this architecture.
+
+Now: the token is optional (server-to-server), same-origin enforced otherwise.
+Verified against a live server — curl 403, other sites 403, reception passes.
+**The unit test would not have caught either the break or the fix**; only
+`curl` against a running build did.
+
+*The general lesson: a control that is correct in the abstract can be
+impossible in the architecture it lands in. Check who calls the thing before
+deciding what may call it.*
+
+**A viewport where the subject does not render is not a harder test.** Chasing
+the clipped card, I added 820x620 to `prove-preview-card`. It produced eight
+failures, all `no preview card rendered` — portrait deliberately drops the
+preview on a short screen. Eight false alarms that would have broken CI while
+proving nothing. Removed.
+
+*The general lesson: when a new test fails, confirm it is failing for the
+reason you added it. Eight red checks felt like a reproduction and were an
+artefact.*
+
+### 9. The clipped guest card — NOT SOLVED
+
+Reception's screenshot: room 614, a long name, and the bottom row
+("1 pers · 1ʳᵉ visite · 13/08 20/08") sliced horizontally by the card's own
+edge.
+
+**What was found.** Every child of the card's inner column is `shrink-0`
+except `preview-info`, which also carried `overflow-hidden`. It was therefore
+the only child the column could take space from, and it did not drop out
+cleanly — it shrank to a partial height and cut its own chips through the
+middle. The card's portrait floor was `min-h-[110px]` against roughly 190px of
+content.
+
+**What was changed.** The row is now `shrink-0` with no `overflow-hidden`:
+drawn whole, or the card is too small and that is a layout bug to see rather
+than absorb. The floor is raised to fit what the card draws.
+
+**What was NOT established, and this is the point of the entry.** The bug was
+never reproduced. Restoring the old CSS still passes the guard, because its
+viewports all hand the card ~520px and nothing is under pressure. The closest
+measurement is phone-portrait with four notes: card 158px, stay row clearing
+the bottom edge **by 4px**. Four pixels of slack — the mechanism is real and
+marginal, and a real device tipped it over. But the margin never crossed zero
+here.
+
+**Landscape is the untested suspect.** Its margin is **-24px** across the
+guard, six times tighter than portrait's -149px, and the fix above does not
+change it at all. If reception's screenshot was landscape, this is still open
+and needs a different fix.
+
+`prove-preview-card` gained **P2b**: the stay row's bottom must not pass the
+card's bottom. The guard previously asserted only that the row was DRAWN — and
+a row cut in half still has height, which is exactly how this reached a tablet
+on a green suite. Same blind spot as R25a in CLAUDE.md, from a new direction.
+
+**Open. Needs from reception: portrait or landscape, which screen, and an
+uncropped screenshot.**
 
 ### Still open
 
