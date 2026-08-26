@@ -386,8 +386,9 @@ Stated as of 2026-08-23. **Where a measure is not in place, it says so.**
   including reads, joins, writes with a forged tenant identifier, unauthenticated
   callers, every view and every function) which runs in continuous integration
   and fails the build if any cross-tenant access succeeds.
-- API routes refuse to serve in production when the authentication token is not
-  configured — absent configuration fails closed, not open.
+- API routes enforce same-origin: a request from another site, or from a script
+  sending no `Origin`, is refused. This is a narrowing control, **not
+  authentication** — see Known limitation 4.
 - The diagnostic page is disabled in production.
 
 ### Accountability

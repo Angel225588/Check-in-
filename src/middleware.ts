@@ -42,6 +42,33 @@ setInterval(() => {
  * without a nonce renders every page blank. A nonce lets OUR scripts run and
  * still blocks anything injected.
  */
+/**
+ * Did this request come from a page the app itself served?
+ *
+ * A browser POST always carries `Origin`; some contexts carry only `Referer`.
+ * Both absent means it is not a browser doing a normal request — curl sends
+ * neither — so it is refused.
+ */
+function isSameOrigin(request: NextRequest): boolean {
+  const host = request.headers.get("host");
+  if (!host) return false;
+
+  const candidates = [
+    request.headers.get("origin"),
+    request.headers.get("referer"),
+  ].filter(Boolean) as string[];
+
+  if (candidates.length === 0) return false;
+
+  return candidates.some((value) => {
+    try {
+      return new URL(value).host === host;
+    } catch {
+      return false;
+    }
+  });
+}
+
 function makeNonce(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   let s = "";
@@ -88,34 +115,44 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  // 1. API auth. FAILS CLOSED.
+  // 1. API access control.
   //
-  // This used to be `if (apiToken) { ...check... }` — so an unset token meant
-  // no check at all, and a deploy that simply forgot the environment variable
-  // silently published every OCR route to the internet. Absent configuration
-  // is not permission to skip authentication; in production it is a
-  // misconfiguration and the request is refused.
+  // HISTORY, because the obvious "fix" here is wrong twice over.
   //
-  // Development keeps the open path deliberately, so `next dev` works with no
-  // setup, and says so in the response rather than looking authenticated.
+  // This was `if (apiToken) { ...check... }`, so an unset variable meant no
+  // check at all. The audit flagged that. The first fix was to fail closed —
+  // refuse in production when the token is missing — and that broke the app:
+  // API_AUTH_TOKEN is not set on any deployment, so every OCR upload returned
+  // `server_misconfigured`.
+  //
+  // Setting the variable would ALSO have broken it, for a deeper reason. These
+  // routes are called by the reception tablet's own browser
+  // (`upload/page.tsx` → `/api/ocr-pdf`), and nothing sends an Authorization
+  // header. A shared secret the browser must present has to ship inside the
+  // bundle, where it is readable by anyone — so it is not a secret and not a
+  // control. A bearer token cannot authenticate an unauthenticated PWA.
+  //
+  // So the token stays OPTIONAL, for server-to-server callers that can hold
+  // one, and same-origin is enforced for everyone else. That is a real control
+  // for a browser-called API: a POST from a browser always carries `Origin`
+  // (the Fetch spec requires it for non-GET), while curl and a hostile page on
+  // another domain do not match.
+  //
+  // What it does NOT stop: a script that forges the Origin header. Nothing
+  // short of real user authentication does, and that is the Supabase Auth work
+  // in docs/GDPR-AUDIT.md §2 — still not shipped. This narrows drive-by abuse
+  // of the Mistral key; it is not authentication, and the DPA says so.
   const apiToken = process.env.API_AUTH_TOKEN;
-  if (!apiToken) {
-    if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "server_misconfigured", detail: "API_AUTH_TOKEN is not set" },
-        { status: 500 }
-      );
+  if (apiToken) {
+    const bearer = request.headers.get("authorization")?.replace("Bearer ", "");
+    if (bearer !== apiToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-  } else {
-    const authHeader = request.headers.get("authorization");
-    const bearerToken = authHeader?.replace("Bearer ", "");
-
-    if (bearerToken !== apiToken) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  } else if (!isSameOrigin(request)) {
+    return NextResponse.json(
+      { error: "cross_origin_denied" },
+      { status: 403 }
+    );
   }
 
   // 2. Rate limiting

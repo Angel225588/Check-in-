@@ -279,7 +279,7 @@ which is **stale** — Gemini is gone. Remove it.
 
 | ID | Sev | Finding |
 |---|---|---|
-| M1 | Med | `API_AUTH_TOKEN` optional (`middleware.ts:45`) — unset means unauthenticated OCR routes. Should fail closed. |
+| M1 | Med | **Partly addressed, and the naive fix was worse.** A bearer token cannot gate an API called by an unauthenticated PWA's own browser. Same-origin now blocks curl and other sites (403); a forged `Origin` still passes. Real protection needs C3. |
 | M2 | Med | Rate limiter is an in-memory `Map` — per-instance, resets on cold start, ineffective across Vercel's fleet. |
 | M3 | Med | CSP `connect-src` still allows the retired Gemini endpoint. |
 | L1 | Low | `CLAUDE.md` says "91 tests across 5 files"; actual is **744 across 65**. It also still says "Gemini 2.5 Flash Vision API" — stale since the Mistral migration. |
@@ -320,7 +320,7 @@ which is **stale** — Gemini is gone. Remove it.
 | 4 | Configurable retention + full purge + purge log | **Done** — `NEXT_PUBLIC_RETENTION_DAYS`, default 90, clamped 1–730. Purge covers all five stores; runs on load; idempotent; logged |
 | 5 | Erasure + export, per guest and per property | **Done** — `src/lib/privacy/subject-rights.ts`. API routes answer 503 with a reason while data is device-local |
 | 6 | Access logging, retained separately | **Done** — salted-hash subject, append-only, 365-day window untouched by the guest-data purge |
-| 7 | `API_AUTH_TOKEN` fails closed; CSP cleanup | **Done** — production refuses to serve without the token; retired Gemini endpoint removed from `connect-src`. `unsafe-inline`/`unsafe-eval` remain (M-level, §6) |
+| 7 | API access control; CSP | **Done, after a wrong turn.** Failing closed on a missing `API_AUTH_TOKEN` **took the app down** — no deployment sets it, so every OCR upload returned `server_misconfigured`. Setting it would have failed too: these routes are called by the tablet's own browser, which sends no Authorization header, and a secret the browser must present is not a secret. The token is now optional (server-to-server), with **same-origin enforced** otherwise. That narrows drive-by abuse of the Mistral key; it is **not authentication** — that remains C3, open until Supabase Auth. CSP: see §6 |
 | 8 | Supabase isolation + the A-cannot-read-B test | **Done** — schema rewritten with a tenant claim, per-verb scoped policies, forced RLS, revoked `anon`, `security_invoker` views. Proven by 25 assertions against a real Postgres, enumerating views and functions from `pg_catalog`. Verified by mutation: restoring the old permissive policies turns 19 red. CI runs it and fails if the suite skipped itself |
 | 9 | Legal documents | **Drafted** — `/legal`, marked for lawyer review |
 
