@@ -77,7 +77,13 @@ export default function GuestPreviewCard({
          because it had only ever been looked at in the dark theme. The card
          now uses the same tier as every other card in the app and is a card in
          both themes. */
-      className={`relative flex-1 min-h-[150px] portrait:min-h-[110px] rounded-xl px-5 pt-4 pb-6 flex flex-col overflow-hidden ${vip ? "" : "surface-card"}`}
+      /* The floor has to fit what the card actually draws, or the column has
+         nothing left to give and slices the stay row instead. Measured from
+         the parts: padding 40 + eyebrow 14 + room number (44 portrait floor,
+         34 landscape) + name 24 + notes lane 28 + stay row 38. Portrait was
+         110px against ~190px of content, which is where reception's clipped
+         card came from. */
+      className={`relative flex-1 min-h-[178px] portrait:min-h-[192px] rounded-xl px-5 pt-4 pb-6 flex flex-col overflow-hidden ${vip ? "" : "surface-card"}`}
       style={vip
         ? { background: "linear-gradient(135deg,#8E520C,#9A6212 48%,#7E480C)", boxShadow: "0 16px 44px -14px rgba(120,74,12,.55)" }
         : undefined}
@@ -166,7 +172,21 @@ export default function GuestPreviewCard({
           )}
       </div>
 
-      <div data-role="preview-info" className="flex items-center gap-2 flex-wrap mt-auto portrait:mt-3 pt-2 min-h-0 overflow-hidden">
+      {/* shrink-0, and NO overflow-hidden.
+
+          Every sibling above is shrink-0, so this row was the only child the
+          column could take space from — and with overflow-hidden it did not
+          drop out cleanly, it shrank to a partial height and sliced its own
+          chips through the middle. Reception saw "1 pers · 1ʳᵉ visite ·
+          13/08 20/08" cut horizontally by the card's edge.
+
+          That is the same row the 2026-08-21 fix already rescued once, from
+          the other direction: back then a short screen HID it, taking arrival,
+          departure and pax with it. Hidden or halved, the failure is the same
+          one — reception loses the answer to "vous partez quand ?". This row
+          is atomic: it is drawn whole, or the card is too small and that is a
+          layout bug to see, not to absorb silently. */}
+      <div data-role="preview-info" className="shrink-0 flex items-center gap-2 flex-wrap mt-auto portrait:mt-3 pt-2">
         <b className="text-base" style={{ color: vip ? "rgba(255,255,255,.92)" : "var(--tab-idle)" }}>
           {pax} pers.
         </b>
