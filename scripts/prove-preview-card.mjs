@@ -232,11 +232,15 @@ const VIEWS = [
   { id: "ipad-landscape", width: 1194, height: 834 },
   { id: "short-landscape", width: 1024, height: 700 },   // the ≤720px case that broke
   { id: "ipad-portrait",  width: 820,  height: 1180 },
-  /* The squeezed cases. The three above all give the card ~520px, so nothing
-     is under pressure and a containment check there can never fail. Reception
-     met a clipped card on a real device; these are the sizes where the column
-     actually has to give something up — a phone, and an iPad in Split View. */
-  { id: "short-portrait",  width: 820, height: 620 },
+  /* A phone, where the column actually has to give something up. The three
+     above all hand the card ~520px, so nothing is under pressure there and a
+     containment check can never fail.
+
+     820x620 was tried here and removed: portrait deliberately drops the
+     preview on a short screen, so every check reported "no preview card
+     rendered" — eight false alarms that would have broken CI while proving
+     nothing. A viewport where the thing under test does not exist is not a
+     harder test, it is a broken one. */
   { id: "phone-portrait",  width: 390, height: 667 },
 ];
 
