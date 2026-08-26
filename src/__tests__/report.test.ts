@@ -152,6 +152,107 @@ describe("Report - generateDayReport", () => {
   });
 });
 
+/**
+ * Total reconciliation: app TOTAL vs Opera/PMS daily doc.
+ *
+ * Bug Angel flagged 2026-06-22: the check-in screen TOTAL didn't match the
+ * Opera doc. Reproduces her example — doc says 250 total with 50 COMP — and
+ * proves the grand total blends the printed breakfast list with off-list
+ * (hors-liste) additions, while children are counted exactly once and
+ * correctly excluded from COMP.
+ */
+describe("Report - total reconciliation (doc vs app)", () => {
+  function mk(
+    room: string,
+    name: string,
+    adults: number,
+    children: number,
+    pkg: string,
+    src: Client["vipSource"]
+  ): Client {
+    return {
+      roomNumber: room, roomType: "", rtc: "", confirmationNumber: "", name,
+      arrivalDate: "", departureDate: "", reservationStatus: "CKIN",
+      adults, children, rateCode: "", packageCode: pkg, vipSource: src,
+    };
+  }
+
+  // Mirror Angel's scenario: printed breakfast list sums to 250 guests,
+  // of which 50 are COMP adults. Children live on the list too (20 kids).
+  // Off-list additions: 1 list-only VIP (2 adults) + 5 walk-ins (1 adult) = 7.
+  const docList: Client[] = [];
+  for (let i = 0; i < 25; i++) docList.push(mk(`C${i}`, `Comp ${i}`, 2, 0, "BKF COMP", "breakfast_list")); // 50 comp adults
+  for (let i = 0; i < 80; i++) docList.push(mk(`L${i}`, `List ${i}`, 2, 0, "BKF INC", "breakfast_list"));  // 160 adults
+  for (let i = 0; i < 20; i++) docList.push(mk(`K${i}`, `Kid ${i}`, 1, 1, "BKF INC", "breakfast_list"));   // 20 adults + 20 children
+  // List total = 50 + 160 + 40 = 250 (the Opera doc figure), children = 20.
+
+  const offList: Client[] = [
+    mk("V1", "VIP off-list", 2, 0, "", "list_only"),
+    ...Array.from({ length: 5 }, (_, i) => mk(`W${i}`, `Walk ${i}`, 1, 0, "", "walk_in")),
+  ]; // 7 off-list guests, all adults
+
+  const allClients = [...docList, ...offList];
+  const report = generateDayReport(allClients, []);
+
+  it("COMP persons stay correct (adults on COMP rooms, children excluded)", () => {
+    expect(report.totalCompPersons).toBe(50);
+  });
+
+  it("exposes the breakfast-list total that reconciles with the Opera doc (excludes off-list)", () => {
+    // This is the number reception should compare against the doc's 250.
+    expect(report.totalListGuests).toBe(250);
+  });
+
+  it("tracks off-list (hors-liste) additions separately", () => {
+    // 1 list-only VIP (2) + 5 walk-ins (1 each) = 7
+    expect(report.totalOffListGuests).toBe(7);
+  });
+
+  it("grand total = list + off-list (the gap is exactly the hors-liste)", () => {
+    expect(report.totalGuests).toBe(257);
+    expect(report.totalListGuests + report.totalOffListGuests).toBe(report.totalGuests);
+    expect(report.totalGuests - report.totalListGuests).toBe(report.totalOffListGuests);
+  });
+
+  it("counts children exactly once: adults + children == grand total", () => {
+    expect(report.totalAdults).toBe(237); // 230 list adults + 7 off-list adults
+    expect(report.totalChildren).toBe(20);
+    expect(report.totalAdults + report.totalChildren).toBe(report.totalGuests);
+  });
+
+  it("children are in the list total but never in the COMP count", () => {
+    // 250 list guests includes 20 children; COMP stays adults-only at 50.
+    expect(report.totalListGuests).toBeGreaterThan(report.totalCompPersons);
+    expect(report.totalChildren).toBeGreaterThan(0);
+    expect(report.totalCompPersons).toBe(50); // unchanged by children
+  });
+
+  it("source breakdown exposes expected guests per source (not just entered)", () => {
+    expect(report.sourceBreakdown.listGuests).toBe(250);
+    expect(report.sourceBreakdown.vipListOnlyGuests).toBe(2);
+    expect(report.sourceBreakdown.walkInGuests).toBe(5);
+  });
+
+  it("invariant holds with no off-list clients (pure doc list)", () => {
+    const r = generateDayReport(docList, []);
+    expect(r.totalListGuests).toBe(250);
+    expect(r.totalOffListGuests).toBe(0);
+    expect(r.totalGuests).toBe(250);
+    expect(r.totalAdults + r.totalChildren).toBe(r.totalGuests);
+  });
+
+  it("legacy data with no vipSource counts as breakfast_list (whole total reconciles)", () => {
+    const legacy: Client[] = [
+      mk("100", "Legacy A", 2, 1, "BKF INC", undefined),
+      mk("101", "Legacy B", 1, 0, "BKF COMP", undefined),
+    ];
+    const r = generateDayReport(legacy, []);
+    expect(r.totalGuests).toBe(4);
+    expect(r.totalListGuests).toBe(4); // undefined source defaults to the list
+    expect(r.totalOffListGuests).toBe(0);
+  });
+});
+
 describe("Report - exportReportCSV", () => {
   const report = generateDayReport(clients, checkIns);
   const csv = exportReportCSV(report);

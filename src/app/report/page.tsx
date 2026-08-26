@@ -445,6 +445,39 @@ function ReportPage() {
             )}
           </div>
 
+          {/* ═══ RECONCILIATION — app TOTAL vs Opera/PMS doc ═══ */}
+          <div className="glass-liquid rounded-[14px] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[9px] text-muted uppercase tracking-wider font-semibold">
+                {t("report.reconcileTitle")}
+              </span>
+              <span className="text-[8px] text-muted/80">
+                {t("report.reconcileDesc")}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-stretch">
+              <div className="rounded-[10px] bg-black/[0.03] dark:bg-white/[0.04] p-2.5">
+                <div className="text-[8px] text-muted uppercase font-semibold">{t("report.reconcileList")}</div>
+                <div className="text-lg font-black text-dark tabular-nums">{report.totalListGuests}</div>
+              </div>
+              <div className="rounded-[10px] bg-amber-500/[0.08] p-2.5">
+                <div className="text-[8px] text-amber-700 dark:text-amber-400 uppercase font-semibold">{t("report.reconcileOffList")}</div>
+                <div className="text-lg font-black text-amber-700 dark:text-amber-400 tabular-nums">
+                  {report.totalOffListGuests > 0 ? `+${report.totalOffListGuests}` : 0}
+                </div>
+              </div>
+              <div className="rounded-[10px] bg-brand/[0.06] p-2.5">
+                <div className="text-[8px] text-brand uppercase font-semibold">{t("report.reconcileTotal")}</div>
+                <div className="text-lg font-black text-brand tabular-nums">{report.totalGuests}</div>
+              </div>
+            </div>
+            {report.totalChildren > 0 && (
+              <p className="text-[8px] text-muted mt-2">
+                {report.totalChildren} {t("checkin.children").toLowerCase()} — {t("report.reconcileChildrenNote")}
+              </p>
+            )}
+          </div>
+
           {/* ═══ RUSH HOUR CHART (zoomable 5/10/30/60 min) ═══ */}
           {dailyData && <RushHourChart data={dailyData} />}
 
