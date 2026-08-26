@@ -21,9 +21,9 @@ assert, and I could not verify them from the codebase:
    data from model training, and its stated retention for OCR uploads. EU
    hosting (confirmed: `api.mistral.ai`, Paris) solves data *residency*; it does
    not by itself answer training or retention.
-2. **Vercel's execution region** — not pinned in `next.config.ts`. If functions
-   run in the US default region, guest data transits the US and the documents
-   need a transfer mechanism they currently do not describe.
+2. ~~**Vercel's execution region**~~ — **RESOLVED 2026-08-26.** It was `iad1`
+   (US East). Now pinned to `cdg1` (Paris) in `vercel.json`. The documents'
+   "no transfer outside the EEA" statements are accurate as written.
 3. **Who the counterparty is** — a Marriott franchised property, its management
    company, and Marriott International are three different signatories.
 4. **Whether Marriott's own agreements permit sending guest data to a

@@ -190,7 +190,7 @@ object.
 |---|---|---|---|---|
 | **Mistral AI SAS** (France) | OCR and text extraction from uploaded report images and PDFs | Uploaded report files and their contents: guest names, room numbers, dates, party counts, package codes, VIP preferences (which may include allergy information) | France (`api.mistral.ai`) | Within the EU — no Chapter V transfer |
 | **Supabase Inc.** | Database and file storage | All stored guest data, when the server-side deployment is in use | Configured region: EU (Paris, `eu-west-3`) | See note below |
-| **Vercel Inc.** | Application hosting and serverless execution | Data in transit through the application; server logs | See note below | See note below |
+| **Vercel Inc.** | Application hosting and serverless execution | Data in transit through the application; server logs | France (Paris, `cdg1`) — pinned in `vercel.json` | Within the EU — no Chapter V transfer |
 
 **Notes on the table above:**
 
@@ -210,14 +210,13 @@ object.
    >   from model training, and Mistral's retention period for uploaded
    >   documents. EU hosting is confirmed from the source code; the contractual
    >   terms are not something the drafter could verify.
-   > - **Vercel's region**: the application does not pin an execution region.
-   >   If functions execute in Vercel's US default, guest data transits the
-   >   United States and this table needs a Chapter V transfer mechanism
-   >   (Standard Contractual Clauses plus a transfer impact assessment). Pinning
-   >   the region to `cdg1` (Paris) is a one-line configuration change and would
-   >   remove the question.
+   > - **Vercel's region**: resolved 2026-08-26. It was `iad1` (US East,
+   >   Virginia); it is now pinned to `cdg1` (Paris) in `vercel.json` and
+   >   guarded by an automated test. No transfer outside the EEA arises from
+   >   hosting.
    > - Whether **US-parent EU-region hosting** (Supabase, Vercel) requires SCCs
-   >   in the Parties' view, notwithstanding EU data location.
+   >   in the Parties' view, notwithstanding EU data location. This is now the
+   >   only open hosting question — the data itself stays in France.
 
 ---
 
@@ -269,8 +268,10 @@ The Processor shall not transfer personal data outside the EEA without the
 Controller's prior written authorisation and an appropriate Chapter V transfer
 mechanism.
 
-Current position: the AI sub-processor (Mistral) is in France. See §6 note 3 for
-the two unresolved questions on hosting.
+Current position: **all processing takes place in France.** The AI
+sub-processor (Mistral) is in Paris, and the application's serverless functions
+are pinned to Paris (`cdg1`). See §6 note 3 for the remaining question on
+Mistral's contractual terms.
 
 ---
 

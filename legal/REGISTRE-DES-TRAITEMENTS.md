@@ -40,7 +40,7 @@ address, contact, and contract dates.
 | **Special categories** | No (see Activity 2) |
 | **Source** | The controller's own daily reports, uploaded as photographs or PDFs by reception staff |
 | **Recipients** | Mistral AI SAS (OCR); Supabase Inc. (storage, when server deployment in use); Vercel Inc. (hosting) |
-| **Third-country transfers** | None intended. See [LAWYER] note below |
+| **Third-country transfers** | **None.** OCR in Paris, hosting pinned to Paris |
 | **Retention** | Configurable, default 90 days; automatic purge; 30 days recommended |
 | **Security measures** | DPA Annex 2 |
 
@@ -142,14 +142,14 @@ breakfast is settled.
 |---|---|---|---|
 | Mistral AI SAS | OCR / text extraction | France | Uploaded report files and their contents, incl. VIP preference text |
 | Supabase Inc. | Database and storage | EU (Paris, `eu-west-3`) *when in use* | All stored guest data |
-| Vercel Inc. | Hosting, serverless execution | **Region not pinned — see below** | Data in transit; server logs |
+| Vercel Inc. | Hosting, serverless execution | France (Paris, `cdg1`) — pinned in `vercel.json` | Data in transit; server logs |
 
 > **[LAWYER] — three unverified items, all also in DPA §6:**
 > 1. Mistral's contractual terms on model training and upload retention. EU
 >    hosting is confirmed from source; the contract terms are not.
-> 2. Vercel's execution region is not pinned in configuration. If it is the US
->    default, a Chapter V transfer mechanism is required and this register is
->    incomplete as written.
+> 2. ~~Vercel's execution region~~ — resolved 2026-08-26. It was `iad1` (US
+>    East); now pinned to `cdg1` (Paris). No Chapter V mechanism needed for
+>    hosting.
 > 3. Whether US-parent, EU-region hosting requires SCCs in the parties' view.
 
 ---

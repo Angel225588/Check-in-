@@ -43,6 +43,8 @@ text. It is the only cloud service that receives guest data. You can switch on a
 local mode in which the reading happens on the device and **nothing leaves the
 hotel at all**.
 
+Our hosting runs in **Paris**. **Nothing leaves the EU.**
+
 **The reception device.** Today the data lives in the browser on your own
 tablet, not on our servers. That means it does not leave your property except
 during the reading step above.
@@ -126,9 +128,9 @@ We would rather show you this list than have you find it.
 - **Our AI provider's contract terms** on data retention and model training need
   confirming in writing. The servers are in France; the contract wording is what
   remains to be nailed down.
-- **Our hosting region is not pinned in configuration.** If it defaults outside
-  the EU, we need to fix it or document a transfer safeguard. It is a one-line
-  change and we intend to make it.
+- ~~Our hosting region~~ — **fixed 26 August 2026.** It was running in the US
+  (Virginia). It now runs in Paris, pinned in our code and checked
+  automatically on every build.
 - **Whether a formal impact assessment (DPIA) is needed.** Because we handle
   allergy information and keep returning-guest records, our own reading is that
   one is probably required. We would rather raise it than wait for you to.

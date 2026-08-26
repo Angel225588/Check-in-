@@ -106,13 +106,9 @@ hotel's own reception device** — not on our servers. The application also
 supports a hosted database (Supabase, EU region, Paris) which some hotels may
 use.
 
-**Hosting.** The application runs on Vercel.
+**Hosting.** The application runs on Vercel, in **Paris, France**.
 
-> **[LAWYER] — must be resolved before publication.** Vercel's execution region
-> is not currently pinned in configuration. If it defaults to the United States,
-> this section is incomplete: it would need to disclose a transfer outside the
-> EEA and the safeguards for it. Pinning the region to Paris is a one-line
-> change and would make this section accurate as written.
+**Your data does not leave the European Union.**
 
 We do not sell your data. We do not use it for advertising. We do not use it to
 train AI models, and our AI provider is contractually engaged only to read your
