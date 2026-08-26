@@ -7,25 +7,36 @@ import { Client } from "./types";
  * use different header text but the same column order). Non-table lines (titles,
  * totals, page footers) are ignored. Headers may repeat per page; rows accumulate.
  */
-type Field = keyof Pick<
-  Client,
-  | "roomNumber" | "roomType" | "rtc" | "confirmationNumber" | "name"
-  | "arrivalDate" | "departureDate" | "reservationStatus"
-  | "adults" | "children" | "rateCode" | "packageCode"
->;
+/**
+ * "discard" is a real column that is deliberately not stored.
+ *
+ * Confirmation number, RTC, room type and reservation status were removed for
+ * data minimisation (docs/GDPR-AUDIT.md section 1.2), but their HEADERS still
+ * have to be recognised. A "Room Type" column left unclassified falls through
+ * to the /room/ test and is read as the room number, replacing the real room
+ * with a room-type code. Recognising the column and dropping its value is what
+ * keeps the rest of the row aligned.
+ */
+type Field =
+  | keyof Pick<
+      Client,
+      | "roomNumber" | "name" | "arrivalDate" | "departureDate"
+      | "adults" | "children" | "rateCode" | "packageCode"
+    >
+  | "discard";
 
 function classifyHeader(raw: string): Field | null {
   const s = raw.toLowerCase().replace(/\./g, " ").replace(/\s+/g, " ").trim();
   if (/pack/.test(s)) return "packageCode";
   if (/rate/.test(s)) return "rateCode";
-  if (/conf/.test(s)) return "confirmationNumber";
-  if (/\brtc\b/.test(s)) return "rtc";
-  if (/type/.test(s)) return "roomType";          // "type" / "room type" (before "room")
+  if (/conf/.test(s)) return "discard";           // confirmation number — not stored
+  if (/\brtc\b/.test(s)) return "discard";        // RTC — not stored
+  if (/type/.test(s)) return "discard";           // "type" / "room type" (before "room")
   if (/room/.test(s)) return "roomNumber";        // "room" / "room no"
   if (/name/.test(s)) return "name";
   if (/arriv/.test(s)) return "arrivalDate";
   if (/depart|\bdep\b/.test(s)) return "departureDate";
-  if (/status|resv/.test(s)) return "reservationStatus";
+  if (/status|resv/.test(s)) return "discard";     // reservation status — not stored
   if (/^adl|^ad\b|adult/.test(s)) return "adults";
   if (/^chl|^ch\b|child/.test(s)) return "children";
   return null;
@@ -48,8 +59,8 @@ function isRoomNumber(v: string): boolean {
 
 function emptyClient(): Client {
   return {
-    roomNumber: "", roomType: "", rtc: "", confirmationNumber: "", name: "",
-    arrivalDate: "", departureDate: "", reservationStatus: "",
+    roomNumber: "", name: "",
+    arrivalDate: "", departureDate: "",
     adults: 0, children: 0, rateCode: "", packageCode: "",
   };
 }
@@ -101,7 +112,7 @@ export function detectDocType(md: string): DocType {
 
 type VipField =
   | "roomNumber" | "name" | "vipLevel" | "vipNotes"
-  | "arrivalDate" | "departureDate" | "roomType";
+  | "arrivalDate" | "departureDate";
 
 /**
  * Order matters, and two of these lines are load-bearing:
@@ -122,7 +133,7 @@ function classifyVipHeader(raw: string): VipField | null {
   if (/note|special|instruct|prefer/.test(s)) return "vipNotes";
   if (/\barr\b|arriv/.test(s)) return "arrivalDate";
   if (/\bdep\b|depart/.test(s)) return "departureDate";
-  if (/type/.test(s)) return "roomType";
+  if (/type/.test(s)) return null;    // room type — recognised, not stored
   if (/guest|name/.test(s)) return "name";
   if (/room/.test(s)) return "roomNumber";
   return null;
@@ -251,7 +262,6 @@ export function parseMistralVip(md: string): Client[] {
     // Dates are collected rather than copied cell-to-field: one cell can carry
     // both of them glued together, and a straight copy would lose the second.
     const dates: string[] = [];
-    let fusedType = "";
 
     map.forEach((field, i) => {
       if (!field || i === roomCol || i === nameCol || i === levelCol) return;
@@ -262,10 +272,10 @@ export function parseMistralVip(md: string): Client[] {
       const v = (cells[i] ?? "").trim();
       if (!v) return;
       if (field === "arrivalDate" || field === "departureDate") {
-        const { dates: found, rest } = unfuse(v);
+        const { dates: found } = unfuse(v);
         dates.push(...found);
-        // What is left of "17/08/2621/08/26EXST" once the dates are out.
-        if (!fusedType && /^[A-Z]{3,6}$/.test(rest)) fusedType = rest;
+        // The trailing room-type code in "17/08/2621/08/26EXST" is discarded
+        // with the rest of the room-type field.
         return;
       }
       e[field] = v;
@@ -279,16 +289,14 @@ export function parseMistralVip(md: string): Client[] {
       const scanned: string[] = [];
       for (let i = 0; i < cells.length; i++) {
         if (i === roomCol || i === nameCol || i === levelCol) continue;
-        const { dates: found, rest } = unfuse(cells[i] ?? "");
+        const { dates: found } = unfuse(cells[i] ?? "");
         scanned.push(...found);
-        if (!fusedType && found.length && /^[A-Z]{3,6}$/.test(rest)) fusedType = rest;
       }
       if (scanned.length > dates.length) dates.splice(0, dates.length, ...scanned);
     }
 
     if (dates[0]) e.arrivalDate = dates[0];
     if (dates[1]) e.departureDate = dates[1];
-    if (!e.roomType && fusedType) e.roomType = fusedType;
 
     out.push(e);
   }
@@ -313,6 +321,7 @@ export function parseMistralMarkdown(md: string): Client[] {
     map.forEach((field, i) => {
       if (!field) return;
       const v = cells[i] ?? "";
+      if (field === "discard") return;
       if (field === "adults" || field === "children") c[field] = parseInt(v, 10) || 0;
       else c[field] = v;
     });

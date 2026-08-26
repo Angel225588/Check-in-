@@ -130,3 +130,22 @@ real screen behind it.
   anything cumulative over a week or a month — one day, one report
 - Shared rooms (same room, different names) stay separate entries
 - VIP matching uses a room+name composite key
+
+## Privacy (GDPR — we are the processor, the hotel is the controller)
+- Full audit and remediation status: `docs/GDPR-AUDIT.md`. Draft legal docs: `/legal`.
+- **Never re-add** `confirmationNumber`, `rtc`, `reservationStatus` or `roomType`.
+  They are collected by no one and ratcheted shut by `data-minimisation.test.ts`.
+  Recognising such a column in a parser is fine; storing its value is not.
+- Retention is one number, `getRetentionDays()`. Any new store holding personal
+  data must be added to `PURGEABLE_STORES` and to erasure/export in
+  `privacy/subject-rights.ts` — the tests assert the store list, so a new store
+  is a deliberate decision rather than a silent gap.
+- Guest notes carry allergies (Art. 9 health data). They are encrypted at rest
+  and must stay that way. Never log note content.
+- **The roster is encrypted at rest too** (`secure-store.ts`). `storage.ts` must
+  read and write through `secureGet`/`secureSet`, never `localStorage` directly —
+  a direct read now returns ciphertext. `AppContext` unlocks before rendering;
+  nobody types a password. Any new key holding a name goes in `SECURE_KEYS`.
+- Access logs record a salted hash, never a guest name, and deliberately outlive
+  the data they describe.
+- `supabase/schema.sql` must never contain `using (true)`.

@@ -189,6 +189,11 @@ async function measure(page) {
      *  in a different slot per orientation still compares like with like. */
     infoFromCardTop: info ? Math.round(info.y - card.y) : null,
     laneH: lane ? Math.round(lane.height) : null,
+    /** How far the stay row's bottom falls PAST the card's own bottom edge.
+     *  Positive means the card is slicing it. `info-visible` below only ever
+     *  asked whether the row had height — a row cut in half still does, which
+     *  is how reception hit a clipped card on a green suite. */
+    infoOverflow: info ? Math.round((info.y + info.height) - (card.y + card.height)) : null,
   };
 }
 
@@ -227,6 +232,16 @@ const VIEWS = [
   { id: "ipad-landscape", width: 1194, height: 834 },
   { id: "short-landscape", width: 1024, height: 700 },   // the ≤720px case that broke
   { id: "ipad-portrait",  width: 820,  height: 1180 },
+  /* A phone, where the column actually has to give something up. The three
+     above all hand the card ~520px, so nothing is under pressure there and a
+     containment check can never fail.
+
+     820x620 was tried here and removed: portrait deliberately drops the
+     preview on a short screen, so every check reported "no preview card
+     rendered" — eight false alarms that would have broken CI while proving
+     nothing. A viewport where the thing under test does not exist is not a
+     harder test, it is a broken one. */
+  { id: "phone-portrait",  width: 390, height: 667 },
 ];
 
 for (const v of VIEWS) {
@@ -250,6 +265,10 @@ for (const v of VIEWS) {
         m.info.y >= m.card.y && m.info.y + m.info.height <= m.card.y + m.card.height + 1;
       check(`P2-${v.id}-${theme}-r${g.room}-info-visible`, drawn,
         `${g.notes.length} note(s) · info row ${m.info ? `${Math.round(m.info.height)}px` : "ABSENT"}`);
+
+      check(`P2b-${v.id}-${theme}-r${g.room}-info-inside-card`,
+        m.infoOverflow !== null && m.infoOverflow <= 1,
+        `stay row overflows the card by ${m.infoOverflow}px`);
 
       check(`P3-${v.id}-${theme}-r${g.room}-stay-visible`, !!m.stay && m.stay.height > 0,
         m.stay ? `arrivée/départ at y+${Math.round(m.stay.y - m.card.y)}` : "ARRIVAL/DEPARTURE MISSING");

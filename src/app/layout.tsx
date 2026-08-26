@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { headers } from "next/headers";
 import InstallPrompt from "@/components/InstallPrompt";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
@@ -26,11 +27,16 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Minted per request by the middleware, which also puts it in the CSP.
+  // Without it Next's own hydration scripts are blocked and every page renders
+  // blank — the loose policy was hiding that.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
@@ -45,10 +51,13 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-bg-alt text-dark min-h-screen">
-        {/* Prevent dark mode flash — runs before first paint via beforeInteractive */}
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var d=localStorage.getItem("app-dark");if(d==="true"||(d===null&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark")}catch(e){}})()`}
-        </Script>
+        {/* Prevent dark mode flash — runs before first paint.
+            Served from /theme-init.js rather than written inline: an inline
+            script needs `script-src 'unsafe-inline'`, and with guest names now
+            encrypted in browser storage, script injection is the residual path
+            to them. One inline script was holding the CSP open for the whole
+            app. */}
+        <Script id="theme-init" src="/theme-init.js" strategy="beforeInteractive" nonce={nonce} />
         <AppProvider>
           {children}
           <InstallPrompt />

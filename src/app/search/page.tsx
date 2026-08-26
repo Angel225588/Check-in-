@@ -410,13 +410,9 @@ export default function SearchPage() {
     if (!newRoom.trim() || !newName.trim()) return;
     const client: Client = {
       roomNumber: newRoom.trim(),
-      roomType: "",
-      rtc: "",
-      confirmationNumber: "",
       name: newName.trim(),
       arrivalDate: "",
       departureDate: "",
-      reservationStatus: "",
       adults: Math.max(0, parseInt(newAdults, 10) || 1),
       children: Math.max(0, parseInt(newChildren, 10) || 0),
       rateCode: "",

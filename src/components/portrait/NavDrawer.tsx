@@ -5,6 +5,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import type { RecentEntry } from "@/components/PreviewPanes";
 import ArrivalRow from "@/components/portrait/ArrivalRow";
+import { useApp } from "@/contexts/AppContext";
 
 /**
  * US-P4 — the service controls, as the drawer iOS already taught everyone.
@@ -75,6 +76,7 @@ export default function NavDrawer({
    */
   showNav?: boolean;
 }) {
+  const { unlockMs } = useApp();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -252,6 +254,23 @@ export default function NavDrawer({
         >
           build {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7)}
         </span>
+
+        {/* The real unlock time, on the real tablet.
+            Guest names are encrypted at rest, so the app decrypts them into
+            memory when it opens. Measured at ~56ms for a full house across a
+            90-day window on a development machine — but a development machine
+            is not an iPad, and an estimate is not a measurement. This prints
+            what it actually cost here. Nobody types anything: the key lives in
+            IndexedDB and the app unlocks itself. */}
+        {unlockMs >= 0 && (
+          <span
+            data-role="unlock-stamp"
+            className="shrink-0 text-center text-micro font-bold tabular-nums tracking-[0.08em]"
+            style={{ color: "var(--tab-idle)", opacity: 0.65 }}
+          >
+            🔒 {unlockMs} ms
+          </span>
+        )}
 
       </aside>
 

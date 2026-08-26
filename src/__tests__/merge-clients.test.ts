@@ -5,13 +5,9 @@ import { mergeNewClients, MergeResult } from "@/lib/merge";
 function makeClient(room: string, name: string, overrides?: Partial<Client>): Client {
   return {
     roomNumber: room,
-    roomType: "",
-    rtc: "",
-    confirmationNumber: "",
     name,
     arrivalDate: "",
     departureDate: "",
-    reservationStatus: "",
     adults: 1,
     children: 0,
     rateCode: "",

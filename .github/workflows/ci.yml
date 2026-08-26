@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # The tenant-isolation suite needs a real Postgres. Without one it skips,
+    # and a skipped isolation test still reports the run as green — which is
+    # exactly the failure mode that lets a permissive policy reach production.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Test suite (includes tenant isolation against live Postgres)
+        run: npx vitest run
+        env:
+          RLS_TEST_DATABASE_URL: postgres://postgres@localhost:5432/postgres
+
+      - name: Fail if the isolation suite did not actually run
+        # A green run proves nothing if the suite skipped itself. Assert the
+        # tests were executed, not merely reported.
+        run: |
+          npx vitest run src/__tests__/rls-isolation.test.ts --reporter=json --outputFile=/tmp/rls.json
+          node -e '
+            const r = require("/tmp/rls.json");
+            const n = r.numTotalTests ?? 0, p = r.numPassedTests ?? 0;
+            if (n === 0 || p !== n) {
+              console.error(`RLS isolation suite did not run to completion: ${p}/${n} passed`);
+              process.exit(1);
+            }
+            console.log(`Tenant isolation proven: ${p}/${n} assertions passed.`);
+          '
+        env:
+          RLS_TEST_DATABASE_URL: postgres://postgres@localhost:5432/postgres

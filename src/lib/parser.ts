@@ -35,13 +35,9 @@ export function parseCSV(text: string): Client[] {
     // 8: Adults | 9: Children | 10: Rate Code | 11: Package Codes
     const client: Client = {
       roomNumber: parts[0] || "",
-      roomType: parts[1] || "",
-      rtc: parts[2] || "",
-      confirmationNumber: parts[3] || "",
       name: normalizeName(parts[4] || ""),                      // Column 5 (index 4) — ALWAYS the name
       arrivalDate: parts[5] || "",
       departureDate: parts[6] || "",
-      reservationStatus: parts[7] || "",
       adults: parseInt(parts[8] || "0", 10) || 0,              // Column 9 (index 8) — ALWAYS adults
       children: parseInt(parts[9] || "0", 10) || 0,            // Column 10 (index 9) — ALWAYS children
       rateCode: parts[10] || "",
@@ -105,13 +101,9 @@ export function parseOCRText(text: string): Client[] {
     // Expected order after room: RoomType, RTC, ConfNo, Name, Arrival, Departure, Status, Adults, Children, RateCode, PackageCode
     const client: Client = {
       roomNumber,
-      roomType: "",
-      rtc: "",
-      confirmationNumber: "",
       name: "",
       arrivalDate: "",
       departureDate: "",
-      reservationStatus: "",
       adults: 1,
       children: 0,
       rateCode: "",
@@ -135,11 +127,10 @@ export function parseOCRText(text: string): Client[] {
         continue;
       }
 
-      const statusMatch = part.match(statusPattern);
-      if (statusMatch) {
-        client.reservationStatus = statusMatch[1].toUpperCase();
-        continue;
-      }
+      // Reservation status is recognised but not stored (data minimisation,
+      // docs/GDPR-AUDIT.md section 1.2). The match still has to happen: an
+      // unclassified "CKIN" would be swept into the guest's name.
+      if (statusPattern.test(part)) continue;
 
       const pkgMatch = part.match(packagePattern);
       if (pkgMatch) {
@@ -147,15 +138,9 @@ export function parseOCRText(text: string): Client[] {
         continue;
       }
 
-      const rtMatch = part.match(roomTypePattern);
-      if (rtMatch) {
-        if (!client.roomType) {
-          client.roomType = rtMatch[1].toUpperCase();
-        } else {
-          client.rtc = rtMatch[1].toUpperCase();
-        }
-        continue;
-      }
+      // Room type and RTC likewise: recognised so they do not land in the
+      // name, then discarded.
+      if (roomTypePattern.test(part)) continue;
 
       // Check if it's a pure number (adults/children)
       if (/^\d{1,2}$/.test(part)) {
@@ -168,11 +153,9 @@ export function parseOCRText(text: string): Client[] {
         continue;
       }
 
-      // Check for confirmation number (long number)
-      if (/^\d{6,}$/.test(part)) {
-        client.confirmationNumber = part;
-        continue;
-      }
+      // A long number is a confirmation number: recognised so it is not read
+      // as a guest count or a name fragment, then discarded.
+      if (/^\d{6,}$/.test(part)) continue;
 
       // Check for rate code (short uppercase code)
       if (/^[A-Z0-9]{3,8}$/.test(part) && !roomTypePattern.test(part) && !statusPattern.test(part)) {

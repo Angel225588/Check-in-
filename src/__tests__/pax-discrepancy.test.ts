@@ -9,17 +9,21 @@ import {
   getSessionHistory,
 } from "@/lib/storage";
 import type { Client } from "@/lib/types";
+import { __resetSecureStore, secureGet, secureSet } from "@/lib/secure-store";
 
 function mk(roomNumber: string, name: string, adults: number, children: number): Client {
   return {
-    roomNumber, roomType: "DLXK", rtc: "", confirmationNumber: `9${roomNumber}`,
-    name, arrivalDate: "27/07/26", departureDate: "29/07/26", reservationStatus: "CKIN",
+    roomNumber, 
+    name, arrivalDate: "27/07/26", departureDate: "29/07/26", 
     adults, children, rateCode: "", packageCode: "BKF INC",
   };
 }
 
 beforeEach(() => {
   localStorage.clear();
+  // The encrypted store keeps an in-memory mirror; clearing the disk without
+  // clearing the mirror would leave the previous test's guests visible.
+  __resetSecureStore();
   saveClients([mk("123", "DUPONT/MARIE", 1, 0), mk("224", "POLANCO/ANGEL", 2, 0)]);
 });
 
@@ -102,17 +106,17 @@ describe("persistence", () => {
 
   it("treats a day written by an older build as simply having none", () => {
     const today = new Date().toISOString().split("T")[0];
-    const raw = JSON.parse(localStorage.getItem(`dailyData_${today}`)!);
+    const raw = JSON.parse(secureGet(`dailyData_${today}`)!);
     delete raw.discrepancies;
-    localStorage.setItem(`dailyData_${today}`, JSON.stringify(raw));
+    secureSet(`dailyData_${today}`, JSON.stringify(raw));
     expect(getDiscrepancies()).toEqual([]);
   });
 
   it("ignores a corrupted discrepancies field instead of throwing", () => {
     const today = new Date().toISOString().split("T")[0];
-    const raw = JSON.parse(localStorage.getItem(`dailyData_${today}`)!);
+    const raw = JSON.parse(secureGet(`dailyData_${today}`)!);
     raw.discrepancies = "not an array";
-    localStorage.setItem(`dailyData_${today}`, JSON.stringify(raw));
+    secureSet(`dailyData_${today}`, JSON.stringify(raw));
     expect(getDiscrepancies()).toEqual([]);
   });
 });

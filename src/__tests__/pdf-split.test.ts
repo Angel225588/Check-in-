@@ -50,29 +50,29 @@ describe("splitPdfIntoChunks", () => {
 describe("dedupClients (parallel-chunk merge)", () => {
   it("drops a guest duplicated across a chunk boundary", () => {
     const rows = [
-      { confirmationNumber: "111", roomNumber: "101", name: "Smith" },
-      { confirmationNumber: "111", roomNumber: "101", name: "Smith" }, // dup
-      { confirmationNumber: "222", roomNumber: "102", name: "Dupont" },
+      { roomNumber: "101", name: "Smith" },
+      { roomNumber: "101", name: "Smith" }, // dup
+      { roomNumber: "102", name: "Dupont" },
     ];
     expect(dedupClients(rows)).toHaveLength(2);
   });
 
   it("keeps two different guests in the same room (shared room)", () => {
     const rows = [
-      { confirmationNumber: "111", roomNumber: "101", name: "Smith" },
-      { confirmationNumber: "112", roomNumber: "101", name: "Smith Jr" },
+      { roomNumber: "101", name: "Smith" },
+      { roomNumber: "101", name: "Smith Jr" },
     ];
     expect(dedupClients(rows)).toHaveLength(2);
   });
 
   it("preserves first-occurrence order", () => {
     const rows = [
-      { confirmationNumber: "b", roomNumber: "2", name: "B" },
-      { confirmationNumber: "a", roomNumber: "1", name: "A" },
-      { confirmationNumber: "b", roomNumber: "2", name: "B" },
+      { roomNumber: "2", name: "B" },
+      { roomNumber: "1", name: "A" },
+      { roomNumber: "2", name: "B" },
     ];
     const out = dedupClients(rows);
-    expect(out.map((r) => r.confirmationNumber)).toEqual(["b", "a"]);
+    expect(out.map((r) => r.roomNumber)).toEqual(["2", "1"]);
   });
 });
 

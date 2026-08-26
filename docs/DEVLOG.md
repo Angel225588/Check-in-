@@ -13,6 +13,297 @@ git for those.
 
 ---
 
+## 2026-08-26 — GDPR: the audit, and the eight things it found
+
+**881/881 tests · 76 files · tsc clean · build clean · csp-smoke 8/8.** Nine commits on
+`claude/gdpr-compliance-audit-vdkmyn`, not yet on `main`.
+
+Stories: US-43 … US-51.
+
+### The audit was written twice, and the first one was wrong
+
+Worth recording because it nearly shipped. The first pass ran against the
+branch as found, which turned out to be ~19,600 lines behind `main`. It named
+**Google Gemini** as the sub-processor — gone since the Mistral migration — and
+recommended deleting `rateCode`, which `groups.ts` uses to key the group
+blocks. It also reported findings already fixed here.
+
+Rebased, re-audited, rewrote the document. `docs/GDPR-AUDIT.md` carries the
+correction at the top rather than quietly reading as if it were always right.
+
+**The lesson is cheap and general: audit `main`, not the branch you were handed.**
+
+### What was wrong, in the order it mattered
+
+**1. RLS was enabled and then neutralised.** `supabase/schema.sql` ended with
+`using (true) with check (true)` on all five tables. That is not a weak policy,
+it is *no* policy — identical to RLS being switched off, while reading like
+security in a review. The intended key is `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+which by design ships inside the JavaScript bundle. Applied as written, any
+user at any hotel reads every guest row of every other hotel with one `fetch`.
+
+Not exploitable today only because nothing imports Supabase yet — `supabase.ts`
+does not exist on `main`. That is luck, not design, and it expires on the first
+`supabase.from()`.
+
+Fixed: a tenant claim read from the verified JWT, `property_code not null` on
+every table stamped by trigger, per-verb policies, `with check` on every write,
+RLS forced so the owner does not bypass it, `anon` revoked, views declared
+`security_invoker`.
+
+Two of those are the ones that get missed. **`using` alone governs what a tenant
+can SEE, not what it can WRITE** — without `with check`, hotel A can stamp a row
+as hotel B and poison a roster it cannot read. And **a `security definer`
+function ignores RLS entirely**, which is the standard way a correctly-policied
+schema regains a hole after the tables look right.
+
+**2. Four fields were collected and never used.** `confirmationNumber`, `rtc`,
+`reservationStatus`, `roomType` — parsed, stored, merged, copied between stores,
+and rendered nowhere. The confirmation number is the one that links most
+directly back to the Marriott PMS reservation.
+
+The subtlety: they did double duty as tokeniser signals. An unclassified "CKIN"
+gets swept into the guest's name; an unclassified "Room Type" header falls
+through to the `/room/` test and replaces the real room with a type code. So
+the *recognition* stays and only the *storage* goes — `mistral-parser` gained an
+explicit `"discard"` field for a column matched to keep the row aligned and then
+dropped.
+
+**3. Three of five stores were never purged.** `pruneByAge` was real and
+tested, and covered session history only. Guest profiles, notes and morning
+briefs were kept forever. Retention is now one configurable number covering all
+five, and the store list is asserted so a sixth is a deliberate decision.
+
+Profiles age on **last** contact, not first: a ten-year regular is current data,
+a one-off from last spring is not. Using `firstVisit` would delete exactly the
+guests the feature exists to recognise.
+
+Notes needed a date the purge could read without decrypting every guest on
+load, so the envelope gained a plaintext `touchedAt` beside the ciphertext. A
+legacy envelope has none and is **never** purged — losing a severe allergy to a
+storage-format upgrade is the worst outcome this module could produce.
+
+**4. No erasure, no export, no access log.** All three now exist. Two
+deliberate choices worth stating: the access log records a **salted hash, never
+a name** (a log of guest names is a second copy of the data it audits, and it
+lives longer), and both logs **survive an erasure** — they hold nothing a
+subject could be identified by, and they are the evidence the erasure happened.
+
+**5. The app was running in Virginia.** Function region `iad1`, US East. Every
+uploaded roster was read on US soil, needing a transfer basis nobody had
+documented. Now `cdg1` — Paris, same country as Mistral — pinned in
+`vercel.json` rather than only in a dashboard where it can move without a trace.
+
+**6. The roster was not encrypted, and the notes were.** The largest gap. The
+allergy a receptionist *typed* was AES-GCM-256 with a non-extractable key; the
+same allergy arriving on the VIP sheet sat in plaintext next to the guest's
+name and room number.
+
+### The constraint that shaped `secure-store.ts`
+
+`storage.ts` is synchronous, and it is read **during service** — `search/page.tsx`
+computes expected-arrivals inside a `useMemo`. WebCrypto is async-only. Pushing
+`await` into that path was not acceptable, so: an in-memory mirror with a
+synchronous API, hydrated once when the app opens, persisting encrypted in the
+background. `AppContext` gates rendering on the unlock, because rendering early
+would compute those memos against an empty store and show reception a morning
+with no guests in it.
+
+Two properties this had to preserve, and does.
+
+**Quota failures stay synchronous.** The check-in screen marks a guest served
+on that boolean. Space is reserved up front with a marked placeholder carrying
+no guest data — writing the plaintext even for a millisecond would defeat the
+whole point — and on failure the in-memory value is **rolled back**. Keeping it
+would show a check-in that never saved and would vanish on reload: the fake
+success `storage-safety.test.ts` exists to prevent. That test caught this; the
+first implementation had it wrong.
+
+**A device already in service has plaintext.** Hydration adopts it and re-writes
+it encrypted. Ignoring it would look exactly like every guest disappearing
+overnight.
+
+### The numbers
+
+Measured before building, on a full house of 130 rooms:
+
+| Window | Plaintext | Encrypted | Unlock |
+|---|---|---|---|
+| today only | 46 KB | 3 KB | 4 ms |
+| 30 days | 1 378 KB | 63 KB | 29 ms |
+| 90 days | 4 134 KB | 186 KB | 56 ms |
+
+A development machine is not an iPad, so the real per-device figure prints in
+the nav drawer (`🔒 142 ms`). An estimate is not a measurement.
+
+**The unplanned win: 22× smaller.** The envelope gzips before encrypting.
+iPad quota exhaustion was already a real failure mode for this app — the whole
+`RAW_TEXT_CAP` / `reclaimStorageSpace` / `freeUpSpace` apparatus exists for it —
+so the privacy fix removed a reliability one.
+
+### Watched go red
+
+Per the house rule. Every security check was mutated before it was trusted:
+
+- Restore `using (true)` → **19 of 25** isolation assertions fail.
+- Write plaintext in `secure-store` → **4** roster-encryption assertions fail.
+- Set `iad1` in `vercel.json` → **2** region assertions fail.
+- Drop the CSP nonce → `csp-smoke` reports every page blank, 6 violations.
+
+The isolation suite also caught a bug in itself: Postgres roles are
+cluster-wide and survive a schema drop, so the second run threw in `beforeAll`
+and **skipped all 25 assertions while reporting the file green**. A security
+suite that skips itself is worse than no suite. CI now fails the build if it
+does not run to completion.
+
+### Legal drafts
+
+`/legal` — DPA (Art. 28), register of processing activities, privacy policy,
+and a one-page summary for a hotel's compliance contact. Sub-processors named
+as Mistral, Supabase, Vercel, matching what the code calls.
+
+Written to be accurate rather than flattering. Annex 2 states what is *not*
+true: the CSP still permits `unsafe-inline` and `unsafe-eval`, rate limiting is
+per-instance, and there is no per-user authentication. An overstated security
+annex is a misrepresentation in a signed contract, and a compliance reviewer
+finds these anyway.
+
+Art. 9 is stated plainly, not hedged. Allergies are a designed, safety-critical
+feature — `tone: "alert"`, auto-pinned, surfaced without opening anything — so
+the app processes health data deliberately. The register names the activity,
+the DPA allocates the Art. 9 condition to the controller, and both flag that a
+DPIA is likely required.
+
+### 7. The CSP was holding the door open, and the unit test could not see it
+
+Added after the roster encryption, because encryption changed what the CSP is
+*for*. `secure-store.ts` explicitly does not defend against code running inside
+the page — such code can just call `secureGet` — so once the data was
+encrypted, script injection became the residual path to it, and
+`script-src 'unsafe-inline'` was the thing letting it in.
+
+`script-src` is now `'self' 'nonce-<per-request>' 'wasm-unsafe-eval'`. Plus
+`object-src 'none'`, `base-uri 'self'`, `form-action 'self'`,
+`worker-src 'self' blob:`, and the retired Gemini endpoint removed from
+`connect-src`.
+
+`'wasm-unsafe-eval'` is deliberate, not laziness: PhotoCapture lazy-loads
+tesseract.js for the local OCR mode — the mode where guest data never leaves
+the device — and that is WebAssembly. It permits WASM compilation only, unlike
+`'unsafe-eval'` which also permits `eval()` on strings. Breaking local OCR to
+tighten the CSP would have traded privacy for privacy.
+
+**The part worth remembering: `csp.test.ts` passed while the app was completely
+broken.** Removing `'unsafe-inline'` blocks Next's own inline hydration
+scripts, so every page rendered blank — and nothing in a jsdom suite can see
+that, because nothing there loads the real document. `scripts/csp-smoke.mjs`
+now drives a real browser across seven pages and fails on any violation,
+console error, or empty body. It caught it, and it was itself verified by
+mutation: dropping the nonce turns it red.
+
+That is the same lesson as `prove-preview-card.mjs` in the 2026-08-21 entry,
+arriving from a different direction. **A rule that can be satisfied by a broken
+screen is not a rule.**
+
+Costs, measured rather than assumed:
+
+- The policy moved from `next.config.ts` to the middleware. A static header
+  cannot carry a per-request nonce.
+- Pages are server-rendered rather than prerendered, because the root layout
+  reads `headers()`. **8ms median, 10ms p95** on a cold `/search` — negligible
+  against the 150–300ms unlock, and this app renders no server data anyway.
+- The theme bootstrap moved to `/theme-init.js`. One inline script was holding
+  the whole policy open.
+
+`style-src 'unsafe-inline'` stays, and is disclosed in the DPA rather than
+quietly dropped: styled-jsx injects style elements at runtime, and injected CSS
+cannot read storage or call into the app.
+
+### 8. Two things I broke, and what they cost
+
+Recorded because the fixes are less useful than the reasons.
+
+**The API gate took the app down.** The audit found `if (apiToken) { ...check... }`
+— an unset variable disabled the check entirely — and I made a missing token a
+hard 500 in production. Reception's preview then answered
+`server_misconfigured` on every PDF upload.
+
+Setting the variable would have broken it too, for a better reason: these
+routes are called by the tablet's own browser, which sends no Authorization
+header, and **a secret the browser must present is not a secret**. A bearer
+token cannot gate an unauthenticated PWA. The audit's C3 was right that the
+gate did nothing; the fix I chose was unimplementable for this architecture.
+
+Now: the token is optional (server-to-server), same-origin enforced otherwise.
+Verified against a live server — curl 403, other sites 403, reception passes.
+**The unit test would not have caught either the break or the fix**; only
+`curl` against a running build did.
+
+*The general lesson: a control that is correct in the abstract can be
+impossible in the architecture it lands in. Check who calls the thing before
+deciding what may call it.*
+
+**A viewport where the subject does not render is not a harder test.** Chasing
+the clipped card, I added 820x620 to `prove-preview-card`. It produced eight
+failures, all `no preview card rendered` — portrait deliberately drops the
+preview on a short screen. Eight false alarms that would have broken CI while
+proving nothing. Removed.
+
+*The general lesson: when a new test fails, confirm it is failing for the
+reason you added it. Eight red checks felt like a reproduction and were an
+artefact.*
+
+### 9. The clipped guest card — NOT SOLVED
+
+Reception's screenshot: room 614, a long name, and the bottom row
+("1 pers · 1ʳᵉ visite · 13/08 20/08") sliced horizontally by the card's own
+edge.
+
+**What was found.** Every child of the card's inner column is `shrink-0`
+except `preview-info`, which also carried `overflow-hidden`. It was therefore
+the only child the column could take space from, and it did not drop out
+cleanly — it shrank to a partial height and cut its own chips through the
+middle. The card's portrait floor was `min-h-[110px]` against roughly 190px of
+content.
+
+**What was changed.** The row is now `shrink-0` with no `overflow-hidden`:
+drawn whole, or the card is too small and that is a layout bug to see rather
+than absorb. The floor is raised to fit what the card draws.
+
+**What was NOT established, and this is the point of the entry.** The bug was
+never reproduced. Restoring the old CSS still passes the guard, because its
+viewports all hand the card ~520px and nothing is under pressure. The closest
+measurement is phone-portrait with four notes: card 158px, stay row clearing
+the bottom edge **by 4px**. Four pixels of slack — the mechanism is real and
+marginal, and a real device tipped it over. But the margin never crossed zero
+here.
+
+**Landscape is the untested suspect.** Its margin is **-24px** across the
+guard, six times tighter than portrait's -149px, and the fix above does not
+change it at all. If reception's screenshot was landscape, this is still open
+and needs a different fix.
+
+`prove-preview-card` gained **P2b**: the stay row's bottom must not pass the
+card's bottom. The guard previously asserted only that the row was DRAWN — and
+a row cut in half still has height, which is exactly how this reached a tablet
+on a green suite. Same blind spot as R25a in CLAUDE.md, from a new direction.
+
+**Open. Needs from reception: portrait or landscape, which screen, and an
+uncropped screenshot.**
+
+### Still open
+
+- **Names are not pseudonymised at day close.** Nothing in the analytics layer
+  reads `name` — checked every consumer — so nothing would regress. Until it is
+  built the app holds a rolling multi-week list of who slept in which room.
+- **Mistral's contractual terms** on model training and upload retention are
+  unverified. EU hosting is confirmed from source; the contract is not, and the
+  legal drafts refuse to assert it.
+- **US-48 is proven but not switched on.** The gate is the first
+  `supabase.from()`.
+- **Returning-guest profiling stays**, by the owner's decision, documented in
+  the register with its residual risk rather than removed.
+
 ## 2026-08-21 — the card that moved, and two tests that lied about it
 
 **744/744 tests · 133/133 design rules · 85/85 prove-preview-card · tsc clean.**

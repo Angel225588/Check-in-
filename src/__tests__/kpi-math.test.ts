@@ -11,13 +11,9 @@ import { Client, CheckInRecord } from "@/lib/types";
 function makeClient(overrides: Partial<Client> = {}): Client {
   return {
     roomNumber: "302",
-    roomType: "DLXK",
-    rtc: "",
-    confirmationNumber: "100",
     name: "SMITH, John",
     arrivalDate: "01/03/26",
     departureDate: "05/03/26",
-    reservationStatus: "CKIN",
     adults: 2,
     children: 0,
     rateCode: "",
@@ -27,8 +23,8 @@ function makeClient(overrides: Partial<Client> = {}): Client {
 }
 
 // Shared room scenario: room 302 has SMITH (2 adults) and JONES (1 adult, 1 child)
-const clientSmith = makeClient({ name: "SMITH, John", adults: 2, children: 0, confirmationNumber: "100" });
-const clientJones = makeClient({ name: "JONES, Mary", adults: 1, children: 1, confirmationNumber: "200" });
+const clientSmith = makeClient({ name: "SMITH, John", adults: 2, children: 0});
+const clientJones = makeClient({ name: "JONES, Mary", adults: 1, children: 1});
 
 // Check-ins: SMITH checked in 2, JONES checked in 1
 const sharedRoomCheckIns: CheckInRecord[] = [

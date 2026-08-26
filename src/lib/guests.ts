@@ -14,6 +14,8 @@ export interface GuestProfile {
   roomHistory: string[]; // last 5 rooms
 }
 
+import { secureGet, secureSet } from "./secure-store";
+
 const GUESTS_KEY = "guest_profiles";
 
 function normalizeGuestKey(name: string): string {
@@ -22,7 +24,7 @@ function normalizeGuestKey(name: string): string {
 
 export function getGuestProfiles(): Map<string, GuestProfile> {
   if (typeof window === "undefined") return new Map();
-  const raw = localStorage.getItem(GUESTS_KEY);
+  const raw = secureGet(GUESTS_KEY);
   if (!raw) return new Map();
   try {
     const arr = JSON.parse(raw) as GuestProfile[];
@@ -36,7 +38,7 @@ export function getGuestProfiles(): Map<string, GuestProfile> {
 
 function saveGuestProfiles(profiles: Map<string, GuestProfile>): void {
   try {
-    localStorage.setItem(GUESTS_KEY, JSON.stringify(Array.from(profiles.values())));
+    secureSet(GUESTS_KEY, JSON.stringify(Array.from(profiles.values())));
   } catch {
     // QuotaExceededError
   }

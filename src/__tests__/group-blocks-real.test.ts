@@ -24,9 +24,9 @@ import type { Client } from "@/lib/types";
  * column, so the app cannot know a tour's name and must not pretend to.
  */
 const mk = (room: string, rate: string, arr: string, dep: string, pkg = "BKF GRP"): Client => ({
-  roomNumber: room, roomType: "DLXK", rtc: "", confirmationNumber: "9" + room,
+  roomNumber: room, 
   name: `NOM${room}/X`, arrivalDate: arr, departureDate: dep,
-  reservationStatus: "CKIN", adults: 2, children: 0, rateCode: rate, packageCode: pkg,
+  adults: 2, children: 0, rateCode: rate, packageCode: pkg,
 });
 
 describe("groupBlocks, against the real list", () => {

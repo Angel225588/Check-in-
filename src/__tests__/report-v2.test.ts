@@ -24,13 +24,9 @@ function mk(
 ): Client {
   return {
     roomNumber,
-    roomType: "DLXK",
-    rtc: "",
-    confirmationNumber: `9${roomNumber}`,
     name,
     arrivalDate: "01/03/26",
     departureDate: "05/03/26",
-    reservationStatus: "CKIN",
     adults,
     children,
     rateCode: "",

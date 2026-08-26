@@ -24,21 +24,24 @@ describe("parseMistralMarkdown", () => {
     const c = parseMistralMarkdown(SYNTH);
     expect(c).toHaveLength(2);
     expect(c[0]).toMatchObject({
-      roomNumber: "101", roomType: "DLXK", rtc: "", confirmationNumber: "HK-892341",
+      roomNumber: "101",
       name: "DUPONT, JEAN-PIERRE", arrivalDate: "11/03/26", departureDate: "14/03/26",
-      reservationStatus: "DKIN", adults: 2, children: 1, rateCode: "BAR", packageCode: "BKF INC",
+      adults: 2, children: 1, rateCode: "BAR", packageCode: "BKF INC",
     });
-    expect(c[1]).toMatchObject({ name: "CHEN, WEI LING", roomType: "PRMK", adults: 1, packageCode: "BKF GRP" });
+    expect(c[1]).toMatchObject({ name: "CHEN, WEI LING", adults: 1, packageCode: "BKF GRP" });
   });
 
   it("parses the real R118 Package Forecast (different headers, same order)", () => {
     const c = parseMistralMarkdown(REAL);
     expect(c).toHaveLength(2);
     expect(c[0]).toMatchObject({
-      roomNumber: "567", roomType: "PRMK", rtc: "DLXK", confirmationNumber: "176599332",
+      // The room-type, RTC and confirmation columns are still recognised — an
+      // unclassified "Room Type" header falls through to /room/ and replaces
+      // the real room with a type code — but their values are discarded.
+      roomNumber: "567",
       name: "DIGLE, FABRICE, MICHEL", adults: 1, children: 0, rateCode: "CMXC", packageCode: "BKF GRP",
     });
-    expect(c[1]).toMatchObject({ name: "JU, DA", roomType: "EXST", adults: 2, packageCode: "BKF COMP" });
+    expect(c[1]).toMatchObject({ name: "JU, DA", adults: 2, packageCode: "BKF COMP" });
   });
 
   it("accumulates rows across multiple pages (repeated headers)", () => {

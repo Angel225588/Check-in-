@@ -1,6 +1,7 @@
 import { DailyData, CheckInRecord, Client, SessionRecord, AppSettings, VipEntry, PaxDiscrepancy } from "./types";
 import { mergeVipIntoClients } from "./vip";
 import { mergeNewClients, MergeResult } from "./merge";
+import { secureGet, secureSet, secureRemove, secureKeys } from "./secure-store";
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -70,7 +71,7 @@ export function saveSettings(settings: AppSettings): void {
 export function getTodayData(): DailyData | null {
   if (typeof window === "undefined") return null;
   const today = getTodayString();
-  const raw = localStorage.getItem(getKey(today));
+  const raw = secureGet(getKey(today));
   if (!raw) return null;
   try {
     return asDailyData(JSON.parse(raw), today);
@@ -81,7 +82,7 @@ export function getTodayData(): DailyData | null {
 
 export function getDataForDate(date: string): DailyData | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(getKey(date));
+  const raw = secureGet(getKey(date));
   if (!raw) return null;
   try {
     return asDailyData(JSON.parse(raw), date);
@@ -93,8 +94,7 @@ export function getDataForDate(date: string): DailyData | null {
 export function saveTodayData(data: DailyData): boolean {
   data.date = getTodayString();
   try {
-    localStorage.setItem(getKey(data.date), JSON.stringify(data));
-    return true;
+    return secureSet(getKey(data.date), JSON.stringify(data));
   } catch {
     // QuotaExceededError — return false so UI can warn user
     return false;
@@ -264,7 +264,7 @@ export function getCheckInsForRoom(roomNumber: string): CheckInRecord[] {
 }
 
 export function clearDayData(date: string): void {
-  localStorage.removeItem(getKey(date));
+  secureRemove(getKey(date));
 }
 
 // --- Mid-session VIP merge ---
@@ -278,10 +278,8 @@ export function mergeVipIntoSession(vipClients: Client[]): Client[] {
     name: c.name,
     vipLevel: c.vipLevel || "",
     vipNotes: c.vipNotes || "",
-    confirmationNumber: c.confirmationNumber,
     arrivalDate: c.arrivalDate,
     departureDate: c.departureDate,
-    roomType: c.roomType,
     adults: c.adults,
     children: c.children,
     rateCode: c.rateCode,
@@ -296,7 +294,7 @@ export function mergeVipIntoSession(vipClients: Client[]): Client[] {
 
 export function getSessionHistory(): SessionRecord[] {
   if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(HISTORY_KEY);
+  const raw = secureGet(HISTORY_KEY);
   if (!raw) return [];
   try {
     return asHistory(JSON.parse(raw));
@@ -327,7 +325,7 @@ export function reclaimStorageSpace(): number {
 
   // 1) Trim raw text inside the session-history blob.
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = secureGet(HISTORY_KEY);
     if (raw) {
       const history = JSON.parse(raw) as SessionRecord[];
       let changed = false;
@@ -340,7 +338,7 @@ export function reclaimStorageSpace(): number {
       if (changed) {
         const next = JSON.stringify(history);
         reclaimed += raw.length - next.length;
-        localStorage.setItem(HISTORY_KEY, next);
+        secureSet(HISTORY_KEY, next);
       }
     }
   } catch {
@@ -348,13 +346,9 @@ export function reclaimStorageSpace(): number {
   }
 
   // 2) Trim raw text inside every dailyData_* day (today included).
-  const dailyKeys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("dailyData_")) dailyKeys.push(key);
-  }
+  const dailyKeys = secureKeys("dailyData_");
   for (const key of dailyKeys) {
-    const raw = localStorage.getItem(key);
+    const raw = secureGet(key);
     if (!raw) continue;
     try {
       const data = JSON.parse(raw) as DailyData;
@@ -362,7 +356,7 @@ export function reclaimStorageSpace(): number {
         data.rawUploadText = data.rawUploadText.slice(0, RAW_TEXT_CAP);
         const next = JSON.stringify(data);
         reclaimed += raw.length - next.length;
-        localStorage.setItem(key, next);
+        secureSet(key, next);
       }
     } catch {
       // Skip unparseable day.
@@ -378,21 +372,21 @@ export function reclaimStorageSpace(): number {
     const day = key.slice("dailyData_".length);
     const t = Date.parse(day + "T00:00:00Z");
     if (!Number.isFinite(t) || t >= cutoff) continue;
-    const raw = localStorage.getItem(key);
-    localStorage.removeItem(key);
+    const raw = secureGet(key);
+    secureRemove(key);
     reclaimed += raw ? raw.length : 0;
   }
 
   // 4) Same window for the closed sessions.
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = secureGet(HISTORY_KEY);
     if (raw) {
       const history = JSON.parse(raw) as SessionRecord[];
       const kept = pruneByAge(history.map(compactSession), todayIso);
       if (kept.length !== history.length) {
         const next = JSON.stringify(kept);
         reclaimed += raw.length - next.length;
-        localStorage.setItem(HISTORY_KEY, next);
+        secureSet(HISTORY_KEY, next);
       }
     }
   } catch {
@@ -424,7 +418,7 @@ export function freeUpSpace(): number {
 
   // Session history — clear raw text on every record.
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = secureGet(HISTORY_KEY);
     if (raw) {
       const history = JSON.parse(raw) as SessionRecord[];
       let changed = false;
@@ -435,27 +429,23 @@ export function freeUpSpace(): number {
           changed = true;
         }
       }
-      if (changed) localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      if (changed) secureSet(HISTORY_KEY, JSON.stringify(history));
     }
   } catch {
     // Leave corrupt history untouched.
   }
 
   // Every dailyData_* day (today included) — clear raw text.
-  const dailyKeys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("dailyData_")) dailyKeys.push(key);
-  }
+  const dailyKeys = secureKeys("dailyData_");
   for (const key of dailyKeys) {
-    const raw = localStorage.getItem(key);
+    const raw = secureGet(key);
     if (!raw) continue;
     try {
       const data = JSON.parse(raw) as DailyData;
       if (data.rawUploadText) {
         freed += data.rawUploadText.length;
         data.rawUploadText = "";
-        localStorage.setItem(key, JSON.stringify(data));
+        secureSet(key, JSON.stringify(data));
       }
     } catch {
       // Skip unparseable day.
@@ -517,14 +507,14 @@ function saveHistoryEvictingOldest(history: SessionRecord[]): boolean {
   const list = [...history];
   while (list.length > 0) {
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      secureSet(HISTORY_KEY, JSON.stringify(list));
       return true;
     } catch {
       list.pop(); // oldest, since the list is newest-first
     }
   }
   try {
-    localStorage.setItem(HISTORY_KEY, "[]");
+    secureSet(HISTORY_KEY, "[]");
     return true;
   } catch {
     return false;
@@ -589,19 +579,12 @@ export function autoCloseStale(): number {
   let closed = 0;
 
   // Find all dailyData keys for dates before today
-  const staleKeys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("dailyData_")) {
-      const date = key.replace("dailyData_", "");
-      if (date < today) {
-        staleKeys.push(date);
-      }
-    }
-  }
+  const staleKeys = secureKeys("dailyData_")
+    .map((key) => key.replace("dailyData_", ""))
+    .filter((date) => date < today);
 
   for (const date of staleKeys) {
-    const raw = localStorage.getItem(getKey(date));
+    const raw = secureGet(getKey(date));
     if (!raw) continue;
     // Shape-guarded: autoCloseStale runs on every app load, so a corrupted or
     // tampered entry must never throw here (that would white-screen the PWA).
@@ -609,13 +592,13 @@ export function autoCloseStale(): number {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      localStorage.removeItem(getKey(date));
+      secureRemove(getKey(date));
       continue;
     }
     const data = asDailyData(parsed, date);
     if (!data || data.clients.length === 0) {
       // Empty/malformed session — just remove it
-      localStorage.removeItem(getKey(date));
+      secureRemove(getKey(date));
       continue;
     }
 
@@ -650,7 +633,7 @@ export function autoCloseStale(): number {
 
     let saved = false;
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      secureSet(HISTORY_KEY, JSON.stringify(history));
       saved = true;
     } catch {
       // Trim rawUploadText from older sessions
@@ -658,7 +641,7 @@ export function autoCloseStale(): number {
         history[i].rawUploadText = "";
       }
       try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        secureSet(HISTORY_KEY, JSON.stringify(history));
         saved = true;
       } catch {
         // Cannot save — leave daily data intact
@@ -666,7 +649,7 @@ export function autoCloseStale(): number {
     }
 
     if (saved) {
-      localStorage.removeItem(getKey(date));
+      secureRemove(getKey(date));
       closed++;
     }
   }
@@ -817,12 +800,8 @@ export function getDataForRange(startDate: string, endDate: string): DailyData[]
 // Get all dates that have data stored (for client search)
 export function getAllStoredDates(): string[] {
   if (typeof window === "undefined") return [];
-  const dates: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("dailyData_")) {
-      dates.push(key.replace("dailyData_", ""));
-    }
-  }
-  return dates.sort().reverse();
+  return secureKeys("dailyData_")
+    .map((key) => key.replace("dailyData_", ""))
+    .sort()
+    .reverse();
 }

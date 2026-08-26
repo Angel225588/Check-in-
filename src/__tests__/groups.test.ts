@@ -11,8 +11,8 @@ const mk = (
   arrivalDate = "01/08/26",
   departureDate = "04/08/26"
 ): Client => ({
-  roomNumber, roomType: "DLXK", rtc: "", confirmationNumber: "9" + roomNumber,
-  name: "GUEST " + roomNumber, arrivalDate, departureDate, reservationStatus: "CKIN",
+  roomNumber, 
+  name: "GUEST " + roomNumber, arrivalDate, departureDate, 
   adults, children, rateCode, packageCode,
 });
 

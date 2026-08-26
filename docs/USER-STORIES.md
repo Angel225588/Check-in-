@@ -1088,6 +1088,194 @@ of it.
     right only because the roster supplied their dates — 451 is the one not on
     the roster, so it showed the bug alone.
 
+## Privacy — we are the processor, the hotel is the controller
+
+These stories have a second role. **Hôtel (contrôleur)** is the property's own
+compliance contact: not in the app, but the person whose questions the app has
+to be able to answer. And **Client** is the guest, whose rights the hotel
+exercises on their behalf.
+
+Every Never below is a real defect that was in the code, not a hypothetical.
+
+### US-43 — A stolen tablet gives up nothing — BUILT
+
+    As      Hôtel (contrôleur)
+    I need  the guest list on the reception tablet to be unreadable off the device
+    So that a lost or copied iPad is not a data breach I have to declare
+
+    Scenario: the tablet goes missing after service
+      Given  the morning's roster and last month's history are on the device
+      When   someone copies its browser storage
+      Then   they hold ciphertext — no name, no room number, no allergy
+
+    Never:  the allergy a receptionist TYPED is encrypted while the same allergy
+            arriving on the VIP sheet sits in plaintext beside the guest's name.
+            That asymmetry was real: notes-crypto.ts protected one and nothing
+            protected the other.
+    Proof:  `roster-encryption.test.ts` — drives the real storage API, then
+            dumps the disk and asserts nothing readable. Watched go red: making
+            secure-store write plaintext fails 4 of its assertions.
+
+### US-44 — The morning does not change — BUILT
+
+    As      Réception
+    I need  the app to open exactly as it did yesterday
+    So that encryption is something I never have to think about at 06:30
+
+    Scenario: the tablet is updated overnight
+      Given  a device already in service, holding today's roster in plaintext
+      When   reception opens the app the next morning
+      Then   every guest is still there, and nobody types a password
+
+    Never:  an upgrade that looks like every guest vanishing. Hydration ADOPTS
+            existing plaintext and re-writes it encrypted; ignoring it would
+            empty the roster on the one morning nobody could tolerate it.
+    Never:  the screen renders before the roster is decrypted. The search page
+            computes expected-arrivals in a useMemo that runs once — an early
+            render would compute it against an empty store and show a morning
+            with no guests in it.
+    Proof:  `roster-encryption.test.ts` ("adopts a tablet that is already in
+            service"), and the unlock gate in `AppContext`. Cost measured at
+            ~56ms for a full house across 90 days; the real per-device figure
+            prints in the nav drawer, because an estimate is not a measurement.
+
+### US-45 — A check-in still cannot fake success — BUILT
+
+    As      Réception
+    I need  to be told when a check-in did not save
+    So that I do not send a guest through on a green tick that recorded nothing
+
+    Scenario: the tablet's storage is full mid-service
+      Given  room 224 is checked in and the device cannot persist it
+      When   I press the green button
+      Then   I am warned, and the check-in is not shown as recorded
+
+    Never:  the write is queued, the screen says saved, and the check-in is gone
+            on the next reload. Encryption is async, so the space is reserved
+            synchronously — with a marker carrying no guest data — and the
+            in-memory value is rolled back when there is no room.
+    Proof:  `storage-safety.test.ts` — "returns false when the write cannot be
+            persisted", which is the pre-existing guarantee this work had to
+            preserve rather than a new one.
+
+### US-46 — Guest data does not live forever — BUILT
+
+    As      Hôtel (contrôleur)
+    I need  guest data to delete itself on a schedule I set
+    So that I can answer "how long do you keep it?" with one number
+
+    Scenario: the DPO asks at the pilot review
+      Given  a retention window of 90 days (30 recommended, one env var)
+      When   the app opens on any morning
+      Then   everything past the window is gone, and the purge is logged
+
+    Never:  a store that quietly escapes the purge. Three of five did — guest
+            profiles, notes and morning briefs were kept forever while only
+            session history aged out.
+    Never:  a purge log that lists the guests it deleted. It records counts,
+            stores and date ranges, and outlives the data it describes.
+    Proof:  `retention.test.ts` — 20 checks, including one asserting the store
+            list itself, so a sixth store is a deliberate decision.
+
+### US-47 — One guest, exported or erased — BUILT
+
+    As      Client
+    I need  the hotel to be able to show me, or delete, everything held about me
+    So that my rights under Articles 15 and 17 are not theoretical
+
+    Scenario: a guest writes to the hotel after their stay
+      Given  they are on three past days, have a profile and an allergy note
+      When   the hotel runs an erasure for them
+      Then   they are gone from every store, and no other guest is touched
+
+    Never:  an erasure that misses a store. Guest data spans five of them, and
+            one missed is not an erasure.
+    Never:  the access log is erased along with the data. It holds a salted
+            hash, never a name, and it is the hotel's evidence under Art. 5(2)
+            that the erasure happened.
+    Proof:  `subject-rights.test.ts` — 17 checks, per guest and per property,
+            including one asserting nothing belonging to another guest leaks in.
+
+### US-48 — Hotel A cannot read hotel B — BUILT (schema, not yet switched on)
+
+    As      Hôtel (contrôleur)
+    I need  certainty that another property cannot see my guests
+    So that one shared database is not one shared breach
+
+    Scenario: the second hotel signs
+      Given  two properties in one Supabase project
+      When   hotel A queries anything — a table, a join, a view, an RPC
+      Then   it sees zero of hotel B's rows, and cannot write into B either
+
+    Never:  RLS enabled and then neutralised by `using (true)`. That was the
+            shipped schema: it reads like security in review and is identical to
+            RLS being off, with a key that ships in every browser.
+    Never:  `using` without `with check`. It governs what a tenant can SEE, not
+            what it can WRITE — without it, A can stamp a row as B.
+    Proof:  `rls-isolation.test.ts` — 25 assertions against a real Postgres,
+            enumerating views and functions from `pg_catalog` so one added later
+            is covered the day it is added. Watched go red: restoring the
+            permissive policies fails 19. `rls-policy-static.test.ts` runs in
+            the ordinary suite so the defect cannot return silently.
+
+### US-49 — Collect nothing we do not use — BUILT
+
+    As      Hôtel (contrôleur)
+    I need  the app to hold only what the breakfast service needs
+    So that there is less to lose, rather than more to protect
+
+    Scenario: the data-minimisation review
+      Given  the roster carries twelve columns
+      When   we ask which of them changes what the app does
+      Then   four never did, and are no longer collected
+
+    Never:  a field re-added by copying an OCR prompt, with nothing noticing.
+            confirmationNumber, rtc, reservationStatus and roomType are gone.
+    Never:  a parser that stops recognising a column it no longer stores. An
+            unclassified "CKIN" lands in the guest's name, and an unclassified
+            "Room Type" header is read as the room number.
+    Proof:  `data-minimisation.test.ts` — a ratchet. It checks for the field as
+            a property, not as a word, because recognising a column is not
+            storing it and the test has to draw that line too.
+
+### US-51 — Injected script cannot reach the guest list — BUILT
+
+    As      Hôtel (contrôleur)
+    I need  the encryption on the device not to be undone by one injected script
+    So that the protection I was shown is the protection I actually have
+
+    Scenario: a script is injected into the page
+      Given  the roster is encrypted, and decrypting it is a function call away
+      When   that script tries to run
+      Then   the browser refuses it, because it carries no nonce
+
+    Never:  the app's own scripts blocked along with the injected one. Removing
+            `'unsafe-inline'` without a nonce blocks Next's hydration scripts
+            and renders every page BLANK — and the Vitest suite could not see
+            it, because nothing in jsdom loads the real document.
+    Proof:  `csp.test.ts` for the policy; `scripts/csp-smoke.mjs` for the
+            outcome — a real browser across seven pages, failing on any
+            violation, console error or empty body. Watched go red by dropping
+            the nonce. Cost measured: 8ms median, 10ms p95 per page load.
+
+### US-50 — Nothing leaves the EU — BUILT
+
+    As      Hôtel (contrôleur)
+    I need  guest data to stay in Europe
+    So that I do not need a transfer mechanism I have not signed
+
+    Scenario: the compliance contact asks where the data is
+      Given  OCR runs at Mistral in Paris
+      When   the app's own functions execute
+      Then   they execute in Paris too, and the answer is one country
+
+    Never:  the region left to the platform default. It was `iad1` — US East,
+            Virginia — so every uploaded roster was read on US soil.
+    Never:  the region pinned only in a dashboard, where it can be changed
+            without a trace.
+    Proof:  `deployment-region.test.ts` — reads `vercel.json` and fails on any
+            non-EU region. Watched go red with `iad1`.
+
 ## Open — stories without proof yet
 
 These are the honest gaps. Each is a rule waiting to be written.
@@ -1102,3 +1290,14 @@ These are the honest gaps. Each is a rule waiting to be written.
 - **US-19.** The portrait metrics bar already ranks and folds
   (`compactMetrics`); the landscape one still shows everything and wraps when
   zoomed. Same mechanism, not yet carried across.
+- **Names at day close.** The audit recommends replacing a name with a salted
+  hash and initials when a day is closed into history — nothing in the
+  analytics layer reads `name`, so nothing would regress. Not built, so the
+  app still holds a rolling multi-week list of who slept in which room.
+  (docs/GDPR-AUDIT.md §1.3)
+- **US-48 is proven but not switched on.** The policies and their test are
+  real; no code calls Supabase yet. The story is only true on the day the
+  first `supabase.from()` is written, and the test is the gate for it.
+- **The CSP still permits `unsafe-inline` and `unsafe-eval`.** With the roster
+  encrypted, script injection is the residual path to the data, so this is the
+  boundary that now matters most and no rule enforces it.

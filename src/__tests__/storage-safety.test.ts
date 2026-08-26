@@ -35,13 +35,9 @@ function makeBoundedLocalStorage(maxBytes: number) {
 function makeClient(overrides: Partial<Client> = {}): Client {
   return {
     roomNumber: "101",
-    roomType: "DLXK",
-    rtc: "",
-    confirmationNumber: "100",
     name: "TEST GUEST",
     arrivalDate: "01/03/26",
     departureDate: "05/03/26",
-    reservationStatus: "CKIN",
     adults: 2,
     children: 0,
     rateCode: "",
@@ -126,9 +122,15 @@ describe("reads are crash-safe against corrupted storage", () => {
     const mock = makeBoundedLocalStorage(5_000_000);
     vi.stubGlobal("localStorage", mock);
     const { autoCloseStale } = await loadStorage();
+    const secure = await import("@/lib/secure-store");
+    secure.__resetSecureStore();
     // A past-dated key whose shape would crash `.reduce` if unguarded.
     mock.store["dailyData_2000-01-01"] = JSON.stringify({ clients: 7 });
+    // The app adopts existing plaintext on open; do the same before acting.
+    await secure.hydrateSecureStore();
     expect(() => autoCloseStale()).not.toThrow();
+    // Deletion from disk is queued behind the encrypted write chain.
+    await secure.flushSecureStore();
     expect(mock.store["dailyData_2000-01-01"]).toBeUndefined();
   });
 });

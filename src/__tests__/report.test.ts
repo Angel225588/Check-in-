@@ -4,30 +4,30 @@ import { Client, CheckInRecord } from "@/lib/types";
 
 const clients: Client[] = [
   {
-    roomNumber: "101", roomType: "DLXK", rtc: "", confirmationNumber: "111",
+    roomNumber: "101", 
     name: "GUEST ALL IN", arrivalDate: "01/03/26", departureDate: "05/03/26",
-    reservationStatus: "CKIN", adults: 2, children: 0, rateCode: "", packageCode: "",
+    adults: 2, children: 0, rateCode: "", packageCode: "",
   },
   {
-    roomNumber: "202", roomType: "PRMK", rtc: "", confirmationNumber: "222",
+    roomNumber: "202", 
     name: "GUEST PARTIAL", arrivalDate: "01/03/26", departureDate: "05/03/26",
-    reservationStatus: "CKIN", adults: 3, children: 1, rateCode: "", packageCode: "",
+    adults: 3, children: 1, rateCode: "", packageCode: "",
   },
   {
-    roomNumber: "303", roomType: "STHT", rtc: "", confirmationNumber: "333",
+    roomNumber: "303", 
     name: "GUEST NO SHOW", arrivalDate: "01/03/26", departureDate: "05/03/26",
-    reservationStatus: "CKIN", adults: 2, children: 0, rateCode: "", packageCode: "",
+    adults: 2, children: 0, rateCode: "", packageCode: "",
   },
   {
-    roomNumber: "404", roomType: "DLXK", rtc: "", confirmationNumber: "444",
+    roomNumber: "404", 
     name: "VIP GUEST", arrivalDate: "01/03/26", departureDate: "05/03/26",
-    reservationStatus: "CKIN", adults: 1, children: 0, rateCode: "", packageCode: "",
+    adults: 1, children: 0, rateCode: "", packageCode: "",
     isVip: true, vipLevel: "X4", vipNotes: "High Floor",
   },
   {
-    roomNumber: "505", roomType: "DLXK", rtc: "", confirmationNumber: "555",
+    roomNumber: "505", 
     name: "COMP GUEST", arrivalDate: "01/03/26", departureDate: "05/03/26",
-    reservationStatus: "CKIN", adults: 2, children: 0, rateCode: "", packageCode: "BKF COMP",
+    adults: 2, children: 0, rateCode: "", packageCode: "BKF COMP",
   },
 ];
 
@@ -194,9 +194,9 @@ describe("Report - exportReportCSV", () => {
 
   it("escapes commas in names", () => {
     const clientsWithComma: Client[] = [{
-      roomNumber: "999", roomType: "", rtc: "", confirmationNumber: "",
+      roomNumber: "999", 
       name: "SMITH, JOHN", arrivalDate: "", departureDate: "",
-      reservationStatus: "", adults: 1, children: 0, rateCode: "", packageCode: "",
+      adults: 1, children: 0, rateCode: "", packageCode: "",
     }];
     const r = generateDayReport(clientsWithComma, []);
     const csvResult = exportReportCSV(r);

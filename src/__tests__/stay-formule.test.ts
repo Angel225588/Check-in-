@@ -18,9 +18,9 @@ import { Client, CheckInRecord } from "@/lib/types";
  * disagree about the same morning.
  */
 const client = (packageCode: string, extra: Partial<Client> = {}): Client => ({
-  roomNumber: "718", roomType: "DLXK", rtc: "", confirmationNumber: "9718",
+  roomNumber: "718", 
   name: "LAURENT/LUCIE", arrivalDate: "06/08/26", departureDate: "07/08/26",
-  reservationStatus: "CKIN", adults: 1, children: 0, rateCode: "", packageCode, ...extra,
+  adults: 1, children: 0, rateCode: "", packageCode, ...extra,
 });
 
 const ci = (paymentAction?: string, peopleEntered = 1): CheckInRecord => ({

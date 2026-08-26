@@ -98,11 +98,8 @@ describe("extraction parity — Mistral OCR vs the document itself", () => {
     expect(first).toMatchObject({
       roomNumber: "101",
       name: "DUPONT, JEAN-PIERRE",
-      roomType: "DLXK",
-      confirmationNumber: "HK-892341",
       arrivalDate: "11/03/26",
       departureDate: "14/03/26",
-      reservationStatus: "DKIN",
       adults: 2,
       children: 1,
       rateCode: "BAR",

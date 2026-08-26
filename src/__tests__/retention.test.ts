@@ -1,108 +1,210 @@
-import { describe, it, expect } from "vitest";
+/**
+ * Retention: guest data must not live forever, and the purge must leave
+ * evidence that it ran.
+ */
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
-  RETENTION_DAYS,
-  compactSession,
-  pruneByAge,
-} from "@/lib/storage";
-import type { SessionRecord } from "@/lib/types";
+  RETENTION_DEFAULT_DAYS,
+  RETENTION_MIN_DAYS,
+  RETENTION_MAX_DAYS,
+  getRetentionDays,
+  setRetentionDays,
+} from "@/lib/privacy/config";
+import { purgeExpired, PURGEABLE_STORES } from "@/lib/privacy/purge";
+import { getPurgeLog, PURGE_LOG_KEY } from "@/lib/privacy/purge-log";
+import { __resetSecureStore, hydrateSecureStore, secureGet } from "@/lib/secure-store";
 
-function sess(date: string, extra: Partial<SessionRecord> = {}): SessionRecord {
+function fakeStorage() {
+  const m = new Map<string, string>();
   return {
-    date,
-    closedAt: date + "T11:00:00.000Z",
-    totalRooms: 2,
-    totalGuests: 4,
-    totalEntered: 3,
-    totalRemaining: 1,
-    totalVip: 1,
-    clients: [],
-    checkIns: [],
-    rawUploadText: "PAGE 1 OF 12 ... a very long OCR dump ...",
-    ...extra,
+    get length() { return m.size; },
+    key: (i: number) => Array.from(m.keys())[i] ?? null,
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => { m.set(k, String(v)); },
+    removeItem: (k: string) => { m.delete(k); },
+    clear: () => m.clear(),
   };
 }
 
-describe("compactSession", () => {
-  // The raw OCR dump is debugging output. It is the single biggest thing in
-  // storage and nothing in the report reads it.
-  it("drops the raw OCR text", () => {
-    expect(compactSession(sess("2026-07-01")).rawUploadText).toBe("");
+const TODAY = "2026-08-23";
+/** days before TODAY, as an ISO date */
+const ago = (days: number) =>
+  new Date(Date.parse(TODAY + "T00:00:00Z") - days * 86_400_000).toISOString().split("T")[0];
+
+beforeEach(() => {
+  vi.stubGlobal("localStorage", fakeStorage());
+  __resetSecureStore();
+  delete process.env.NEXT_PUBLIC_RETENTION_DAYS;
+});
+
+describe("retention window configuration", () => {
+  it("defaults to 90 days", () => {
+    expect(RETENTION_DEFAULT_DAYS).toBe(90);
+    expect(getRetentionDays()).toBe(90);
   });
 
-  it("keeps everything the report actually reads", () => {
-    const s = sess("2026-07-01", {
-      clients: [{ roomNumber: "101" }] as never,
-      checkIns: [{ id: "c1" }] as never,
-      discrepancies: [{ id: "d1" }] as never,
-    });
-    const c = compactSession(s);
-    expect(c.clients).toHaveLength(1);
-    expect(c.checkIns).toHaveLength(1);
-    expect(c.discrepancies).toHaveLength(1);
-    expect(c.totalEntered).toBe(3);
+  it("is configurable by environment variable", () => {
+    process.env.NEXT_PUBLIC_RETENTION_DAYS = "30";
+    expect(getRetentionDays()).toBe(30);
+  });
+
+  it("is configurable at runtime, which wins over the environment", () => {
+    process.env.NEXT_PUBLIC_RETENTION_DAYS = "90";
+    setRetentionDays(30);
+    expect(getRetentionDays()).toBe(30);
+  });
+
+  it("clamps a value that would keep data effectively forever", () => {
+    setRetentionDays(100_000);
+    expect(getRetentionDays()).toBe(RETENTION_MAX_DAYS);
+  });
+
+  it("clamps a value that would delete today's service mid-morning", () => {
+    setRetentionDays(0);
+    expect(getRetentionDays()).toBe(RETENTION_MIN_DAYS);
+  });
+
+  it("ignores junk rather than falling back to keeping everything", () => {
+    process.env.NEXT_PUBLIC_RETENTION_DAYS = "not-a-number";
+    expect(getRetentionDays()).toBe(RETENTION_DEFAULT_DAYS);
   });
 });
 
-describe("pruneByAge", () => {
-  const today = "2026-07-31";
-
-  it("keeps the retention window and drops what falls out of it", () => {
-    const history = [
-      sess("2026-07-31"),
-      sess("2026-07-02"),   // 29 days back — inside
-      sess("2026-07-01"),   // 30 days back — inside (boundary)
-      sess("2026-06-30"),   // 31 days back — out
-      sess("2026-01-04"),   // long gone
-    ];
-    const kept = pruneByAge(history, today).map((s) => s.date);
-    expect(kept).toEqual(["2026-07-31", "2026-07-02", "2026-07-01"]);
-  });
-
-  it("uses a 30-day window", () => {
-    expect(RETENTION_DAYS).toBe(30);
-  });
-
-  it("keeps a future-dated session rather than silently eating it", () => {
-    // Clock skew on a tablet is real; dropping data because a date looks like
-    // tomorrow would lose a real service.
-    const kept = pruneByAge([sess("2026-08-02"), sess("2026-07-31")], today);
-    expect(kept).toHaveLength(2);
-  });
-
-  it("drops an unparseable date instead of keeping junk forever", () => {
-    const kept = pruneByAge([sess("not-a-date"), sess("2026-07-31")], today);
-    expect(kept.map((s) => s.date)).toEqual(["2026-07-31"]);
-  });
-
-  it("returns newest first", () => {
-    const kept = pruneByAge([sess("2026-07-10"), sess("2026-07-28"), sess("2026-07-20")], today);
-    expect(kept.map((s) => s.date)).toEqual(["2026-07-28", "2026-07-20", "2026-07-10"]);
-  });
-
-  it("survives an empty history", () => {
-    expect(pruneByAge([], today)).toEqual([]);
+describe("purge covers every store that holds personal data", () => {
+  it("names all of them, so a new store is a deliberate decision", () => {
+    expect([...PURGEABLE_STORES].sort()).toEqual(
+      ["dailyData", "guestProfiles", "morningBriefs", "notes", "sessionHistory"].sort()
+    );
   });
 });
 
-describe("reclaimStorageSpace — the retention window", () => {
-  it("drops whole days that have aged out, and keeps the ones inside", async () => {
-    const { reclaimStorageSpace } = await import("@/lib/storage");
-    const day = (n: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() - n);
-      return d.toISOString().split("T")[0];
-    };
-    localStorage.clear();
-    const mk = (date: string) =>
-      JSON.stringify({ date, clients: [], checkIns: [], rawUploadText: "" });
-    localStorage.setItem("dailyData_" + day(1), mk(day(1)));
-    localStorage.setItem("dailyData_" + day(29), mk(day(29)));
-    localStorage.setItem("dailyData_" + day(45), mk(day(45)));
+describe("purgeExpired", () => {
+  it("drops session history older than the window and keeps the rest", async () => {
+    localStorage.setItem("sessionHistory", JSON.stringify([
+      { date: ago(10), clients: [], checkIns: [] },
+      { date: ago(200), clients: [], checkIns: [] },
+    ]));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    const kept = JSON.parse(secureGet("sessionHistory")!);
+    expect(kept.map((s: { date: string }) => s.date)).toEqual([ago(10)]);
+  });
 
-    reclaimStorageSpace();
+  it("drops stale dailyData days", async () => {
+    localStorage.setItem(`dailyData_${ago(5)}`, JSON.stringify({ date: ago(5), clients: [], checkIns: [] }));
+    localStorage.setItem(`dailyData_${ago(400)}`, JSON.stringify({ date: ago(400), clients: [], checkIns: [] }));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(secureGet(`dailyData_${ago(5)}`)).not.toBeNull();
+    expect(secureGet(`dailyData_${ago(400)}`)).toBeNull();
+  });
 
-    expect(localStorage.getItem("dailyData_" + day(1))).not.toBeNull();
-    expect(localStorage.getItem("dailyData_" + day(29))).not.toBeNull();
-    expect(localStorage.getItem("dailyData_" + day(45))).toBeNull();
+  it("drops morning briefs, which carry employee data and were never purged", async () => {
+    localStorage.setItem(`morningBrief_${ago(2)}`, JSON.stringify({ date: ago(2) }));
+    localStorage.setItem(`morningBrief_${ago(365)}`, JSON.stringify({ date: ago(365) }));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(secureGet(`morningBrief_${ago(2)}`)).not.toBeNull();
+    expect(secureGet(`morningBrief_${ago(365)}`)).toBeNull();
+  });
+
+  it("drops guest profiles not seen within the window", async () => {
+    localStorage.setItem("guest_profiles", JSON.stringify([
+      { id: "RECENT", name: "Recent", visitCount: 2, firstVisit: ago(300), lastVisit: ago(3), roomHistory: [] },
+      { id: "STALE", name: "Stale", visitCount: 9, firstVisit: ago(900), lastVisit: ago(400), roomHistory: [] },
+    ]));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    const kept = JSON.parse(secureGet("guest_profiles")!);
+    expect(kept.map((g: { id: string }) => g.id)).toEqual(["RECENT"]);
+  });
+
+  it("keeps a profile whose first visit is ancient but who came back recently", async () => {
+    // Retention runs on last contact, not first. A regular of ten years is not
+    // stale data; a one-off from last spring is.
+    localStorage.setItem("guest_profiles", JSON.stringify([
+      { id: "LOYAL", name: "Loyal", visitCount: 40, firstVisit: ago(3000), lastVisit: ago(1), roomHistory: [] },
+    ]));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(JSON.parse(secureGet("guest_profiles")!)).toHaveLength(1);
+  });
+
+  it("never deletes a future-dated day", async () => {
+    // A tablet with a skewed clock still recorded a real service.
+    const future = "2027-01-01";
+    localStorage.setItem(`dailyData_${future}`, JSON.stringify({ date: future, clients: [], checkIns: [] }));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(secureGet(`dailyData_${future}`)).not.toBeNull();
+  });
+
+  it("deletes a junk-dated record, which could never age out otherwise", async () => {
+    localStorage.setItem("dailyData_not-a-date", JSON.stringify({ clients: [], checkIns: [] }));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(secureGet("dailyData_not-a-date")).toBeNull();
+  });
+
+  it("leaves settings and the notes salt alone", async () => {
+    localStorage.setItem("app_settings", JSON.stringify({ costPerCover: 26 }));
+    localStorage.setItem("gn_salt", "deadbeef");
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(localStorage.getItem("app_settings")).not.toBeNull();
+    expect(localStorage.getItem("gn_salt")).not.toBeNull();
+  });
+
+  it("is idempotent — a second run removes nothing more", async () => {
+    localStorage.setItem(`dailyData_${ago(400)}`, JSON.stringify({ date: ago(400), clients: [], checkIns: [] }));
+    await hydrateSecureStore();
+    const first = await purgeExpired({ todayIso: TODAY, days: 90 });
+    const second = await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(first.totalRemoved).toBeGreaterThan(0);
+    expect(second.totalRemoved).toBe(0);
+  });
+});
+
+describe("purge log", () => {
+  it("records what was removed, from which store, and under which window", async () => {
+    localStorage.setItem(`dailyData_${ago(400)}`, JSON.stringify({ date: ago(400), clients: [], checkIns: [] }));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+
+    const log = getPurgeLog();
+    expect(log.length).toBeGreaterThan(0);
+    const entry = log.find((e) => e.store === "dailyData")!;
+    expect(entry.recordsRemoved).toBe(1);
+    expect(entry.retentionDays).toBe(90);
+    expect(entry.ranAt).toBeTruthy();
+  });
+
+  it("holds no guest names — a purge log must not become a copy of the data", async () => {
+    localStorage.setItem(`dailyData_${ago(400)}`, JSON.stringify({
+      date: ago(400),
+      clients: [{ roomNumber: "412", name: "DUPONT, Marie", adults: 2, children: 0 }],
+      checkIns: [{ id: "1", roomNumber: "412", clientName: "DUPONT, Marie", peopleEntered: 2, timestamp: "" }],
+    }));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(localStorage.getItem(PURGE_LOG_KEY)).not.toMatch(/DUPONT|Marie/i);
+  });
+
+  it("does not log a run that removed nothing, so the log stays readable", async () => {
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(getPurgeLog()).toHaveLength(0);
+  });
+
+  it("survives its own retention — the log outlives the data it describes", async () => {
+    // Evidence that data was deleted is useless if it is deleted on the same
+    // schedule as the data.
+    localStorage.setItem(PURGE_LOG_KEY, JSON.stringify([
+      { id: "old", ranAt: ago(200) + "T06:00:00.000Z", store: "dailyData", recordsRemoved: 3, retentionDays: 90, oldestRemoved: "", newestRemoved: "", triggerSource: "auto" },
+    ]));
+    localStorage.setItem(`dailyData_${ago(400)}`, JSON.stringify({ date: ago(400), clients: [], checkIns: [] }));
+    await hydrateSecureStore();
+    await purgeExpired({ todayIso: TODAY, days: 90 });
+    expect(getPurgeLog().some((e) => e.id === "old")).toBe(true);
   });
 });

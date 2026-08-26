@@ -11,9 +11,9 @@ import type { Client, CheckInRecord } from "@/lib/types";
  * which two have come is a morning with thirteen conversations still in it.
  */
 const c = (room: string, adults: number, pkg: string): Client => ({
-  roomNumber: room, roomType: "DLXK", rtc: "", confirmationNumber: "9" + room,
+  roomNumber: room, 
   name: `NOM${room}/X`, arrivalDate: "04/08/26", departureDate: "09/08/26",
-  reservationStatus: "CKIN", adults, children: 0, rateCode: "", packageCode: pkg,
+  adults, children: 0, rateCode: "", packageCode: pkg,
 });
 
 const ci = (room: string, n: number): CheckInRecord => ({

@@ -9,7 +9,9 @@ describe("parseCSV", () => {
     expect(clients).toHaveLength(1);
     expect(clients[0].roomNumber).toBe("101");
     expect(clients[0].name).toBe("John Smith");
-    expect(clients[0].reservationStatus).toBe("CKIN");
+    // Room type, RTC, confirmation number and status are no longer stored
+    // (docs/GDPR-AUDIT.md section 1.2). The columns are still consumed, so the
+    // fields after them keep their positions.
     expect(clients[0].adults).toBe(2);
     expect(clients[0].children).toBe(1);
   });
@@ -19,7 +21,8 @@ describe("parseCSV", () => {
     const clients = parseCSV(tsv);
     expect(clients).toHaveLength(1);
     expect(clients[0].roomNumber).toBe("201");
-    expect(clients[0].roomType).toBe("PRMK");
+    expect(clients[0].name).toBe("Jane Doe");
+    expect(clients[0].packageCode).toBe("BKF INC");
   });
 
   it("parses semicolon-separated values", () => {
@@ -52,7 +55,7 @@ Room,Type,RTC,Conf,Name,Arrival,Departure,Status,Adults,Children,Rate,Package
     const csv = "101,DLXK,,123456,Test,05/03/26,07/03/26,CKIN,,,";
     const clients = parseCSV(csv);
     expect(clients).toHaveLength(1);
-    expect(clients[0].rtc).toBe("");
+    expect(clients[0].name).toBe("Test");
     expect(clients[0].adults).toBe(0);
     expect(clients[0].children).toBe(0);
   });
@@ -81,7 +84,10 @@ describe("parseOCRText", () => {
     const clients = parseOCRText(text);
     expect(clients).toHaveLength(1);
     expect(clients[0].roomNumber).toBe("101");
-    expect(clients[0].reservationStatus).toBe("CKIN");
+    // The status, room type and confirmation number are still RECOGNISED while
+    // scanning — they are simply not stored. That matters: an unclassified
+    // "CKIN" or "123456" would be swept into the guest's name.
+    expect(clients[0].name).toBe("John Smith");
   });
 
   it("skips header lines", () => {
