@@ -10,6 +10,7 @@ import { addNote, loadNotes } from "@/lib/notes-store";
 import { getAccessLog, ACCESS_LOG_KEY } from "@/lib/privacy/access-log";
 import { getPurgeLog } from "@/lib/privacy/purge-log";
 import { __resetKeyCache } from "@/lib/notes-crypto";
+import { __resetSecureStore, hydrateSecureStore, secureGet } from "@/lib/secure-store";
 
 const MARIE = "DUPONT, Marie";
 const JEAN = "MARTIN, Jean";
@@ -50,10 +51,14 @@ function seedProfiles() {
 
 beforeEach(async () => {
   localStorage.clear();
+  __resetSecureStore();
   __resetKeyCache();
   seedDay("2026-08-23");
   seedHistory("2026-08-20");
   seedProfiles();
+  // Adopt the seeded plaintext into the encrypted store, as the app does when
+  // it opens on a device that is already in service.
+  await hydrateSecureStore();
   await addNote(MARIE, { tone: "alert", title: "Allergie arachide", body: "sévère", author: "reception" });
   await addNote(JEAN, { tone: "info", title: "Étage haut", body: "", author: "reception" });
 });
@@ -102,14 +107,14 @@ describe("erasing one guest", () => {
   it("removes them from the live day, history, profiles and notes", async () => {
     await eraseGuest(MARIE, { actor: "dpo" });
 
-    const day = JSON.parse(localStorage.getItem("dailyData_2026-08-23")!);
+    const day = JSON.parse(secureGet("dailyData_2026-08-23")!);
     expect(day.clients.map((c: { name: string }) => c.name)).toEqual([JEAN]);
     expect(day.checkIns.map((c: { clientName: string }) => c.clientName)).toEqual([JEAN]);
 
-    const history = JSON.parse(localStorage.getItem("sessionHistory")!);
+    const history = JSON.parse(secureGet("sessionHistory")!);
     expect(JSON.stringify(history)).not.toMatch(/DUPONT|Marie/);
 
-    const profiles = JSON.parse(localStorage.getItem("guest_profiles")!);
+    const profiles = JSON.parse(secureGet("guest_profiles")!);
     expect(profiles.map((p: { id: string }) => p.id)).toEqual(["MARTINJEAN"]);
 
     expect(await loadNotes(MARIE)).toEqual([]);
@@ -118,7 +123,7 @@ describe("erasing one guest", () => {
   it("leaves every other guest untouched", async () => {
     await eraseGuest(MARIE, { actor: "dpo" });
     expect((await loadNotes(JEAN)).map((n) => n.title)).toEqual(["Étage haut"]);
-    const day = JSON.parse(localStorage.getItem("dailyData_2026-08-23")!);
+    const day = JSON.parse(secureGet("dailyData_2026-08-23")!);
     expect(day.clients).toHaveLength(1);
   });
 
@@ -168,9 +173,9 @@ describe("exporting a whole property", () => {
 describe("erasing a whole property", () => {
   it("removes all guest data", async () => {
     await eraseProperty({ actor: "dpo" });
-    expect(localStorage.getItem("dailyData_2026-08-23")).toBeNull();
-    expect(JSON.parse(localStorage.getItem("sessionHistory") ?? "[]")).toEqual([]);
-    expect(JSON.parse(localStorage.getItem("guest_profiles") ?? "[]")).toEqual([]);
+    expect(secureGet("dailyData_2026-08-23")).toBeNull();
+    expect(JSON.parse(secureGet("sessionHistory") ?? "[]")).toEqual([]);
+    expect(JSON.parse(secureGet("guest_profiles") ?? "[]")).toEqual([]);
     expect(await loadNotes(MARIE)).toEqual([]);
   });
 

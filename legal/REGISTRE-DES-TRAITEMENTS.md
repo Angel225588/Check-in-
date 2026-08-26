@@ -65,7 +65,7 @@ breakfast is settled.
 | **Source** | Typed by the controller's reception staff; imported from the controller's VIP/preferences report |
 | **Recipients** | Mistral AI SAS, where the note originates in an uploaded VIP report. Notes typed by staff are **never transmitted** — they stay on the device |
 | **Retention** | Same window as Activity 1 |
-| **Security measures** | Typed notes: AES-GCM-256 at rest with a non-extractable key; salted-hash storage keys. **Imported VIP preference text: not encrypted at rest** — see DPA Annex 2, known limitation 2 |
+| **Security measures** | Typed notes: AES-GCM-256 at rest with a non-extractable key; salted-hash storage keys. Imported VIP preference text: encrypted at rest with the roster it travels in |
 
 > **[LAWYER]** This activity is the reason a DPIA (Art. 35) may be required.
 > Health data, processed systematically, about guests who are unlikely to
@@ -84,7 +84,7 @@ breakfast is settled.
 | **Categories of personal data** | Guest name; visit count; first visit; last visit; last five room numbers; optional birthday; optional free-text note |
 | **Special categories** | No |
 | **Retention** | Purged when a guest has not been seen within the retention window (measured from **last** visit, so a long-standing regular is retained while a one-off ages out) |
-| **Security measures** | DPA Annex 2. **Not encrypted at rest** |
+| **Security measures** | DPA Annex 2. Encrypted at rest |
 
 > **[LAWYER] — flagged deliberately.** This is **profiling across stays**. It
 > serves the controller's guest-recognition interest rather than the breakfast

@@ -142,6 +142,10 @@ real screen behind it.
   is a deliberate decision rather than a silent gap.
 - Guest notes carry allergies (Art. 9 health data). They are encrypted at rest
   and must stay that way. Never log note content.
+- **The roster is encrypted at rest too** (`secure-store.ts`). `storage.ts` must
+  read and write through `secureGet`/`secureSet`, never `localStorage` directly —
+  a direct read now returns ciphertext. `AppContext` unlocks before rendering;
+  nobody types a password. Any new key holding a name goes in `SECURE_KEYS`.
 - Access logs record a salted hash, never a guest name, and deliberately outlive
   the data they describe.
 - `supabase/schema.sql` must never contain `using (true)`.

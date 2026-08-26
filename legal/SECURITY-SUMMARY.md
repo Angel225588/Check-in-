@@ -72,7 +72,7 @@ itself is gone.
 |---|---|
 | Everything over the network | Encrypted (TLS) |
 | Guest notes — the allergies | Encrypted where stored, with a key that cannot be extracted from the device even by someone who copies the storage |
-| Guest names on the device | **Not encrypted** — see below |
+| Guest names on the device | Encrypted, same as the allergies |
 | One hotel reaching another's data | Prevented by the database, and proved by automated tests that try to break in and must fail |
 | Who looked at what | Logged, with the guest identified by a scrambled code rather than a name |
 | Technical logs | Guest names removed before anything is written |
@@ -83,11 +83,11 @@ itself is gone.
 
 We would rather you hear these from us.
 
-**1. The guest list on the device is not encrypted.** Names and room numbers sit
-in the tablet's browser storage in plain text. Anyone holding the unlocked
-tablet can read them. The allergy notes *are* encrypted; the roster is not yet.
-What protects it today is your physical control of the device and the automatic
-deletion above. We are working on it.
+**1. Encryption on a tablet has a limit.** Everything is encrypted where it is
+stored, so a copied tablet, a device backup, or a stolen storage dump gives up
+nothing readable. What it cannot stop is code running inside the app itself,
+which is allowed to ask for the data. No browser-based app can. We would rather
+state the boundary than let you assume it is absolute.
 
 **2. There is no individual login.** Access is controlled by physical access to
 the reception tablet, so the access log attributes an action to the device, not

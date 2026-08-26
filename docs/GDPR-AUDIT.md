@@ -248,12 +248,25 @@ outliving** the data, or the purge destroys the evidence of who touched it.
 | Vercel ↔ Mistral (Paris) | **OK** — TLS, server-side only, key never reaches the browser |
 | Supabase at rest | **N/A today**; AES-256 platform default when adopted |
 | Guest **notes** at rest | **OK** — AES-GCM-256, non-extractable key in IndexedDB, hashed keys |
-| Roster at rest (`dailyData_*`, `sessionHistory`) | **NOT ENCRYPTED** — plaintext names and rooms |
-| `vipNotes` at rest | **NOT ENCRYPTED** — the allergy from the VIP sheet, in plaintext |
+| Roster at rest (`dailyData_*`, `sessionHistory`) | **OK** — AES-GCM-256 via `secure-store.ts` |
+| `vipNotes` at rest | **OK** — encrypted with the roster it travels in |
+| `guest_profiles`, `morningBrief_*` at rest | **OK** — same store |
 | Uploaded files in storage | **N/A** — no bucket in use; `pdf_uploads.file_url` unused |
 
-**The asymmetry is the finding.** The encryption work already done proves the pattern
-and the key management; the roster and `vipNotes` simply were not brought into it.
+~~**The asymmetry is the finding.**~~ **RESOLVED 2026-08-26.** The roster now uses the
+same scheme as the notes. Two consequences worth recording:
+
+- The app unlocks itself on open — a non-extractable key in IndexedDB, no
+  password, no change to reception's morning. Measured at ~56ms for a full
+  house across a 90-day window on a development machine; the real per-device
+  figure is printed in the nav drawer, because an estimate is not a measurement.
+- The envelope gzips before encrypting, so a 90-day window fell from **4.1MB to
+  186KB — a 22x reduction.** iPad quota exhaustion was an existing failure mode
+  for this app, so the privacy fix also removed a reliability one.
+
+Same bounded threat model as `notes-crypto.ts`, deliberately: it defends against
+a storage dump, a device backup, and XSS scraping localStorage. It does not
+defend against code running in the page that calls `secureGet` itself.
 
 Related: CSP still allows `script-src 'unsafe-inline' 'unsafe-eval'`. With plaintext
 PII in `localStorage`, XSS containment *is* an at-rest control — `notes-crypto.ts`
@@ -302,7 +315,7 @@ which is **stale** — Gemini is gone. Remove it.
 | # | Item | Status |
 |---|---|---|
 | 1 | Delete the four dead fields | **Done** — `confirmationNumber`, `rtc`, `reservationStatus`, `roomType` removed from types, both parsers, the VIP merge, storage and the seeder. Chunk dedup re-keyed on room + name. Ratcheted by `data-minimisation.test.ts` |
-| 2 | Encrypt roster and `vipNotes` at rest | **Not done** — see §6. The pattern and key management already exist in `notes-crypto.ts`; the roster was simply never brought into it |
+| 2 | Encrypt roster and `vipNotes` at rest | **Done** — `secure-store.ts`. Names, room numbers, VIP preference text, guest profiles and morning briefs are all AES-GCM-256 at rest, reusing the non-extractable note key. Verified by mutation: writing plaintext turns 4 assertions red |
 | 3 | Pseudonymise names at day close | **Not done** — §1.3 stands as the recommendation |
 | 4 | Configurable retention + full purge + purge log | **Done** — `NEXT_PUBLIC_RETENTION_DAYS`, default 90, clamped 1–730. Purge covers all five stores; runs on load; idempotent; logged |
 | 5 | Erasure + export, per guest and per property | **Done** — `src/lib/privacy/subject-rights.ts`. API routes answer 503 with a reason while data is device-local |
@@ -311,10 +324,9 @@ which is **stale** — Gemini is gone. Remove it.
 | 8 | Supabase isolation + the A-cannot-read-B test | **Done** — schema rewritten with a tenant claim, per-verb scoped policies, forced RLS, revoked `anon`, `security_invoker` views. Proven by 25 assertions against a real Postgres, enumerating views and functions from `pg_catalog`. Verified by mutation: restoring the old permissive policies turns 19 red. CI runs it and fails if the suite skipped itself |
 | 9 | Legal documents | **Drafted** — `/legal`, marked for lawyer review |
 
-Still outstanding, in the order I would take them: **item 2** (encrypt the
-roster — the asymmetry in §6 is the largest remaining technical gap), then
-**item 3**, then the two configuration items in §8 (pin the Vercel region;
-confirm Mistral's terms).
+Still outstanding: **item 3** (pseudonymise names at day close), and one
+configuration item in §8 — confirming Mistral's contractual terms on training
+and upload retention. The Vercel region is resolved.
 
 ### Original ordering, for reference
 

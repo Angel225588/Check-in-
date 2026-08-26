@@ -373,7 +373,7 @@ Stated as of 2026-08-23. **Where a measure is not in place, it says so.**
 | In transit (all connections) | TLS. HSTS `max-age=63072000; includeSubDomains; preload` |
 | Guest notes at rest | AES-GCM-256; non-extractable key in IndexedDB; salted-hash storage keys |
 | Roster data at rest on the device | **Not encrypted** — plaintext in browser storage. See "Known limitations" |
-| VIP preference text at rest | **Not encrypted** — see "Known limitations" |
+| VIP preference text at rest | AES-GCM-256 — encrypted with the roster it travels in |
 | Server database at rest | AES-256 (Supabase platform default), when the server deployment is in use |
 | Uploaded files at rest | No file storage bucket currently in use |
 
@@ -405,24 +405,20 @@ Stated as of 2026-08-23. **Where a measure is not in place, it says so.**
 
 ### Known limitations — stated deliberately
 
-1. **Roster data is not encrypted at rest on the reception device.** Guest names
-   and room numbers are held in browser storage in plaintext. Anyone with the
-   unlocked device can read them. Mitigations: device-level controls are the
-   Controller's responsibility; the retention purge limits the window; guest
-   *notes*, which carry the health data, are encrypted.
-2. **VIP preference text imported from the Controller's own reports is not
-   encrypted at rest**, although notes typed by staff are. Where the VIP report
-   carries allergy information, that information is currently less protected
-   than the equivalent typed note. Remediation is planned.
-3. **The Content Security Policy permits `unsafe-inline` and `unsafe-eval`
-   scripts**, which weakens the protection that unencrypted browser storage
-   depends on.
-4. **Rate limiting is per-instance** and consequently less effective on a
+1. **Encryption on the device is bounded by the browser.** It defends against a
+   storage dump, a device backup or profile copy, and script injection that
+   scrapes browser storage. It does not defend against code running inside the
+   application page, which can ask for the data legitimately. No browser-side
+   scheme can, and the Processor will not claim otherwise.
+2. **The Content Security Policy permits `unsafe-inline` and `unsafe-eval`
+   scripts.** Given item 1, script injection is the residual path to the data,
+   so this is a real weakening of that boundary. Remediation is planned.
+3. **Rate limiting is per-instance** and consequently less effective on a
    multi-instance serverless deployment.
-5. **The application has no user authentication.** Access is controlled by
+4. **The application has no user authentication.** Access is controlled by
    physical access to the reception device. Access-log actors are therefore
    attributed to a device or a named role, not to an authenticated individual.
 
-> **[LAWYER]** Item 5 is material. A Controller may reasonably require
+> **[LAWYER]** Item 4 is material. A Controller may reasonably require
 > per-user authentication before signing, and it is the kind of gap that a
 > compliance reviewer will find. It is disclosed here rather than omitted.

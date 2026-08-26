@@ -23,6 +23,7 @@ import type { GuestProfile } from "../guests";
 import { getRetentionDays } from "./config";
 import { appendPurgeLog } from "./purge-log";
 import { recordAccess, getAccessLogForGuest, type AccessLogEntry } from "./access-log";
+import { secureGet, secureSet, secureRemove, secureKeys } from "../secure-store";
 
 export interface ActorOptions {
   /** Who is carrying out the request — recorded in the access log. */
@@ -53,6 +54,8 @@ export interface ErasureReport {
   stores: string[];
 }
 
+/** Raw localStorage keys — only the note envelopes, which are separately
+ *  encrypted and live outside the secure store. */
 function keysWithPrefix(prefix: string): string[] {
   const out: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -64,7 +67,7 @@ function keysWithPrefix(prefix: string): string[] {
 
 function readJson<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = secureGet(key);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
     return (parsed ?? fallback) as T;
@@ -93,7 +96,7 @@ export async function exportGuest(name: string, opts: ActorOptions): Promise<Gue
     for (const ci of data.checkIns ?? []) if (isSameGuest(ci.clientName, name)) checkIns.push({ date, checkIn: ci });
   };
 
-  for (const key of keysWithPrefix("dailyData_")) {
+  for (const key of secureKeys("dailyData_")) {
     const date = key.slice("dailyData_".length);
     collect(date, readJson(key, {} as DailyData));
   }
@@ -128,7 +131,7 @@ export async function exportGuest(name: string, opts: ActorOptions): Promise<Gue
 
 export async function exportProperty(opts: ActorOptions): Promise<PropertyExport> {
   const days: DailyData[] = [];
-  for (const key of keysWithPrefix("dailyData_")) {
+  for (const key of secureKeys("dailyData_")) {
     const d = readJson<DailyData | null>(key, null);
     if (d) days.push(d);
   }
@@ -181,7 +184,7 @@ export async function eraseGuest(name: string, opts: ActorOptions): Promise<Eras
   let removed = 0;
 
   // Live days
-  for (const key of keysWithPrefix("dailyData_")) {
+  for (const key of secureKeys("dailyData_")) {
     const data = readJson<DailyData | null>(key, null);
     if (!data) continue;
     const clients = (data.clients ?? []).filter((c) => !isSameGuest(c.name, name));
@@ -192,7 +195,7 @@ export async function eraseGuest(name: string, opts: ActorOptions): Promise<Eras
       (data.checkIns?.length ?? 0) - checkIns.length +
       (data.discrepancies?.length ?? 0) - discrepancies.length;
     if (n > 0) {
-      localStorage.setItem(key, JSON.stringify({ ...data, clients, checkIns, discrepancies }));
+      secureSet(key, JSON.stringify({ ...data, clients, checkIns, discrepancies }));
       removed += n;
       if (!stores.includes("dailyData")) stores.push("dailyData");
     }
@@ -209,7 +212,7 @@ export async function eraseGuest(name: string, opts: ActorOptions): Promise<Eras
     return { ...s, clients, checkIns };
   });
   if (historyRemoved > 0) {
-    localStorage.setItem("sessionHistory", JSON.stringify(nextHistory));
+    secureSet("sessionHistory", JSON.stringify(nextHistory));
     removed += historyRemoved;
     stores.push("sessionHistory");
   }
@@ -218,7 +221,7 @@ export async function eraseGuest(name: string, opts: ActorOptions): Promise<Eras
   const profiles = readJson<GuestProfile[]>("guest_profiles", []);
   const keptProfiles = profiles.filter((p) => !isSameGuest(p.name, name));
   if (keptProfiles.length !== profiles.length) {
-    localStorage.setItem("guest_profiles", JSON.stringify(keptProfiles));
+    secureSet("guest_profiles", JSON.stringify(keptProfiles));
     removed += profiles.length - keptProfiles.length;
     stores.push("guestProfiles");
   }
@@ -254,26 +257,32 @@ export async function eraseProperty(opts: ActorOptions): Promise<ErasureReport> 
   const stores: string[] = [];
   let removed = 0;
 
-  const dropKeys = (prefix: string, store: string) => {
-    const keys = keysWithPrefix(prefix).filter((k) => k !== `${NOTES_KEY_PREFIX}salt`);
-    for (const k of keys) localStorage.removeItem(k);
+  const dropSecure = (prefix: string, store: string) => {
+    const keys = secureKeys(prefix);
+    for (const k of keys) secureRemove(k);
     if (keys.length) { removed += keys.length; stores.push(store); }
   };
+  const dropNotes = () => {
+    // Notes live outside the secure store — they carry their own envelope.
+    const keys = keysWithPrefix(NOTES_KEY_PREFIX).filter((k) => k !== `${NOTES_KEY_PREFIX}salt`);
+    for (const k of keys) localStorage.removeItem(k);
+    if (keys.length) { removed += keys.length; stores.push("notes"); }
+  };
 
-  dropKeys("dailyData_", "dailyData");
-  dropKeys("morningBrief_", "morningBriefs");
-  dropKeys(NOTES_KEY_PREFIX, "notes");
+  dropSecure("dailyData_", "dailyData");
+  dropSecure("morningBrief_", "morningBriefs");
+  dropNotes();
 
   const history = readJson<SessionRecord[]>("sessionHistory", []);
   if (history.length) {
-    localStorage.setItem("sessionHistory", "[]");
+    secureSet("sessionHistory", "[]");
     removed += history.length;
     stores.push("sessionHistory");
   }
 
   const profiles = readJson<GuestProfile[]>("guest_profiles", []);
   if (profiles.length) {
-    localStorage.setItem("guest_profiles", "[]");
+    secureSet("guest_profiles", "[]");
     removed += profiles.length;
     stores.push("guestProfiles");
   }

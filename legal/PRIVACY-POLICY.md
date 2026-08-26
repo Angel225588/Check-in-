@@ -160,19 +160,19 @@ the **CNIL** — [www.cnil.fr](https://www.cnil.fr).
 ## How your data is protected
 
 - Everything sent over a network is **encrypted in transit** (TLS).
-- **Notes about you, including allergies, are encrypted where they are stored**,
-  with a key that cannot be extracted from the device.
+- **Your name, your room number and your notes are all encrypted where they are
+  stored**, with a key that cannot be extracted from the device.
 - Where a hotel uses the hosted database, **each hotel can only reach its own
   data**. This is enforced by the database itself and verified by automated tests
   that attempt to read another hotel's records and must fail.
 - Access to guest data is **logged**.
 - Guest names are **stripped from technical logs** before they are written.
 
-**Honestly stated:** the roster itself — your name and room number — is **not
-encrypted** on the reception device. It is protected by the hotel's physical
-control of that device and by the automatic deletion described above. We are
-working on encrypting it. We would rather tell you this than imply a protection
-we have not yet built.
+**Honestly stated:** encryption on a tablet has a limit. It means a copied
+device, a backup, or a stolen storage dump gives up nothing readable. It cannot
+stop code running inside the application itself, which is allowed to ask for the
+data. No browser-based app can. We would rather tell you where the line is than
+let you assume there isn't one.
 
 ---
 

@@ -7,6 +7,7 @@ import {
   freeUpSpace,
 } from "../lib/storage";
 import { Client } from "../lib/types";
+import { __resetSecureStore, hydrateSecureStore, secureGet } from "@/lib/secure-store";
 
 function makeClient(room: string, name: string): Client {
   return {
@@ -37,6 +38,7 @@ function makeClient(room: string, name: string): Client {
 describe("saveClientsMerged under localStorage quota pressure", () => {
   beforeEach(() => {
     localStorage.clear();
+    __resetSecureStore();
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -142,7 +144,7 @@ describe("reclaimStorageSpace strips pre-existing bloat", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 
-  it("trims giant rawUploadText from existing history + daily data, keeps rooms", () => {
+  it("trims giant rawUploadText from existing history + daily data, keeps rooms", async () => {
     const bloatedHistory = [
       {
         date: dayAgo(6),
@@ -168,24 +170,27 @@ describe("reclaimStorageSpace strips pre-existing bloat", () => {
       })
     );
 
+    // Adopt the seeded plaintext, as the app does when it opens.
+    await hydrateSecureStore();
+
     const before =
-      (localStorage.getItem("sessionHistory")?.length ?? 0) +
-      (localStorage.getItem(DAY_KEY)?.length ?? 0);
+      (secureGet("sessionHistory")?.length ?? 0) +
+      (secureGet(DAY_KEY)?.length ?? 0);
 
     const reclaimed = reclaimStorageSpace();
     expect(reclaimed).toBeGreaterThan(3_000_000);
 
     const after =
-      (localStorage.getItem("sessionHistory")?.length ?? 0) +
-      (localStorage.getItem(DAY_KEY)?.length ?? 0);
+      (secureGet("sessionHistory")?.length ?? 0) +
+      (secureGet(DAY_KEY)?.length ?? 0);
     expect(after).toBeLessThan(before);
 
     // Rooms preserved, raw text trimmed.
-    const hist = JSON.parse(localStorage.getItem("sessionHistory")!);
+    const hist = JSON.parse(secureGet("sessionHistory")!);
     expect(hist[0].clients.length).toBe(2);
     expect(hist[0].rawUploadText.length).toBeLessThanOrEqual(30_000);
 
-    const day = JSON.parse(localStorage.getItem(DAY_KEY)!);
+    const day = JSON.parse(secureGet(DAY_KEY)!);
     expect(day.clients.length).toBe(1);
     expect(day.rawUploadText.length).toBeLessThanOrEqual(30_000);
   });
@@ -214,7 +219,7 @@ describe("freeUpSpace removes only raw text, keeps everything else", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 
-  it("clears raw text from history + daily data, preserves rooms/check-ins/stats", () => {
+  it("clears raw text from history + daily data, preserves rooms/check-ins/stats", async () => {
     const history = [
       {
         date: "2026-05-28",
@@ -245,18 +250,19 @@ describe("freeUpSpace removes only raw text, keeps everything else", () => {
       })
     );
 
+    await hydrateSecureStore();
     const freed = freeUpSpace();
     expect(freed).toBeGreaterThan(1_900_000);
 
     // History: rooms, check-ins, stats intact; raw text gone.
-    const h = JSON.parse(localStorage.getItem("sessionHistory")!);
+    const h = JSON.parse(secureGet("sessionHistory")!);
     expect(h[0].clients.length).toBe(2);
     expect(h[0].checkIns.length).toBe(1);
     expect(h[0].totalVip).toBe(1);
     expect(h[0].rawUploadText).toBe("");
 
     // Today's daily data: rooms intact; raw text gone.
-    const day = JSON.parse(localStorage.getItem(`dailyData_${activeDate}`)!);
+    const day = JSON.parse(secureGet(`dailyData_${activeDate}`)!);
     expect(day.clients.length).toBe(1);
     expect(day.rawUploadText).toBe("");
 

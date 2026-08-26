@@ -14,6 +14,7 @@ import { getRetentionDays } from "./config";
 import { appendPurgeLog } from "./purge-log";
 import { NOTES_KEY_PREFIX } from "../notes-store";
 import { envelopeTouchedAt } from "../note-envelope";
+import { secureGet, secureSet, secureRemove, secureKeys } from "../secure-store";
 
 export const PURGEABLE_STORES = [
   "sessionHistory",
@@ -68,6 +69,8 @@ function track(removed: string[]): { oldestRemoved: string; newestRemoved: strin
   return { oldestRemoved: valid[0] ?? "", newestRemoved: valid[valid.length - 1] ?? "" };
 }
 
+/** Raw localStorage keys — used only for the note envelopes, which carry their
+ *  own encryption and are not in the secure store. */
 function keysWithPrefix(prefix: string): string[] {
   const out: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -80,7 +83,7 @@ function keysWithPrefix(prefix: string): string[] {
 function purgeSessionHistory(cutoffMs: number): StoreResult {
   const removed: string[] = [];
   try {
-    const raw = localStorage.getItem("sessionHistory");
+    const raw = secureGet("sessionHistory");
     if (raw) {
       const list = JSON.parse(raw);
       if (Array.isArray(list)) {
@@ -89,7 +92,7 @@ function purgeSessionHistory(cutoffMs: number): StoreResult {
           if (expired) removed.push(String(s?.date ?? ""));
           return !expired;
         });
-        if (removed.length > 0) localStorage.setItem("sessionHistory", JSON.stringify(kept));
+        if (removed.length > 0) secureSet("sessionHistory", JSON.stringify(kept));
       }
     }
   } catch {
@@ -104,10 +107,10 @@ function purgeByDatedKey(
   cutoffMs: number
 ): StoreResult {
   const removed: string[] = [];
-  for (const key of keysWithPrefix(prefix)) {
+  for (const key of secureKeys(prefix)) {
     const date = key.slice(prefix.length);
     if (isExpired(date, cutoffMs)) {
-      localStorage.removeItem(key);
+      secureRemove(key);
       removed.push(date);
     }
   }
@@ -122,7 +125,7 @@ function purgeByDatedKey(
 function purgeGuestProfiles(cutoffMs: number): StoreResult {
   const removed: string[] = [];
   try {
-    const raw = localStorage.getItem("guest_profiles");
+    const raw = secureGet("guest_profiles");
     if (raw) {
       const list = JSON.parse(raw);
       if (Array.isArray(list)) {
@@ -131,7 +134,7 @@ function purgeGuestProfiles(cutoffMs: number): StoreResult {
           if (expired) removed.push(String(g?.lastVisit ?? ""));
           return !expired;
         });
-        if (removed.length > 0) localStorage.setItem("guest_profiles", JSON.stringify(kept));
+        if (removed.length > 0) secureSet("guest_profiles", JSON.stringify(kept));
       }
     }
   } catch {

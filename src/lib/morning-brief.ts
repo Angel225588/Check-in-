@@ -100,6 +100,8 @@ export interface MorningBrief {
   internalAnniversary?: { name: string; role: string }[];
 }
 
+import { secureGet, secureSet } from "./secure-store";
+
 const STORAGE_KEY_PREFIX = "morningBrief_";
 
 function todayStr(): string {
@@ -108,7 +110,7 @@ function todayStr(): string {
 
 export function getMorningBrief(date: string = todayStr()): MorningBrief | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${date}`);
+  const raw = secureGet(`${STORAGE_KEY_PREFIX}${date}`);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as MorningBrief;
@@ -119,7 +121,7 @@ export function getMorningBrief(date: string = todayStr()): MorningBrief | null 
 
 export function saveMorningBrief(brief: MorningBrief): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(
+  secureSet(
     `${STORAGE_KEY_PREFIX}${brief.date}`,
     JSON.stringify(brief)
   );
