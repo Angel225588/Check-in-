@@ -13,6 +13,179 @@ git for those.
 
 ---
 
+## 2026-08-26 — GDPR: the audit, and the eight things it found
+
+**860/860 tests · 74 files · tsc clean · build clean.** Nine commits on
+`claude/gdpr-compliance-audit-vdkmyn`, not yet on `main`.
+
+Stories: US-43 … US-50.
+
+### The audit was written twice, and the first one was wrong
+
+Worth recording because it nearly shipped. The first pass ran against the
+branch as found, which turned out to be ~19,600 lines behind `main`. It named
+**Google Gemini** as the sub-processor — gone since the Mistral migration — and
+recommended deleting `rateCode`, which `groups.ts` uses to key the group
+blocks. It also reported findings already fixed here.
+
+Rebased, re-audited, rewrote the document. `docs/GDPR-AUDIT.md` carries the
+correction at the top rather than quietly reading as if it were always right.
+
+**The lesson is cheap and general: audit `main`, not the branch you were handed.**
+
+### What was wrong, in the order it mattered
+
+**1. RLS was enabled and then neutralised.** `supabase/schema.sql` ended with
+`using (true) with check (true)` on all five tables. That is not a weak policy,
+it is *no* policy — identical to RLS being switched off, while reading like
+security in a review. The intended key is `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+which by design ships inside the JavaScript bundle. Applied as written, any
+user at any hotel reads every guest row of every other hotel with one `fetch`.
+
+Not exploitable today only because nothing imports Supabase yet — `supabase.ts`
+does not exist on `main`. That is luck, not design, and it expires on the first
+`supabase.from()`.
+
+Fixed: a tenant claim read from the verified JWT, `property_code not null` on
+every table stamped by trigger, per-verb policies, `with check` on every write,
+RLS forced so the owner does not bypass it, `anon` revoked, views declared
+`security_invoker`.
+
+Two of those are the ones that get missed. **`using` alone governs what a tenant
+can SEE, not what it can WRITE** — without `with check`, hotel A can stamp a row
+as hotel B and poison a roster it cannot read. And **a `security definer`
+function ignores RLS entirely**, which is the standard way a correctly-policied
+schema regains a hole after the tables look right.
+
+**2. Four fields were collected and never used.** `confirmationNumber`, `rtc`,
+`reservationStatus`, `roomType` — parsed, stored, merged, copied between stores,
+and rendered nowhere. The confirmation number is the one that links most
+directly back to the Marriott PMS reservation.
+
+The subtlety: they did double duty as tokeniser signals. An unclassified "CKIN"
+gets swept into the guest's name; an unclassified "Room Type" header falls
+through to the `/room/` test and replaces the real room with a type code. So
+the *recognition* stays and only the *storage* goes — `mistral-parser` gained an
+explicit `"discard"` field for a column matched to keep the row aligned and then
+dropped.
+
+**3. Three of five stores were never purged.** `pruneByAge` was real and
+tested, and covered session history only. Guest profiles, notes and morning
+briefs were kept forever. Retention is now one configurable number covering all
+five, and the store list is asserted so a sixth is a deliberate decision.
+
+Profiles age on **last** contact, not first: a ten-year regular is current data,
+a one-off from last spring is not. Using `firstVisit` would delete exactly the
+guests the feature exists to recognise.
+
+Notes needed a date the purge could read without decrypting every guest on
+load, so the envelope gained a plaintext `touchedAt` beside the ciphertext. A
+legacy envelope has none and is **never** purged — losing a severe allergy to a
+storage-format upgrade is the worst outcome this module could produce.
+
+**4. No erasure, no export, no access log.** All three now exist. Two
+deliberate choices worth stating: the access log records a **salted hash, never
+a name** (a log of guest names is a second copy of the data it audits, and it
+lives longer), and both logs **survive an erasure** — they hold nothing a
+subject could be identified by, and they are the evidence the erasure happened.
+
+**5. The app was running in Virginia.** Function region `iad1`, US East. Every
+uploaded roster was read on US soil, needing a transfer basis nobody had
+documented. Now `cdg1` — Paris, same country as Mistral — pinned in
+`vercel.json` rather than only in a dashboard where it can move without a trace.
+
+**6. The roster was not encrypted, and the notes were.** The largest gap. The
+allergy a receptionist *typed* was AES-GCM-256 with a non-extractable key; the
+same allergy arriving on the VIP sheet sat in plaintext next to the guest's
+name and room number.
+
+### The constraint that shaped `secure-store.ts`
+
+`storage.ts` is synchronous, and it is read **during service** — `search/page.tsx`
+computes expected-arrivals inside a `useMemo`. WebCrypto is async-only. Pushing
+`await` into that path was not acceptable, so: an in-memory mirror with a
+synchronous API, hydrated once when the app opens, persisting encrypted in the
+background. `AppContext` gates rendering on the unlock, because rendering early
+would compute those memos against an empty store and show reception a morning
+with no guests in it.
+
+Two properties this had to preserve, and does.
+
+**Quota failures stay synchronous.** The check-in screen marks a guest served
+on that boolean. Space is reserved up front with a marked placeholder carrying
+no guest data — writing the plaintext even for a millisecond would defeat the
+whole point — and on failure the in-memory value is **rolled back**. Keeping it
+would show a check-in that never saved and would vanish on reload: the fake
+success `storage-safety.test.ts` exists to prevent. That test caught this; the
+first implementation had it wrong.
+
+**A device already in service has plaintext.** Hydration adopts it and re-writes
+it encrypted. Ignoring it would look exactly like every guest disappearing
+overnight.
+
+### The numbers
+
+Measured before building, on a full house of 130 rooms:
+
+| Window | Plaintext | Encrypted | Unlock |
+|---|---|---|---|
+| today only | 46 KB | 3 KB | 4 ms |
+| 30 days | 1 378 KB | 63 KB | 29 ms |
+| 90 days | 4 134 KB | 186 KB | 56 ms |
+
+A development machine is not an iPad, so the real per-device figure prints in
+the nav drawer (`🔒 142 ms`). An estimate is not a measurement.
+
+**The unplanned win: 22× smaller.** The envelope gzips before encrypting.
+iPad quota exhaustion was already a real failure mode for this app — the whole
+`RAW_TEXT_CAP` / `reclaimStorageSpace` / `freeUpSpace` apparatus exists for it —
+so the privacy fix removed a reliability one.
+
+### Watched go red
+
+Per the house rule. Every security check was mutated before it was trusted:
+
+- Restore `using (true)` → **19 of 25** isolation assertions fail.
+- Write plaintext in `secure-store` → **4** roster-encryption assertions fail.
+- Set `iad1` in `vercel.json` → **2** region assertions fail.
+
+The isolation suite also caught a bug in itself: Postgres roles are
+cluster-wide and survive a schema drop, so the second run threw in `beforeAll`
+and **skipped all 25 assertions while reporting the file green**. A security
+suite that skips itself is worse than no suite. CI now fails the build if it
+does not run to completion.
+
+### Legal drafts
+
+`/legal` — DPA (Art. 28), register of processing activities, privacy policy,
+and a one-page summary for a hotel's compliance contact. Sub-processors named
+as Mistral, Supabase, Vercel, matching what the code calls.
+
+Written to be accurate rather than flattering. Annex 2 states what is *not*
+true: the CSP still permits `unsafe-inline` and `unsafe-eval`, rate limiting is
+per-instance, and there is no per-user authentication. An overstated security
+annex is a misrepresentation in a signed contract, and a compliance reviewer
+finds these anyway.
+
+Art. 9 is stated plainly, not hedged. Allergies are a designed, safety-critical
+feature — `tone: "alert"`, auto-pinned, surfaced without opening anything — so
+the app processes health data deliberately. The register names the activity,
+the DPA allocates the Art. 9 condition to the controller, and both flag that a
+DPIA is likely required.
+
+### Still open
+
+- **Names are not pseudonymised at day close.** Nothing in the analytics layer
+  reads `name` — checked every consumer — so nothing would regress. Until it is
+  built the app holds a rolling multi-week list of who slept in which room.
+- **Mistral's contractual terms** on model training and upload retention are
+  unverified. EU hosting is confirmed from source; the contract is not, and the
+  legal drafts refuse to assert it.
+- **US-48 is proven but not switched on.** The gate is the first
+  `supabase.from()`.
+- **Returning-guest profiling stays**, by the owner's decision, documented in
+  the register with its residual risk rather than removed.
+
 ## 2026-08-21 — the card that moved, and two tests that lied about it
 
 **744/744 tests · 133/133 design rules · 85/85 prove-preview-card · tsc clean.**
