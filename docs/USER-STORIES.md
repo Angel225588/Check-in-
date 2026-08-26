@@ -1238,6 +1238,26 @@ Every Never below is a real defect that was in the code, not a hypothetical.
             a property, not as a word, because recognising a column is not
             storing it and the test has to draw that line too.
 
+### US-51 — Injected script cannot reach the guest list — BUILT
+
+    As      Hôtel (contrôleur)
+    I need  the encryption on the device not to be undone by one injected script
+    So that the protection I was shown is the protection I actually have
+
+    Scenario: a script is injected into the page
+      Given  the roster is encrypted, and decrypting it is a function call away
+      When   that script tries to run
+      Then   the browser refuses it, because it carries no nonce
+
+    Never:  the app's own scripts blocked along with the injected one. Removing
+            `'unsafe-inline'` without a nonce blocks Next's hydration scripts
+            and renders every page BLANK — and the Vitest suite could not see
+            it, because nothing in jsdom loads the real document.
+    Proof:  `csp.test.ts` for the policy; `scripts/csp-smoke.mjs` for the
+            outcome — a real browser across seven pages, failing on any
+            violation, console error or empty body. Watched go red by dropping
+            the nonce. Cost measured: 8ms median, 10ms p95 per page load.
+
 ### US-50 — Nothing leaves the EU — BUILT
 
     As      Hôtel (contrôleur)

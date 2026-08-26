@@ -32,12 +32,60 @@ setInterval(() => {
   }
 }, 5 * 60_000);
 
+/**
+ * A fresh nonce per request, for the Content Security Policy.
+ *
+ * `script-src 'unsafe-inline'` had to go: guest names are encrypted in browser
+ * storage, and that encryption does not defend against code running inside the
+ * page, so script injection is the residual path to guest data. But Next.js
+ * emits its own inline scripts to hydrate React — removing 'unsafe-inline'
+ * without a nonce renders every page blank. A nonce lets OUR scripts run and
+ * still blocks anything injected.
+ */
+function makeNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+function cspWithNonce(nonce: string): string {
+  const isDev = process.env.NODE_ENV === "development";
+  // Dev keeps eval: fast refresh needs it. The strict policy is what ships.
+  const scriptSrc = isDev
+    ? "'self' 'unsafe-inline' 'unsafe-eval'"
+    : `'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`;
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    // styled-jsx injects style elements at runtime. Injected CSS cannot read
+    // storage or call into the app, so this is not comparable to a script.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "connect-src 'self' https://*.supabase.co",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ") + ";";
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only protect API routes
+  // Everything that is not an API route is a page: give it a nonce and go.
   if (!pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    const nonce = makeNonce();
+    const headers = new Headers(request.headers);
+    // Next reads this to stamp its own inline scripts.
+    headers.set("x-nonce", nonce);
+
+    const res = NextResponse.next({ request: { headers } });
+    res.headers.set("Content-Security-Policy", cspWithNonce(nonce));
+    return res;
   }
 
   // 1. API auth. FAILS CLOSED.
@@ -83,5 +131,11 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  // Pages need the nonce, API routes need the auth check, so the middleware
+  // runs on both. Static assets and the image optimiser are excluded: they
+  // carry no inline script and paying for middleware on every chunk request
+  // would slow the one path that must not get slower.
+  matcher: [
+    "/((?!_next/static|_next/image|icons/|favicon.svg|manifest.json|theme-init.js).*)",
+  ],
 };

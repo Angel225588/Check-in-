@@ -15,10 +15,10 @@ git for those.
 
 ## 2026-08-26 — GDPR: the audit, and the eight things it found
 
-**860/860 tests · 74 files · tsc clean · build clean.** Nine commits on
+**881/881 tests · 75 files · tsc clean · build clean · csp-smoke 8/8.** Nine commits on
 `claude/gdpr-compliance-audit-vdkmyn`, not yet on `main`.
 
-Stories: US-43 … US-50.
+Stories: US-43 … US-51.
 
 ### The audit was written twice, and the first one was wrong
 
@@ -148,6 +148,7 @@ Per the house rule. Every security check was mutated before it was trusted:
 - Restore `using (true)` → **19 of 25** isolation assertions fail.
 - Write plaintext in `secure-store` → **4** roster-encryption assertions fail.
 - Set `iad1` in `vercel.json` → **2** region assertions fail.
+- Drop the CSP nonce → `csp-smoke` reports every page blank, 6 violations.
 
 The isolation suite also caught a bug in itself: Postgres roles are
 cluster-wide and survive a schema drop, so the second run threw in `beforeAll`
@@ -172,6 +173,51 @@ feature — `tone: "alert"`, auto-pinned, surfaced without opening anything — 
 the app processes health data deliberately. The register names the activity,
 the DPA allocates the Art. 9 condition to the controller, and both flag that a
 DPIA is likely required.
+
+### 7. The CSP was holding the door open, and the unit test could not see it
+
+Added after the roster encryption, because encryption changed what the CSP is
+*for*. `secure-store.ts` explicitly does not defend against code running inside
+the page — such code can just call `secureGet` — so once the data was
+encrypted, script injection became the residual path to it, and
+`script-src 'unsafe-inline'` was the thing letting it in.
+
+`script-src` is now `'self' 'nonce-<per-request>' 'wasm-unsafe-eval'`. Plus
+`object-src 'none'`, `base-uri 'self'`, `form-action 'self'`,
+`worker-src 'self' blob:`, and the retired Gemini endpoint removed from
+`connect-src`.
+
+`'wasm-unsafe-eval'` is deliberate, not laziness: PhotoCapture lazy-loads
+tesseract.js for the local OCR mode — the mode where guest data never leaves
+the device — and that is WebAssembly. It permits WASM compilation only, unlike
+`'unsafe-eval'` which also permits `eval()` on strings. Breaking local OCR to
+tighten the CSP would have traded privacy for privacy.
+
+**The part worth remembering: `csp.test.ts` passed while the app was completely
+broken.** Removing `'unsafe-inline'` blocks Next's own inline hydration
+scripts, so every page rendered blank — and nothing in a jsdom suite can see
+that, because nothing there loads the real document. `scripts/csp-smoke.mjs`
+now drives a real browser across seven pages and fails on any violation,
+console error, or empty body. It caught it, and it was itself verified by
+mutation: dropping the nonce turns it red.
+
+That is the same lesson as `prove-preview-card.mjs` in the 2026-08-21 entry,
+arriving from a different direction. **A rule that can be satisfied by a broken
+screen is not a rule.**
+
+Costs, measured rather than assumed:
+
+- The policy moved from `next.config.ts` to the middleware. A static header
+  cannot carry a per-request nonce.
+- Pages are server-rendered rather than prerendered, because the root layout
+  reads `headers()`. **8ms median, 10ms p95** on a cold `/search` — negligible
+  against the 150–300ms unlock, and this app renders no server data anyway.
+- The theme bootstrap moved to `/theme-init.js`. One inline script was holding
+  the whole policy open.
+
+`style-src 'unsafe-inline'` stays, and is disclosed in the DPA rather than
+quietly dropped: styled-jsx injects style elements at runtime, and injected CSS
+cannot read storage or call into the app.
 
 ### Still open
 
