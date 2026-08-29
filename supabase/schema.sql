@@ -355,3 +355,58 @@ as
   group by c.property_code, s.date;
 
 grant select on daily_totals to authenticated;
+
+-- =============================================================================
+-- AI SPEND LEDGER
+--
+-- Backs src/lib/security/budget.ts. One row per (scope, period), where scope is
+-- 'global' or 'property:<code>' and period is a UTC month key like '2026-08'.
+--
+-- This table carries NO guest or hotel personal data — only a running cost
+-- total — so it is not a tenant table and gets no property_code column.
+--
+-- It also gets NO POLICY, deliberately. RLS is forced and nothing is granted to
+-- anon or authenticated, so the only way in is the service-role key held by the
+-- server. A policy here would have to be scoped by current_property_code(),
+-- which the API routes do not run under: they meter spend before any user
+-- claim exists. Server-only is the correct blast radius for a spend counter.
+-- =============================================================================
+create table if not exists ai_spend (
+  scope      text           not null,
+  period     text           not null,
+  total_usd  numeric(12, 6) not null default 0,
+  updated_at timestamptz    not null default now(),
+  primary key (scope, period)
+);
+
+alter table ai_spend enable row level security;
+alter table ai_spend force row level security;
+
+-- Atomic add-and-return. Doing this in SQL is what makes the cap hold when
+-- several serverless instances reserve budget in the same moment; read-then-
+-- write from the application would let them all see room and overshoot.
+create or replace function ai_spend_add(
+  p_scope text,
+  p_period text,
+  p_delta numeric
+) returns numeric
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_total numeric;
+begin
+  insert into ai_spend (scope, period, total_usd, updated_at)
+  values (p_scope, p_period, p_delta, now())
+  on conflict (scope, period) do update
+    set total_usd  = ai_spend.total_usd + excluded.total_usd,
+        updated_at = now()
+  returning total_usd into v_total;
+
+  return v_total;
+end;
+$$;
+
+revoke all on table ai_spend from anon, authenticated;
+revoke all on function ai_spend_add(text, text, numeric) from anon, authenticated;

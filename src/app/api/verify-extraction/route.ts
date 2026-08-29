@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
+import { securityError } from "@/lib/security/errors";
+import { getRoutePolicy, MAX_VERIFY_ENTRIES, MAX_PDF_PAGES } from "@/lib/security/config";
+import { sniffFileType } from "@/lib/security/magic-bytes";
+import {
+  guardError,
+  holdBudget,
+  readJsonBody,
+  settleFailed,
+  settleOk,
+  type AiBudgetHold,
+} from "@/lib/security/guard";
+import { ocrCost, chatCost } from "@/lib/security/budget";
+import { countPdfPages } from "@/lib/ocr-document";
 import { getAiProvider, hasMistralKey, AiError } from "@/lib/ai";
 
-const MAX_BODY_SIZE = 25 * 1024 * 1024; // 25MB
 
 interface ExtractedClient {
   roomNumber: string;
@@ -108,23 +120,24 @@ const REPORT_SCHEMA = {
 export async function POST(request: NextRequest) {
   if (!hasMistralKey()) {
     return NextResponse.json(
-      { error: "OCR non configuré sur ce serveur (MISTRAL_API_KEY manquant)." },
+      securityError("service_unconfigured"),
       { status: 500 }
     );
   }
 
+  const policy = getRoutePolicy("/api/verify-extraction")!;
+  let hold: AiBudgetHold | null = null;
+  let settled = false;
+  let providerCalled = false;
+
   try {
-    const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
-    if (contentLength > MAX_BODY_SIZE) {
-      return NextResponse.json(
-        { error: "Request body too large. Maximum size is 25MB." },
-        { status: 413 }
-      );
-    }
+    // The size limit is enforced on real bytes. The previous check read
+    // content-length only, so omitting that header removed the cap entirely.
+    const parsedBody = await readJsonBody<VerifyRequest>(request, policy.maxBodyBytes);
+    if (!parsedBody.ok) return guardError(parsedBody.code);
+    const body = parsedBody.body;
 
-    const body: VerifyRequest = await request.json();
-
-    if (!body.pdfBase64 || typeof body.pdfBase64 !== "string") {
+    if (!body || typeof body.pdfBase64 !== "string" || body.pdfBase64.length === 0) {
       return NextResponse.json(
         { error: "Missing or invalid pdfBase64 field" },
         { status: 400 }
@@ -138,6 +151,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // These entries are serialised into the prompt, so an unbounded array is
+    // an unbounded token bill that the caller chooses and we pay.
+    if (body.extractedClients.length > MAX_VERIFY_ENTRIES) {
+      return guardError("payload_too_large");
+    }
+
     if (!body.docType || !["clients", "vip", "unknown"].includes(body.docType)) {
       return NextResponse.json(
         { error: "Missing or invalid docType" },
@@ -145,21 +164,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The field is named pdfBase64; the bytes decide whether it is one.
+    const pdfBytes = Buffer.from(body.pdfBase64, "base64");
+    if (pdfBytes.byteLength === 0 || pdfBytes.byteLength > policy.maxBodyBytes) {
+      return guardError("payload_too_large");
+    }
+    const pdfView = new Uint8Array(pdfBytes);
+    if (sniffFileType(pdfView) !== "application/pdf") {
+      return guardError("unsupported_file_type");
+    }
+
+    const pageCount = await countPdfPages(pdfView);
+    if (pageCount !== null && pageCount > MAX_PDF_PAGES) {
+      return guardError("too_many_pages");
+    }
+
+    const prompt = buildVerificationPrompt(body.docType, body.extractedClients);
+
+    const budget = await holdBudget(
+      request,
+      policy,
+      ocrCost(pageCount ?? MAX_PDF_PAGES) + chatCost(120_000, 16_384)
+    );
+    if (!budget.ok) return budget.response;
+    hold = budget.hold;
+
     const provider = getAiProvider();
 
-    const { markdown } = await provider.ocr({
+    providerCalled = true;
+    const { markdown, pagesProcessed } = await provider.ocr({
       base64: body.pdfBase64,
       mimeType: "application/pdf",
       signal: request.signal,
     });
 
     const parsed = await provider.extractJson<Partial<VerificationReport>>({
-      prompt: buildVerificationPrompt(body.docType, body.extractedClients),
+      prompt,
       document: markdown,
       schema: REPORT_SCHEMA as unknown as Record<string, unknown>,
       schemaName: "verification_report",
       signal: request.signal,
     });
+
+    await settleOk(
+      hold,
+      ocrCost(pagesProcessed ?? pageCount ?? 1) +
+        chatCost((prompt.length + markdown.length) / 4, 16_384)
+    );
+    settled = true;
 
     // Same defensive normalisation as before — the response shape the UI reads
     // is unchanged.
@@ -192,5 +244,13 @@ export async function POST(request: NextRequest) {
       { error: "Verification failed. Please try again." },
       { status: 500 }
     );
+  } finally {
+    // Release ONLY if the provider was never reached. Once a call is made we
+    // may already have been billed for it — a multi-page OCR that fails
+    // part-way still pays for the pages it processed — so a failure after
+    // that point keeps the pessimistic reservation. Under-spending is the
+    // safe direction for a cap; releasing here would let repeated failures
+    // spend without ever being counted.
+    if (hold && !settled && !providerCalled) await settleFailed(hold);
   }
 }

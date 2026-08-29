@@ -49,6 +49,17 @@ export class IncompleteOcrError extends Error {
   }
 }
 
+/**
+ * Page count from the PDF itself. Returns null if it cannot be parsed.
+ *
+ * Exported because OCR bills per page: the API route counts pages here, before
+ * a single byte reaches the provider, so an oversized document is refused for
+ * free and the budget reservation uses the real number rather than a guess.
+ */
+export async function countPdfPages(bytes: Uint8Array): Promise<number | null> {
+  return countPages(bytes);
+}
+
 /** Page count from the PDF itself. Returns null if it cannot be parsed. */
 async function countPages(bytes: Uint8Array): Promise<number | null> {
   try {

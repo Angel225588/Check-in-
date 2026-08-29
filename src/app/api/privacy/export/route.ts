@@ -12,6 +12,9 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
+import { getRoutePolicy } from "@/lib/security/config";
+import { guardError, readJsonBody, resolvePropertyCode } from "@/lib/security/guard";
+import { SESSION_COOKIE, verifySession } from "@/lib/security/identity";
 
 export const runtime = "nodejs";
 
@@ -20,12 +23,22 @@ function storageConfigured(): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { scope?: string; guestName?: string; propertyCode?: string; actor?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  const policy = getRoutePolicy("/api/privacy/export")!;
+
+  // A subject-rights request is small. Reading an unbounded body on an
+  // endpoint this sensitive is free work for an attacker.
+  const parsedBody = await readJsonBody<{
+    scope?: string;
+    guestName?: string;
+    propertyCode?: string;
+    actor?: string;
+  }>(request, policy.maxBodyBytes);
+  if (!parsedBody.ok) {
+    return parsedBody.code === "payload_too_large"
+      ? guardError(parsedBody.code)
+      : NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
+  const body = parsedBody.body;
 
   const scope = body.scope;
   if (scope !== "guest" && scope !== "property") {
@@ -43,8 +56,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "property_code_required" }, { status: 400 });
   }
   if (!body.actor?.trim()) {
-    // Every export is logged against someone. An anonymous export is not one.
+    // Every request is logged against someone. An anonymous one is not.
     return NextResponse.json({ error: "actor_required" }, { status: 400 });
+  }
+
+  // `actor` is a caller-supplied label and nothing more — a client can put any
+  // name in it. Bind the signed device identity alongside so the audit trail
+  // records something the caller cannot choose. This is not proof of a person
+  // (see src/lib/security/identity.ts); it is proof of a device, which is
+  // strictly more than the claim alone. Real actor identity arrives with the
+  // Supabase Auth work in docs/GDPR-AUDIT.md §2.
+  const cookie = request.headers.get("cookie") ?? "";
+  const match = new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`).exec(cookie);
+  const session = match ? await verifySession(decodeURIComponent(match[1])) : null;
+  if (!session) {
+    return NextResponse.json({ error: "unidentified_device" }, { status: 401 });
+  }
+  const actorRef = `${body.actor.trim()}@device:${session.id.slice(0, 8)}`;
+
+  // The tenant is the one bound to this device, not the one the body claims —
+  // otherwise a caller could name someone else's property and have it honoured.
+  const boundProperty = await resolvePropertyCode(request);
+  if (body.propertyCode.trim() !== boundProperty) {
+    return NextResponse.json({ error: "property_mismatch" }, { status: 403 });
   }
 
   if (!storageConfigured()) {
@@ -62,6 +96,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    void actorRef; // recorded by the server-side path below once it exists.
     // Server-side path, for when data lives in Supabase. Deliberately not
     // implemented against a database that does not exist yet: the RLS policies
     // and tenant claim it must run under are in supabase/schema.sql, and this

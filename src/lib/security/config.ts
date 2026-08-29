@@ -1,0 +1,191 @@
+/**
+ * Security policy for every route under /api — one table, one source of truth.
+ *
+ * Middleware, the upload guard and the spend cap all read from here, so a
+ * route cannot silently drift out of policy: a path with no entry makes
+ * `getRoutePolicy` return null and the middleware denies it.
+ *
+ * This layer sits ON TOP of what main already does (same-origin gate, CSP
+ * nonce, the timeouts/retry/token caps in src/lib/ai). It adds the parts that
+ * were missing: a caller identity to meter against, per-route limits instead
+ * of one blanket bucket, content-based file validation, and a spend ceiling.
+ */
+
+/** Upload types the app actually handles. Everything else is rejected. */
+export const ALLOWED_UPLOAD_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export type AllowedUploadType = (typeof ALLOWED_UPLOAD_TYPES)[number];
+
+/** Photo-capture routes: images only, no PDF. */
+export const ALLOWED_IMAGE_TYPES: readonly AllowedUploadType[] = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+
+export interface RateLimitTier {
+  limit: number;
+  windowMs: number;
+}
+
+/**
+ * Worst-case provider work a single request can trigger, used to reserve
+ * budget before spending. OCR bills per page; chat bills per token.
+ */
+export interface AiCost {
+  /** Upper bound on OCR pages. */
+  ocrPages: number;
+  /** Upper bound on chat completions. */
+  chatCalls: number;
+}
+
+export interface RoutePolicy {
+  path: string;
+  /**
+   * There are no deliberately-public routes. The five OCR routes spend money;
+   * the two privacy routes read and erase guest data.
+   */
+  public: boolean;
+  /** Methods accepted; anything else is 405. */
+  methods: string[];
+  /** Does this route reach the AI provider? */
+  callsAi: boolean;
+  /** Worst-case provider work, for the budget reservation. */
+  worstCase: AiCost;
+  /** Hard ceiling on the body, enforced against real bytes. */
+  maxBodyBytes: number;
+  /** Upload types accepted, validated by magic bytes rather than by header. */
+  allowedTypes: readonly AllowedUploadType[];
+  perIdentity: RateLimitTier;
+  perIp: RateLimitTier;
+}
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const MB = 1024 * 1024;
+
+/**
+ * Tiers are sized for real reception use — a handful of uploads per shift —
+ * not for convenience. A low ceiling is the cheapest defence against a cost
+ * incident, and replaces the single 30/min-per-IP bucket that all routes
+ * previously shared regardless of what they cost.
+ */
+const IMAGE_TIER: RateLimitTier = { limit: 12, windowMs: 5 * MINUTE };
+const PDF_TIER: RateLimitTier = { limit: 6, windowMs: 5 * MINUTE };
+/** The brief is a once-a-day document, and it runs OCR *and* a chat call. */
+const BRIEF_TIER: RateLimitTier = { limit: 4, windowMs: HOUR };
+/** Erasure and export are rare, deliberate, human-initiated acts. */
+const PRIVACY_TIER: RateLimitTier = { limit: 5, windowMs: HOUR };
+
+/**
+ * Hard ceiling on pages in one PDF. Counted locally with pdf-lib before a
+ * single byte is sent, so an oversized document costs nothing to reject.
+ * A breakfast roster runs 20-odd pages; 60 is generous.
+ */
+export const MAX_PDF_PAGES = 60;
+
+/** Files accepted per morning-brief upload. */
+export const MAX_BRIEF_FILES = 5;
+
+/**
+ * Entries accepted by /api/verify-extraction. They are serialised into the
+ * prompt, so an unbounded array is an unbounded token bill.
+ */
+export const MAX_VERIFY_ENTRIES = 400;
+
+export const ROUTE_POLICIES: RoutePolicy[] = [
+  {
+    path: "/api/ocr",
+    public: false,
+    methods: ["POST"],
+    callsAi: true,
+    worstCase: { ocrPages: 1, chatCalls: 0 },
+    maxBodyBytes: 10 * MB,
+    allowedTypes: ALLOWED_IMAGE_TYPES,
+    perIdentity: IMAGE_TIER,
+    perIp: { limit: 24, windowMs: 5 * MINUTE },
+  },
+  {
+    path: "/api/ocr-unified",
+    public: false,
+    methods: ["POST"],
+    callsAi: true,
+    worstCase: { ocrPages: 1, chatCalls: 0 },
+    maxBodyBytes: 10 * MB,
+    allowedTypes: ALLOWED_IMAGE_TYPES,
+    perIdentity: IMAGE_TIER,
+    perIp: { limit: 24, windowMs: 5 * MINUTE },
+  },
+  {
+    path: "/api/ocr-pdf",
+    public: false,
+    methods: ["POST"],
+    callsAi: true,
+    // Reserved from the real page count; this is only the ceiling.
+    worstCase: { ocrPages: MAX_PDF_PAGES, chatCalls: 0 },
+    maxBodyBytes: 20 * MB,
+    allowedTypes: ["application/pdf"],
+    perIdentity: PDF_TIER,
+    perIp: { limit: 12, windowMs: 5 * MINUTE },
+  },
+  {
+    path: "/api/ocr-morning-brief",
+    public: false,
+    methods: ["POST"],
+    callsAi: true,
+    // One OCR pass per file, then a single structured extraction.
+    worstCase: { ocrPages: MAX_BRIEF_FILES, chatCalls: 1 },
+    // One shared budget across all files, rather than 5 x the per-file cap.
+    maxBodyBytes: 25 * MB,
+    allowedTypes: ALLOWED_UPLOAD_TYPES,
+    perIdentity: BRIEF_TIER,
+    perIp: { limit: 8, windowMs: HOUR },
+  },
+  {
+    path: "/api/verify-extraction",
+    public: false,
+    methods: ["POST"],
+    callsAi: true,
+    worstCase: { ocrPages: MAX_PDF_PAGES, chatCalls: 1 },
+    maxBodyBytes: 25 * MB,
+    allowedTypes: ["application/pdf"],
+    perIdentity: PDF_TIER,
+    perIp: { limit: 12, windowMs: 5 * MINUTE },
+  },
+  {
+    path: "/api/privacy/export",
+    public: false,
+    methods: ["POST"],
+    callsAi: false,
+    worstCase: { ocrPages: 0, chatCalls: 0 },
+    maxBodyBytes: 64 * 1024,
+    allowedTypes: [],
+    perIdentity: PRIVACY_TIER,
+    perIp: { limit: 10, windowMs: HOUR },
+  },
+  {
+    path: "/api/privacy/erase",
+    public: false,
+    methods: ["POST"],
+    callsAi: false,
+    worstCase: { ocrPages: 0, chatCalls: 0 },
+    maxBodyBytes: 64 * 1024,
+    allowedTypes: [],
+    perIdentity: PRIVACY_TIER,
+    perIp: { limit: 10, windowMs: HOUR },
+  },
+];
+
+export function getRoutePolicy(pathname: string): RoutePolicy | null {
+  return ROUTE_POLICIES.find((p) => p.path === pathname) ?? null;
+}
+
+/** Billing and tenancy scope for this deployment. */
+export function getPropertyCode(): string {
+  return process.env.PROPERTY_CODE || process.env.NEXT_PUBLIC_PROPERTY_CODE || "default";
+}

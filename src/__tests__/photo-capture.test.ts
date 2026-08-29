@@ -42,33 +42,60 @@ describe("PhotoCapture - Gemini API Call Logic", () => {
     expect(retrieved.type).toBe("image/jpeg");
   });
 
-  it("handles API returning not-configured error for fallback", async () => {
+  // The component branches on the machine-readable `code`. It used to test
+  // `error.includes("not configured")` — a Gemini-era English string — while
+  // the route answered in French ("OCR non configuré..."), so the Tesseract
+  // fallback never fired at all when the key was missing.
+  const shouldFallback = (body: { code?: string }) => body.code === "service_unconfigured";
+
+  /** Refusals retrying cannot fix: auth, origin, spend cap. */
+  const isTerminal = (status: number) =>
+    status === 401 || status === 403 || status === 402;
+
+  it("falls back to Tesseract when the service is unconfigured", async () => {
     const mockResponse = {
       ok: false,
       status: 500,
       json: () =>
-        Promise.resolve({ error: "GEMINI_API_KEY not configured" }),
+        Promise.resolve({
+          error: "Le traitement des documents n'est pas disponible.",
+          code: "service_unconfigured",
+        }),
     };
-
-    const data = await mockResponse.json();
-    const shouldFallback =
-      mockResponse.status === 500 && data.error.includes("not configured");
-
-    expect(shouldFallback).toBe(true);
+    expect(shouldFallback(await mockResponse.json())).toBe(true);
   });
 
-  it("does NOT fallback on other API errors", async () => {
+  it("does NOT fall back on other API errors", async () => {
     const mockResponse = {
       ok: false,
       status: 400,
-      json: () => Promise.resolve({ error: "Bad request" }),
+      json: () => Promise.resolve({ error: "Bad request", code: "invalid_request" }),
     };
+    expect(shouldFallback(await mockResponse.json())).toBe(false);
+  });
 
-    const data = await mockResponse.json();
-    const shouldFallback =
-      mockResponse.status === 500 && data.error.includes("not configured");
+  it("does not decide fallback from the message text", async () => {
+    // The French message contains no "not configured", which is exactly how
+    // the old check silently stopped working.
+    const body = {
+      error: "Le traitement des documents n'est pas disponible.",
+      code: "service_unconfigured",
+    };
+    expect(body.error).not.toContain("not configured");
+    expect(body.error).not.toContain("MISTRAL_API_KEY");
+    expect(shouldFallback(body)).toBe(true);
+  });
 
-    expect(shouldFallback).toBe(false);
+  it("treats auth and spend-cap refusals as terminal, not retryable", () => {
+    // Retrying these only burns more of the rate-limit window.
+    expect(isTerminal(401)).toBe(true);
+    expect(isTerminal(403)).toBe(true);
+    expect(isTerminal(402)).toBe(true);
+  });
+
+  it("still retries a rate limit and an upstream failure", () => {
+    expect(isTerminal(429)).toBe(false);
+    expect(isTerminal(502)).toBe(false);
   });
 });
 
