@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
+import { securityError } from "@/lib/security/errors";
 import { sanitizeAndValidateClient, sanitizeAndValidatePackageRow } from "@/lib/validate";
 import { hasMistralKey, AiError } from "@/lib/ai";
-import { ocrPdfComplete, IncompleteOcrError } from "@/lib/ocr-document";
+import { ocrPdfComplete, IncompleteOcrError, countPdfPages } from "@/lib/ocr-document";
+import { getRoutePolicy, MAX_PDF_PAGES } from "@/lib/security/config";
+import {
+  guardError,
+  holdBudget,
+  readValidatedFile,
+  settleFailed,
+  settleOk,
+  type AiBudgetHold,
+} from "@/lib/security/guard";
+import { ocrCost } from "@/lib/security/budget";
 import {
   parseMistralMarkdown,
   parseMistralVip,
@@ -18,15 +29,18 @@ import {
 export const maxDuration = 300;
 export const runtime = "nodejs";
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-
 export async function POST(request: NextRequest) {
   if (!hasMistralKey()) {
     return NextResponse.json(
-      { error: "OCR non configuré sur ce serveur (MISTRAL_API_KEY manquant)." },
+      securityError("service_unconfigured"),
       { status: 500 },
     );
   }
+
+  const policy = getRoutePolicy("/api/ocr-pdf")!;
+  let hold: AiBudgetHold | null = null;
+  let settled = false;
+  let providerCalled = false;
 
   try {
     let formData: FormData;
@@ -39,28 +53,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const file = (formData.get("file") || formData.get("pdf")) as File | null;
-    if (!file) {
+    const file = formData.get("file") || formData.get("pdf");
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: "No PDF provided" }, { status: 400 });
     }
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "File too large. Maximum size is 20MB." },
-        { status: 400 },
-      );
+
+    // This route previously checked size and NOTHING else — no type check at
+    // all, so a renamed archive reached the provider unexamined. The bytes
+    // decide now.
+    const read = await readValidatedFile(file, policy);
+    if (!read.ok || !read.bytes) {
+      return guardError(read.code ?? "invalid_request");
+    }
+    const bytes = new Uint8Array(read.bytes);
+
+    // OCR bills per page, and the count is knowable locally. Refusing an
+    // oversized document here costs nothing; discovering it downstream costs
+    // one page's billing per page.
+    const pageCount = await countPdfPages(bytes);
+    if (pageCount !== null && pageCount > MAX_PDF_PAGES) {
+      return guardError("too_many_pages");
     }
 
-    const bytes = await file.arrayBuffer();
-    if (bytes.byteLength === 0) {
-      return NextResponse.json({ error: "File is empty" }, { status: 400 });
-    }
+    // Reserve against the real page count rather than the policy ceiling, so
+    // a two-page upload does not hold sixty pages' worth of budget.
+    const budget = await holdBudget(
+      request,
+      policy,
+      ocrCost(pageCount ?? MAX_PDF_PAGES),
+    );
+    if (!budget.ok) return budget.response;
+    hold = budget.hold;
 
     // Splits long reports into page-chunks and asserts every page came back.
     // Either the whole roster, or a loud failure — never a silent short read.
-    const { markdown, pages, chunks } = await ocrPdfComplete(
-      new Uint8Array(bytes),
-      request.signal,
-    );
+    providerCalled = true;
+    const { markdown, pages, chunks } = await ocrPdfComplete(bytes, request.signal);
+
+    await settleOk(hold, ocrCost(pages));
+    settled = true;
 
     const type = detectDocType(markdown);
     // Transcription-only: the markdown is parsed deterministically, so a room
@@ -104,5 +135,13 @@ export async function POST(request: NextRequest) {
       { error: "PDF processing failed. Try again or paste data manually." },
       { status: 500 },
     );
+  } finally {
+    // Release ONLY if the provider was never reached. Once a call is made we
+    // may already have been billed for it — a multi-page OCR that fails
+    // part-way still pays for the pages it processed — so a failure after
+    // that point keeps the pessimistic reservation. Under-spending is the
+    // safe direction for a cap; releasing here would let repeated failures
+    // spend without ever being counted.
+    if (hold && !settled && !providerCalled) await settleFailed(hold);
   }
 }

@@ -29,7 +29,7 @@ The user is standing, one-handed, with a queue in front of them between 06:30 an
 1. **Write tests FIRST** before implementing any feature or fix
 2. Tests live in `src/__tests__/` with pattern `*.test.ts`
 3. Run tests: `npx vitest run` — single file: `npx vitest run src/__tests__/x.test.ts`
-4. All tests must pass before committing — **741 tests across 65 files**
+4. All tests must pass before committing — **1011 tests across 85 files**
 5. Layout and behaviour that a unit test cannot see belong in the design rules,
    not in a screenshot: `node scripts/design-rules.mjs` (118 checks, real browser)
    — and **a rule that can be satisfied by a broken screen is not a rule**: R25a
@@ -84,7 +84,13 @@ than wide. Not width alone: a landscape iPad zoomed to 150% reports 796px and is
 still a landscape iPad.
 
 ## Key Paths
-- API routes: `src/app/api/ocr*/route.ts`
+- API routes: `src/app/api/ocr*/route.ts`, `src/app/api/privacy/*/route.ts`
+- **Every `/api` route is metered, rate limited and spend capped** — read
+  `docs/API-SECURITY.md` before adding one. A new route MUST get an entry in
+  `ROUTE_POLICIES` (`src/lib/security/config.ts`); an unlisted path is denied
+  by the middleware, and `security-route-wiring.test.ts` fails the commit.
+  The device cookie is a metering key, **not** authentication — that is still
+  the Supabase Auth work in `docs/GDPR-AUDIT.md` §2
 - Pages: `upload/`, `search/`, `checkin/[roomNumber]/`, `report/`, `reports/`,
   `dashboard/`, `clients/`, `morning-brief/`, `debug/`
 - Components: `src/components/` — `report/` and `portrait/` are the two subsets
@@ -149,3 +155,6 @@ real screen behind it.
 - Access logs record a salted hash, never a guest name, and deliberately outlive
   the data they describe.
 - `supabase/schema.sql` must never contain `using (true)`.
+- The AI spend cap fails closed: reaching the monthly ceiling, or a ledger it
+  cannot read, refuses the call rather than spending quietly. Costs are
+  estimates for budgeting, never a billing record.

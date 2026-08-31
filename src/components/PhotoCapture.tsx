@@ -29,6 +29,9 @@ interface PhotoCaptureProps {
 
 const MAX_FILES_DEFAULT = 20;
 
+/** Upload refusals that retrying cannot fix (auth, origin, spend cap). */
+class TerminalUploadError extends Error {}
+
 const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
   function PhotoCapture({ onProcessed, onTypedResult, apiEndpoint = "/api/ocr", maxFiles = MAX_FILES_DEFAULT }, ref) {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,7 +63,16 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
 
           if (!res.ok) {
             const data = await res.json().catch(() => null);
-            if (res.status === 500 && data?.error?.includes("not configured")) return null;
+            // Branch on the machine-readable code, not the message. This read
+            // `error.includes("not configured")` while the route answered in
+            // French ("non configuré"), so the Tesseract fallback never fired.
+            if (data?.code === "service_unconfigured") return null;
+            // Auth, origin and spend-cap refusals are terminal. Thrown as a
+            // distinct type because the catch below retries everything else,
+            // and retrying these only burns more of the rate-limit window.
+            if (res.status === 401 || res.status === 403 || res.status === 402) {
+              throw new TerminalUploadError(data?.error || "Upload blocked");
+            }
             if (res.status === 429 && attempt < retries) {
               await new Promise((r) => setTimeout(r, 4000 * (attempt + 1)));
               continue;
@@ -73,6 +85,7 @@ const PhotoCapture = forwardRef<PhotoCaptureHandle, PhotoCaptureProps>(
           const docType = (data.type as "clients" | "vip" | "unknown") || "unknown";
           return { clients: Array.isArray(clients) ? clients : [], docType };
         } catch (err) {
+          if (err instanceof TerminalUploadError) throw err;
           if (attempt < retries) {
             await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
             continue;

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
+import { securityError } from "@/lib/security/errors";
+import { getRoutePolicy, MAX_BRIEF_FILES } from "@/lib/security/config";
+import {
+  guardError,
+  holdBudget,
+  readValidatedFile,
+  settleFailed,
+  settleOk,
+  type AiBudgetHold,
+} from "@/lib/security/guard";
+import { ocrCost, chatCost } from "@/lib/security/budget";
 import { getAiProvider, hasMistralKey, AiError } from "@/lib/ai";
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-const ALLOWED_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
 
 // Two-stage: OCR transcribes the briefing to markdown, then the chat model
 // interprets it. The brief is prose + tables in French with real semantics to
@@ -112,10 +116,15 @@ function normalizeBrief(parsed: Record<string, unknown>): Record<string, unknown
 export async function POST(request: NextRequest) {
   if (!hasMistralKey()) {
     return NextResponse.json(
-      { error: "OCR non configuré sur ce serveur (MISTRAL_API_KEY manquant)." },
+      securityError("service_unconfigured"),
       { status: 500 }
     );
   }
+
+  const policy = getRoutePolicy("/api/ocr-morning-brief")!;
+  let hold: AiBudgetHold | null = null;
+  let settled = false;
+  let providerCalled = false;
 
   try {
     let formData: FormData;
@@ -129,53 +138,61 @@ export async function POST(request: NextRequest) {
     }
 
     const files = formData.getAll("file").filter((f): f is File => f instanceof File);
-    if (files.length === 0) {
+    if (files.length === 0 || files.length > MAX_BRIEF_FILES) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
-    if (files.length > 5) {
-      return NextResponse.json(
-        { error: "Too many files. Maximum 5 pages per upload." },
-        { status: 400 }
-      );
-    }
+
+    // This route runs OCR per file AND a chat completion, so it is the most
+    // expensive one. Reserve before reading anything.
+    const budget = await holdBudget(request, policy);
+    if (!budget.ok) return budget.response;
+    hold = budget.hold;
 
     const provider = getAiProvider();
     const sections: string[] = [];
+    let pagesBilled = 0;
+
+    // One shared byte budget across every file, rather than N x the per-file
+    // cap, which let five files total five times the intended ceiling.
+    let remainingBytes = policy.maxBodyBytes;
 
     for (const file of files) {
-      const mimeType = file.type || "";
-      if (!ALLOWED_TYPES.has(mimeType)) {
-        return NextResponse.json(
-          { error: `Unsupported file type: ${file.name || mimeType}. PDF, JPG, PNG, or WEBP only.` },
-          { status: 400 }
-        );
+      const read = await readValidatedFile(file, policy, remainingBytes);
+      if (!read.ok || !read.bytes || !read.detectedType) {
+        // The file name is caller input and can carry a guest name, so it is
+        // not echoed back the way it used to be.
+        return guardError(read.code ?? "invalid_request");
       }
-      if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json(
-          { error: `File too large: ${file.name}. Maximum size is 20MB per file.` },
-          { status: 400 }
-        );
-      }
-      const bytes = await file.arrayBuffer();
-      if (bytes.byteLength === 0) {
-        return NextResponse.json({ error: `File is empty: ${file.name}` }, { status: 400 });
-      }
+      remainingBytes -= read.bytes.byteLength;
 
-      const { markdown } = await provider.ocr({
-        base64: Buffer.from(bytes).toString("base64"),
-        mimeType,
+      providerCalled = true;
+      const { markdown, pagesProcessed } = await provider.ocr({
+        base64: read.bytes.toString("base64"),
+        mimeType: read.detectedType,
         signal: request.signal,
       });
+      pagesBilled += pagesProcessed ?? 1;
       sections.push(markdown);
     }
 
+    const document = sections.join("\n\n---\n\n");
     const parsed = await provider.extractJson<Record<string, unknown>>({
       prompt: EXTRACTION_PROMPT,
-      document: sections.join("\n\n---\n\n"),
+      document,
       schema: BRIEF_SCHEMA as unknown as Record<string, unknown>,
       schemaName: "morning_brief",
       signal: request.signal,
     });
+
+    // Token counts are not surfaced by the provider interface, so the chat
+    // half is estimated from input size (~4 chars/token) and the configured
+    // output ceiling. Deliberately an over-estimate.
+    await settleOk(
+      hold,
+      ocrCost(pagesBilled) +
+        chatCost((EXTRACTION_PROMPT.length + document.length) / 4, 16_384),
+    );
+    settled = true;
 
     return NextResponse.json({ brief: normalizeBrief(parsed) });
   } catch (err) {
@@ -190,5 +207,13 @@ export async function POST(request: NextRequest) {
       { error: "Processing failed. Please try again." },
       { status: 500 }
     );
+  } finally {
+    // Release ONLY if the provider was never reached. Once a call is made we
+    // may already have been billed for it — a multi-page OCR that fails
+    // part-way still pays for the pages it processed — so a failure after
+    // that point keeps the pessimistic reservation. Under-spending is the
+    // safe direction for a cap; releasing here would let repeated failures
+    // spend without ever being counted.
+    if (hold && !settled && !providerCalled) await settleFailed(hold);
   }
 }

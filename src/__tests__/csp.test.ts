@@ -24,10 +24,10 @@ const MIDDLEWARE = readFileSync(path.resolve(__dirname, "../middleware.ts"), "ut
  * rather than mutating the real `process.env`, which Node refuses.
  */
 function policyFor(mode: "development" | "production", nonce = "TEST-NONCE"): string {
-  const src = MIDDLEWARE.slice(
-    MIDDLEWARE.indexOf("function cspWithNonce"),
-    MIDDLEWARE.indexOf("export function middleware")
-  )
+  // Matched loosely: the handler gained `async` when device-identity signing
+  // landed, and a literal marker silently sliced to -1 when it did.
+  const handlerAt = MIDDLEWARE.search(/export\s+(?:async\s+)?function middleware/);
+  const src = MIDDLEWARE.slice(MIDDLEWARE.indexOf("function cspWithNonce"), handlerAt)
     // Strip the TypeScript annotations so the body evaluates as JS.
     .replace(/function cspWithNonce\(nonce: string\): string/, "function cspWithNonce(nonce)");
 

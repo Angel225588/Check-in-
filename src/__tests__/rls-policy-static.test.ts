@@ -55,6 +55,22 @@ describe("Supabase policy file — static guarantees", () => {
     }
   });
 
+  it("declares no security definer function", () => {
+    // A security definer function runs as its owner and ignores RLS — the
+    // standard way a correctly-policied schema regains a hole.
+    //
+    // This assertion exists because the dynamic proof that catches it
+    // (`rls-isolation.test.ts`) needs a live Postgres and is skipped without
+    // one. A `security definer` on the spend ledger's helper therefore passed
+    // every local run and only failed in CI. Checking the file itself closes
+    // that gap: the rule now fails on the commit that breaks it.
+    const definers = CODE.match(/security\s+definer/gi);
+    expect(
+      definers,
+      `security definer found in schema.sql: ${definers?.join(", ")}`
+    ).toBeNull();
+  });
+
   it("contains no permissive policy anywhere", () => {
     // `using (true)` / `with check (true)` is the exact defect this file exists
     // to prevent. Matched loosely so whitespace tricks do not slip past.

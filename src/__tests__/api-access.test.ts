@@ -92,13 +92,21 @@ describe("the shape of the gate", () => {
 
   it("still honours a token when one IS configured", () => {
     // Server-to-server callers can hold a secret; browsers cannot.
-    expect(MIDDLEWARE).toMatch(/if \(apiToken\) \{/);
-    expect(MIDDLEWARE).toContain("Unauthorized");
+    // Comments are stripped first: the history note above the gate quotes the
+    // old `if (apiToken) {` verbatim, so matching raw source passed even after
+    // the code stopped saying it.
+    const code = MIDDLEWARE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    // Offered-and-wrong is rejected; offered-and-right is accepted. Not
+    // offered at all falls through to same-origin, so configuring a token
+    // cannot 401 the tablet the way "required in production" would have.
+    expect(code).toMatch(/authorizationHeader && !tokenIdentity/);
+    expect(code).toContain("Unauthorized");
   });
 
   it("falls back to same-origin when no token is configured", () => {
-    expect(MIDDLEWARE).toMatch(/else if \(!isSameOrigin\(request\)\)/);
-    expect(MIDDLEWARE).toContain("cross_origin_denied");
+    const code = MIDDLEWARE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(code).toMatch(/!tokenIdentity && !isSameOrigin\(request\)/);
+    expect(code).toContain("cross_origin_denied");
   });
 
   it("says plainly that this is not authentication", () => {
