@@ -140,8 +140,12 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
     callsAi: true,
     // One OCR pass per file, then a single structured extraction.
     worstCase: { ocrPages: MAX_BRIEF_FILES, chatCalls: 1 },
-    // One shared budget across all files, rather than 5 x the per-file cap.
-    maxBodyBytes: 25 * MB,
+    // One shared budget across all files, rather than 5 x the per-file cap —
+    // that let five files total 100MB. Sized so it cannot reject a real
+    // upload: five phone photos of a printed brief run 3-8MB each, so 25MB
+    // total (the first cut) would have refused a legitimate five-page brief at
+    // 06:30. 60MB keeps a real ceiling while leaving that headroom.
+    maxBodyBytes: 60 * MB,
     allowedTypes: ALLOWED_UPLOAD_TYPES,
     perIdentity: BRIEF_TIER,
     perIp: { limit: 8, windowMs: HOUR },
@@ -209,7 +213,49 @@ export function getRoutePolicy(pathname: string): RoutePolicy | null {
   return ROUTE_POLICIES.find((p) => p.path === pathname) ?? null;
 }
 
+/**
+ * Billing and tenancy scope — assigned automatically, never typed.
+ *
+ * Reception types nothing. `PROPERTY_CODE` wins when set (one hotel per
+ * deployment, the explicit case); otherwise the code is derived from the host
+ * the request arrived on, so a second hotel on its own domain gets its own
+ * scope with no setup step and no code to lose.
+ *
+ * LIMIT, stated plainly: the Host header is client-controlled unless the
+ * platform constrains it. Vercel only serves hosts configured for the project,
+ * so derivation is safe there; a self-hosted deployment behind a permissive
+ * proxy could be fed an arbitrary host and mint a fresh per-property budget.
+ * The GLOBAL cap is the backstop that does not depend on the host, which is
+ * why it exists as well as the per-property one. Set PROPERTY_CODE to remove
+ * the question entirely.
+ */
+export function derivePropertyCode(host: string | null): string {
+  if (!host) return "default";
+
+  // Drop the port, lowercase, and take the left-most label: the deployment
+  // name is what distinguishes one hotel from another.
+  const hostname = host.split(":")[0].toLowerCase().trim();
+  if (!hostname || hostname === "localhost") return "default";
+
+  // An IP address carries no deployment identity.
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) return "default";
+
+  const label = hostname.split(".")[0];
+
+  // Vercel preview hosts look like "<project>-git-<branch>-<team>". Collapsing
+  // them onto production would let a preview spend the hotel's budget, so they
+  // keep their own scope — but the branch hash is stripped so that repeated
+  // deploys of one branch share a scope rather than minting a new one daily.
+  const preview = /^(.+?)-git-(.+?)-[a-z0-9]+$/.exec(label);
+  const base = preview ? `${preview[1]}-preview-${preview[2]}` : label;
+
+  const slug = base.replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").slice(0, 48);
+  return slug || "default";
+}
+
 /** Billing and tenancy scope for this deployment. */
-export function getPropertyCode(): string {
-  return process.env.PROPERTY_CODE || process.env.NEXT_PUBLIC_PROPERTY_CODE || "default";
+export function getPropertyCode(host?: string | null): string {
+  const explicit = process.env.PROPERTY_CODE || process.env.NEXT_PUBLIC_PROPERTY_CODE;
+  if (explicit) return explicit;
+  return derivePropertyCode(host ?? null);
 }

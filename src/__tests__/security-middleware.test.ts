@@ -158,7 +158,11 @@ describe("method and path gating", () => {
   });
 });
 
-describe("body size is refused before the body is read", () => {
+// Named for what it checks: the middleware's decision, not the transfer. Over
+// real HTTP the body still arrives — `next start` does not respond until the
+// request completes — so this saves the multipart parse and the file read, not
+// the bandwidth. See scripts/prove-api-security.mjs.
+describe("oversized bodies are refused by the middleware", () => {
   it("rejects an oversized declared content-length", async () => {
     const res = await middleware(
       apiRequest({

@@ -117,7 +117,8 @@ function cspWithNonce(nonce: string): string {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const now = Date.now();
-  const propertyCode = getPropertyCode();
+  // Assigned automatically from the host; nobody types a code.
+  const propertyCode = getPropertyCode(request.headers.get("host"));
 
   const cookieValue = request.cookies.get(SESSION_COOKIE)?.value;
   const session = await verifySession(cookieValue, undefined, now);

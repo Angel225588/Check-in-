@@ -53,17 +53,38 @@ const num = (v: string | undefined, fallback: number): number => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
-/** USD per OCR page. */
+/**
+ * Prices and caps are in ONE currency, EUR by default — the hotel budgets in
+ * euros and Mistral is billed in euros. The label is cosmetic; what matters is
+ * that the caps and these rates use the same unit. Change both together or the
+ * cap means nothing.
+ */
+export function budgetCurrency(): string {
+  return process.env.AI_BUDGET_CURRENCY || "EUR";
+}
+
+/** Per OCR page. */
 export function ocrPageRate(): number {
-  return num(process.env.AI_PRICE_OCR_PER_PAGE_USD, 0.001);
+  return num(
+    process.env.AI_PRICE_OCR_PER_PAGE ?? process.env.AI_PRICE_OCR_PER_PAGE_USD,
+    0.001
+  );
 }
-/** USD per 1M chat input tokens. */
+/** Per 1M chat input tokens. */
 export function chatInputRate(): number {
-  return num(process.env.AI_PRICE_CHAT_INPUT_PER_MTOK_USD, 2.0);
+  return num(
+    process.env.AI_PRICE_CHAT_INPUT_PER_MTOK ??
+      process.env.AI_PRICE_CHAT_INPUT_PER_MTOK_USD,
+    2.0
+  );
 }
-/** USD per 1M chat output tokens. */
+/** Per 1M chat output tokens. */
 export function chatOutputRate(): number {
-  return num(process.env.AI_PRICE_CHAT_OUTPUT_PER_MTOK_USD, 6.0);
+  return num(
+    process.env.AI_PRICE_CHAT_OUTPUT_PER_MTOK ??
+      process.env.AI_PRICE_CHAT_OUTPUT_PER_MTOK_USD,
+    6.0
+  );
 }
 
 /**
@@ -111,10 +132,28 @@ export interface BudgetCaps {
   propertyMonthlyUsd: number;
 }
 
+/**
+ * Monthly ceilings, in the currency above.
+ *
+ * Defaults are €100 across everything and €50 for any one hotel — the range
+ * Angel set. One property therefore cannot spend more than €50 in a month, and
+ * the global ceiling leaves headroom for a second without raising the first.
+ * A run costing more than the remaining budget is refused, not trimmed.
+ *
+ * The field names keep their `Usd` suffix so existing callers and the stored
+ * ledger do not have to change; the unit is whatever AI_BUDGET_CURRENCY says.
+ */
 export function getCaps(): BudgetCaps {
   return {
-    globalMonthlyUsd: num(process.env.AI_MONTHLY_BUDGET_USD, 50),
-    propertyMonthlyUsd: num(process.env.AI_MONTHLY_BUDGET_PER_PROPERTY_USD, 25),
+    globalMonthlyUsd: num(
+      process.env.AI_MONTHLY_BUDGET ?? process.env.AI_MONTHLY_BUDGET_USD,
+      100
+    ),
+    propertyMonthlyUsd: num(
+      process.env.AI_MONTHLY_BUDGET_PER_PROPERTY ??
+        process.env.AI_MONTHLY_BUDGET_PER_PROPERTY_USD,
+      50
+    ),
   };
 }
 

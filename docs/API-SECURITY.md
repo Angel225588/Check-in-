@@ -66,6 +66,11 @@ identity bucket.
 
 - **Hard per-route body limit**, enforced on real bytes. `/api/verify-extraction`
   trusted the `content-length` header, so omitting it removed the cap entirely.
+  The middleware also rejects an oversized declared `content-length`, but note
+  what that does and does not buy: `next start` does not answer until the
+  request completes, so the body still arrives. It saves the multipart parse
+  and the file read, not the transfer — stopping a huge upload at the edge is
+  the platform's job, not this code's.
 - **File type decided by magic bytes**, never the extension or `Content-Type`.
   The detected type is what goes upstream. PDF, JPEG, PNG, WebP only — GIF and
   BMP were accepted and never needed.
@@ -74,12 +79,24 @@ identity bucket.
   budget reservation uses the real page count.
 - **Bounded fan-out.** `MAX_VERIFY_ENTRIES` on the array serialised into the
   verification prompt; `MAX_BRIEF_FILES` plus one *shared* byte budget across
-  the brief's files, rather than N × the per-file cap.
+  the brief's files, rather than N × the per-file cap, which allowed 100 MB in
+  one request. The shared budget is 60 MB, not the 25 MB first written: five
+  phone photos of a printed brief run 3–8 MB each, and 25 MB would have
+  refused a legitimate five-page upload at 06:30.
 
 ## Spend cap
 
-Per-property and global monthly USD ceiling that **fails closed** — including
-when the ledger itself cannot be read.
+Per-property and global monthly ceiling that **fails closed** — including when
+the ledger itself cannot be read. Defaults: **€100 across everything, €50 for
+any one hotel.** Caps and price estimates share one unit (`AI_BUDGET_CURRENCY`).
+
+The property scope is **assigned automatically** — reception types nothing.
+`PROPERTY_CODE` pins a deployment to one hotel; unset, the code is derived from
+the request host, so a second hotel on its own domain gets its own scope with
+no setup step and no code to lose. The Host header is client-controlled unless
+the platform constrains it (Vercel only serves configured hosts), so behind a
+permissive proxy an arbitrary host could mint a fresh per-property budget — the
+**global** ceiling does not depend on the host and is the backstop for that.
 
 Priced to Mistral's shape: **OCR bills per page, chat bills per token.**
 
@@ -133,7 +150,13 @@ overwrites both headers, so a client cannot inject them.
 
 **`SECURITY_MODE=observe` is the rollout lever.** Rate limits, the spend cap and
 magic-byte validation run and log what they would have rejected, and reject
-nothing. Structural gates stay on in both modes. Ship a new limit in observe,
+nothing. Structural gates stay on in both modes — method, same-origin, unknown
+paths, and the per-route byte caps (those match the limits main already had, so
+they are not new behaviour that could refuse yesterday's upload).
+
+Observe is not free: a file the magic-byte rule would have rejected is sent to
+the provider instead, so it costs a call. Verified end-to-end — under observe a
+GIF renamed `.jpg` reaches Mistral rather than being refused. Ship a new limit in observe,
 read a day of logs, then enforce. On Vercel that is an env change plus a
 redeploy — about a minute, which is the fastest honest rollback here, not
 instant. A month spent in observe leaves the ledger understating real spend.
