@@ -22,6 +22,7 @@ import CsvImporter from "@/components/CsvImporter";
 import DataTable from "@/components/DataTable";
 import SettingsToggle from "@/components/SettingsToggle";
 import TestDataSheet from "@/components/TestDataSheet";
+import ValueReportNotice from "@/components/ValueReportNotice";
 
 interface PdfUploadStatus {
   file: File;
@@ -744,6 +745,10 @@ export default function UploadPage() {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.06] rounded-full -translate-y-1/2 translate-x-1/2" />
               </button>
             )}
+
+            {/* Last month's value report — renders nothing until a month is
+                complete and has services in it. */}
+            <ValueReportNotice />
 
             {/* Secondary nav — Phosphor duotone, 4 entries */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

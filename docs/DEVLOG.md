@@ -13,6 +13,81 @@ git for those.
 
 ---
 
+## 2026-08-31 — The monthly value report, in the app
+
+**1081/1081 tests · 89 files · tsc clean · build clean.** 51 new tests across
+`value-report`, `value-settings`, `value-notice`. On
+`claude/hotel-value-report-monthly-n4bmjv`.
+
+### Why
+
+A director called us "too expensive for the value" while using the product
+daily. The software saves money invisibly, and invisible value gets priced at
+zero. This is the page that answers that.
+
+### The first finding was that there is nothing to query
+
+The brief asked for real figures from production before designing anything.
+There are none, and the reason matters more than the absence:
+
+- `src/lib/supabase.ts` does not exist on `main`; `storage.ts` makes no network
+  call. Every figure lives in `localStorage` on one reception tablet.
+- `supabase/schema.sql` is an unapplied design document (`GDPR-AUDIT.md` §0).
+- The only candidate Supabase project is paused.
+
+So the report was built device-local, reading the same stores the dashboard
+already reads. Nothing was estimated to fill the gap.
+
+**And the devlog's own lesson bit again.** The first pass at this ran against
+the branch as handed over — `07a2f15`, two months and 460 files behind `main`.
+The whole data inventory was wrong: it missed `report-v2.ts`, `arrival-pattern.ts`
+and `expected.ts`, all three of which this report is built on. Audit `main`.
+
+### What the entitled-vs-attended delta actually is
+
+The headline figure — covers served that no reservation entitled to breakfast —
+IS derivable, and the definition is the load-bearing part:
+
+    entitled  = on the breakfast roster AND carrying a breakfast package
+    offList   = totalEntered − Σ min(entered, party size) over entitled rooms
+
+Counted that way, one subtraction covers walk-ins, VIPs who were only on the VIP
+sheet, roster guests whose rate never included breakfast, and extra people in an
+entitled room. The obvious alternative — `walkInEntered + totalExtras` — double
+counts a walk-in who brought more people than reception typed in, which is a
+normal morning. `value-report.test.ts` pins that case at 3 covers, not 5.
+
+### Two numbers are withheld rather than guessed
+
+`hourlyRate` and `monthlyFee` have no defensible default, so they start `null`
+and the euro figures that depend on them do not render. Hours saved still shows,
+because hours are measured. The report prints all four assumptions and lets you
+edit them in place — a number you can argue with is a number you can believe.
+
+`value-settings.test.ts` caught a real bug here: `Number(null)` is `0`, so an
+unset hourly rate read back as a confident "0 €/h" and printed a
+measured-looking zero. Unset has to stay unset.
+
+### A 30-day ring buffer cannot hold a 31-day month
+
+`RETENTION_DAYS = 30`, so standing on 31 August the 1st is already deleted. Every
+total on the page is a floor, and the page says so rather than under-reporting
+quietly. There is no "since they started" figure, because that history is gone,
+not hidden — restoring it needs the server-side store `GDPR-AUDIT.md` §2 already
+scopes.
+
+### What is not proved
+
+`scripts/design-rules.mjs` could not run here — it reaches
+`fonts.googleapis.com`, which the sandbox blocks, and hangs. The source-level
+safe-area rule in `safe-area-shells.test.ts` did run, and caught the new screen
+drawing under the iPad clock before it was fixed. The page was rendered in a
+real browser against the app's own demo loader, and the home-screen notice was
+watched going both ways: absent when last month holds no service, present once
+the clock steps into September.
+
+---
+
 ## 2026-08-26 — GDPR: the audit, and the eight things it found
 
 **881/881 tests · 76 files · tsc clean · build clean · csp-smoke 8/8.** Nine commits on

@@ -40,6 +40,7 @@ import {
   type ClientComment,
 } from "@/lib/morning-brief";
 import type { DailyData } from "@/lib/types";
+import ValueReportNotice from "@/components/ValueReportNotice";
 import { cn } from "@/lib/utils";
 
 type Range = "1J" | "7J" | "30J" | "3M" | "6M";
@@ -722,6 +723,10 @@ export default function DashboardPage() {
             </p>
           </div>
         )}
+
+        {/* Last month's value report — the cumulative view belongs here, not on
+            the service report. */}
+        <ValueReportNotice className="mb-5" />
 
         {/* ZONE 1 — KPI STRIP */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
