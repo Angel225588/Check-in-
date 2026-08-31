@@ -385,13 +385,19 @@ alter table ai_spend force row level security;
 -- Atomic add-and-return. Doing this in SQL is what makes the cap hold when
 -- several serverless instances reserve budget in the same moment; read-then-
 -- write from the application would let them all see room and overshoot.
+-- SECURITY INVOKER, not definer. A security definer function runs as its owner
+-- and ignores RLS, which is the standard way a correctly-policied schema
+-- regains a hole — `rls-isolation.test.ts` rejects any definer in public, and
+-- it caught this one. Definer is not needed here: the only caller is the
+-- server holding the service-role key, which bypasses RLS on its own, and
+-- anon/authenticated are revoked from both the table and this function.
 create or replace function ai_spend_add(
   p_scope text,
   p_period text,
   p_delta numeric
 ) returns numeric
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 declare
