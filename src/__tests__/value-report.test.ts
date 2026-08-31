@@ -442,3 +442,70 @@ describe("honesty about what we do not have", () => {
     expect(r).not.toHaveProperty("coversSinceStart");
   });
 });
+
+describe("reading a month whose guest data has been purged", () => {
+  // The ledger counts every day it ever saw; retained days are only ever a
+  // subset of that. So wherever a ledger entry exists it is at least as
+  // complete, and it wins — that is what lets a report outlive the purge
+  // without keeping a year of guest names on the tablet.
+  const aggregate = {
+    month: "2026-08",
+    days: ["2026-08-01", "2026-08-02", "2026-08-03"],
+    covers: 900,
+    offListCovers: 120,
+    vipsTotal: 40,
+    vipsServed: 31,
+    busiest: { date: "2026-08-02", covers: 400 },
+    peak: { date: "2026-08-02", start: 510, time: "08:30", covers: 55 },
+  };
+
+  it("reports the month from the ledger when nothing is retained", () => {
+    const r = computeValueReport([], "2026-08", ASSUMPTIONS, { aggregate });
+    expect(r.hasData).toBe(true);
+    expect(r.covers).toBe(900);
+    expect(r.offListCovers).toBe(120);
+    expect(r.offListValue).toBe(120 * 26);
+    expect(r.daysActive).toBe(3);
+    expect(r.vipsServed).toBe(31);
+    expect(r.vipsMissed).toBe(9);
+    expect(r.busiestService).toEqual({ date: "2026-08-02", covers: 400 });
+    expect(r.peakQuarter!.time).toBe("08:30");
+  });
+
+  it("still derives hours and euros from the ledger's covers", () => {
+    const r = computeValueReport([], "2026-08", ASSUMPTIONS, { aggregate });
+    expect(r.hoursSaved).toBe(5);
+    expect(r.staffValue).toBe(100);
+  });
+
+  it("prefers the ledger over a partial remnant of retained days", () => {
+    // One day survived the purge. Reporting from it alone would say 2 covers
+    // for a month that served 900.
+    const days = [
+      day("2026-08-03", [client({ roomNumber: "101", name: "A A" })], [checkIn("101", "A A", 2, "08:00")]),
+    ];
+    const r = computeValueReport(days, "2026-08", ASSUMPTIONS, { aggregate });
+    expect(r.covers).toBe(900);
+    expect(r.daysActive).toBe(3);
+  });
+
+  it("says when the breakdown covers fewer days than the totals", () => {
+    const days = [
+      day("2026-08-03", [client({ roomNumber: "101", name: "A A" })], [checkIn("101", "A A", 2, "08:00")]),
+    ];
+    const r = computeValueReport(days, "2026-08", ASSUMPTIONS, { aggregate });
+    // The per-formule split can only be built from guest data that still
+    // exists, so it must not read as if it explained all 120 covers.
+    expect(r.breakdownDays).toBe(1);
+    expect(r.breakdownPartial).toBe(true);
+  });
+
+  it("is not partial when every counted day is still retained", () => {
+    const days = [
+      day("2026-08-04", [client({ roomNumber: "101", name: "A A" })], [checkIn("101", "A A", 2, "08:00")]),
+    ];
+    const r = computeValueReport(days, "2026-08", ASSUMPTIONS);
+    expect(r.breakdownPartial).toBe(false);
+    expect(r.breakdownDays).toBe(1);
+  });
+});

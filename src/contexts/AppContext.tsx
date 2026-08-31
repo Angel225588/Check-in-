@@ -1,7 +1,9 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Lang, TranslationKey, t as translate } from "@/lib/i18n";
-import { autoCloseStale, reclaimStorageSpace } from "@/lib/storage";
+import { autoCloseStale, reclaimStorageSpace, getSessionHistory, getTodayData } from "@/lib/storage";
+import { recordDays } from "@/lib/value-ledger";
+import type { DailyData } from "@/lib/types";
 import { ensureNotesMigration } from "@/lib/notes-migrate";
 import { purgeExpired } from "@/lib/privacy/purge";
 import { pruneAccessLog } from "@/lib/privacy/access-log";
@@ -67,6 +69,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const startup = () => {
+    // Roll every retained day into the month ledger FIRST — before anything
+    // that can delete a day. Both `reclaimStorageSpace` and `purgeExpired`
+    // prune by age, so a service ageing out on this very load would be gone
+    // before it was ever counted, and the monthly total would quietly lose a
+    // day every time the window moved. The ledger holds counts only, never a
+    // name or a room, so it outlives retention without extending it — which is
+    // what lets the report go back further than the guest data does. See
+    // value-ledger.ts.
+    try {
+      const byDate = new Map<string, DailyData>();
+      for (const s of getSessionHistory()) {
+        byDate.set(s.date, { date: s.date, clients: s.clients, checkIns: s.checkIns });
+      }
+      const today = getTodayData();
+      if (today) byDate.set(today.date, today);
+      recordDays(Array.from(byDate.values()));
+    } catch (e) {
+      console.error("value ledger roll-up failed:", e);
+    }
+
     // Reclaim localStorage space first: older builds saved multi-MB raw OCR
     // dumps that can fill a small-quota browser (iPad Safari / PWA) and block
     // today's session from saving. Trim them before anything else runs.

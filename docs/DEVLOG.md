@@ -15,8 +15,8 @@ git for those.
 
 ## 2026-08-31 — The monthly value report, in the app
 
-**1081/1081 tests · 89 files · tsc clean · build clean.** 51 new tests across
-`value-report`, `value-settings`, `value-notice`. On
+**1103/1103 tests · 90 files · tsc clean · build clean.** 73 new tests across
+`value-report`, `value-settings`, `value-notice`, `value-ledger`. On
 `claude/hotel-value-report-monthly-n4bmjv`.
 
 ### Why
@@ -75,6 +75,49 @@ total on the page is a floor, and the page says so rather than under-reporting
 quietly. There is no "since they started" figure, because that history is gone,
 not hidden — restoring it needs the server-side store `GDPR-AUDIT.md` §2 already
 scopes.
+
+### Then: "30 days was only the storage limit"
+
+It was not, and measuring said so. A compacted day is about **7 KB**; the
+localStorage ceiling, probed by writing 64 KB chunks until the browser refused,
+is **4.9 MB** — not the 980 MB `navigator.storage.estimate()` advertises, which
+is the origin quota and does not govern localStorage. So 30 days costs ~200 KB,
+**4% of the budget**, and a full year would fit in about half of it.
+
+Which means the honest answer to "can we store more?" is: yes, easily — and it
+is still the wrong thing to do. `sessionHistory` holds full `clients[]` and
+`checkIns[]`. Twelve months of guest names, room numbers and VIP notes on a
+tablet that lives on a reception desk is twelve times the breach, in order to
+print a number. Space was never the binding constraint; exposure is.
+
+**So the report keeps the counts and lets the people go.** `value-ledger.ts`
+folds each service into its month — covers, off-list covers, VIP attendance,
+busiest service, worst quarter hour — and the guest rows are purged on the
+existing 30-day schedule, untouched. Measured at **310 bytes per month**; a
+decade is under 40 KB. Retention stays where the audit wants it and the totals
+now go back to day one, which is the "since they started" figure this devlog
+recorded three sections ago as impossible.
+
+Two things make it correct rather than merely small:
+
+**Recording is idempotent per service date.** The ledger is rebuilt from
+retained data on every load, and retained data overlaps everything already
+counted, so without the per-month `days[]` guard every total would grow each
+morning.
+
+**The roll-up runs first.** This was a real bug, caught by reading the startup
+order rather than by a test: `recordDays` was placed before `purgeExpired` but
+*after* `reclaimStorageSpace` — which also prunes by age. A service ageing out
+on that load would have been deleted before it was counted, and the month would
+have quietly lost a day every time the window moved. It is now the first call in
+`AppContext.startup()`.
+
+Proved by deleting every `dailyData_*` key and `sessionHistory` outright in a
+real browser and reloading the report: **1 013 covers and 184 off-list still
+reported**, with the page saying plainly that the per-formule detail is gone
+while the totals stand. The ledger is asserted to contain no guest name and no
+room number, so "forever" is defensible — there is nothing in it for a retention
+window to protect. `GDPR-AUDIT.md` carries the reasoning.
 
 ### What is not proved
 

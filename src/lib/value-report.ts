@@ -19,6 +19,7 @@
  */
 
 import type { DailyData } from "./types";
+import type { MonthAggregate } from "./value-ledger";
 import { generateDayReport, type DayReport, type RoomReport } from "./report";
 import { buildAffluence, hhmm, formuleOf, FORMULE_LABEL, type Formule } from "./report-v2";
 
@@ -98,6 +99,12 @@ export interface ValueReport {
   totalValue: number | null;
   monthlyFee: number | null;
 
+  /** Services the per-formule breakdown could be built from. */
+  breakdownDays: number;
+  /** True when the breakdown explains fewer services than the totals count,
+   *  because the rest have been purged. */
+  breakdownPartial: boolean;
+
   /** True when retention deletes part of the month being reported, which makes
    *  every total on the page a floor. */
   retentionLimited: boolean;
@@ -110,6 +117,17 @@ export interface ValueReport {
 export interface ValueReportContext {
   retentionDays?: number;
   todayIso?: string;
+  /**
+   * The month's ledger entry, when there is one.
+   *
+   * The ledger counted every service it ever saw; retained days are only ever a
+   * subset of that, because the purge removes the guest data but not the count.
+   * So wherever an aggregate exists it is at least as complete, and it wins for
+   * the totals. The per-formule breakdown cannot come from it — that needs the
+   * guest rows — so the breakdown stays built from whatever is still retained
+   * and says how many days it actually covers.
+   */
+  aggregate?: MonthAggregate;
 }
 
 // --- month arithmetic -----------------------------------------------------
@@ -262,6 +280,21 @@ export function computeValueReport(
     }
   }
 
+  // The ledger wins for the totals wherever it exists: it counted days that no
+  // longer have guest data behind them, so it is never less complete than what
+  // is retained. The breakdown keeps whatever the retained days could build.
+  const agg = ctx.aggregate;
+  const breakdownDays = inMonth.length;
+  if (agg) {
+    covers = agg.covers;
+    offListCovers = agg.offListCovers;
+    vipsTotal = agg.vipsTotal;
+    vipsServed = agg.vipsServed;
+    busiestService = agg.busiest;
+    peakQuarter = agg.peak;
+  }
+  const daysCounted = agg ? agg.days.length : inMonth.length;
+
   const offListBreakdown: OffListLine[] = Array.from(breakdown.entries())
     .filter(([, n]) => n > 0)
     .map(([key, n]) => ({
@@ -287,14 +320,16 @@ export function computeValueReport(
 
   return {
     month,
-    hasData: inMonth.length > 0,
-    daysActive: inMonth.length,
+    hasData: daysCounted > 0,
+    daysActive: daysCounted,
     firstDay: inMonth[0]?.date ?? "",
     lastDay: inMonth[inMonth.length - 1]?.date ?? "",
     covers,
     offListCovers,
     offListValue,
     offListBreakdown,
+    breakdownDays,
+    breakdownPartial: breakdownDays < daysCounted,
     hoursSaved,
     staffValue,
     busiestService,

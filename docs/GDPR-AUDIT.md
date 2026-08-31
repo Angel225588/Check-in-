@@ -50,6 +50,48 @@ DPA will name.
 | localStorage | `gn_salt` | salt for the note key derivation | n/a | forever |
 | IndexedDB | `checkin-notes-key` | the AES key, `extractable: false` | n/a (non-exportable) | forever |
 | localStorage | `morningBrief_<date>` | **employee** duty roster, complaints, anniversaries | **No** | **forever** |
+| localStorage | `value_ledger` | monthly **counts only** — covers, off-list covers, VIP tallies, peak | n/a (no personal data) | **forever, deliberately** |
+
+
+### `value_ledger` — the one store that is meant to outlive retention
+
+Added for the monthly value report. It is the exception to "every new store goes
+in `PURGEABLE_STORES`", and the exception is only defensible because of what is
+NOT in it.
+
+The report needs totals from months whose guest data is long purged, and
+"covers since they started" needs all of them. The obvious way to get that is to
+raise `RETENTION_DAYS` to a year — and it would work: a compacted day measures
+about 7 KB against a **measured 4.9 MB** localStorage ceiling, so a year of
+history is roughly half the budget. Space was never the binding constraint.
+**Exposure is.** Twelve months of names, room numbers and VIP notes on a tablet
+that lives on a reception desk is twelve times the breach, to print a number.
+
+So the report keeps the counts and lets the people go. Each service is folded
+into its month — covers, off-list covers, VIP attendance, busiest service, worst
+quarter hour — and the guest rows are purged on the existing schedule. **No name,
+no room number, no confirmation number ever reaches this store**, which is what
+makes "forever" acceptable: with no personal data in it there is nothing for a
+retention window to protect, and nothing for an erasure request to erase.
+`value-ledger.test.ts` asserts the serialised form contains neither a guest name
+nor a room number, so the property is enforced rather than merely intended.
+
+Measured on the demo dataset: **310 bytes for a month.** A decade is under 40 KB.
+
+Two properties it must keep:
+
+- **Counts, never euros.** Money is derived at render time from the current
+  assumptions, so re-pricing a breakfast re-prices history instead of leaving
+  old months frozen at an old rate.
+- **The roll-up runs before anything that deletes.** `reclaimStorageSpace` and
+  `purgeExpired` both prune by age, so `recordDays` is the first call in
+  `AppContext.startup()`. Behind either of them, a service ageing out on that
+  load would be gone before it was counted, and the total would lose a day every
+  time the window moved.
+
+If retention is later raised anyway, this store stays useful and stays correct —
+recording is idempotent per service date, so a longer window simply re-presents
+days it has already counted.
 
 `notes-crypto.ts` and `notes-store.ts` are genuinely good work — non-extractable
 CryptoKey, a hashed storage key so `gn_524_POLANCO` never appears, and an honest

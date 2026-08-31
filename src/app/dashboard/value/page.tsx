@@ -33,6 +33,7 @@ import { RETENTION_DAYS } from "@/lib/storage";
 import { computeValueReport, daysInMonth } from "@/lib/value-report";
 import { readAssumptions, writeAssumptions } from "@/lib/value-settings";
 import { markMonthSeen, monthsWithData, previousMonth } from "@/lib/value-notice";
+import { ledgerMonth, ledgerMonths, ledgerTotals, recordDays, type LedgerTotals } from "@/lib/value-ledger";
 import type { ValueAssumptions } from "@/lib/value-report";
 import type { DailyData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -138,6 +139,10 @@ export default function ValueReportPage() {
   const [days, setDays] = useState<DailyData[]>([]);
   const [assumptions, setAssumptions] = useState<ValueAssumptions | null>(null);
   const [month, setMonth] = useState<string>("");
+  const [totals, setTotals] = useState<LedgerTotals>({
+    covers: 0, offListCovers: 0, vipsTotal: 0, vipsServed: 0,
+    daysActive: 0, months: 0, firstMonth: null,
+  });
 
   useEffect(() => {
     // 400 days rather than 30: retention is what limits this, not the query,
@@ -157,10 +162,18 @@ export default function ValueReportPage() {
     setDays(all);
     setAssumptions(readAssumptions());
 
+    // Roll up before reading, so a month that closed since the last app load is
+    // already on the ledger when its totals are asked for.
+    try { recordDays(all); } catch { /* the live months still compute */ }
+    setTotals(ledgerTotals());
+
     // Land on last month — the one that is actually finished — falling back to
     // the newest month that has anything in it.
     const todayIso = new Date().toISOString().split("T")[0];
-    const available = monthsWithData(all);
+    // Months the ledger remembers count as available even when their guest data
+    // is long purged — that is the whole point of keeping the counts.
+    const available = Array.from(new Set([...monthsWithData(all), ...ledgerMonths()]))
+      .sort((a, b) => b.localeCompare(a));
     const last = previousMonth(todayIso);
     setMonth(available.includes(last) ? last : available[0] ?? last);
     setMounted(true);
@@ -170,11 +183,18 @@ export default function ValueReportPage() {
     if (month) markMonthSeen(month);
   }, [month]);
 
-  const available = useMemo(() => monthsWithData(days), [days]);
+  const available = useMemo(
+    () => Array.from(new Set([...monthsWithData(days), ...ledgerMonths()]))
+      .sort((a, b) => b.localeCompare(a)),
+    [days]
+  );
 
   const report = useMemo(() => {
     if (!assumptions || !month) return null;
-    return computeValueReport(days, month, assumptions, { retentionDays: RETENTION_DAYS });
+    return computeValueReport(days, month, assumptions, {
+      retentionDays: RETENTION_DAYS,
+      aggregate: ledgerMonth(month) ?? undefined,
+    });
   }, [days, month, assumptions]);
 
   const patch = (p: Partial<ValueAssumptions>) => {
@@ -259,6 +279,25 @@ export default function ValueReportPage() {
                 </span>
               </p>
 
+              {report.breakdownPartial && (
+                <p className="text-micro text-brand-ink dark:text-brand-light mt-3">
+                  {report.breakdownDays === 0 ? (
+                    <>
+                      Le détail par formule n&apos;est plus disponible : les données
+                      clients de ce mois ont été purgées. Les totaux ci-dessus restent
+                      comptés.
+                    </>
+                  ) : (
+                    <>
+                      Répartition établie sur {report.breakdownDays} service
+                      {report.breakdownDays > 1 ? "s" : ""} sur {report.daysActive} — les
+                      autres journées sont comptées dans le total mais leur détail a été
+                      purgé.
+                    </>
+                  )}
+                </p>
+              )}
+
               {report.offListBreakdown.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
                   {report.offListBreakdown.map((line) => (
@@ -272,6 +311,34 @@ export default function ValueReportPage() {
                 </div>
               )}
             </div>
+
+            {/* SINCE THE BEGINNING — from the ledger, which outlives the purge */}
+            {totals.months > 0 && (
+              <div className="glass-liquid rounded-card p-4 mb-4 flex items-baseline justify-between gap-3 flex-wrap">
+                <div>
+                  <span className={EYEBROW}>Depuis le début</span>
+                  <div className="text-xs text-muted mt-1">
+                    {totals.months} mois enregistré{totals.months > 1 ? "s" : ""} ·{" "}
+                    {totals.daysActive} service{totals.daysActive > 1 ? "s" : ""}
+                    {totals.firstMonth && ` · depuis ${monthLabel(totals.firstMonth)}`}
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-4">
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-dark dark:text-white tabular-nums leading-none">
+                      {totals.covers.toLocaleString("fr-FR")}
+                    </div>
+                    <div className="text-micro text-muted">couverts</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-brand tabular-nums leading-none">
+                      {totals.offListCovers.toLocaleString("fr-FR")}
+                    </div>
+                    <div className="text-micro text-muted">hors liste</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* VOLUME + TIME */}
             <div className="grid grid-cols-2 gap-2 mb-4">
