@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRoutePolicy, getPropertyCode } from "@/lib/security/config";
+import { getRoutePolicy, getPropertyCode, isObserveMode } from "@/lib/security/config";
 import { securityError, statusForCode, type SecurityErrorCode } from "@/lib/security/errors";
 import {
   MemoryRateLimitStore,
@@ -209,22 +209,35 @@ export async function middleware(request: NextRequest) {
   // 3. Identity for metering. This is NOT authentication — see
   //    src/lib/security/identity.ts. It gives the limiter and the spend cap a
   //    stable key that is not the IP address.
+  //
+  // A missing or unverifiable cookie MINTS A NEW ONE. It never rejects, and
+  // that is deliberate: this first shipped as a 401, which would have locked
+  // reception out mid-service. SESSION_SECRET is optional, so when it is unset
+  // each serverless instance signs with its own random key — a cookie minted
+  // by one instance fails on the next, and the tablet would have seen 401s at
+  // random between 06:30 and 10:30.
+  //
+  // Rejecting buys nothing anyway. Same-origin is already enforced above and
+  // is the real control; anyone who can reach this line could obtain a cookie
+  // by loading a page. Dropping a cookie to escape the per-identity limit is
+  // what the per-IP limit exists to catch.
   let identity: DeviceIdentity | null = tokenIdentity;
   let refreshedCookie: string | null = null;
 
   if (!identity) {
-    if (!session) {
-      // Same-origin already passed, so this is the app with a missing or
-      // stale cookie. A page reload mints one; no password is involved.
-      return deny("unauthenticated");
+    if (session) {
+      identity = { kind: "device", id: session.id, propertyCode: session.propertyCode };
+      // Slide the expiry so an active shift never lapses mid-service.
+      refreshedCookie = await signSession({
+        id: session.id,
+        propertyCode: session.propertyCode,
+        iat: now,
+      });
+    } else {
+      const minted = await createSession(propertyCode, now);
+      identity = minted.identity;
+      refreshedCookie = minted.value;
     }
-    identity = { kind: "device", id: session.id, propertyCode: session.propertyCode };
-    // Slide the expiry so an active shift never lapses mid-service.
-    refreshedCookie = await signSession({
-      id: session.id,
-      propertyCode: session.propertyCode,
-      iat: now,
-    });
   }
 
   // 4. Rate limiting: per identity AND per IP, on this route's own tier.
@@ -241,9 +254,23 @@ export async function middleware(request: NextRequest) {
     now,
   );
 
-  if (!limit.allowed) return deny("rate_limited", limit.retryAfter);
+  if (!limit.allowed) {
+    if (!isObserveMode()) return deny("rate_limited", limit.retryAfter);
+    // Observe: report what would have been rejected, reject nothing.
+    console.warn(
+      `[security:observe] rate limit would reject ${pathname} scope=${limit.scope}`,
+    );
+  }
 
-  const res = NextResponse.next();
+  // Hand the resolved identity to the route. Routes must NOT re-verify the
+  // cookie themselves: under an ephemeral secret that check can fail even
+  // though the middleware just accepted the request. `set` overwrites, so a
+  // client cannot inject either header.
+  const forwarded = new Headers(request.headers);
+  forwarded.set("x-device-id", identity.id);
+  forwarded.set("x-property-code", identity.propertyCode);
+
+  const res = NextResponse.next({ request: { headers: forwarded } });
   res.headers.set("X-RateLimit-Limit", String(limit.limit));
   res.headers.set("X-RateLimit-Remaining", String(limit.remaining));
   if (refreshedCookie) {

@@ -13,8 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
 import { getRoutePolicy } from "@/lib/security/config";
-import { guardError, readJsonBody, resolvePropertyCode } from "@/lib/security/guard";
-import { SESSION_COOKIE, verifySession } from "@/lib/security/identity";
+import { guardError, readJsonBody, requestIdentity } from "@/lib/security/guard";
 
 export const runtime = "nodejs";
 
@@ -61,22 +60,23 @@ export async function POST(request: NextRequest) {
   }
 
   // `actor` is a caller-supplied label and nothing more — a client can put any
-  // name in it. Bind the signed device identity alongside so the audit trail
-  // records something the caller cannot choose. This is not proof of a person
-  // (see src/lib/security/identity.ts); it is proof of a device, which is
-  // strictly more than the claim alone. Real actor identity arrives with the
-  // Supabase Auth work in docs/GDPR-AUDIT.md §2.
-  const cookie = request.headers.get("cookie") ?? "";
-  const match = new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`).exec(cookie);
-  const session = match ? await verifySession(decodeURIComponent(match[1])) : null;
-  if (!session) {
+  // name in it. Bind the device the middleware resolved alongside it, so the
+  // audit trail records something the caller cannot choose. This is not proof
+  // of a person (see src/lib/security/identity.ts); it is proof of a device,
+  // which is strictly more than the claim alone. Real actor identity arrives
+  // with the Supabase Auth work in docs/GDPR-AUDIT.md §2.
+  //
+  // Taken from the middleware's headers, never by re-reading the cookie: that
+  // check can fail under an ephemeral signing key on a request the middleware
+  // just accepted, which would refuse an erasure for no real reason.
+  const { deviceId, propertyCode: boundProperty } = requestIdentity(request);
+  if (!deviceId) {
     return NextResponse.json({ error: "unidentified_device" }, { status: 401 });
   }
-  const actorRef = `${body.actor.trim()}@device:${session.id.slice(0, 8)}`;
+  const actorRef = `${body.actor.trim()}@device:${deviceId.slice(0, 8)}`;
 
   // The tenant is the one bound to this device, not the one the body claims —
   // otherwise a caller could name someone else's property and have it honoured.
-  const boundProperty = await resolvePropertyCode(request);
   if (body.propertyCode.trim() !== boundProperty) {
     return NextResponse.json({ error: "property_mismatch" }, { status: 403 });
   }

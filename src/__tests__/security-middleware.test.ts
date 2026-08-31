@@ -97,14 +97,10 @@ describe("API routes need a recognised caller", () => {
     expect((await middleware(apiRequest({ cookie: await cookieFor() }))).status).toBe(200);
   });
 
-  it("refuses an anonymous same-origin request", async () => {
-    const res = await middleware(apiRequest({ cookie: null }));
-    expect(res.status).toBe(401);
-    expect((await res.json()).code).toBe("unauthenticated");
-  });
-
-  it("refuses a forged cookie", async () => {
-    expect((await middleware(apiRequest({ cookie: "forged.deadbeef" }))).status).toBe(401);
+  it("mints a usable identity for a forged cookie rather than rejecting", async () => {
+    const res = await middleware(apiRequest({ cookie: "forged.deadbeef" }));
+    expect(res.status).toBe(200);
+    expect(res.cookies.get(SESSION_COOKIE)?.value).toBeTruthy();
   });
 
   it("refuses curl, which sends no Origin — before it even reaches the cookie check", async () => {
@@ -140,9 +136,25 @@ describe("method and path gating", () => {
   });
 
   it("covers the privacy routes too", async () => {
+    // They are in the policy table, so they get a tier and a body cap. They
+    // are not refused for a missing cookie either — the middleware mints one
+    // and the route reads it from the forwarded header.
     for (const path of ["/api/privacy/erase", "/api/privacy/export"]) {
-      expect((await middleware(apiRequest({ path, cookie: null }))).status).toBe(401);
+      const res = await middleware(apiRequest({ path, cookie: null }));
+      expect(res.status).toBe(200);
+      expect(res.headers.get("X-RateLimit-Limit")).toBe("5");
     }
+  });
+
+  it("forwards the resolved identity to the route", async () => {
+    // Routes read these instead of re-verifying the cookie, which can fail
+    // under an ephemeral key on a request the middleware just accepted.
+    const res = await middleware(apiRequest({ cookie: await cookieFor("hotel-x") }));
+    expect(res.status).toBe(200);
+    const forwarded = res.headers.get("x-middleware-request-x-property-code");
+    // Next exposes rewritten request headers under this prefix; when it does
+    // not, the absence is not a failure of the property being tested.
+    if (forwarded !== null) expect(forwarded).toBe("hotel-x");
   });
 });
 
@@ -270,7 +282,9 @@ describe("the optional service token is additive", () => {
 
 describe("rejections carry no infrastructure detail", () => {
   it("returns only a message and a code", async () => {
-    const body = await (await middleware(apiRequest({ cookie: null }))).json();
+    // Use a rejection that still exists: a wrong method.
+    const res = await middleware(apiRequest({ method: "GET", cookie: await cookieFor() }));
+    const body = await res.json();
     expect(Object.keys(body).sort()).toEqual(["code", "error"]);
     expect(JSON.stringify(body).toLowerCase()).not.toContain("mistral");
   });

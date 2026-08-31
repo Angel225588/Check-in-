@@ -111,6 +111,37 @@ bug: `PhotoCapture` decided its Tesseract fallback with
 `error.includes("not configured")` while the route answered in French, so the
 fallback never fired at all when the key was missing.
 
+## Not locking reception out
+
+The app is used standing, one-handed, with a queue, between 06:30 and 10:30. A
+check that refuses a real upload in that window is worse than the abuse it
+prevents. Two rules follow.
+
+**A same-origin `/api` call is never refused for lacking a valid cookie.** The
+middleware mints one and continues. This first shipped as a 401, which would
+have locked reception out: `SESSION_SECRET` is optional, so with it unset each
+serverless instance signs with its own random key, and a cookie minted by one
+instance fails on the next — 401s at random, mid-service. Rejecting bought
+nothing anyway: same-origin is the real control, and anyone reaching that line
+could obtain a cookie by loading a page. Dropping a cookie to escape the
+per-identity limit is what the per-IP limit catches.
+
+Routes therefore read `x-device-id` / `x-property-code`, set by the middleware,
+rather than re-verifying the cookie — which would repeat the same check under a
+possibly different key and fail on a request already accepted. The middleware
+overwrites both headers, so a client cannot inject them.
+
+**`SECURITY_MODE=observe` is the rollout lever.** Rate limits, the spend cap and
+magic-byte validation run and log what they would have rejected, and reject
+nothing. Structural gates stay on in both modes. Ship a new limit in observe,
+read a day of logs, then enforce. On Vercel that is an env change plus a
+redeploy — about a minute, which is the fastest honest rollback here, not
+instant. A month spent in observe leaves the ledger understating real spend.
+
+`src/__tests__/security-no-lockout.test.ts` covers the cases that must never
+4xx: no cookie, a cookie signed by another instance, an expired cookie, and
+garbage in the cookie.
+
 ## Privacy routes
 
 `actor` is a caller-supplied label — a client can put any name in it. The signed

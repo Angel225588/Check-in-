@@ -29,7 +29,7 @@ The user is standing, one-handed, with a queue in front of them between 06:30 an
 1. **Write tests FIRST** before implementing any feature or fix
 2. Tests live in `src/__tests__/` with pattern `*.test.ts`
 3. Run tests: `npx vitest run` — single file: `npx vitest run src/__tests__/x.test.ts`
-4. All tests must pass before committing — **999 tests across 84 files**
+4. All tests must pass before committing — **1011 tests across 85 files**
 5. Layout and behaviour that a unit test cannot see belong in the design rules,
    not in a screenshot: `node scripts/design-rules.mjs` (118 checks, real browser)
    — and **a rule that can be satisfied by a broken screen is not a rule**: R25a

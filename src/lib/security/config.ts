@@ -181,6 +181,30 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   },
 ];
 
+/**
+ * Enforcement mode — the lever to pull when a new limit misfires during
+ * service.
+ *
+ * "observe" keeps every check running and logging, and rejects nothing: rate
+ * limits, the spend cap and magic-byte validation all report what they *would*
+ * have done. The structural gates stay on in both modes — method, same-origin,
+ * unknown paths and the declared-size pre-check are not new behaviour and
+ * cannot lock reception out of a document they could upload yesterday.
+ *
+ * Ship a new limit in observe, read a day of logs, then enforce. Changing this
+ * is an environment variable, not a code change — on Vercel that is a redeploy
+ * of about a minute, which is the fastest honest rollback available here.
+ */
+export type SecurityMode = "enforce" | "observe";
+
+export function getSecurityMode(): SecurityMode {
+  return process.env.SECURITY_MODE === "observe" ? "observe" : "enforce";
+}
+
+export function isObserveMode(): boolean {
+  return getSecurityMode() === "observe";
+}
+
 export function getRoutePolicy(pathname: string): RoutePolicy | null {
   return ROUTE_POLICIES.find((p) => p.path === pathname) ?? null;
 }

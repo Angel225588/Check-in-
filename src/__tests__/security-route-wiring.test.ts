@@ -138,8 +138,14 @@ describe("the privacy routes bind the actor to something unforgeable", () => {
 
   it("does not take the caller's word for who is acting", () => {
     for (const { route, src } of PRIVACY) {
-      expect(src, `${route} trusts body.actor alone`).toContain("verifySession(");
+      // The device comes from the middleware's headers. Re-verifying the
+      // cookie in the route can fail under an ephemeral signing key on a
+      // request the middleware just accepted.
+      expect(src, `${route} trusts body.actor alone`).toContain("requestIdentity");
       expect(src, `${route} does not bind a device`).toContain("actorRef");
+      expect(src, `${route} re-verifies the cookie itself`).not.toContain(
+        "verifySession"
+      );
     }
   });
 

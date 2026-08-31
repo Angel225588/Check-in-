@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { safeLogError } from "@/lib/log-safe";
 import {
   getPropertyCode,
+  isObserveMode,
   type RoutePolicy,
   type AllowedUploadType,
 } from "./config";
@@ -22,9 +23,9 @@ import {
   commit,
   release,
   worstCaseCost,
+  periodKey,
   type Reservation,
 } from "./budget";
-import { SESSION_COOKIE, verifySession } from "./identity";
 
 /** An error response carrying a stable code and no infrastructure detail. */
 export function guardError(
@@ -38,20 +39,34 @@ export function guardError(
 }
 
 /**
- * Which property to bill. The middleware already validated the cookie; this
- * only reads the scope back out, falling back to the configured default.
+ * The billing scope and device for this request, as resolved by the middleware.
+ *
+ * Read from headers the middleware sets, NOT by re-verifying the cookie here.
+ * Re-verifying repeats the check under a possibly different ephemeral signing
+ * key (SESSION_SECRET is optional, so each instance may hold its own) and can
+ * fail on a request the middleware just accepted. The middleware overwrites
+ * both headers on every /api request, so a client cannot inject them.
  */
-export async function resolvePropertyCode(request: Request): Promise<string> {
-  const cookie = request.headers.get("cookie") ?? "";
-  const match = new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`).exec(cookie);
-  if (!match) return getPropertyCode();
-  const session = await verifySession(decodeURIComponent(match[1]));
-  return session?.propertyCode ?? getPropertyCode();
+export function requestIdentity(request: Request): {
+  deviceId: string | null;
+  propertyCode: string;
+} {
+  return {
+    deviceId: request.headers.get("x-device-id"),
+    propertyCode: request.headers.get("x-property-code") || getPropertyCode(),
+  };
+}
+
+/** Billing scope only. */
+export function resolvePropertyCode(request: Request): string {
+  return requestIdentity(request).propertyCode;
 }
 
 export interface AiBudgetHold {
   propertyCode: string;
   reservation: Reservation;
+  /** True when the cap would have rejected but observe mode let it through. */
+  observed?: boolean;
 }
 
 export type BudgetOutcome =
@@ -70,7 +85,7 @@ export async function holdBudget(
   policy: RoutePolicy,
   worstCaseOverride?: number
 ): Promise<BudgetOutcome> {
-  const propertyCode = await resolvePropertyCode(request);
+  const propertyCode = resolvePropertyCode(request);
   const amount = worstCaseOverride ?? worstCaseCost(policy.worstCase);
 
   const reservation = await reserve(getLedger(), { propertyCode, amount });
@@ -79,6 +94,19 @@ export async function holdBudget(
     console.error(
       safeLogError("AI spend blocked", `${reservation.reason} property=${propertyCode}`)
     );
+    if (isObserveMode()) {
+      // Observe: report and proceed unmetered. The call is NOT counted, so a
+      // month spent in observe leaves the ledger understating real spend.
+      console.warn("[security:observe] spend cap would reject this request");
+      return {
+        ok: true,
+        hold: {
+          propertyCode,
+          reservation: { ok: true, amount: 0, propertyCode, period: periodKey() },
+          observed: true,
+        },
+      };
+    }
     return {
       ok: false,
       response: guardError("budget_exceeded", reservation.retryAfter),
@@ -90,11 +118,16 @@ export async function holdBudget(
 
 /** Reconcile the hold against what the request actually cost. */
 export async function settleOk(hold: AiBudgetHold, actualCost: number): Promise<void> {
+  // An observed hold reserved nothing, so committing the real cost would add
+  // spend the cap already declined to admit. Leave the ledger alone and let
+  // the warning above be the record.
+  if (hold.observed) return;
   await commit(getLedger(), hold.reservation, actualCost);
 }
 
 /** Release the hold — the call failed, so nothing was spent. */
 export async function settleFailed(hold: AiBudgetHold): Promise<void> {
+  if (hold.observed) return;
   await release(getLedger(), hold.reservation);
 }
 
@@ -137,7 +170,23 @@ export async function readValidatedFile(
         )
       );
     }
-    return { ok: false, code: "unsupported_file_type" };
+    if (!isObserveMode()) return { ok: false, code: "unsupported_file_type" };
+    // Observe: a real scanner producing an unexpected container should not
+    // cost reception its morning upload while the rule is still being proven.
+    console.warn(
+      `[security:observe] would reject upload: claimed=${file.type} detected=${
+        check.detected ?? "unknown"
+      }`
+    );
+    // Fall back to exactly the old behaviour — trust the claimed type when it
+    // is one we support — so observe mode really is "as before, but logged".
+    // Returning a null type here would still fail in the route, which would
+    // make observe mode reject after all.
+    const claimed = file.type?.toLowerCase() as AllowedUploadType | undefined;
+    const fallback =
+      claimed && policy.allowedTypes.includes(claimed) ? claimed : policy.allowedTypes[0];
+    if (!fallback) return { ok: false, code: "unsupported_file_type" };
+    return { ok: true, bytes: Buffer.from(buffer), detectedType: fallback };
   }
 
   return {
