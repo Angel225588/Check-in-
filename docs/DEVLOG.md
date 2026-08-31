@@ -119,15 +119,29 @@ while the totals stand. The ledger is asserted to contain no guest name and no
 room number, so "forever" is defensible — there is nothing in it for a retention
 window to protect. `GDPR-AUDIT.md` carries the reasoning.
 
-### What is not proved
+### What proved it
 
-`scripts/design-rules.mjs` could not run here — it reaches
-`fonts.googleapis.com`, which the sandbox blocks, and hangs. The source-level
-safe-area rule in `safe-area-shells.test.ts` did run, and caught the new screen
-drawing under the iPad clock before it was fixed. The page was rendered in a
-real browser against the app's own demo loader, and the home-screen notice was
-watched going both ways: absent when last month holds no service, present once
-the clock steps into September.
+`scripts/design-rules.mjs`: **131 passed, 2 failed** — and both failures are on
+`/search`, which this branch does not touch:
+
+- `R25f-se-no-overlap` (guest card over the commit button) is recorded as **NOT
+  SOLVED** on `main` by 729a6f6's own message.
+- `R19-ipad-safari-chrome-search` (preview-carousel content-cut) was attributed
+  by checking out `514e255` and re-running: it **fails identically on untouched
+  `main`**, same rule, same message. Pre-existing.
+
+Getting there took two false starts worth recording, because both are traps this
+file already warns about. The first run crashed with "Page did not hydrate —
+empty body" because a rebuild was started while it was driving the server: that
+is the stale-manifest trap, and the fix is the documented one — kill the server,
+then build, then start. The second failed to find `[data-role="test-tools"]`
+for the same reason, and looked like a broken feature rather than a stale build.
+
+The source-level safe-area rule in `safe-area-shells.test.ts` also caught the new
+screen drawing under the iPad clock before it was fixed. The home-screen notice
+was watched going both ways — absent when last month holds no service, present
+once the clock steps into September — because a card that never renders and a
+card that always renders look identical if you only ever check one of them.
 
 ---
 
