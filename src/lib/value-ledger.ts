@@ -58,6 +58,16 @@ export interface MonthAggregate {
   /** Service dates already counted. The idempotence key, and the only reason
    *  re-recording a retained day is safe. */
   days: string[];
+  /**
+   * People the roster expected. `covers` minus this is the no-show gap the
+   * F&B chart draws over six months and more.
+   *
+   * Optional because months written before it existed do not carry it, and
+   * defaulting those to zero would draw a month where nobody was expected and
+   * everybody came — which reads as a triumph rather than a missing field.
+   */
+  expected?: number;
+  /** People served. */
   covers: number;
   offListCovers: number;
   vipsTotal: number;
@@ -180,6 +190,7 @@ export function recordDays(days: DailyData[]): void {
     const report = generateDayReport(d.clients, d.checkIns, d.date);
 
     agg.days.push(d.date);
+    agg.expected = (agg.expected ?? 0) + report.totalGuests;
     agg.covers += report.totalEntered;
     agg.offListCovers += offListOf(report);
 
@@ -213,6 +224,8 @@ export function ledgerMonth(month: string): MonthAggregate | null {
 }
 
 export interface LedgerTotals {
+  /** People expected across every month on record. */
+  expected: number;
   covers: number;
   offListCovers: number;
   vipsTotal: number;
@@ -229,6 +242,7 @@ export function ledgerTotals(): LedgerTotals {
   const months = Object.values(ledger);
 
   const totals: LedgerTotals = {
+    expected: 0,
     covers: 0,
     offListCovers: 0,
     vipsTotal: 0,
@@ -239,6 +253,7 @@ export function ledgerTotals(): LedgerTotals {
   };
 
   for (const m of months) {
+    totals.expected += m.expected ?? 0;
     totals.covers += m.covers;
     totals.offListCovers += m.offListCovers;
     totals.vipsTotal += m.vipsTotal;

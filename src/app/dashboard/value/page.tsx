@@ -140,7 +140,7 @@ export default function ValueReportPage() {
   const [assumptions, setAssumptions] = useState<ValueAssumptions | null>(null);
   const [month, setMonth] = useState<string>("");
   const [totals, setTotals] = useState<LedgerTotals>({
-    covers: 0, offListCovers: 0, vipsTotal: 0, vipsServed: 0,
+    expected: 0, covers: 0, offListCovers: 0, vipsTotal: 0, vipsServed: 0,
     daysActive: 0, months: 0, firstMonth: null,
   });
 
