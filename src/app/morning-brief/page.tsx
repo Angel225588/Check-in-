@@ -85,8 +85,7 @@ export default function MorningBriefPage() {
     brief.gss.length === 0 &&
     brief.comments.length === 0 &&
     brief.specialEvents.length === 0 &&
-    brief.ambassadors.length === 0 &&
-    brief.duty.length === 0;
+    brief.ambassadors.length === 0;
 
   if (!brief) {
     return (
@@ -474,38 +473,8 @@ export default function MorningBriefPage() {
           </Card>
         )}
 
-        {/* DUTY + GROUPS + FRONT OFFICE */}
+        {/* GROUPS + FRONT OFFICE */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {brief.duty.length > 0 && (
-            <Card>
-              <CardContent>
-                <div className="flex items-center gap-2 mb-3">
-                  <Users weight="duotone" className="size-4 text-brand" />
-                  <h2 className="text-micro uppercase tracking-wider font-bold text-muted">
-                    Duty
-                  </h2>
-                </div>
-                <div className="space-y-1.5">
-                  {brief.duty.map((d, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between text-xs"
-                    >
-                      <span className="text-muted">{d.dayLabel}</span>
-                      <span className="text-dark font-bold">
-                        {d.staffName}
-                        {d.staffId && (
-                          <span className="text-muted/70 font-normal ml-1 tabular-nums">
-                            ({d.staffId})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {brief.groups.length > 0 && (
             <Card>
@@ -568,14 +537,6 @@ export default function MorningBriefPage() {
                   </div>
                   <div className="text-micro text-muted uppercase">Enrollments J-1</div>
                 </div>
-                {brief.frontOffice.champion && (
-                  <div>
-                    <div className="text-sm font-black text-brand">
-                      🏆 {brief.frontOffice.champion}
-                    </div>
-                    <div className="text-micro text-muted uppercase">Champion</div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

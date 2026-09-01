@@ -98,3 +98,51 @@ describe("deduplication still works without the confirmation number", () => {
     expect(dedupClients(rows)).toHaveLength(2);
   });
 });
+
+/**
+ * Employee data (Art. 5(1)(c), and the CSE).
+ *
+ * The morning brief carried a duty roster by name and staff number, plus a
+ * named front-office "champion" — a performance ranking. None of it helps
+ * anyone serve breakfast, and none of it was ever read by a decision in this
+ * app. Storing it was pure risk in return for nothing.
+ *
+ * It also carried a duty the vendor cannot discharge. The employer is the
+ * hotel, and in France introducing a tool that can monitor staff activity
+ * requires informing and consulting the CSE before it is used. The cheapest
+ * way to keep that problem out of our customers' way is to make the tool
+ * incapable of it.
+ *
+ * The line this ratchet holds: ACCOUNTABILITY logging stays — `author` on a
+ * note and `actor` in the access log answer "who wrote this allergy" and "who
+ * read it", which Art. 32 effectively requires. PERFORMANCE data does not.
+ */
+const REMOVED_EMPLOYEE_FIELDS = ["staffName", "staffId", "champion"] as const;
+
+describe("employee data is not collected", () => {
+  it.each(REMOVED_EMPLOYEE_FIELDS)("%s is never stored or read as a field", (field) => {
+    const asProperty = new RegExp(`(?:\\.${field}\\b|\\b${field}\\s*:)`);
+    const offenders = FILES.filter((f) => {
+      const code = readFileSync(f, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
+      return asProperty.test(code);
+    }).map((f) => path.relative(SRC, f));
+    expect(offenders, `${field} is back in: ${offenders.join(", ")}`).toEqual([]);
+  });
+
+  it("the duty roster is not part of the brief at all", () => {
+    // Stripping the names but keeping the shape would invite someone to put
+    // them back. The whole structure goes.
+    const model = readFileSync(path.join(SRC, "lib/morning-brief.ts"), "utf8");
+    expect(model).not.toMatch(/interface DutyDay/);
+    expect(model).not.toMatch(/\bduty\s*:/);
+  });
+
+  it("still keeps the accountability trail, which is a different thing", () => {
+    const log = readFileSync(path.join(SRC, "lib/privacy/access-log.ts"), "utf8");
+    expect(log).toMatch(/actor/);
+    const notes = readFileSync(path.join(SRC, "lib/notes.ts"), "utf8");
+    expect(notes).toMatch(/author/);
+  });
+});

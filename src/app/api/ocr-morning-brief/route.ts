@@ -108,7 +108,6 @@ function normalizeBrief(parsed: Record<string, unknown>): Record<string, unknown
     ambassadors: arr(parsed.ambassadors),
     topVips: [],
     complaints: [],
-    duty: [],
     groups: [],
   };
 }

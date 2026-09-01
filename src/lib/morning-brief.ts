@@ -2,7 +2,13 @@
  * Morning Brief — modèle des données du document quotidien Marriott Courtyard.
  * Reproduit la structure du PDF "Passionate · Forward · Inviting" envoyé chaque
  * matin par le Front Office (Forecast, GSS, Commentaires, Anniversaires,
- * Ambassadors, VIPs, Plaintes, Duty, Groupes, Front Office stats, News, Theme).
+ * Ambassadors, VIPs, Plaintes, Groupes, Front Office stats, News, Theme).
+ *
+ * The PDF also carries a duty roster by name and a named front-office
+ * "champion". Neither is modelled here, deliberately. They are employee data
+ * that no decision in this app reads, and a tool that cannot see staff activity
+ * cannot hand the hotel a works-council problem it did not ask for.
+ * `data-minimisation.test.ts` holds that shut.
  */
 
 export interface ForecastDay {
@@ -63,12 +69,6 @@ export interface Complaint {
   date?: string;
 }
 
-export interface DutyDay {
-  dayLabel: string;      // "Vendredi 01/05"
-  staffName: string;
-  staffId?: string;
-}
-
 export interface Group {
   code: string;          // "TRACOIN DELP/2SD26a"
   rooms: number;
@@ -80,7 +80,6 @@ export interface FrontOfficeStats {
   scoreActualMTD: number;
   enrollmentsToday: number;
   enrollmentsGoal: number;
-  champion?: string;
 }
 
 export interface MorningBrief {
@@ -92,7 +91,6 @@ export interface MorningBrief {
   ambassadors: Ambassador[];
   topVips: TopVip[];
   complaints: Complaint[];
-  duty: DutyDay[];
   groups: Group[];
   frontOffice?: FrontOfficeStats;
   themeOfDay?: string;
@@ -137,7 +135,6 @@ export function emptyBrief(date: string = todayStr()): MorningBrief {
     ambassadors: [],
     topVips: [],
     complaints: [],
-    duty: [],
     groups: [],
   };
 }
@@ -190,23 +187,12 @@ export function mockMorningBrief(date: string = todayStr()): MorningBrief {
     ],
     topVips: [],
     complaints: [],
-    duty: [
-      { dayLabel: "Vendredi 01/05", staffName: "David", staffId: "6440" },
-      { dayLabel: "Samedi 02/05", staffName: "Isabelle", staffId: "6423" },
-      { dayLabel: "Dimanche 03/05", staffName: "Clémence", staffId: "6481" },
-      { dayLabel: "Vendredi 08/05", staffName: "François", staffId: "6464" },
-      { dayLabel: "Samedi 09/05", staffName: "Fady", staffId: "6448" },
-      { dayLabel: "Dimanche 10/05", staffName: "Guillaume", staffId: "6410" },
-      { dayLabel: "Jeudi 14/05", staffName: "Fanny", staffId: "6449" },
-      { dayLabel: "Samedi 16/05", staffName: "Marina", staffId: "6463" },
-    ],
     groups: [{ code: "TRACOIN DELP/2SD26a", rooms: 22, contactName: "Camille" }],
     frontOffice: {
       monthlyTargetCapture: 400,
       scoreActualMTD: 555,
       enrollmentsToday: 11,
       enrollmentsGoal: 12,
-      champion: "Alexandre",
     },
     themeOfDay: "Où trouver les endroits suivants : barbier, salon de manucure, centre commercial, épicerie, banque, transports en commun, service de location de voiture, magasin d'expédition, mairie, caviste ?",
     marriottNews: "Valeurs de Courtyard — Passionate · In Avant · Inviting · Acceuillant",
