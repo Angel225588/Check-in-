@@ -8,6 +8,42 @@ walked in, close the day, read the report.
 The user is standing, one-handed, with a queue in front of them between 06:30 and
 10:30. Every decision in this codebase is downstream of that.
 
+## Where we stand commercially — READ THIS BEFORE PROPOSING ARCHITECTURE
+
+**As of 2026-09-01 there is no signed DPA and no signed Marriott contract.** The
+target is to sign with Marriott in **October 2026**, with every legal document
+ready to hand over and explain by then.
+
+**That is why the app is local-only. It is a deliberate legal position, not a
+limitation and not an accident.** Article 28(3) requires a written contract
+before a processor may process personal data on a controller's behalf. Until
+that contract exists, guest data does not leave the reception tablet — so the
+question "why isn't this in a database yet?" has an answer, and the answer is
+not "nobody got round to it".
+
+Concretely, until a contract is signed, **do not**:
+
+- enable Supabase, or add any server-side store of guest data (`supabase/schema.sql`
+  is a reviewed design awaiting a signature, not a TODO)
+- add a sync, a backup, an export-to-cloud, or a cron job that reads guest data
+- email anything containing guest data, or attach it to anything sent off-device
+- widen retention to hold more personal data for longer
+
+Any of those turns a defensible position into an undocumented transfer, three
+weeks before the meeting that is meant to prove we are professionals.
+
+**The one existing exception, and it is the sharp one.** OCR sends roster images
+to Mistral in Paris. That is the single place guest data leaves the device today,
+which makes Mistral a sub-processor that the DPA must name and the hotel must
+accept. `localOCR` (Tesseract, on-device) exists as the escape hatch, and
+`docs/GDPR-AUDIT.md` §8.1 still flags Mistral's retention and training terms as
+**unverified against our actual contract**. Settle that before October, not after.
+
+Work that does NOT need the contract, and is where the value has been built:
+anything computed on the device, and the `value_ledger` — counts only, no names,
+no room numbers — which is what lets reports outlive the 30-day purge without
+holding more personal data.
+
 ## Tech Stack
 - Next.js 16 App Router, TypeScript, Tailwind CSS v4
 - Mistral OCR (EU-hosted, Paris) for OCR — `src/lib/ai/`, `mistral-ocr.ts`,

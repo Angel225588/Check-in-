@@ -14,15 +14,24 @@
 
 ## 0. Two facts that frame everything
 
-**(a) There is no server-side database.** `src/lib/supabase.ts` does not exist on
-`main`, and nothing imports `@supabase/supabase-js`. Every byte of guest data lives in
-`localStorage` and IndexedDB **on the reception device**. `supabase/schema.sql` is an
-unapplied design document. The only candidate project in the account
-(`anishbaamernlrijioic`, eu-west-3 / Paris) is **paused**; I did not restore it.
+**(a) There is no server-side database, and that is a decision.** `src/lib/supabase.ts`
+does not exist on `main`, and nothing imports `@supabase/supabase-js`. Every byte of
+guest data lives in `localStorage` and IndexedDB **on the reception device**.
+`supabase/schema.sql` is a reviewed design awaiting a signature. The only candidate
+project in the account (`anishbaamernlrijioic`, eu-west-3 / Paris) is **paused**.
 
-So today's tenant isolation is *device* isolation — one tablet, one hotel. That is
-accidentally safe, and it is why nothing has leaked. It is also why §2 must land
-**before** the first `supabase.from(...)` call, not after.
+**Correction to an earlier reading of this document.** A previous pass called the
+device-only architecture "accidentally safe". It is not accidental. There is no
+signed DPA and no signed Marriott contract, and Art. 28(3) requires a written
+contract before a processor may process personal data on a controller's behalf —
+so guest data stays on the tablet on purpose, until one exists. Getting that
+wrong matters: read as an accident, the obvious next step is "wire up the
+database"; read correctly, that step is blocked until October. `CLAUDE.md` now
+carries the same statement, because every session that starts by reading the code
+reaches the wrong conclusion otherwise.
+
+So today's tenant isolation is *device* isolation — one tablet, one hotel — and it
+is why §2 must land **before** the first `supabase.from(...)` call, not after.
 
 **(b) The only cloud AI provider is Mistral, EU-hosted.** `src/lib/ai/config.ts` pins
 `https://api.mistral.ai` (Paris) with `mistral-ocr-4-1` and `mistral-large-2512`.

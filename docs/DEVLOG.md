@@ -13,6 +13,51 @@ git for those.
 
 ---
 
+## 2026-09-01 — Local-only is a decision, and the docs said otherwise
+
+No tests changed. This entry exists because a wrong sentence in a document was
+costing a conversation every session.
+
+### What was wrong
+
+`GDPR-AUDIT.md` §0 called the device-only architecture **"accidentally safe"**.
+Every session that read the code reached the same conclusion I did on day one:
+there is no database, that is a gap, the obvious next step is to wire one up.
+
+It is not a gap. There is no signed DPA and no signed Marriott contract, and
+Art. 28(3) requires a written contract before a processor may process personal
+data on a controller's behalf. Guest data stays on the tablet **on purpose**.
+Angel has now had to explain this at the start of three separate sessions, which
+is the clearest possible signal that it belonged in a file rather than in a chat.
+
+### What changed
+
+`CLAUDE.md` gained a section above the tech stack — the first thing any session
+reads — stating the position, the October target, and the four things not to
+build until a contract exists: no server store, no sync or cloud export, no
+email carrying guest data, no widened retention. `GDPR-AUDIT.md` §0 carries the
+correction rather than quietly reading as if it were always right.
+
+### The exception worth staring at
+
+If the position is "we cannot hold their data until a contract is signed", then
+the OCR call is the one place that position is already stretched: roster images
+go to Mistral in Paris, which makes Mistral a sub-processor the DPA must name and
+the hotel must accept. `localOCR` (Tesseract, on-device) is the escape hatch and
+§8.1 still flags Mistral's retention and training terms as unverified against our
+actual contract. That is a pre-October item, not a post-October one.
+
+### Employee data, closed
+
+§8.6 of the audit flagged "works-council implications of the `morningBrief`" and
+left it open. It is now closed by deletion rather than by assessment: the duty
+roster and the named champion are gone from the model, the mock, the OCR route
+and the brief screen, with `data-minimisation.test.ts` holding it shut. The line
+recorded there — accountability logging stays, performance data does not — is the
+part worth keeping when someone asks why `author` and `actor` survived the cut.
+
+---
+
 ## 2026-08-31 — The monthly value report, in the app
 
 **1103/1103 tests · 90 files · tsc clean · build clean.** 73 new tests across
